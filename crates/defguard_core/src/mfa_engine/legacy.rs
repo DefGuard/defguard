@@ -3,22 +3,23 @@ use std::{collections::HashSet, net::IpAddr};
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, WireguardNetwork, biometric_auth::BiometricAuth,
+        Device, Settings, ThrottleScope, User, WireguardNetwork, biometric_auth::BiometricAuth,
         vpn_client_mfa_session::VpnMfaFlowKind, vpn_client_session::VpnClientMfaMethod,
     },
 };
 use thiserror::Error;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use super::{
     LoadedFinishContext, MfaEngine,
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
-    filter_unlicensed_mfa_methods,
+    filter_unlicensed_mfa_methods, is_code_method,
     method::{
         CommonVerifyError, InitiateError, LegacyCredential, Verdict, verify_legacy,
         verify_mobile_signature,
     },
+    poll_allowed, throttle_key,
     types::{FinishOutcome, LegacyFinishOutcome, LegacyStartOutcome},
 };
 use crate::events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent};
@@ -153,6 +154,33 @@ impl MfaEngine {
         } = loaded;
 
         let method = ephemeral.selected_method;
+        if method == VpnClientMfaMethod::Oidc
+            && code.is_none()
+            && auth_pub_key.is_none()
+            && !poll_allowed(&session.token_hash)
+        {
+            debug!("Throttled a poll of MFA session {}", session.id);
+            return Err(FinishError::OidcNotCompleted);
+        }
+
+        let charge_key = (is_code_method(method) && code.is_some())
+            .then(|| throttle_key(session.location_id, session.device_id));
+        if let Some(key) = &charge_key
+            && !ThrottleScope::VpnMfaCode
+                .hit(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to charge an MFA code attempt: {err}");
+                    FinishError::Internal
+                })?
+        {
+            warn!(
+                "User {} has no MFA code attempts left for device {} at location {}",
+                ctx.user.username, ctx.device.id, ctx.location.name
+            );
+            return Err(FinishError::Unauthorized);
+        }
+
         let credential = match method {
             VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email => {
                 code.clone().map(LegacyCredential::Code)
@@ -184,6 +212,17 @@ impl MfaEngine {
         } else {
             verify_legacy(&ctx, &ephemeral, credential.as_ref())
         };
+        if let Some(key) = &charge_key
+            && matches!(&verdict, Ok(Verdict::Proved))
+        {
+            ThrottleScope::VpnMfaCode
+                .refund(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to refund an MFA code attempt: {err}");
+                    FinishError::Internal
+                })?;
+        }
 
         let mut mobile_auth_device_name = None;
         match verdict {

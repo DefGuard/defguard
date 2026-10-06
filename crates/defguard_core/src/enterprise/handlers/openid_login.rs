@@ -160,6 +160,7 @@ pub fn build_state(state_data: Option<String>) -> CsrfToken {
 }
 
 /// Extract the state data from the provided state.
+#[must_use]
 pub fn extract_state_data(state: &str) -> Option<String> {
     let decoded = BASE64_STANDARD.decode(state).ok()?;
     let decoded_str = String::from_utf8(decoded).ok()?;
@@ -879,7 +880,7 @@ pub async fn auth_callback(
 mod test {
     use std::{
         net::Ipv4Addr,
-        sync::{Arc, Mutex, RwLock, atomic::AtomicBool},
+        sync::{Arc, RwLock, atomic::AtomicBool},
     };
 
     use axum::http::HeaderMap;
@@ -911,7 +912,6 @@ mod test {
 
     use super::*;
     use crate::{
-        auth::failed_login::FailedLoginMap,
         enterprise::{
             db::models::openid_provider::{
                 DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
@@ -1212,7 +1212,6 @@ mod test {
             gateway_tx,
             web_reload_tx,
             key,
-            Arc::new(Mutex::new(FailedLoginMap::new())),
             event_tx,
             ldap_tx,
             dirsync_tx,

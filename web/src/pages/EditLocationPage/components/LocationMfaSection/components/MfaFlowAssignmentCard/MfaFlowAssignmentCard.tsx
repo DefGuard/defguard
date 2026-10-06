@@ -1,14 +1,16 @@
+import './style.scss';
+
 import { type ReactNode, useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import type { MfaFlowStepMethods } from '../../../../shared/api/types';
-import { MfaFlowStepsTooltip } from '../../../../shared/components/MfaFlowStepsTooltip/MfaFlowStepsTooltip';
-import { Chip } from '../../../../shared/defguard-ui/components/Chip/Chip';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
-import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
-import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { m } from '../../../../../../paraglide/messages';
+import type { MfaFlowStepMethods } from '../../../../../../shared/api/types';
+import { MfaFlowStepsTooltip } from '../../../../../../shared/components/MfaFlowStepsTooltip/MfaFlowStepsTooltip';
+import { Chip } from '../../../../../../shared/defguard-ui/components/Chip/Chip';
+import { Divider } from '../../../../../../shared/defguard-ui/components/Divider/Divider';
+import { IconKind } from '../../../../../../shared/defguard-ui/components/Icon';
+import { Icon } from '../../../../../../shared/defguard-ui/components/Icon/Icon';
+import { InfoBanner } from '../../../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
+import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 
 const collapsedChipLimit = 5;
 

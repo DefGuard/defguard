@@ -9,6 +9,7 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type EditNetworkLocation,
+  type GroupClientMtu,
   LicenseFeature,
   type LocationMfaFlowResponse,
   LocationServiceMode,
@@ -18,6 +19,12 @@ import {
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
+import {
+  ClientMtuFields,
+  clientMtuFieldNames,
+  refineClientMtu,
+} from '../../shared/components/LocationMtuSettings/ClientMtuFields';
+import { LocationGroupMtuSection } from '../../shared/components/LocationMtuSettings/LocationGroupMtuSection';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import { renderPostureCheckSelectionItem } from '../../shared/components/PostureCheckSelectionItem/PostureCheckSelectionItem';
 import type {
@@ -25,7 +32,7 @@ import type {
   SelectionSectionCustomRender,
 } from '../../shared/components/SelectionSection/type';
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
-import { externalLink } from '../../shared/constants';
+import { externalLink, MAX_MTU, MIN_MTU } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -166,7 +173,7 @@ const formSchema = z
       // Keepalive is mandatory to prevent idle service locations from disconnecting
       .min(1, m.form_error_keepalive_min())
       .max(65535, m.form_error_port_max()),
-    mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+    mtu: z.number(m.form_error_required()).min(MIN_MTU).max(MAX_MTU),
     client_mtu_enabled: z.boolean(),
     client_mtu: z.number().nullable(),
     fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
@@ -180,21 +187,7 @@ const formSchema = z
     allowed_ips_from_acl: z.boolean(),
   })
   .superRefine((value, context) => {
-    if (value.client_mtu_enabled) {
-      if (value.client_mtu === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_required(),
-        });
-      } else if (value.client_mtu < 72 || value.client_mtu > 0xffffffff) {
-        context.addIssue({
-          code: 'custom',
-          path: ['client_mtu'],
-          message: m.form_error_invalid(),
-        });
-      }
-    }
+    refineClientMtu(value, context);
 
     if (!value.allow_all_groups && value.allowed_groups.length === 0) {
       context.addIssue({
@@ -258,6 +251,7 @@ const buildLocationSubmissionData = (
   location: NetworkLocation,
   postureChecks: number[],
   mfaFlows: MfaFlowAssignment[],
+  groupClientMtus: GroupClientMtu[],
 ): EditNetworkLocation => {
   const normalizedValue = cloneDeep(value);
 
@@ -277,6 +271,8 @@ const buildLocationSubmissionData = (
       300,
     posture_checks: postureChecks,
     mfa_flows: mfaFlows,
+    // Hidden overrides are cleared on save.
+    group_client_mtus: normalizedValue.client_mtu_enabled ? groupClientMtus : [],
   };
 };
 
@@ -420,6 +416,13 @@ const EditLocationForm = ({
   const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
   const [pendingMfaFlows, setPendingMfaFlows] =
     useState<MfaFlowAssignment[]>(savedMfaFlows);
+  const [pendingGroupMtus, setPendingGroupMtus] = useState<GroupClientMtu[]>(
+    location.group_client_mtus,
+  );
+  const hasPendingGroupMtuChanges = !isEqual(
+    pendingGroupMtus,
+    location.group_client_mtus,
+  );
 
   const postureCheckOptions = useMemo(
     () =>
@@ -578,6 +581,7 @@ const EditLocationForm = ({
         location,
         pendingPostureChecks,
         editedMfaFlows,
+        pendingGroupMtus,
       ),
     });
   };
@@ -606,6 +610,7 @@ const EditLocationForm = ({
             location,
             location.posture_checks ?? [],
             savedMfaFlows,
+            location.group_client_mtus,
           ),
         ),
         getDisconnectRelevantLocationData(
@@ -614,6 +619,7 @@ const EditLocationForm = ({
             location,
             pendingPostureChecks,
             editedMfaFlows,
+            pendingGroupMtus,
           ),
         ),
       );
@@ -759,7 +765,7 @@ const EditLocationForm = ({
             )}
           </form.AppField>
         </EditPageFormSection>
-        <EditPageFormSection label={m.add_location_step_network_settings_label()}>
+        <EditPageFormSection label={m.location_edit_section_general_network_settings()}>
           <form.AppField name="keepalive_interval">
             {(field) => (
               <field.FormInput
@@ -770,35 +776,6 @@ const EditLocationForm = ({
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="mtu">
-            {(field) => (
-              <field.FormInput
-                label={m.location_network_label_mtu()}
-                type="number"
-                helper={m.location_network_helper_mtu()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="client_mtu_enabled">
-            {(field) => <field.FormCheckbox text={m.location_network_set_client_mtu()} />}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
-          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
-            {(clientMtuEnabled) => (
-              <form.AppField name="client_mtu">
-                {(field) => (
-                  <field.FormInput
-                    label={m.location_network_label_client_mtu()}
-                    type="number"
-                    disabled={!clientMtuEnabled}
-                    helper={m.location_network_helper_client_mtu()}
-                  />
-                )}
-              </form.AppField>
-            )}
-          </form.Subscribe>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
             {(field) => (
@@ -820,6 +797,33 @@ const EditLocationForm = ({
               />
             )}
           </form.AppField>
+        </EditPageFormSection>
+        <EditPageFormSection label={m.location_edit_section_mtu_settings()}>
+          <form.AppField name="mtu">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.location_network_label_mtu()}
+                type="number"
+                helper={m.location_network_helper_mtu()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <ClientMtuFields form={form} fields={clientMtuFieldNames} />
+          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
+            {(clientMtuEnabled) =>
+              clientMtuEnabled && (
+                <>
+                  <SizedBox height={ThemeSpacing.Xl2} />
+                  <LocationGroupMtuSection
+                    overrides={pendingGroupMtus}
+                    onChange={setPendingGroupMtus}
+                  />
+                </>
+              )
+            }
+          </form.Subscribe>
         </EditPageFormSection>
         <form.Subscribe selector={(state) => state.values.allow_all_groups}>
           {(allowAllGroups) => (
@@ -1055,7 +1059,8 @@ const EditLocationForm = ({
             isDefault:
               (form.isPristine || form.isDefaultValue) &&
               !hasPendingPostureCheckChanges &&
-              !hasPendingMfaFlowChanges,
+              !hasPendingMfaFlowChanges &&
+              !hasPendingGroupMtuChanges,
           })}
         >
           {({ isDefault, isSubmitting }) => (

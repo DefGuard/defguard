@@ -495,6 +495,7 @@ export const LicenseFeature = {
   DevicePosture: 'DevicePosture',
   AclAllowedIps: 'AclAllowedIps',
   ComponentHa: 'ComponentHa',
+  GroupMTUOverride: 'GroupMTUOverride',
   MfaFlow: 'MfaFlow',
 } as const;
 
@@ -831,6 +832,13 @@ export interface NetworkLocation {
   service_location_mode: LocationServiceModeValue;
   has_devices: boolean;
   posture_checks?: number[];
+  group_client_mtus: GroupClientMtu[];
+}
+
+// Client MTU for members of the listed groups.
+export interface GroupClientMtu {
+  client_mtu: number;
+  group_ids: number[];
 }
 
 export interface EditNetworkLocation

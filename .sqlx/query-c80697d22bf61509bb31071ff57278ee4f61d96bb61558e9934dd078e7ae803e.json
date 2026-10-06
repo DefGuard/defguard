@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM throttle WHERE expires_at < (now() AT TIME ZONE 'UTC')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "c80697d22bf61509bb31071ff57278ee4f61d96bb61558e9934dd078e7ae803e"
+}

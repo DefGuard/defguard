@@ -233,6 +233,7 @@ pub async fn build_device_config_response(
 }
 
 /// Maps resolved MFA flow steps to wire steps using the methods configured for this device.
+#[must_use]
 pub fn build_wire_steps(
     steps: &[MfaFlowStep<Id>],
     configured_methods: &[VpnClientMfaMethod],

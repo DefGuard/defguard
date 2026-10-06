@@ -29,9 +29,9 @@ import {
   splitAssignments,
   upsertOverride,
 } from './assignments';
-import { MfaFlowAssignmentCard } from './MfaFlowAssignmentCard';
-import { MfaFlowAssignmentModal } from './MfaFlowAssignmentModal';
-import { MfaFlowOverrideRow } from './MfaFlowOverrideRow';
+import { MfaFlowAssignmentCard } from './components/MfaFlowAssignmentCard/MfaFlowAssignmentCard';
+import { MfaFlowAssignmentModal } from './components/MfaFlowAssignmentModal/MfaFlowAssignmentModal';
+import { MfaFlowOverrideRow } from './components/MfaFlowOverrideRow/MfaFlowOverrideRow';
 
 type Props = {
   assignments: MfaFlowAssignment[];
@@ -68,6 +68,9 @@ export const LocationMfaSection = ({
 
   const { defaultAssignment, overrides } = splitAssignments(assignments);
   const overridesLocked = !canUseEnterprise;
+  const hasUnavailableFlow = assignments.some((assignment) =>
+    isPresent(flowsById.get(assignment.flow_id)?.unavailable_reason),
+  );
 
   const editorTarget = useMemo(() => {
     if (editor === undefined) return undefined;
@@ -150,27 +153,41 @@ export const LocationMfaSection = ({
                 →
               </span>
             )}
-            <MfaFlowAssignmentCard
-              title={flowsById.get(defaultAssignment.flow_id)?.title ?? ''}
-              steps={flowsById.get(defaultAssignment.flow_id)?.steps ?? []}
-              chips={[
-                overrides.length > 0
-                  ? m.location_mfa_default_chip_everyone_else()
-                  : m.location_mfa_default_chip_all_groups(),
-              ]}
-              unavailableText={mfaFlowUnavailableText(
-                flowsById.get(defaultAssignment.flow_id)?.unavailable_reason ?? null,
+            <div className="default-flow-content">
+              <MfaFlowAssignmentCard
+                title={flowsById.get(defaultAssignment.flow_id)?.title ?? ''}
+                steps={flowsById.get(defaultAssignment.flow_id)?.steps ?? []}
+                chips={[
+                  overrides.length > 0
+                    ? m.location_mfa_default_chip_everyone_else()
+                    : m.location_mfa_default_chip_all_groups(),
+                ]}
+                unavailableText={mfaFlowUnavailableText(
+                  flowsById.get(defaultAssignment.flow_id)?.unavailable_reason ?? null,
+                )}
+                leading={
+                  <Icon
+                    icon={IconKind.Groups}
+                    size={20}
+                    staticColor={ThemeVariable.FgAction}
+                  />
+                }
+                editLabel={m.location_mfa_default_flow_edit()}
+                onEdit={() => openEditor({ kind: 'default' })}
+              />
+              {hasUnavailableFlow && (
+                <div className="location-mfa-error">
+                  <div className="icon-track">
+                    <Icon
+                      icon={IconKind.WarningFilled}
+                      size={20}
+                      staticColor={ThemeVariable.FgCritical}
+                    />
+                  </div>
+                  <p>{m.location_mfa_flows_unavailable_error()}</p>
+                </div>
               )}
-              leading={
-                <Icon
-                  icon={IconKind.Groups}
-                  size={20}
-                  staticColor={ThemeVariable.FgAction}
-                />
-              }
-              editLabel={m.location_mfa_default_flow_edit()}
-              onEdit={() => openEditor({ kind: 'default' })}
-            />
+            </div>
           </div>
         )}
         {!isPresent(defaultAssignment) && (

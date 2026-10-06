@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     net::{IpAddr, Ipv4Addr},
-    time::SystemTime,
+    time::{Instant, SystemTime},
 };
 
 use base64::{Engine as _, prelude::BASE64_STANDARD};
@@ -10,7 +10,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, User, WebAuthn, WireguardNetwork,
+            Device, DeviceType, ThrottleScope, User, WebAuthn, WireguardNetwork,
             biometric_auth::{BiometricAuth, BiometricChallenge},
             device::WireguardNetworkDevice,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
@@ -29,6 +29,7 @@ use defguard_common::{
 };
 use defguard_proto::client_types::MfaMethod;
 use ed25519_dalek::{Signer, SigningKey};
+use futures::future::join_all;
 use ipnetwork::IpNetwork;
 use sqlx::{
     PgPool,
@@ -40,7 +41,7 @@ use totp_lite::{Sha1, totp_custom};
 use uuid::Uuid;
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 
-use super::MfaEngine;
+use super::{MfaEngine, POLL_LIMIT, POLL_WINDOW, PollWindows};
 use crate::{
     enterprise::{
         db::models::openid_provider::{
@@ -56,7 +57,8 @@ use crate::{
         legacy::{FinishError, LegacyProof},
         method::{InitiateError, Verdict, VerifyError, check_mobile_approval, verify},
         multi_step::{
-            Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError, StepProof,
+            Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError,
+            StepFinishError, StepProof,
         },
         types::{FinishOutcome, VerificationProof},
     },
@@ -253,6 +255,16 @@ fn test_status_table_messages() {
             Status::from(StepError::MethodNotConfigured),
             Code::FailedPrecondition,
             "MFA method is not configured for this user",
+        ),
+        (
+            Status::from(StartError::AttemptLimit),
+            Code::FailedPrecondition,
+            "Too many failed MFA attempts. Try again later.",
+        ),
+        (
+            Status::from(InitiateError::TooManyRequests),
+            Code::FailedPrecondition,
+            "Too many MFA requests. Try again later.",
         ),
     ] {
         assert_eq!(status.code(), code);
@@ -2302,6 +2314,278 @@ async fn test_finish_legacy_cap_deletes_session_and_emits_abort(
         event_rx.try_recv().is_err(),
         "only one abort must be emitted"
     );
+}
+
+async fn finish_with_code(
+    engine: &MfaEngine,
+    token: &str,
+    step_attempt_id: &str,
+    code: String,
+) -> Result<FinishOutcome, StepFinishError> {
+    engine
+        .finish_step(
+            token.to_owned(),
+            StepProof {
+                step_attempt_id: step_attempt_id.to_owned(),
+                credential: Some(StepCredential::Code(code)),
+            },
+            test_ip(),
+        )
+        .await
+}
+
+async fn start_multi_step_totp(
+    engine: &MfaEngine,
+    location: &WireguardNetwork<Id>,
+    device: &Device<Id>,
+    user: &User<Id>,
+    flow_id: Id,
+    steps: &[HashSet<VpnClientMfaMethod>],
+) -> Result<super::types::MultiStepStartOutcome, StartError> {
+    match engine
+        .start_multi_step(
+            location,
+            device,
+            user,
+            flow_id,
+            steps.to_vec(),
+            vec![VpnClientMfaMethod::Totp],
+        )
+        .await?
+    {
+        StartResult::Accepted(outcome) => Ok(outcome),
+        StartResult::Rejected(_) => panic!("TOTP plan was unexpectedly rejected"),
+    }
+}
+
+/// Regression test for DefGuard/defguard#3571
+#[sqlx::test]
+async fn test_code_throttle_survives_new_sessions_and_concurrent_proofs(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(&pool, location.id, vec![vec![VpnClientMfaMethod::Totp]]).await;
+    let mut user = create_user(&pool).await;
+    user.new_totp_secret(&pool).await.expect("new_totp_secret");
+    user.enable_totp(&pool).await.expect("enable_totp");
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let key = super::throttle_key(location.id, device.id);
+
+    let (flow_id, steps) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
+    let limit = ThrottleScope::VpnMfaCode.limit();
+    let start = || start_multi_step_totp(&engine, &location, &device, &user, flow_id, &steps);
+
+    let started = start().await.expect("start should succeed");
+    join_all((0..2 * limit).map(|_| {
+        finish_with_code(
+            &engine,
+            &started.token,
+            &started.step_attempt_id,
+            "000000".into(),
+        )
+    }))
+    .await;
+    let mut failed_events = 0;
+    while let Ok(event) = event_rx.try_recv() {
+        if let BidiStreamEventType::DesktopClientMfa(event) = event.event
+            && matches!(*event, DesktopClientMfaEvent::Failed { .. })
+        {
+            failed_events += 1;
+        }
+    }
+    assert!(
+        failed_events <= limit,
+        "{failed_events} guesses were verified, the limit is {limit}"
+    );
+    ThrottleScope::VpnMfaCode.end_window(&pool, &key).await;
+
+    // New sessions keep the count: 5 + 4 + 1 wrong codes use up the limit of 10.
+    for wrong_codes in [5, 4, 1] {
+        let started = start().await.expect("start should succeed");
+        for _ in 0..wrong_codes {
+            let err = finish_with_code(
+                &engine,
+                &started.token,
+                &started.step_attempt_id,
+                "000000".into(),
+            )
+            .await
+            .expect_err("a wrong code must be rejected");
+            assert!(matches!(
+                err,
+                StepFinishError::Unauthorized | StepFinishError::AttemptLimit
+            ));
+        }
+        if wrong_codes == 1 {
+            let err = Status::from(
+                finish_with_code(
+                    &engine,
+                    &started.token,
+                    &started.step_attempt_id,
+                    totp_code(&user),
+                )
+                .await
+                .expect_err("the throttle must refuse the attempt"),
+            );
+            assert_eq!(err.code(), Code::PermissionDenied);
+        }
+    }
+    let err = Status::from(
+        start()
+            .await
+            .expect_err("a start with a used-up limit must be refused"),
+    );
+    assert_eq!(err.code(), Code::FailedPrecondition);
+    assert_eq!(
+        err.message(),
+        "Too many failed MFA attempts. Try again later."
+    );
+
+    // The correct code is refunded, so it leaves no charged attempt.
+    ThrottleScope::VpnMfaCode.end_window(&pool, &key).await;
+    let started = start().await.expect("start should succeed");
+    let outcome = finish_with_code(
+        &engine,
+        &started.token,
+        &started.step_attempt_id,
+        totp_code(&user),
+    )
+    .await
+    .expect("the correct code must complete the flow");
+    assert!(matches!(outcome, FinishOutcome::Completed { .. }));
+    assert_eq!(
+        ThrottleScope::VpnMfaCode.attempts(&pool, &key).await,
+        Some(0)
+    );
+}
+
+#[test]
+fn test_poll_windows_limit_each_session_per_window() {
+    let start = Instant::now();
+    let mut polls = PollWindows::new(start);
+    for _ in 0..POLL_LIMIT {
+        assert!(polls.hit("a", start));
+    }
+    assert!(!polls.hit("a", start));
+    assert!(polls.hit("b", start), "another session keeps its own count");
+
+    let next_window = start + POLL_WINDOW;
+    assert!(
+        polls.hit("a", next_window),
+        "a new window starts the count again"
+    );
+    assert_eq!(
+        polls.windows.len(),
+        1,
+        "the prune drops the ended window of b"
+    );
+}
+
+/// Regression test for DefGuard/defguard#3585: a client could poll `finish` with no limit.
+#[sqlx::test]
+async fn test_finish_poll_throttle_answers_not_yet(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Poll flow",
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("session must have an initial attempt")
+        .step_attempt_id
+        .clone();
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let poll = || {
+        engine.finish_step(
+            token.clone(),
+            StepProof {
+                step_attempt_id: attempt_id.clone(),
+                credential: None,
+            },
+            test_ip(),
+        )
+    };
+
+    for _ in 0..POLL_LIMIT {
+        let outcome = poll().await.expect("a poll must succeed");
+        assert_eq!(outcome, FinishOutcome::AwaitingExternal);
+    }
+
+    // The approval is stored, but a throttled poll answers before it reads the approval.
+    let mut conn = pool.acquire().await.unwrap();
+    assert!(
+        session
+            .mark_mobile_approved(&mut conn, &attempt_id, None)
+            .await
+            .unwrap()
+    );
+    let outcome = poll().await.expect("a throttled poll must still answer");
+    assert_eq!(outcome, FinishOutcome::AwaitingExternal);
+}
+
+/// Regression test for DefGuard/defguard#3585: `step_start` could send email codes with no limit.
+#[sqlx::test]
+async fn test_initiate_throttle_bounds_starts_and_step_starts(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(&pool, location.id, vec![vec![VpnClientMfaMethod::Totp]]).await;
+    let mut user = create_user(&pool).await;
+    user.new_totp_secret(&pool).await.expect("new_totp_secret");
+    user.enable_totp(&pool).await.expect("enable_totp");
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let (flow_id, steps) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, _event_rx, _gateway_rx) = make_engine(pool.clone());
+    let start = || start_multi_step_totp(&engine, &location, &device, &user, flow_id, &steps);
+
+    // Starts and step starts share one count: limit - 1 starts and one step start use it up.
+    let limit = ThrottleScope::VpnMfaInitiate.limit();
+    for _ in 0..limit - 2 {
+        start().await.expect("start should succeed");
+    }
+    let token = start().await.expect("start should succeed").token;
+    engine
+        .step_start(token.clone(), VpnClientMfaMethod::Totp)
+        .await
+        .expect("step start should succeed");
+
+    let err = Status::from(
+        engine
+            .step_start(token, VpnClientMfaMethod::Totp)
+            .await
+            .expect_err("the step start must be refused"),
+    );
+    assert_eq!(err.code(), Code::FailedPrecondition);
+    assert_eq!(err.message(), "Too many MFA requests. Try again later.");
+    let err = Status::from(start().await.expect_err("the start must be refused"));
+    assert_eq!(err.code(), Code::FailedPrecondition);
+    assert_eq!(err.message(), "Too many MFA requests. Try again later.");
 }
 
 #[sqlx::test]

@@ -542,7 +542,10 @@ async fn test_group_membership_with_multiple_members(_: PgPoolOptions, options: 
         .remove_user_from_group(&user1, "multigroup")
         .await
         .unwrap();
-    assert!(ldap_conn.get_user_groups(&dn1).await.unwrap().is_empty());
+    assert_eq!(
+        ldap_conn.get_user_groups(&dn1).await.unwrap(),
+        [] as [std::string::String; 0]
+    );
     assert_eq!(
         ldap_conn.get_user_groups(&dn2).await.unwrap(),
         vec![String::from("multigroup")]
@@ -553,7 +556,10 @@ async fn test_group_membership_with_multiple_members(_: PgPoolOptions, options: 
         .remove_user_from_group(&user2, "multigroup")
         .await
         .unwrap();
-    assert!(ldap_conn.get_user_groups(&dn2).await.unwrap().is_empty());
+    assert_eq!(
+        ldap_conn.get_user_groups(&dn2).await.unwrap(),
+        [] as [std::string::String; 0]
+    );
 
     ldap_conn.delete_user(&user1).await.unwrap();
     ldap_conn.delete_user(&user2).await.unwrap();

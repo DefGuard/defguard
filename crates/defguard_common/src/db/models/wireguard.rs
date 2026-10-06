@@ -136,6 +136,14 @@ pub struct WireguardNetwork<I = NoId> {
     pub service_location_mode: ServiceLocationMode,
 }
 
+/// Client MTU for members of the listed groups.
+#[derive(Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GroupClientMtu {
+    pub client_mtu: i32, // Should be u32, but sqlx won't allow that.
+    pub group_ids: Vec<Id>,
+}
+
 impl fmt::Display for WireguardNetwork<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.name)
@@ -1410,6 +1418,81 @@ impl WireguardNetwork<Id> {
             self.remove_from_groups(transaction, &current_groups)
                 .await?;
         }
+
+        Ok(())
+    }
+
+    /// Fetch group client MTU overrides, one entry per MTU value.
+    pub async fn fetch_group_client_mtus<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<Vec<GroupClientMtu>>
+    where
+        E: PgExecutor<'e>,
+    {
+        // FIXME: group IDs are sorted to make the test pass.
+        query_as!(
+            GroupClientMtu,
+            "SELECT client_mtu, array_agg(group_id ORDER BY group_id) \"group_ids!\" \
+            FROM group_client_mtu WHERE network_id = $1 \
+            GROUP BY client_mtu ORDER BY client_mtu",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// The user's lowest group override, else the location's `client_mtu`.
+    pub async fn client_mtu_for_user<'e, E>(
+        &self,
+        executor: E,
+        user_id: Id,
+    ) -> sqlx::Result<Option<i32>>
+    where
+        E: PgExecutor<'e>,
+    {
+        let group_mtu = query_scalar!(
+            "SELECT min(gcm.client_mtu) FROM group_client_mtu gcm \
+            JOIN group_user gu ON gu.group_id = gcm.group_id \
+            WHERE gcm.network_id = $1 AND gu.user_id = $2",
+            self.id,
+            user_id
+        )
+        .fetch_one(executor)
+        .await?;
+
+        Ok(group_mtu.or(self.client_mtu))
+    }
+
+    /// Replace group client MTU overrides.
+    pub async fn set_group_client_mtus(
+        &self,
+        conn: &mut PgConnection,
+        overrides: &[GroupClientMtu],
+    ) -> sqlx::Result<()> {
+        query!(
+            "DELETE FROM group_client_mtu WHERE network_id = $1",
+            self.id
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        let (group_ids, client_mtus): (Vec<Id>, Vec<i32>) = overrides
+            .iter()
+            .flat_map(|item| item.group_ids.iter().map(|id| (*id, item.client_mtu)))
+            .unzip();
+        if group_ids.is_empty() {
+            return Ok(());
+        }
+        query!(
+            "INSERT INTO group_client_mtu (network_id, group_id, client_mtu) \
+            SELECT $1, * FROM unnest($2::bigint[], $3::integer[])",
+            self.id,
+            &group_ids,
+            &client_mtus
+        )
+        .execute(&mut *conn)
+        .await?;
 
         Ok(())
     }

@@ -1,21 +1,21 @@
-import './modalStyle.scss';
+import './style.scss';
 
 import { useMemo, useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import type { MfaFlowListItemResponse } from '../../../../shared/api/types';
-import { Controls } from '../../../../shared/components/Controls/Controls';
+import { m } from '../../../../../../paraglide/messages';
+import type { MfaFlowListItemResponse } from '../../../../../../shared/api/types';
+import { Controls } from '../../../../../../shared/components/Controls/Controls';
 import {
   type MfaFlowSelectionMeta,
   renderMfaFlowSelectionItem,
-} from '../../../../shared/components/MfaFlowSelectionItem/MfaFlowSelectionItem';
-import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
-import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+} from '../../../../../../shared/components/MfaFlowSelectionItem/MfaFlowSelectionItem';
+import { SelectionSection } from '../../../../../../shared/components/SelectionSection/SelectionSection';
+import type { SelectionOption } from '../../../../../../shared/components/SelectionSection/type';
+import { Button } from '../../../../../../shared/defguard-ui/components/Button/Button';
+import { FieldError } from '../../../../../../shared/defguard-ui/components/FieldError/FieldError';
+import { Modal } from '../../../../../../shared/defguard-ui/components/Modal/Modal';
+import { SizedBox } from '../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 
 export type MfaFlowAssignmentTarget = {
   flowId?: number;

@@ -3,19 +3,20 @@ use std::{collections::HashSet, net::IpAddr};
 use defguard_common::db::{
     Id,
     models::{
-        Device, Settings, User, WireguardNetwork, biometric_auth::BiometricAuth,
+        Device, Settings, ThrottleScope, User, WireguardNetwork, biometric_auth::BiometricAuth,
         vpn_client_mfa_session::VpnMfaFlowKind, vpn_client_session::VpnClientMfaMethod,
     },
 };
 use thiserror::Error;
-use tracing::error;
+use tracing::{debug, error, warn};
 
 use super::{
     LoadedFinishContext, MfaEngine,
     authorize::ClientMfaServerError,
     error::{FinishCoreError, StartError},
-    filter_unlicensed_mfa_methods,
+    filter_unlicensed_mfa_methods, is_code_method,
     method::{Verdict, VerifyError, check_mobile_approval, verify, verify_mobile_signature},
+    poll_allowed, throttle_key,
     types::{FinishOutcome, MultiStepStartOutcome, VerificationProof},
 };
 use crate::{
@@ -362,7 +363,7 @@ impl MfaEngine {
         let challenge = super::method::initiate(&self.pool, &ctx, method)
             .await
             .map_err(|err| {
-                super::log_initiate_error(&err, &ctx.user.username);
+                super::log_initiate_error(&err, &ctx);
                 StepError::from(err)
             })?;
         let credential_ids = super::method::offered_credential_ids(&self.pool, &ctx, method)
@@ -438,6 +439,35 @@ impl MfaEngine {
             });
         }
 
+        if matches!(
+            method,
+            VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
+        ) && credential.is_none()
+            && !poll_allowed(&session.token_hash)
+        {
+            debug!("Throttled a poll of MFA session {}", session.id);
+            return Ok(FinishOutcome::AwaitingExternal);
+        }
+
+        let charge_key = (is_code_method(method)
+            && matches!(credential.as_ref(), Some(StepCredential::Code(_))))
+        .then(|| throttle_key(session.location_id, session.device_id));
+        if let Some(key) = &charge_key
+            && !ThrottleScope::VpnMfaCode
+                .hit(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to charge an MFA code attempt: {err}");
+                    StepFinishError::Internal
+                })?
+        {
+            warn!(
+                "User {} has no MFA code attempts left for device {} at location {}",
+                ctx.user.username, ctx.device.id, ctx.location.name
+            );
+            return Err(StepFinishError::AttemptLimit);
+        }
+
         let proof = credential
             .map(VerificationProof::try_from)
             .transpose()
@@ -446,7 +476,20 @@ impl MfaEngine {
             check_mobile_approval(&ephemeral)
         } else {
             match verify(&self.pool, &ctx, &ephemeral, proof.as_ref()).await {
-                Ok(verdict) => verdict,
+                Ok(verdict) => {
+                    if let Some(key) = &charge_key
+                        && matches!(&verdict, Verdict::Proved)
+                    {
+                        ThrottleScope::VpnMfaCode
+                            .refund(&self.pool, key)
+                            .await
+                            .map_err(|err| {
+                                error!("Failed to refund an MFA code attempt: {err}");
+                                StepFinishError::Internal
+                            })?;
+                    }
+                    verdict
+                }
                 Err(VerifyError::MalformedProof { message, event }) => {
                     if let Some(event_message) = event {
                         self.channels.emit_event(BidiStreamEvent {

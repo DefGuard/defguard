@@ -12,14 +12,14 @@ use defguard_common::{
             Device, DeviceConfig, DeviceType, User, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentLicenseError},
-            wireguard::{MappedDevice, ServiceLocationMode},
+            wireguard::{GroupClientMtu, MappedDevice, ServiceLocationMode},
         },
     },
     utils::parse_network_address_list,
 };
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool, error::ErrorKind};
 
 use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for_admin_or_self};
 #[cfg(feature = "openapi")]
@@ -62,6 +62,7 @@ pub(crate) struct WireguardNetworkInfo {
     allowed_groups: Vec<String>,
     has_devices: bool,
     posture_checks: Vec<Id>,
+    group_client_mtus: Vec<GroupClientMtu>,
     /// Minimum license tier required by saved MFA assignments. `null` means MFA is disabled or the
     /// assignments fit the Free tier.
     mfa_required_tier: Option<LicenseTier>,
@@ -99,6 +100,9 @@ pub struct WireguardNetworkData {
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
     pub mfa_flows: Vec<LocationMfaFlowAssignment>,
+    /// Client MTU overrides; each group may appear once. `None` keeps saved overrides.
+    #[serde(default)]
+    pub group_client_mtus: Option<Vec<GroupClientMtu>>,
 }
 
 const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
@@ -212,12 +216,29 @@ impl WireguardNetworkData {
 
     /// Rejects a client MTU below the WireGuard minimum; `None` means the client picks its own.
     pub(crate) fn validate_client_mtu(&self) -> Result<(), WebError> {
-        match self.client_mtu {
-            Some(mtu) if mtu < MIN_MTU => Err(WebError::BadRequest(format!(
-                "client_mtu must be at least {MIN_MTU}"
-            ))),
-            _ => Ok(()),
+        self.client_mtu
+            .map_or(Ok(()), |mtu| validate_min_mtu("client_mtu", mtu))
+    }
+
+    /// Each group may have only one override.
+    pub(crate) fn validate_group_client_mtus(&self) -> Result<(), WebError> {
+        let mut group_ids = HashSet::new();
+        for item in self.group_client_mtus.iter().flatten() {
+            validate_min_mtu("group_client_mtus: client_mtu", item.client_mtu)?;
+            if item.group_ids.is_empty() {
+                return Err(WebError::BadRequest(
+                    "group_client_mtus: at least one group must be specified".into(),
+                ));
+            }
+            for group_id in &item.group_ids {
+                if !group_ids.insert(*group_id) {
+                    return Err(WebError::BadRequest(format!(
+                        "group_client_mtus: group {group_id} has more than one override"
+                    )));
+                }
+            }
         }
+        Ok(())
     }
 
     pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
@@ -228,6 +249,30 @@ impl WireguardNetworkData {
                 "At least one group must be specified when allow_all_groups is disabled".into(),
             ))
         }
+    }
+}
+
+fn validate_min_mtu(field: &str, mtu: i32) -> Result<(), WebError> {
+    if mtu < MIN_MTU {
+        Err(WebError::BadRequest(format!(
+            "{field} must be at least {MIN_MTU}"
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+/// Unknown groups are rejected with `400`.
+async fn save_group_client_mtus(
+    network: &WireguardNetwork<Id>,
+    conn: &mut PgConnection,
+    overrides: &[GroupClientMtu],
+) -> Result<(), WebError> {
+    match network.set_group_client_mtus(conn, overrides).await {
+        Err(sqlx::Error::Database(error)) if error.kind() == ErrorKind::ForeignKeyViolation => Err(
+            WebError::BadRequest("group_client_mtus: unknown group specified".into()),
+        ),
+        result => Ok(result?),
     }
 }
 
@@ -335,11 +380,22 @@ pub(crate) async fn create_network(
         });
     }
 
+    if data
+        .group_client_mtus
+        .as_ref()
+        .is_some_and(|overrides| !overrides.is_empty())
+        && !has_enterprise_access(Some(LicenseFeature::GroupMTUOverride))
+    {
+        error!("Adding location {network_name} blocked! Group MTU requires Enterprise license.");
+        return Ok(WebError::Forbidden("Group MTU requires an Enterprise license.").into());
+    }
+
     data.validate_peer_disconnect_threshold()?;
     data.validate_service_location_mfa()?;
     data.validate_keepalive_interval()?;
     data.validate_client_mtu()?;
     data.validate_allowed_groups()?;
+    data.validate_group_client_mtus()?;
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -367,6 +423,9 @@ pub(crate) async fn create_network(
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
+    if let Some(overrides) = &data.group_client_mtus {
+        save_group_client_mtus(&network, &mut transaction, overrides).await?;
+    }
 
     // generate IP addresses for existing devices
     network.add_all_allowed_devices(&mut transaction).await?;
@@ -509,6 +568,7 @@ pub(crate) async fn modify_network(
     data.validate_keepalive_interval()?;
     data.validate_client_mtu()?;
     data.validate_allowed_groups()?;
+    data.validate_group_client_mtus()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -539,6 +599,17 @@ pub(crate) async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
+    // Without a license, keep saved overrides.
+    if let Some(overrides) = &data.group_client_mtus {
+        if has_enterprise_access(Some(LicenseFeature::GroupMTUOverride)) {
+            save_group_client_mtus(&network, &mut transaction, overrides).await?;
+        } else {
+            warn!(
+                location_id = network.id,
+                "Ignoring group MTU overrides: Enterprise license inactive"
+            );
+        }
+    }
 
     // Don't error out on no license - otherwise users won't be able to update other location fields.
     let postures_changed = if has_enterprise_access(Some(LicenseFeature::DevicePosture)) {
@@ -753,6 +824,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
             WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network.id).await?;
         let posture_checks =
             DevicePostureLocation::find_by_location(&appstate.pool, network.id).await?;
+        let group_client_mtus = network.fetch_group_client_mtus(&appstate.pool).await?;
         let mfa_required_tier = location_mfa_required_tier(&appstate.pool, &network).await?;
         network_info.push(WireguardNetworkInfo {
             network,
@@ -760,6 +832,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
             allowed_groups,
             has_devices,
             posture_checks,
+            group_client_mtus,
             mfa_required_tier,
         });
     }
@@ -833,6 +906,7 @@ pub(crate) async fn network_details(
                 WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await?;
             let posture_checks =
                 DevicePostureLocation::find_by_location(&appstate.pool, network_id).await?;
+            let group_client_mtus = network.fetch_group_client_mtus(&appstate.pool).await?;
             let mfa_required_tier = location_mfa_required_tier(&appstate.pool, &network).await?;
             let network_info = WireguardNetworkInfo {
                 network,
@@ -840,6 +914,7 @@ pub(crate) async fn network_details(
                 allowed_groups,
                 has_devices,
                 posture_checks,
+                group_client_mtus,
                 mfa_required_tier,
             };
             ApiResponse::json(network_info, StatusCode::OK)

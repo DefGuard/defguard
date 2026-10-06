@@ -1,4 +1,4 @@
-pub mod failed_login;
+pub mod login_throttle;
 
 use axum::{
     Extension,

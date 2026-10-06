@@ -1,27 +1,37 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use defguard_common::{
-    db::{Id, models::vpn_client_mfa_session::VpnClientMfaSession},
+    db::{
+        Id,
+        models::{
+            vpn_client_mfa_session::VpnClientMfaSession, vpn_client_session::VpnClientSession,
+        },
+    },
     gateway_event::GatewayCommand,
 };
+use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaStartRequest, MfaCodeCredential, MfaFlowApproveRequest,
-        MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
-        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, mfa_flow_start_response,
-        mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaBiometricSignature, MfaCodeCredential,
+        MfaFlowApproveRequest, MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStepResult,
+        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::time::timeout;
+use tokio::{task, time::timeout};
 use tonic::Code;
 
 use super::support::{
     assert_error_response, assert_error_response_details, assert_vpn_session_exists,
-    biometric_pub_key, clear_test_license, complete_proxy_handshake, create_external_mfa_network,
-    create_mfa_network, create_multi_step_mfa_network_with_steps, create_network,
-    create_user_with_device, generate_totp_code, make_device_info, register_biometric_key,
-    send_mfa_finish, send_mfa_finish_raw, send_mfa_start, send_token_validation,
-    set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa, sign_challenge,
+    biometric_pub_key, clear_test_license, complete_proxy_handshake, configure_oidc_provider,
+    create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network,
+    create_multi_step_mfa_network_with_steps, create_network, create_user_with_device,
+    expect_bidi_mfa_success, generate_totp_code, link_user_oidc_identity, make_device_info,
+    register_biometric_key, send_mfa_finish, send_mfa_finish_raw, send_mfa_start,
+    send_token_validation, set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
+    sign_challenge,
 };
 use crate::tests::common::{CORE_RESPONSE_TIMEOUT, HandlerTestContext, RECEIVE_TIMEOUT};
 
@@ -65,6 +75,161 @@ fn accepted_flow_start(response: CoreResponse) -> (String, String, Option<String
         mfa_step_started::Challenge::Fido2(_) => panic!("unexpected FIDO2 challenge"),
     });
     (accepted.token, first_step.step_attempt_id, challenge)
+}
+
+static FLOW_REQUEST_ID: AtomicU64 = AtomicU64::new(10_000);
+
+fn next_flow_request_id() -> u64 {
+    FLOW_REQUEST_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+async fn send_mfa_start_multi_step(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    selected_methods: &[MfaMethod],
+) -> (String, String) {
+    let (token, attempt_id, _) = accepted_flow_start(
+        send_flow_start(
+            context,
+            next_flow_request_id(),
+            location_id,
+            pubkey,
+            selected_methods,
+        )
+        .await,
+    );
+    (attempt_id, token)
+}
+
+struct FlowStepStarted {
+    step_attempt_id: String,
+    challenge: Option<String>,
+}
+
+async fn send_mfa_step_start(
+    context: &mut HandlerTestContext,
+    token: &str,
+    method: MfaMethod,
+) -> FlowStepStarted {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepStart(
+            MfaFlowStepStartRequest {
+                token: token.to_owned(),
+                method: method as i32,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let Some(core_response::Payload::MfaFlowStepStart(response)) = response.payload else {
+        panic!("expected MfaFlowStepStart response");
+    };
+    let started = response
+        .started
+        .expect("step start must include attempt data");
+    let challenge = started.challenge.map(|challenge| match challenge {
+        mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
+        mfa_step_started::Challenge::Fido2(_) => panic!("unexpected FIDO2 challenge"),
+    });
+    FlowStepStarted {
+        step_attempt_id: started.step_attempt_id,
+        challenge,
+    }
+}
+
+async fn send_flow_step_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    submission: Option<mfa_flow_step_finish_request::Submission>,
+) -> CoreResponse {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepFinish(
+            MfaFlowStepFinishRequest {
+                token: token.to_owned(),
+                step_attempt_id: step_attempt_id.to_owned(),
+                submission,
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+async fn send_flow_code_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    code: String,
+) -> CoreResponse {
+    send_flow_step_finish(
+        context,
+        token,
+        step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code },
+        )),
+    )
+    .await
+}
+
+async fn send_flow_approve(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    signature: &str,
+    auth_pub_key: &str,
+) -> CoreResponse {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.to_owned(),
+                step_attempt_id: step_attempt_id.to_owned(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature: signature.to_owned(),
+                    auth_pub_key: auth_pub_key.to_owned(),
+                }),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+fn flow_step_result(response: CoreResponse) -> MfaStepResult {
+    match response.payload {
+        Some(core_response::Payload::MfaFlowStepFinish(response)) => {
+            response.result.expect("step finish must include a result")
+        }
+        Some(core_response::Payload::CoreError(error)) => panic!(
+            "step finish failed with status={} msg={}",
+            error.status_code, error.message
+        ),
+        _ => panic!("expected MfaFlowStepFinish response"),
+    }
+}
+
+fn flow_remote_result(response: CoreResponse) -> MfaStepResult {
+    match response.payload {
+        Some(core_response::Payload::MfaFlowRemote(response)) => response
+            .result
+            .expect("remote finish must include a result"),
+        Some(core_response::Payload::CoreError(error)) => panic!(
+            "remote finish failed with status={} msg={}",
+            error.status_code, error.message
+        ),
+        _ => panic!("expected MfaFlowRemote response"),
+    }
+}
+
+fn biometric_submission(signature: &str) -> mfa_flow_step_finish_request::Submission {
+    mfa_flow_step_finish_request::Submission::Biometric(MfaBiometricSignature {
+        signature: signature.to_owned(),
+    })
 }
 
 #[sqlx::test]
@@ -1135,6 +1300,977 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     // New session must exist in the DB.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    setup_user_email_mfa(&context.pool, &mut user).await;
+
+    // Start the TOTP -> Email flow.
+    let (first_attempt_id, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Totp, MfaMethod::Email],
+    )
+    .await;
+    assert_ne!(token, "");
+
+    // Subscribe to the gateway broadcast before finishing so the collect path's
+    // gateway send has a live receiver.
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    // Step 0 (TOTP) advances without authorizing.
+    let totp = generate_totp_code(&user);
+    let response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &first_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code: totp },
+        )),
+    )
+    .await;
+    let next_step = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Advanced(advanced)) => advanced.next_step,
+        _ => panic!("expected Advanced outcome"),
+    };
+    assert_eq!(next_step, 1);
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to fetch sessions")
+        .is_empty(),
+        "no session may be authorized before the final step"
+    );
+
+    // Step 1 (Email) completes the flow.
+    let step_started = send_mfa_step_start(&mut context, &token, MfaMethod::Email).await;
+    assert_ne!(step_started.step_attempt_id, "");
+
+    let email = user
+        .generate_email_mfa_code()
+        .expect("email_mfa_secret must be set");
+    let response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &step_started.step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code: email },
+        )),
+    )
+    .await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed outcome"),
+    };
+    assert_ne!(preshared_key, "");
+
+    let sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+        &context.pool,
+        network.id,
+        device.id,
+    )
+    .await
+    .expect("failed to fetch sessions");
+    assert_eq!(sessions.len(), 1);
+    assert!(sessions[0].is_mfa_session);
+
+    // The gateway authorization and the success event are emitted on completion.
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for VpnSessionAuthorized")
+        .expect("gateway command channel closed");
+    assert!(
+        matches!(event, GatewayCommand::VpnSessionAuthorized(..)),
+        "expected VpnSessionAuthorized, got: {event:?}"
+    );
+    expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_oidc_awaits_external_completion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    configure_oidc_provider(&context.pool).await;
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Oidc],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::Oidc).await;
+    let attempt_id = started.step_attempt_id;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let stale_response =
+        send_flow_step_finish(&mut context, &token, "superseded-attempt", None).await;
+    let (code, message) = assert_error_response_details(&stale_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
+
+    let session_before = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load OIDC MFA session")
+        .expect("OIDC MFA session must remain active");
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::AwaitingExternal(_))
+    ));
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "awaiting must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "awaiting must not audit a failure"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "awaiting must not create a VPN session"
+    );
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to reload OIDC MFA session")
+        .expect("OIDC MFA session must remain active");
+    assert_eq!(session.failed_attempts, session_before.failed_attempts);
+    assert_eq!(session.expires_at, session_before.expires_at);
+
+    let retried = send_mfa_step_start(&mut context, &token, MfaMethod::Oidc).await;
+    assert_ne!(retried.step_attempt_id, attempt_id);
+    let attempt_id = retried.step_attempt_id;
+
+    let mut conn = context
+        .pool
+        .acquire()
+        .await
+        .expect("failed to acquire connection");
+    assert!(
+        session
+            .mark_oidc_completed(&mut conn, &attempt_id)
+            .await
+            .expect("failed to mark OIDC MFA complete")
+    );
+
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed outcome"),
+    };
+    assert_ne!(preshared_key, "");
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    assert_eq!(
+        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
+        network.id
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::MobileApprove.into()]],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let challenge = started
+        .challenge
+        .expect("mobile approve StepStart must return a challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::AwaitingExternal(_))
+    ));
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "pending approval must not authorize"
+    );
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let session_before_stale =
+        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+            .await
+            .expect("failed to load mobile approval session")
+            .expect("mobile approval session must remain active");
+    let stale_response = send_flow_approve(
+        &mut context,
+        &token,
+        "stale-attempt",
+        &signature,
+        &auth_pub_key,
+    )
+    .await;
+    let (code, message) = assert_error_response_details(&stale_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
+    let session_after_stale =
+        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+            .await
+            .expect("failed to reload mobile approval session")
+            .expect("mobile approval session must remain active");
+    assert_eq!(
+        session_after_stale.failed_attempts,
+        session_before_stale.failed_attempts
+    );
+    assert_eq!(
+        session_after_stale.expires_at,
+        session_before_stale.expires_at
+    );
+    assert!(
+        !session_after_stale
+            .ephemeral_state
+            .expect("mobile approval attempt must remain active")
+            .0
+            .mobile_approved
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "stale approval must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "stale approval must not emit an event"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "stale approval must not authorize"
+    );
+
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+    assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "mark must not emit an event"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "mark must not authorize"
+    );
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to reload mobile approval session")
+        .expect("mobile approval session must remain active after mark");
+    assert!(
+        session
+            .ephemeral_state
+            .expect("mobile approval attempt must remain active")
+            .0
+            .mobile_approved
+    );
+    assert_eq!(session.failed_attempts, 0);
+
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed response"),
+    };
+    assert_ne!(preshared_key, "");
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_new_protocol_mobile_approve_advances_non_final_step(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove, MfaMethod::Totp],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let challenge = started
+        .challenge
+        .expect("mobile approve StepStart must return a challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+    assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "mark must not emit an event"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "mark must not authorize"
+    );
+
+    assert!(matches!(
+        flow_step_result(send_flow_step_finish(&mut context, &token, &attempt_id, None).await).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "non-final approval must not authorize"
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "non-final poll must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "non-final poll must not emit an event"
+    );
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load advanced mobile approval session")
+        .expect("session must remain active after a non-final step");
+    assert_eq!(session.current_step, 1);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_event(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove, MfaMethod::Totp],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let challenge = started
+        .challenge
+        .expect("mobile approve StepStart must return a challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+    assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "mark must not emit an event"
+    );
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "mark must not authorize"
+    );
+
+    assert!(matches!(
+        flow_step_result(send_flow_step_finish(&mut context, &token, &attempt_id, None).await).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "non-final approval must not authorize"
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "non-final poll must not authorize"
+    );
+    assert!(
+        context.bidi_events_rx.try_recv().is_err(),
+        "non-final poll must not emit an event"
+    );
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("failed to load advanced mobile approval session")
+        .expect("session must remain active after a non-final step");
+    assert_eq!(session.current_step, 1);
+
+    let totp_attempt = send_mfa_step_start(&mut context, &token, MfaMethod::Totp).await;
+    let response = send_flow_code_finish(
+        &mut context,
+        &token,
+        &totp_attempt.step_attempt_id,
+        generate_totp_code(&user),
+    )
+    .await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::Completed(completed))
+            if !completed.preshared_key.is_empty()
+    ));
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                attribution,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+                assert_eq!(
+                    attribution.snapshot.steps[0].mobile_auth_device_name,
+                    Some(device.name.clone())
+                );
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_parked_mobile_approval_completes_final_step(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::MobileApprove.into()]],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let challenge = started
+        .challenge
+        .expect("mobile approval needs a challenge");
+    let signature = sign_challenge(&signing_key, &challenge);
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 7001,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id: attempt_id.clone(),
+        })),
+    });
+    task::yield_now().await;
+
+    let stale_response = send_flow_approve(
+        &mut context,
+        &token,
+        "stale-attempt",
+        &signature,
+        &auth_pub_key,
+    )
+    .await;
+    let (code, message) = assert_error_response_details(&stale_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 7003,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
+            },
+        )),
+    });
+
+    let first = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for mobile approval response");
+    let second = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for parked remote response");
+    let mut got_approve = false;
+    let mut parked_key = None;
+    for response in [first, second] {
+        if response.id == 7003 {
+            assert!(matches!(
+                response.payload,
+                Some(core_response::Payload::Empty(()))
+            ));
+            got_approve = true;
+        } else {
+            assert_eq!(response.id, 7001);
+            let result = flow_remote_result(response);
+            let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
+                panic!("expected completed parked result");
+            };
+            assert!(!completed.preshared_key.is_empty());
+            parked_key = Some(completed.preshared_key);
+        }
+    }
+    assert!(got_approve, "missing MfaFlowApprove response");
+    assert!(
+        !parked_key
+            .expect("parked response must contain a key")
+            .is_empty(),
+        "parked completion must return a key"
+    );
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
+        Ok(Ok(GatewayCommand::VpnSessionAuthorized(id, _, _))) if id == network.id
+    ));
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("expected mobile-approve success event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Success {
+                location,
+                mobile_auth_device_name,
+                ..
+            } => {
+                assert_eq!(location.id, network.id);
+                assert_eq!(mobile_auth_device_name, Some(device.name.clone()));
+            }
+            other => panic!("expected MFA success event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA event, got: {other:?}"),
+    }
+    context.finish().await.expect_server_finished().await;
+}
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_parked_mobile_approval_advances_non_final_step(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (_, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::MobileApprove, MfaMethod::Totp],
+    )
+    .await;
+    let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
+    let signature = sign_challenge(
+        &signing_key,
+        &started
+            .challenge
+            .expect("mobile approval needs a challenge"),
+    );
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 7101,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id: attempt_id.clone(),
+        })),
+    });
+    task::yield_now().await;
+    context.mock_proxy().send_request(CoreRequest {
+        id: 7102,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
+            },
+        )),
+    });
+
+    let first = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for mobile approval response");
+    let second = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for parked remote response");
+    let mut got_approve = false;
+    let mut got_advanced = false;
+    for response in [first, second] {
+        if response.id == 7102 {
+            assert!(matches!(
+                response.payload,
+                Some(core_response::Payload::Empty(()))
+            ));
+            got_approve = true;
+        } else {
+            assert_eq!(response.id, 7101);
+            assert!(matches!(
+                flow_remote_result(response).outcome,
+                Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+            ));
+            got_advanced = true;
+        }
+    }
+    assert!(got_approve, "missing MfaFlowApprove response");
+    assert!(got_advanced, "missing advanced MfaFlowRemote response");
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("query sessions")
+        .is_empty()
+    );
+    assert!(gateway_rx.try_recv().is_err());
+    assert!(context.bidi_events_rx.try_recv().is_err());
+    context.finish().await.expect_server_finished().await;
+}
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::Totp.into()],
+            vec![MfaMethod::Biometric.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+
+    let (first_attempt_id, token) = send_mfa_start_multi_step(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Totp, MfaMethod::Biometric],
+    )
+    .await;
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    let response = send_flow_code_finish(
+        &mut context,
+        &token,
+        &first_attempt_id,
+        generate_totp_code(&user),
+    )
+    .await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network.id,
+            device.id
+        )
+        .await
+        .expect("failed to query authorized VPN sessions")
+        .is_empty(),
+        "no VPN session may exist before the final biometric step"
+    );
+    assert!(
+        gateway_rx.try_recv().is_err(),
+        "no gateway authorization may occur before the final step"
+    );
+
+    let step_started = send_mfa_step_start(&mut context, &token, MfaMethod::Biometric).await;
+    let challenge = step_started
+        .challenge
+        .expect("biometric StepStart must return a challenge");
+    assert!(!challenge.is_empty());
+    let invalid_response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &step_started.step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Biometric(
+            MfaBiometricSignature {
+                signature: "invalid-signature".to_owned(),
+            },
+        )),
+    )
+    .await;
+    let (code, message) = assert_error_response_details(&invalid_response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
+    let event = context
+        .bidi_events_rx
+        .try_recv()
+        .expect("invalid signature must emit a failure audit event");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(event) => match *event {
+            DesktopClientMfaEvent::Failed {
+                method, message, ..
+            } => {
+                assert_eq!(method, MfaMethod::Biometric);
+                assert_eq!(message, "Signed challenge rejected");
+            }
+            other => panic!("expected failed MFA audit event, got: {other:?}"),
+        },
+        other => panic!("expected desktop MFA audit event, got: {other:?}"),
+    }
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &step_started.step_attempt_id,
+        Some(biometric_submission(&signature)),
+    )
+    .await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected completed biometric response"),
+    };
+    assert!(!preshared_key.is_empty());
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+            .await
+            .expect("timed out waiting for gateway authorization")
+            .expect("gateway command channel closed"),
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) if location_id == network.id
+    ));
+    assert_eq!(
+        expect_bidi_mfa_success(&mut context.bidi_events_rx).await,
+        network.id
+    );
 
     context.finish().await.expect_server_finished().await;
 }
