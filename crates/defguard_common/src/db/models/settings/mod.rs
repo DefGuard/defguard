@@ -236,6 +236,7 @@ pub struct Settings {
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
     #[patch(attribute(serde(skip_serializing)))]
     #[serde(skip_serializing)]
     pub ldap_bind_password: Option<SecretStringWrapper>,

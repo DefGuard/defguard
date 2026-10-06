@@ -164,6 +164,18 @@ pub(crate) async fn update_settings(
     let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
+    data.smtp.password = data.smtp.password.or(before.smtp.password.clone());
+    data.smtp.oauth_client_secret = data
+        .smtp
+        .oauth_client_secret
+        .or(before.smtp.oauth_client_secret.clone());
+    data.smtp.oauth_refresh_token = data
+        .smtp
+        .oauth_refresh_token
+        .or(before.smtp.oauth_refresh_token.clone());
+    data.ldap_bind_password = data
+        .ldap_bind_password
+        .or(before.ldap_bind_password.clone());
     data.validate()?;
     // clone for event
     let after = data.clone();
