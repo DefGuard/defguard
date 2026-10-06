@@ -921,6 +921,16 @@ impl ProxyHandler {
                     }
                 }
             }
+            // rpc MfaFlowStepStart (MfaFlowStepStartRequest) returns (MfaFlowStepStartResponse)
+            Some(core_request::Payload::MfaFlowStepStart(request)) => {
+                match boxed(services.client_mfa.mfa_flow_step_start(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaFlowStepStart(response)),
+                    Err(err) => {
+                        error!("client MFA flow step start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
             Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
                 match boxed(services.client_mfa.legacy_mfa_remote(
@@ -971,7 +981,7 @@ impl ProxyHandler {
                     }
                 }
             }
-            // rpc MfaFlowApprove (MfaFlowApproveRequest) returns Empty
+            // rpc MfaFlowApprove (MfaFlowApproveRequest) returns (google.protobuf.Empty)
             Some(core_request::Payload::MfaFlowApprove(request)) => {
                 match boxed(
                     services
@@ -1138,15 +1148,6 @@ impl ProxyHandler {
                     ),
                     Err(err) => {
                         error!("Posture check error: {err}");
-                        Some(core_response::Payload::CoreError(err.into()))
-                    }
-                }
-            }
-            Some(core_request::Payload::MfaFlowStepStart(request)) => {
-                match boxed(services.client_mfa.mfa_flow_step_start(request)).await {
-                    Ok(response) => Some(core_response::Payload::MfaFlowStepStart(response)),
-                    Err(err) => {
-                        error!("client MFA flow step start error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
                     }
                 }

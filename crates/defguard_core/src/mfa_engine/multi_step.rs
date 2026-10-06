@@ -189,8 +189,6 @@ impl TryFrom<StepCredential> for VerificationProof {
 
 impl MfaEngine {
     /// Validate and start a selected multi-step plan.
-    ///
-    /// Rejected plans return sparse reasons without creating a session, token, or event.
     pub async fn start_multi_step(
         &self,
         location: &WireguardNetwork<Id>,
@@ -239,7 +237,6 @@ impl MfaEngine {
         {
             let chosen = *chosen;
             if allowed.is_empty() {
-                // License filtering removed every method from this step.
                 rejections.push(StepRejection {
                     step: index as u32,
                     reason: StartRejectionReason::StepEmptyAfterLicense,
@@ -443,6 +440,7 @@ impl MfaEngine {
             method,
             VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
         ) && credential.is_none()
+            && !(method == VpnClientMfaMethod::MobileApprove && ephemeral.mobile_approved)
             && !poll_allowed(&session.token_hash)
         {
             debug!("Throttled a poll of MFA session {}", session.id);

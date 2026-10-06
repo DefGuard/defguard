@@ -1477,14 +1477,28 @@ async fn setup_totp_mfa_server(
     )
 }
 
-fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
-    let response = response.expect("superseded waiter should receive a response");
+fn assert_core_error_response(
+    response: Option<CoreResponse>,
+    request_id: u64,
+    status: Code,
+    message: &str,
+) {
+    let response = response.expect("parked waiter should receive a response");
     assert_eq!(response.id, request_id);
     let Some(super::Payload::CoreError(error)) = response.payload else {
-        panic!("expected a CoreError superseded response");
+        panic!("expected a CoreError response");
     };
-    assert_eq!(error.status_code, Code::Aborted as i32);
-    assert_eq!(error.message, "remote MFA wait superseded");
+    assert_eq!(error.status_code, status as i32);
+    assert_eq!(error.message, message);
+}
+
+fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
+    assert_core_error_response(
+        response,
+        request_id,
+        Code::Aborted,
+        "remote MFA wait superseded",
+    );
 }
 
 #[test]
@@ -1608,15 +1622,56 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
         .await
         .expect("newer waiter cleanup should finish");
 
-    assert!(
-        second_response.is_none(),
-        "newer waiter should only be cleaned up here"
+    assert_core_error_response(
+        second_response,
+        2,
+        Code::Internal,
+        "remote MFA signal channel closed",
     );
     assert!(
         newer_waiter_registered,
         "old waiter cleanup must not remove the newer waiter"
     );
     assert_superseded_response(first_response, 1);
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_remote_timeout_sends_terminal_error(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, _location_id, _pubkey, token, _event_rx, _gateway_rx) =
+        setup_totp_mfa_server(options).await;
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .legacy_mfa_remote_with_timeout(
+            AwaitRemoteMfaFinishRequest {
+                token: token.clone(),
+            },
+            response_tx,
+            3,
+            Duration::from_millis(1),
+        )
+        .await
+        .expect("remote waiter should park");
+
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("timed-out legacy waiter should finish");
+    assert_core_error_response(
+        response,
+        3,
+        Code::DeadlineExceeded,
+        "remote MFA wait timed out",
+    );
+    assert!(
+        !server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .contains_key(&hash_token(&token)),
+        "timeout should remove the waiter"
+    );
 }
 
 #[sqlx::test]
@@ -2181,7 +2236,7 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
         .mfa_flow_remote_with_timeout(
             MfaFlowRemoteRequest {
                 token: token.clone(),
-                step_attempt_id,
+                step_attempt_id: step_attempt_id.clone(),
             },
             response_tx,
             44,
@@ -2206,7 +2261,46 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
     })
     .await
     .expect("timeout cleanup should remove the owning waiter");
-    assert!(response_rx.try_recv().is_err());
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("timed-out remote waiter should send a response");
+    assert_core_error_response(
+        response,
+        44,
+        Code::DeadlineExceeded,
+        "remote MFA wait timed out",
+    );
+
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .mfa_flow_remote_with_timeout(
+            MfaFlowRemoteRequest {
+                token: token.clone(),
+                step_attempt_id,
+            },
+            response_tx,
+            45,
+            device_info(),
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("remote waiter should park");
+    let waiter = server
+        .remote_mfa_responses
+        .write()
+        .expect("failed to write remote MFA waiters")
+        .remove(&hash_token(&token))
+        .expect("parked waiter should be registered");
+    drop(waiter);
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("closed signal receiver should send a response");
+    assert_core_error_response(
+        response,
+        45,
+        Code::Internal,
+        "remote MFA signal channel closed",
+    );
     assert!(
         VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
             .await

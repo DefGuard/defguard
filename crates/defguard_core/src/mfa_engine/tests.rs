@@ -2491,7 +2491,10 @@ fn test_poll_windows_limit_each_session_per_window() {
 
 /// Regression test for DefGuard/defguard#3585: a client could poll `finish` with no limit.
 #[sqlx::test]
-async fn test_finish_poll_throttle_answers_not_yet(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_finish_poll_throttle_allows_approved_mobile_completion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -2528,8 +2531,14 @@ async fn test_finish_poll_throttle_answers_not_yet(_: PgPoolOptions, options: Pg
         let outcome = poll().await.expect("a poll must succeed");
         assert_eq!(outcome, FinishOutcome::AwaitingExternal);
     }
+    assert_eq!(
+        poll()
+            .await
+            .expect("an unapproved poll past the limit must answer"),
+        FinishOutcome::AwaitingExternal
+    );
 
-    // The approval is stored, but a throttled poll answers before it reads the approval.
+    // A stored approval bypasses the client polling limit so the flow can complete.
     let mut conn = pool.acquire().await.unwrap();
     assert!(
         session
@@ -2537,8 +2546,8 @@ async fn test_finish_poll_throttle_answers_not_yet(_: PgPoolOptions, options: Pg
             .await
             .unwrap()
     );
-    let outcome = poll().await.expect("a throttled poll must still answer");
-    assert_eq!(outcome, FinishOutcome::AwaitingExternal);
+    let outcome = poll().await.expect("approved mobile flow should complete");
+    assert!(matches!(outcome, FinishOutcome::Completed { .. }));
 }
 
 /// Regression test for DefGuard/defguard#3585: `step_start` could send email codes with no limit.

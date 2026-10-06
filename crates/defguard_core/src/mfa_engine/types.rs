@@ -9,9 +9,7 @@ pub(crate) struct StartedSession {
     pub(crate) token: String,
     pub(crate) step_attempt_id: String,
     pub(crate) challenge: Option<String>,
-    /// FIDO2 only: the credentials registered for this user, base64url. The
-    /// client offers them to the security key, which answers for the one it
-    /// holds.
+    /// FIDO2 only: see [`MultiStepStartOutcome::credential_ids`].
     pub(crate) credential_ids: Vec<String>,
     pub(crate) superseded_token_hash: Option<String>,
 }

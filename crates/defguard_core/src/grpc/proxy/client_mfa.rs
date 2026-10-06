@@ -259,7 +259,6 @@ fn parse_mfa_method(method: i32) -> Result<VpnClientMfaMethod, Status> {
         })
 }
 
-/// Builds the wire `MfaStepStarted` for an opened step, choosing the challenge variant the method needs.
 fn encode_step_started(
     method: VpnClientMfaMethod,
     step_attempt_id: String,
@@ -619,8 +618,6 @@ impl ClientMfaServer {
         }
     }
 
-    /// Handle an accepted start: cancel the superseded waiter, emit the supersede event, and build
-    /// the response.
     fn finish_start(
         &self,
         start_outcome: LegacyStartOutcome,
@@ -678,7 +675,6 @@ impl ClientMfaServer {
         Ok(())
     }
 
-    /// Prepare the shared entity, access, posture, and user-state checks for a client MFA start.
     async fn prepare_client_mfa_start(
         &self,
         location_id: Id,
@@ -1054,6 +1050,12 @@ impl ClientMfaServer {
                     Ok(Err(err)) => {
                         remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         debug!("Multi-step remote MFA response channel closed: {err:?}");
+                        let _ = response_tx.send(CoreResponse {
+                            id: request_id,
+                            payload: Some(Payload::CoreError(
+                                Status::internal("remote MFA signal channel closed").into(),
+                            )),
+                        });
                         return;
                     }
                     Err(_) => {
@@ -1061,6 +1063,12 @@ impl ClientMfaServer {
                         warn!(
                             "Multi-step remote MFA process with request_id {request_id} timed out"
                         );
+                        let _ = response_tx.send(CoreResponse {
+                            id: request_id,
+                            payload: Some(Payload::CoreError(
+                                Status::deadline_exceeded("remote MFA wait timed out").into(),
+                            )),
+                        });
                         return;
                     }
                 },
@@ -1093,6 +1101,17 @@ impl ClientMfaServer {
         response_tx: UnboundedSender<CoreResponse>,
         request_id: u64,
         _info: Option<proxy::DeviceInfo>,
+    ) -> Result<(), Status> {
+        self.legacy_mfa_remote_with_timeout(request, response_tx, request_id, REMOTE_AUTH_TIMEOUT)
+            .await
+    }
+
+    async fn legacy_mfa_remote_with_timeout(
+        &self,
+        request: AwaitRemoteMfaFinishRequest,
+        response_tx: UnboundedSender<CoreResponse>,
+        request_id: u64,
+        timeout: Duration,
     ) -> Result<(), Status> {
         debug!("Awaiting remote MFA finish for request_id {request_id}");
 
@@ -1137,7 +1156,7 @@ impl ClientMfaServer {
         let waiters = self.remote_mfa_responses.clone();
         // Legacy keys stay with the waiting client, not in the message.
         tokio::spawn(async move {
-            match time::timeout(REMOTE_AUTH_TIMEOUT, rx).await {
+            match time::timeout(timeout, rx).await {
                 Ok(Ok(RemoteAuthSignal::Superseded)) => {
                     let _ = response_tx.send(CoreResponse {
                         id: request_id,
@@ -1173,11 +1192,23 @@ impl ClientMfaServer {
                     // Drop the waiter so a dropped sender cannot leak a map entry.
                     remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     debug!("Remote MFA response channel closed: {err:?}");
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(Payload::CoreError(
+                            Status::internal("remote MFA signal channel closed").into(),
+                        )),
+                    });
                 }
                 Err(_) => {
                     // Drop the waiter so a client that never finishes cannot leak map entries.
                     remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     warn!("Remote MFA process with request_id {request_id} timed out");
+                    let _ = response_tx.send(CoreResponse {
+                        id: request_id,
+                        payload: Some(Payload::CoreError(
+                            Status::deadline_exceeded("remote MFA wait timed out").into(),
+                        )),
+                    });
                 }
             }
         });

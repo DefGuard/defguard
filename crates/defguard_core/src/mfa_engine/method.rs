@@ -440,7 +440,7 @@ pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
     }
 }
 
-/// Return this user's registered FIDO2 credential IDs in webauthn-rs base64url form.
+/// Empty unless `method` is FIDO2.
 pub async fn offered_credential_ids(
     pool: &PgPool,
     ctx: &MfaSessionContext,
