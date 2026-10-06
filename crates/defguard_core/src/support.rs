@@ -30,10 +30,6 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     let settings = match Settings::get(&mut *conn).await {
         Ok(Some(mut settings)) => {
             // Hide sensitive fields.
-            settings.smtp.password = None;
-            settings.smtp.oauth_client_secret = None;
-            settings.smtp.oauth_refresh_token = None;
-            settings.ldap_bind_password = None;
             settings.license = None;
             json!(settings)
         }

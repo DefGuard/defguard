@@ -404,6 +404,16 @@ pub async fn patch_settings(
     }
 }
 
+fn fill_ldap_password(settings: &mut Settings) {
+    let stored_settings = Settings::get_current_settings();
+    if settings.ldap_bind_password.is_none()
+        && settings.ldap_url == stored_settings.ldap_url
+        && settings.ldap_bind_username == stored_settings.ldap_bind_username
+    {
+        settings.ldap_bind_password = stored_settings.ldap_bind_password;
+    }
+}
+
 /// Test the LDAP connection using the currently saved settings
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
@@ -458,8 +468,9 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
 pub(crate) async fn test_submitted_ldap_settings(
     _admin: AdminRole,
     _license: LicenseInfo,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult {
+    fill_ldap_password(&mut settings);
     debug!("Testing LDAP connection with provided settings");
     match LDAPConnection::create_with_settings(settings).await {
         Ok(_) => {
@@ -501,8 +512,9 @@ pub(crate) async fn ldap_dry_run(
     _admin: AdminRole,
     _license: LicenseInfo,
     State(appstate): State<AppState>,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult {
+    fill_ldap_password(&mut settings);
     debug!("Performing LDAP dry run with provided settings");
     let authority = if settings.ldap_is_authoritative {
         Authority::LDAP
