@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { Reorder, useDragControls } from 'motion/react';
-import { type PointerEvent, type RefObject, useState } from 'react';
+import type { RefObject } from 'react';
 import { m } from '../../../../../../paraglide/messages';
 import type {
   MfaFlowAssignment,
@@ -35,27 +35,13 @@ export const MfaFlowOverrideRow = ({
   unavailableText,
 }: Props) => {
   const dragControls = useDragControls();
-  const [isDragging, setDragging] = useState(false);
-
-  const startDrag = (event: PointerEvent<HTMLButtonElement>) => {
-    setDragging(true);
-    const listeners = new AbortController();
-    const stopDrag = () => {
-      listeners.abort();
-      setDragging(false);
-    };
-    window.addEventListener('pointerup', stopDrag, { signal: listeners.signal });
-    window.addEventListener('pointercancel', stopDrag, { signal: listeners.signal });
-    dragControls.start(event);
-  };
 
   return (
     <Reorder.Item
       value={override}
       dragListener={false}
       dragControls={dragControls}
-      // Motion offsets resting items when the constraints element resizes, so constrain only while dragging.
-      dragConstraints={isDragging ? dragConstraints : undefined}
+      dragConstraints={dragConstraints}
       dragElastic={false}
       layout="position"
       className="assignment-row mfa-flow-override-row"
@@ -73,7 +59,7 @@ export const MfaFlowOverrideRow = ({
             type="button"
             className="drag-button"
             aria-label={m.location_mfa_override_reorder({ number: position })}
-            onPointerDown={startDrag}
+            onPointerDown={(event) => dragControls.start(event)}
           >
             <Icon icon="dnd" size={20} />
           </button>
