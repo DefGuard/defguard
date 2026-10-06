@@ -368,6 +368,25 @@ impl TryFrom<Settings> for LDAPConfig {
     }
 }
 
+#[derive(Serialize)]
+struct EnrollmentData<'a> {
+    #[serde(rename = "enrollmentToken")]
+    token: &'a str,
+    #[serde(rename = "enrollmentUrl")]
+    url: &'a str,
+}
+
+impl<'a> EnrollmentData<'a> {
+    #[must_use]
+    pub fn new(token: &'a str, url: &'a str) -> Self {
+        Self { token, url }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_default()
+    }
+}
+
 pub struct LDAPConnection {
     pub config: LDAPConfig,
     pub url: String,
@@ -757,6 +776,7 @@ impl LDAPConnection {
         &mut self,
         user: &User<Id>,
         token: &str,
+        enrollment_url: &str,
     ) -> Result<(), LdapError> {
         let Some(attr) = self.config.enrollment_token_attr().map(ToOwned::to_owned) else {
             return Err(LdapError::MissingSettings(
@@ -770,10 +790,11 @@ impl LDAPConnection {
                 "User {user_dn} not found in LDAP, cannot store enrollment token",
             )));
         }
+        let data = EnrollmentData::new(token, enrollment_url).to_json();
         self.modify(
             &user_dn,
             &user_dn,
-            vec![Mod::Replace(attr.as_str(), hashset![token])],
+            vec![Mod::Replace(attr.as_str(), hashset![data.as_str()])],
         )
         .await?;
         info!("Stored enrollment token for user {user} in LDAP");
