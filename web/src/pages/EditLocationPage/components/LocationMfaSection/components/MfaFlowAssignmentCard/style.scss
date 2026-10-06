@@ -22,7 +22,8 @@
     .flow-title {
       font: var(--t-body-sm-500);
       color: var(--fg-action);
-      text-decoration: underline;
+      text-decoration: underline dotted;
+      text-underline-offset: 4px;
       cursor: help;
     }
 
@@ -52,6 +53,7 @@
     display: flex;
     flex-flow: row wrap;
     gap: var(--spacing-sm);
+    overflow: hidden;
   }
 
   .info-banner {
@@ -68,7 +70,7 @@
     padding: 0;
     background: none;
     border: none;
-    font: var(--t-body-sm-400);
+    font: var(--t-body-xs-400);
     color: var(--fg-action);
     cursor: pointer;
   }

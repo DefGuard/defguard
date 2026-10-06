@@ -1,6 +1,14 @@
 import './style.scss';
 
-import { type ReactNode, useState } from 'react';
+import useResizeObserver from '@react-hook/resize-observer';
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { m } from '../../../../../../paraglide/messages';
 import type { MfaFlowStepMethods } from '../../../../../../shared/api/types';
 import { MfaFlowStepsTooltip } from '../../../../../../shared/components/MfaFlowStepsTooltip/MfaFlowStepsTooltip';
@@ -12,7 +20,41 @@ import { InfoBanner } from '../../../../../../shared/defguard-ui/components/Info
 import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 
-const collapsedChipLimit = 5;
+const collapsedRowCount = 2;
+
+const useCollapsedHeight = (target: RefObject<HTMLElement | null>) => {
+  const [collapsedHeight, setCollapsedHeight] = useState<number | null>(null);
+
+  const measure = useCallback(() => {
+    const container = target.current;
+    if (!container) return;
+    const containerTop = container.getBoundingClientRect().top;
+    let rows = 0;
+    let rowTop = Number.NEGATIVE_INFINITY;
+    let rowsBottom = 0;
+    for (const child of container.children) {
+      const rect = child.getBoundingClientRect();
+      if (rect.top > rowTop + 1) {
+        rows += 1;
+        rowTop = rect.top;
+      }
+      if (rows > collapsedRowCount) {
+        setCollapsedHeight(rowsBottom);
+        return;
+      }
+      rowsBottom = Math.max(rowsBottom, rect.bottom - containerTop);
+    }
+    setCollapsedHeight(null);
+  }, [target]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  useResizeObserver(target, measure);
+
+  return collapsedHeight;
+};
 
 type Props = {
   title: string;
@@ -38,8 +80,9 @@ export const MfaFlowAssignmentCard = ({
   unavailableText,
 }: Props) => {
   const [expanded, setExpanded] = useState(false);
-  const foldable = chips.length > collapsedChipLimit;
-  const visibleChips = expanded ? chips : chips.slice(0, collapsedChipLimit);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const collapsedHeight = useCollapsedHeight(chipsRef);
+  const foldable = isPresent(collapsedHeight);
 
   return (
     <div className="mfa-flow-assignment-card">
@@ -70,8 +113,12 @@ export const MfaFlowAssignmentCard = ({
         </div>
       </div>
       <Divider spacing={ThemeSpacing.Md} />
-      <div className="chips">
-        {visibleChips.map((chip) => (
+      <div
+        className="chips"
+        ref={chipsRef}
+        style={foldable && !expanded ? { maxHeight: collapsedHeight } : undefined}
+      >
+        {chips.map((chip) => (
           <Chip text={chip} key={chip} />
         ))}
       </div>
