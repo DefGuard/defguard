@@ -1662,6 +1662,7 @@ export interface ActivityLogStream {
   name: string;
   stream_type: ActivityLogStreamTypeValue;
   config: ActivityLogStreamConfig;
+  password_set: boolean;
 }
 export interface CreateActivityLogStreamRequest {
   name: string;
@@ -1672,7 +1673,7 @@ export interface CreateActivityLogStreamRequest {
 export interface ActivityLogStreamConfig {
   url: string;
   username: string | null;
-  password: string | null;
+  password?: SecretValue;
   cert: string | null;
 }
 
