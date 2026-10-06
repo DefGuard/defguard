@@ -59,6 +59,8 @@ pub struct SmtpSettings {
         default
     )))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[patch(attribute(serde(skip_serializing)))]
+    #[serde(skip_serializing)]
     pub password: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_sender")]
     #[sqlx(rename = "smtp_sender")]
@@ -82,11 +84,15 @@ pub struct SmtpSettings {
     #[sqlx(rename = "smtp_oauth_client_secret")]
     #[patch(attribute(serde(rename = "smtp_oauth_client_secret")))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[patch(attribute(serde(skip_serializing)))]
+    #[serde(skip_serializing)]
     pub oauth_client_secret: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_oauth_refresh_token")]
     #[sqlx(rename = "smtp_oauth_refresh_token")]
     #[patch(attribute(serde(rename = "smtp_oauth_refresh_token")))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[patch(attribute(serde(skip_serializing)))]
+    #[serde(skip_serializing)]
     pub oauth_refresh_token: Option<SecretStringWrapper>,
     #[serde(rename = "smtp_oauth_tenant_id")]
     #[sqlx(rename = "smtp_oauth_tenant_id")]

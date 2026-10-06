@@ -236,6 +236,8 @@ pub struct Settings {
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[patch(attribute(serde(skip_serializing)))]
+    #[serde(skip_serializing)]
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
@@ -285,6 +287,7 @@ pub struct Settings {
     // 1.6 config options
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     #[serde(skip)]
+    #[patch(skip)]
     secret_key: Option<SecretStringWrapper>,
     #[serde(skip)]
     pub openid_signing_key_der: Option<Vec<u8>>,

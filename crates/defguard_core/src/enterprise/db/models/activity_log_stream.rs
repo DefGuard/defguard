@@ -40,6 +40,7 @@ pub enum ActivityLogStreamConfig {
 pub struct LogstashHttpActivityLogStream {
     pub url: String,
     pub username: Option<String>,
+    #[serde(skip_serializing)]
     pub password: Option<SecretStringWrapper>,
     // cert to use for tls
     pub cert: Option<String>,
@@ -49,6 +50,7 @@ pub struct LogstashHttpActivityLogStream {
 pub struct VectorHttpActivityLogStream {
     pub url: String,
     pub username: Option<String>,
+    #[serde(skip_serializing)]
     pub password: Option<SecretStringWrapper>,
     // cert to use for tls
     pub cert: Option<String>,
