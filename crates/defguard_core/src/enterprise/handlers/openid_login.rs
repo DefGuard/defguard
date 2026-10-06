@@ -230,7 +230,7 @@ pub async fn make_oidc_client(
 > {
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id.clone());
-    let client_secret = ClientSecret::new(provider.client_secret.clone());
+    let client_secret = ClientSecret::new(provider.client_secret.expose_secret().to_owned());
     let core_client = CoreClient::from_provider_metadata(
         provider_metadata,
         client_id.clone(),
@@ -1266,7 +1266,7 @@ mod test {
             provider_server.uri(),
             OpenIdProviderKind::Custom,
             TEST_CLIENT_ID.to_owned(),
-            "client_secret".to_owned(),
+            "client_secret".to_owned().into(),
             None,
             None,
             None,

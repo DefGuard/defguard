@@ -1541,7 +1541,7 @@ async fn test_activate_oidc_user_with_password_management_disabled_skips_passwor
         base_url: "https://test-oidc.example.com".to_owned(),
         kind: OpenIdProviderKind::Custom,
         client_id: "client-id".to_owned(),
-        client_secret: "client-secret".to_owned(),
+        client_secret: "client-secret".to_owned().into(),
         display_name: Some("Test OIDC".to_owned()),
         google_service_account_key: None,
         google_service_account_email: None,

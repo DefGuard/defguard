@@ -96,7 +96,10 @@ pub(crate) async fn add_openid_provider(
                     it.",
                     session.user.username
                 );
-                provider_data.google_service_account_key.clone()
+                provider_data
+                    .google_service_account_key
+                    .clone()
+                    .map(Into::into)
             } else if let Some(provider) = &current_provider {
                 debug!(
                     "User {} did not provide a valid RSA private key for provider's directory sync \
@@ -124,7 +127,7 @@ pub(crate) async fn add_openid_provider(
                     Using it.",
                     session.user.username
                 );
-                provider_data.okta_private_jwk.clone()
+                provider_data.okta_private_jwk.clone().map(Into::into)
             } else if let Some(provider) = &current_provider {
                 debug!(
                     "User {} did not provide a valid JWK private key for provider's Okta directory \
@@ -183,7 +186,7 @@ pub(crate) async fn add_openid_provider(
         provider_data.base_url,
         provider_data.kind,
         provider_data.client_id,
-        provider_data.client_secret,
+        provider_data.client_secret.into(),
         provider_data.display_name,
         private_key,
         provider_data.google_service_account_email,
@@ -196,7 +199,7 @@ pub(crate) async fn add_openid_provider(
         okta_private_jwk,
         provider_data.okta_dirsync_client_id,
         group_match,
-        provider_data.jumpcloud_api_key,
+        provider_data.jumpcloud_api_key.map(Into::into),
         provider_data.prefetch_users,
         provider_data.disable_password_management,
         user_groups,
@@ -398,7 +401,10 @@ pub(crate) async fn modify_openid_provider(
                         "User {} provided a valid RSA private key for provider's directory sync. Using it.",
                         session.user.username
                     );
-                    provider_data.google_service_account_key.clone()
+                    provider_data
+                        .google_service_account_key
+                        .clone()
+                        .map(Into::into)
                 } else {
                     debug!(
                         "User {} did not provide a valid RSA private key for provider's directory sync or the key did not change. Using the existing key",
@@ -417,7 +423,7 @@ pub(crate) async fn modify_openid_provider(
                         "User {} provided a valid JWK private key for provider's Okta directory sync. Using it.",
                         session.user.username
                     );
-                    provider_data.okta_private_jwk.clone()
+                    provider_data.okta_private_jwk.clone().map(Into::into)
                 } else {
                     debug!(
                         "User {} did not provide a valid JWK private key for provider's Okta directory sync or the key did not change. Using the existing key.",
@@ -465,7 +471,7 @@ pub(crate) async fn modify_openid_provider(
         provider.base_url = provider_data.base_url;
         provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
-        provider.client_secret = provider_data.client_secret;
+        provider.client_secret = provider_data.client_secret.into();
         provider.display_name = provider_data.display_name;
         provider.google_service_account_key = private_key;
         provider.google_service_account_email = provider_data.google_service_account_email;
@@ -478,7 +484,7 @@ pub(crate) async fn modify_openid_provider(
         provider.okta_private_jwk = okta_private_jwk;
         provider.okta_dirsync_client_id = provider_data.okta_dirsync_client_id;
         provider.directory_sync_group_match = group_match;
-        provider.jumpcloud_api_key = provider_data.jumpcloud_api_key;
+        provider.jumpcloud_api_key = provider_data.jumpcloud_api_key.map(Into::into);
         provider.prefetch_users = provider_data.prefetch_users;
         provider.disable_password_management = provider_data.disable_password_management;
         provider.directory_sync_user_groups = user_groups;

@@ -286,7 +286,8 @@ fn each_model_type_produces_its_own_column_alias() {
             #[model(option)] count: Option<i64>,
             #[model(option_ref)] note: Option<String>,
             #[model(ip)] address: IpAddr,
-            #[model(secret)] token: Option<SecretString>,
+            #[model(secret)] token: Option<SecretStringWrapper>,
+            #[model(secret)] key: SecretStringWrapper,
         }",
     );
 
@@ -298,13 +299,14 @@ fn each_model_type_produces_its_own_column_alias() {
             \"count\" \"count?: _\",\
             \"note\" \"note?: _\",\
             \"address\" \"address: IpAddr\",\
-            \"token\" \"token?: SecretString\" \
+            \"token\" \"token?: _\",\
+            \"key\" \"key: _\" \
             FROM \"t\""
     );
     assert_eq!(
         queries[INSERT],
-        "INSERT INTO \"t\" (\"plain\",\"kind\",\"name\",\"count\",\"note\",\"address\",\"token\") \
-             VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id"
+        "INSERT INTO \"t\" (\"plain\",\"kind\",\"name\",\"count\",\"note\",\"address\",\"token\",\"key\") \
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
     );
 }
 
@@ -414,8 +416,12 @@ fn bind_args_cast_according_to_model_type() {
         quote!(&self.value as &Json<Foo>).to_string()
     );
     assert_eq!(
-        bind_arg("#[model(secret)] value: Option<SecretString>"),
-        quote!(&self.value as &Option<SecretString>).to_string()
+        bind_arg("#[model(secret)] value: Option<SecretStringWrapper>"),
+        quote!(&self.value as &Option<SecretStringWrapper>).to_string()
+    );
+    assert_eq!(
+        bind_arg("#[model(secret)] value: SecretStringWrapper"),
+        quote!(&self.value as &SecretStringWrapper).to_string()
     );
 }
 

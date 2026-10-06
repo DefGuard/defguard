@@ -181,7 +181,10 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         cs_setters.push(format!("\"{name}\" = ${update_value_number}"));
         cs_aliased_fields.push(match model_type {
             ModelType::Any => format!("\"{name}\""),
-            ModelType::Secret => format!("\"{name}\" \"{name}?: SecretString\""),
+            ModelType::Secret => {
+                let nullable = if option_field_type(&field.ty).is_some() { "?" } else { "" };
+                format!("\"{name}\" \"{name}{nullable}: _\"")
+            }
             ModelType::Ip => format!("\"{name}\" \"{name}: IpAddr\""),
             ModelType::Option | ModelType::OptionRef => format!("\"{name}\" \"{name}?: _\""),
             ModelType::Enum | ModelType::Ref | ModelType::List | ModelType::Json => {
@@ -207,10 +210,8 @@ fn expand(ast: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             }
             ModelType::OptionRef => quote! { self.#name.as_deref() },
             // FIXME: hard-coded struct name
-            ModelType::Secret => quote! { &self.#name as &Option<SecretString> },
-            // FIXME: hard-coded struct name
             ModelType::Ip => quote! { &self.#name as &IpAddr },
-            ModelType::List | ModelType::Json => {
+            ModelType::List | ModelType::Json | ModelType::Secret => {
                 let ty = &field.ty;
                 quote! { &self.#name as &#ty }
             }

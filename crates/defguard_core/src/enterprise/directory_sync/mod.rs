@@ -275,7 +275,11 @@ impl DirectorySyncClient {
                             "Google directory has all the configuration needed, proceeding with \
                             creating the sync client"
                         );
-                        let client = google::GoogleDirectorySync::new(key, email, admin_email);
+                        let client = google::GoogleDirectorySync::new(
+                            key.expose_secret(),
+                            email,
+                            admin_email,
+                        );
                         debug!("Google directory sync client created");
                         Ok(Self::Google(client))
                     }
@@ -286,7 +290,7 @@ impl DirectorySyncClient {
                 debug!("Microsoft directory sync provider selected");
                 let client = microsoft::MicrosoftDirectorySync::new(
                     provider_settings.client_id,
-                    provider_settings.client_secret,
+                    provider_settings.client_secret.expose_secret().to_owned(),
                     provider_settings.base_url,
                     provider_settings.directory_sync_group_match,
                 );
@@ -302,8 +306,11 @@ impl DirectorySyncClient {
                         "Okta directory has all the configuration needed, proceeding with creating \
                         the sync client"
                     );
-                    let client =
-                        okta::OktaDirectorySync::new(jwk, client_id, &provider_settings.base_url);
+                    let client = okta::OktaDirectorySync::new(
+                        jwk.expose_secret(),
+                        client_id,
+                        &provider_settings.base_url,
+                    );
                     debug!("Okta directory sync client created");
                     Ok(Self::Okta(client))
                 } else {
@@ -322,7 +329,7 @@ impl DirectorySyncClient {
                         creating the sync client"
                     );
                     let client = jumpcloud::JumpCloudDirectorySync::new(
-                        key.clone(),
+                        key.expose_secret().to_owned(),
                         jumpcloud::api_host_for(&provider_settings.base_url),
                     );
                     debug!("JumpCloud directory sync client created");
