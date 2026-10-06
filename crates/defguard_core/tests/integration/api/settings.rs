@@ -754,4 +754,16 @@ async fn test_get_settings_does_not_expose_secrets(_: PgPoolOptions, options: Pg
             "secret value {secret:?} leaked in the GET /api/v1/settings response"
         );
     }
+
+    for flag in [
+        "ldap_bind_password_set",
+        "smtp_password_set",
+        "smtp_oauth_client_secret_set",
+        "smtp_oauth_refresh_token_set",
+    ] {
+        assert_eq!(
+            body[flag], true,
+            "{flag} should be true when the secret is set"
+        );
+    }
 }
