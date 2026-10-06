@@ -16,7 +16,7 @@ import {
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
-  baseExternalProviderConfigSchema,
+  editExternalProviderConfigSchema,
   oktaProviderSyncSchema,
 } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
@@ -26,21 +26,23 @@ const basicSchema = z
     directory_sync_enabled: z.boolean(),
     directory_sync_user_groups: z.string().trim().nullable(),
   })
-  .extend(baseExternalProviderConfigSchema.shape);
+  .extend(editExternalProviderConfigSchema.shape);
 
-const syncSchema = basicSchema.extend(oktaProviderSyncSchema.shape);
+const syncSchema = basicSchema.extend(oktaProviderSyncSchema.shape).extend({
+  okta_private_jwk: oktaProviderSyncSchema.shape.okta_private_jwk.nullable().optional(),
+});
 
 const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   basicSchema,
   syncSchema,
 ]);
 
-const makeValidationSchema = (hadDirectorySyncConfigured: boolean) =>
+const makeValidationSchema = (hasPrivateJwk: boolean) =>
   syncSchema
     .omit({ okta_dirsync_client_id: true, okta_private_jwk: true })
     .extend({
       okta_dirsync_client_id: z.string(),
-      okta_private_jwk: z.string(),
+      okta_private_jwk: z.string().nullable().optional(),
     })
     .superRefine((val, ctx) => {
       if (val.directory_sync_enabled) {
@@ -51,10 +53,7 @@ const makeValidationSchema = (hadDirectorySyncConfigured: boolean) =>
             message: m.form_error_required(),
           });
         }
-        // The private key is never sent back by the backend, so a blank value here means
-        // "keep the existing key" rather than "no key was ever set" - only require it when
-        // directory sync is being configured for the first time.
-        if (!hadDirectorySyncConfigured && val.okta_private_jwk.trim().length === 0) {
+        if (!hasPrivateJwk && !val.okta_private_jwk?.trim()) {
           ctx.addIssue({
             path: ['okta_private_jwk'],
             code: 'custom',
@@ -75,9 +74,9 @@ export const EditOktaProviderForm = ({
     return {
       base_url: provider.base_url,
       okta_dirsync_client_id: provider.okta_dirsync_client_id ?? '',
-      okta_private_jwk: provider.okta_private_jwk ?? '',
+      okta_private_jwk: provider.okta_private_jwk_set ? undefined : '',
       client_id: provider.client_id,
-      client_secret: provider.client_secret,
+      client_secret: provider.client_secret_set ? undefined : '',
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -93,11 +92,11 @@ export const EditOktaProviderForm = ({
     };
   }, [provider]);
 
-  const hadDirectorySyncConfigured = Boolean(provider.okta_dirsync_client_id);
+  const hasPrivateJwk = provider.okta_private_jwk_set ?? false;
 
   const validationSchema = useMemo(
-    () => makeValidationSchema(hadDirectorySyncConfigured),
-    [hadDirectorySyncConfigured],
+    () => makeValidationSchema(hasPrivateJwk),
+    [hasPrivateJwk],
   );
 
   const form = useAppForm({
@@ -112,10 +111,7 @@ export const EditOktaProviderForm = ({
         ...value,
         directory_sync_user_groups: value.directory_sync_user_groups ?? '',
       };
-      if (
-        'okta_private_jwk' in normalized &&
-        normalized.okta_private_jwk.trim().length === 0
-      ) {
+      if ('okta_private_jwk' in normalized && !normalized.okta_private_jwk?.trim()) {
         await onSubmit(omit(normalized, ['okta_private_jwk']));
         return;
       }
@@ -165,9 +161,9 @@ export const EditOktaProviderForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput
-                type="password"
+              <field.FormSecretInput
                 required
+                stored={provider.client_secret_set ?? false}
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
               />
@@ -269,15 +265,10 @@ export const EditOktaProviderForm = ({
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="okta_private_jwk">
                   {(field) => (
-                    <field.FormInput
-                      required={!hadDirectorySyncConfigured}
-                      placeholder={
-                        hadDirectorySyncConfigured
-                          ? m.settings_openid_provider_placeholder_okta_private_jwk()
-                          : undefined
-                      }
+                    <field.FormSecretInput
+                      required
+                      stored={hasPrivateJwk}
                       label={m.settings_openid_provider_label_okta_directory_sync_client_private_key()}
-                      type="password"
                       helper={m.settings_openid_provider_helper_okta_directory_sync_client_private_key()}
                     />
                   )}

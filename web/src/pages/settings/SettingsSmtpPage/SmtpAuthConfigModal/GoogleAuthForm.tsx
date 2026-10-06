@@ -42,7 +42,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
     defaultValues: {
       smtp_sender: initialValues.smtp_sender,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
-      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret ?? null,
       smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,

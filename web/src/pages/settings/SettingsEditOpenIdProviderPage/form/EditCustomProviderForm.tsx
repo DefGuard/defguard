@@ -8,10 +8,10 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { providerUsernameHandlingOptions } from '../../../AddExternalOpenIdWizardPage/consts';
-import { baseExternalProviderConfigSchema } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
+import { editExternalProviderConfigSchema } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
 
-const formSchema = baseExternalProviderConfigSchema;
+const formSchema = editExternalProviderConfigSchema;
 
 type FormFields = z.infer<typeof formSchema>;
 
@@ -23,7 +23,7 @@ export const EditCustomProviderForm = ({
   const defaultValues = useMemo((): FormFields => {
     return {
       client_id: provider.client_id,
-      client_secret: provider.client_secret,
+      client_secret: provider.client_secret_set ? undefined : '',
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -86,9 +86,9 @@ export const EditCustomProviderForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput
-                type="password"
+              <field.FormSecretInput
                 required
+                stored={provider.client_secret_set ?? false}
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
               />

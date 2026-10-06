@@ -17,7 +17,7 @@ import {
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
-  baseExternalProviderConfigSchema,
+  editExternalProviderConfigSchema,
   microsoftProviderSyncSchema,
 } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
@@ -32,7 +32,7 @@ const basicSchema = z
     directory_sync_group_match: z.string().trim().nullable(),
     directory_sync_user_groups: z.string().trim().nullable(),
   })
-  .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
+  .extend(omit(editExternalProviderConfigSchema.shape, ['base_url']));
 
 const syncSchema = basicSchema.extend(microsoftProviderSyncSchema.shape);
 
@@ -70,7 +70,7 @@ export const EditMicrosoftProviderForm = ({
     const tenantId = urlParts[urlParts.length - 2] ?? '';
     return {
       client_id: provider.client_id,
-      client_secret: provider.client_secret,
+      client_secret: provider.client_secret_set ? undefined : '',
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -151,9 +151,9 @@ export const EditMicrosoftProviderForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput
-                type="password"
+              <field.FormSecretInput
                 required
+                stored={provider.client_secret_set ?? false}
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
               />

@@ -42,7 +42,7 @@ export const CustomAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
       smtp_oauth_issuer_url: initialValues.smtp_oauth_issuer_url,
       smtp_oauth_scope: CUSTOM_SCOPE_DEFAULT,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
-      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret ?? null,
       smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,

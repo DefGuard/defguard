@@ -22,20 +22,24 @@ const schema = z.object({
   smtp_encryption: z.enum(SmtpEncryption),
   smtp_tls_verify_cert: z.boolean(),
   smtp_user: z.string().trim().nullable(),
-  smtp_password: z.string().trim().nullable(),
+  smtp_password: z.string().trim().nullable().optional(),
 });
 
+type FormFields = z.infer<typeof schema>;
+
 export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
+  const defaultValues: FormFields = {
+    smtp_server: initialValues.smtp_server,
+    smtp_port: initialValues.smtp_port,
+    smtp_sender: initialValues.smtp_sender,
+    smtp_encryption: initialValues.smtp_encryption,
+    smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
+    smtp_user: initialValues.smtp_user,
+    smtp_password: initialValues.smtp_password,
+  };
+
   const form = useAppForm({
-    defaultValues: {
-      smtp_server: initialValues.smtp_server,
-      smtp_port: initialValues.smtp_port,
-      smtp_sender: initialValues.smtp_sender,
-      smtp_encryption: initialValues.smtp_encryption,
-      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
-      smtp_user: initialValues.smtp_user,
-      smtp_password: initialValues.smtp_password,
-    },
+    defaultValues,
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
     onSubmit: async ({ value }) => {
@@ -117,11 +121,11 @@ export const BasicAuthForm = ({ initialValues, onApply, onClose }: FormProps) =>
           </form.AppField>
           <form.AppField name="smtp_password">
             {(field) => (
-              <field.FormInput
+              <field.FormSecretInput
                 required
+                stored={initialValues.smtp_password_set}
                 label={m.settings_smtp_label_server_password()}
                 helper={m.settings_smtp_helper_server_password()}
-                type="password"
               />
             )}
           </form.AppField>

@@ -18,18 +18,17 @@ import {
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
-  baseExternalProviderConfigSchema,
+  editExternalProviderConfigSchema,
   googleProviderSyncSchema,
   parseGoogleKeyFile,
-  providerToGoogleKeyFile,
 } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
 
-const basicSchema = baseExternalProviderConfigSchema.extend({
+const basicSchema = editExternalProviderConfigSchema.extend({
   directory_sync_enabled: z.boolean(),
 });
 
-const syncSchema = baseExternalProviderConfigSchema
+const syncSchema = editExternalProviderConfigSchema
   .extend(googleProviderSyncSchema.shape)
   .extend({
     directory_sync_enabled: z.boolean(),
@@ -74,15 +73,10 @@ export const EditGoogleProviderForm = ({
   onSubmit,
 }: EditProviderFormProps) => {
   const defaultValues = useMemo((): FormFields => {
-    const keyFile = providerToGoogleKeyFile(
-      provider.google_service_account_key,
-      provider.google_service_account_email,
-    );
-
     return {
       base_url: provider.base_url,
       client_id: provider.client_id,
-      client_secret: provider.client_secret,
+      client_secret: provider.client_secret_set ? undefined : '',
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -93,14 +87,14 @@ export const EditGoogleProviderForm = ({
       directory_sync_target: provider.directory_sync_target,
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
-      google_service_account_file: keyFile,
+      google_service_account_file: null,
       directory_sync_user_groups: joinCsv(
         toCsvArray(provider.directory_sync_user_groups),
       ),
     };
   }, [provider]);
 
-  const hasServiceAccountKey = Boolean(provider.google_service_account_email);
+  const hasServiceAccountKey = provider.google_service_account_key_set ?? false;
   const validationSchema = useMemo(
     () => makeValidationSchema(hasServiceAccountKey),
     [hasServiceAccountKey],
@@ -172,9 +166,9 @@ export const EditGoogleProviderForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput
-                type="password"
+              <field.FormSecretInput
                 required
+                stored={provider.client_secret_set ?? false}
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
               />

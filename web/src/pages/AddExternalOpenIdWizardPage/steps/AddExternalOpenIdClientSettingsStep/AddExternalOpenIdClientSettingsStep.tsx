@@ -115,7 +115,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
     (): FormFields => ({
       base_url: storeData.base_url,
       client_id: storeData.client_id,
-      client_secret: storeData.client_secret,
+      client_secret: storeData.client_secret ?? '',
       create_account: storeData.create_account,
       disable_password_management: storeData.disable_password_management,
       display_name: storeData.display_name,
