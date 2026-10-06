@@ -19,7 +19,9 @@ use defguard_common::{
 use sqlx::PgConnection;
 use tracing::warn;
 
-use crate::enterprise::{allowed_ips::get_effective_allowed_ips, has_enterprise_access};
+use crate::enterprise::{
+    LicenseFeature, allowed_ips::get_effective_allowed_ips, has_enterprise_access,
+};
 
 /// Build a `DeviceConfig` for a device already assigned to a network.
 ///
@@ -51,8 +53,8 @@ pub async fn build_device_config(
         Some(LocationMfaMode::Disabled)
     };
 
-    // Group overrides need Enterprise.
-    let mtu = if has_enterprise_access(None) {
+    // Group overrides need the GroupMTUOverride feature.
+    let mtu = if has_enterprise_access(Some(LicenseFeature::GroupMTUOverride)) {
         network
             .client_mtu_for_user(&mut *conn, user.id)
             .await

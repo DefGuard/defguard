@@ -158,12 +158,13 @@ impl LicenseTier {
 
 /// Additive, per-license feature grants. Each flag enables a single enterprise capability on
 /// top of the license tier; it can only ever enable a feature, never restrict one.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, strum::VariantArray)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, VariantArray)]
 pub enum LicenseFeature {
     ServiceLocations,
     DevicePosture,
     AclAllowedIps,
     ComponentHa,
+    GroupMTUOverride,
 }
 
 impl TryFrom<LicenseFeatureProto> for LicenseFeature {
@@ -175,6 +176,7 @@ impl TryFrom<LicenseFeatureProto> for LicenseFeature {
             LicenseFeatureProto::DevicePosture => Ok(Self::DevicePosture),
             LicenseFeatureProto::AclAllowedIps => Ok(Self::AclAllowedIps),
             LicenseFeatureProto::ComponentHa => Ok(Self::ComponentHa),
+            LicenseFeatureProto::GroupMtuOverride => Ok(Self::GroupMTUOverride),
             LicenseFeatureProto::Unspecified => {
                 Err(LicenseError::DecodeError("Unspecified license feature"))
             }

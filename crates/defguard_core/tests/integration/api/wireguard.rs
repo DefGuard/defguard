@@ -3282,7 +3282,7 @@ async fn test_location_group_client_mtus(_: PgPoolOptions, options: PgConnectOpt
         json!([{"client_mtu": 1280, "group_ids": [group_1, group_3]}])
     );
 
-    // Omitting the field (older clients) keeps saved overrides.
+    // Omitting the field keeps overrides.
     let mut data = location_json_with_group_client_mtus("network", json!([]));
     data.as_object_mut().unwrap().remove("group_client_mtus");
     let response = client
