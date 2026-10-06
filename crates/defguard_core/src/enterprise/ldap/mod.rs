@@ -13,6 +13,7 @@ use ldap3::Ldap;
 use ldap3::{Mod, dn_escape, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
+use serde_json::json;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
@@ -757,6 +758,7 @@ impl LDAPConnection {
         &mut self,
         user: &User<Id>,
         token: &str,
+        enrollment_url: &str,
     ) -> Result<(), LdapError> {
         let Some(attr) = self.config.enrollment_token_attr().map(ToOwned::to_owned) else {
             return Err(LdapError::MissingSettings(
@@ -770,10 +772,15 @@ impl LDAPConnection {
                 "User {user_dn} not found in LDAP, cannot store enrollment token",
             )));
         }
+        let value = json!({
+            "enrollmentToken": token,
+            "enrollmentUrl": enrollment_url,
+        })
+        .to_string();
         self.modify(
             &user_dn,
             &user_dn,
-            vec![Mod::Replace(attr.as_str(), hashset![token])],
+            vec![Mod::Replace(attr.as_str(), hashset![value.as_str()])],
         )
         .await?;
         info!("Stored enrollment token for user {user} in LDAP");

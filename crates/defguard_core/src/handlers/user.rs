@@ -2063,7 +2063,8 @@ pub(crate) async fn bulk_start_enrollment(
 /// Bulk store enrollment tokens in LDAP
 ///
 /// Creates a fresh enrollment token for each of the given users and writes it to the attribute
-/// configured through `ldap_enrollment_token_attr`. No enrollment email is sent.
+/// configured through `ldap_enrollment_token_attr`, as `{"enrollmentToken":…,"enrollmentUrl":…}`.
+/// No enrollment email is sent.
 ///
 /// Disabled users are counted in `skipped`, users whose token could not be written to LDAP in
 /// `failed` - their token is still created in Defguard. The request is rejected when LDAP or
@@ -2168,15 +2169,16 @@ pub(crate) async fn bulk_store_enrollment_token_in_ldap(
         .iter()
         .map(|(user, token)| (user, token.clone()))
         .collect::<Vec<_>>();
-    let failed = ldap_store_enrollment_tokens(&token_refs, &appstate.pool)
-        .await
-        .map_err(|err| {
-            error!(
-                "Failed to store enrollment tokens in LDAP for user {}: {err}",
-                session.user.username
-            );
-            WebError::BadRequest(format!("Failed to store enrollment tokens in LDAP: {err}"))
-        })?;
+    let failed =
+        ldap_store_enrollment_tokens(&token_refs, public_proxy_url.as_str(), &appstate.pool)
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to store enrollment tokens in LDAP for user {}: {err}",
+                    session.user.username
+                );
+                WebError::BadRequest(format!("Failed to store enrollment tokens in LDAP: {err}"))
+            })?;
     let failed_ids = failed.iter().map(|user| user.id).collect::<HashSet<_>>();
     let failed_count = failed_ids.len();
     let stored_count = tokens.len() - failed_count;

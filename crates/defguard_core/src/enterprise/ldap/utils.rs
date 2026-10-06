@@ -203,6 +203,7 @@ pub async fn ldap_add_user(
 /// Users whose token could not be written are returned instead of aborting the batch.
 pub(crate) async fn ldap_store_enrollment_tokens<'a>(
     tokens: &[(&'a User<Id>, String)],
+    enrollment_url: &str,
     pool: &PgPool,
 ) -> Result<Vec<&'a User<Id>>, LdapError> {
     Box::pin(with_ldap_status(pool, async {
@@ -213,7 +214,10 @@ pub(crate) async fn ldap_store_enrollment_tokens<'a>(
         let mut ldap_connection = LDAPConnection::create().await?;
         let mut failed = Vec::new();
         for (user, token) in tokens {
-            if let Err(err) = ldap_connection.set_user_enrollment_token(user, token).await {
+            if let Err(err) = ldap_connection
+                .set_user_enrollment_token(user, token, enrollment_url)
+                .await
+            {
                 error!("Failed to store enrollment token for user {user} in LDAP: {err}");
                 failed.push(*user);
             }
