@@ -767,3 +767,128 @@ async fn test_get_settings_does_not_expose_secrets(_: PgPoolOptions, options: Pg
         );
     }
 }
+
+fn secret(value: &str) -> Option<SecretStringWrapper> {
+    Some(SecretStringWrapper::from_str(value).unwrap())
+}
+
+async fn store_all_secrets(pool: &PgPool) {
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_bind_password = secret("ldap-secret");
+    settings.smtp.password = secret("smtp-secret");
+    settings.smtp.oauth_client_secret = secret("oauth-client-secret");
+    settings.smtp.oauth_refresh_token = secret("oauth-refresh-token");
+    update_current_settings(pool, settings).await.unwrap();
+}
+
+#[sqlx::test]
+async fn test_put_settings_without_secrets_keeps_stored_secrets(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    store_all_secrets(&pool).await;
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body: serde_json::Value = response.json().await;
+    body["instance_name"] = json!("Changed");
+
+    let response = client.put("/api/v1/settings").json(&body).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(from_db.instance_name, "Changed");
+    assert_eq!(from_db.ldap_bind_password, secret("ldap-secret"));
+    assert_eq!(from_db.smtp.password, secret("smtp-secret"));
+    assert_eq!(
+        from_db.smtp.oauth_client_secret,
+        secret("oauth-client-secret")
+    );
+    assert_eq!(
+        from_db.smtp.oauth_refresh_token,
+        secret("oauth-refresh-token")
+    );
+}
+
+#[sqlx::test]
+async fn test_put_settings_with_new_secret_replaces_it(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    store_all_secrets(&pool).await;
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body: serde_json::Value = response.json().await;
+    body["smtp_password"] = json!("new-smtp-secret");
+
+    let response = client.put("/api/v1/settings").json(&body).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(from_db.smtp.password, secret("new-smtp-secret"));
+    assert_eq!(from_db.ldap_bind_password, secret("ldap-secret"));
+}
+
+#[sqlx::test]
+async fn test_patch_settings_secrets(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    store_all_secrets(&pool).await;
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "instance_name": "Changed" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(from_db.ldap_bind_password, secret("ldap-secret"));
+    assert_eq!(from_db.smtp.password, secret("smtp-secret"));
+    assert_eq!(
+        from_db.smtp.oauth_client_secret,
+        secret("oauth-client-secret")
+    );
+    assert_eq!(
+        from_db.smtp.oauth_refresh_token,
+        secret("oauth-refresh-token")
+    );
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({
+            "ldap_bind_password": null,
+            "smtp_password": null,
+            "smtp_oauth_client_secret": null,
+            "smtp_oauth_refresh_token": null
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(from_db.ldap_bind_password.is_none());
+    assert!(from_db.smtp.password.is_none());
+    assert!(from_db.smtp.oauth_client_secret.is_none());
+    assert!(from_db.smtp.oauth_refresh_token.is_none());
+}
