@@ -72,13 +72,36 @@ pub(crate) async fn broadcast_public_settings(
     }
 }
 
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SettingsResponse {
+    #[serde(flatten)]
+    settings: Settings,
+    ldap_bind_password_set: bool,
+    smtp_password_set: bool,
+    smtp_oauth_client_secret_set: bool,
+    smtp_oauth_refresh_token_set: bool,
+}
+
+impl From<Settings> for SettingsResponse {
+    fn from(value: Settings) -> Self {
+        Self {
+            ldap_bind_password_set: value.ldap_bind_password.is_some(),
+            smtp_password_set: value.smtp.password.is_some(),
+            smtp_oauth_client_secret_set: value.smtp.oauth_client_secret.is_some(),
+            smtp_oauth_refresh_token_set: value.smtp.oauth_refresh_token.is_some(),
+            settings: value,
+        }
+    }
+}
+
 /// Get instance settings
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/settings",
     tag = "settings",
     responses(
-        (status = 200, description = "Instance settings.", body = Settings),
+        (status = 200, description = "Instance settings.", body = SettingsResponse),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -97,7 +120,10 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         if settings.main_logo_url.is_empty() {
             settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
         }
-        return Ok(ApiResponse::json(settings, StatusCode::OK));
+        return Ok(ApiResponse::json(
+            SettingsResponse::from(settings),
+            StatusCode::OK,
+        ));
     }
     debug!("Retrieved settings");
     Ok(ApiResponse::default())
@@ -206,7 +232,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
         ("id" = i64, Path, description = "Not used."),
     ),
     responses(
-        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = Settings),
+        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = SettingsResponse),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to restore default branding settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -242,7 +268,10 @@ pub(crate) async fn set_default_branding(
                 context,
                 event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
             })?;
-            Ok(ApiResponse::json(settings, StatusCode::OK))
+            Ok(ApiResponse::json(
+                SettingsResponse::from(settings),
+                StatusCode::OK,
+            ))
         }
         None => Err(WebError::DbError("Cannot restore settings".into())),
     }
