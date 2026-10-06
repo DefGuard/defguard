@@ -30,7 +30,10 @@ const schema = z.object({
     .min(1, m.form_error_required())
     .regex(patternValidEmail, m.form_error_email()),
   smtp_oauth_client_id: z.string().trim().nullable(),
-  smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_oauth_client_secret: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required()),
   smtp_tls_verify_cert: z.boolean(),
 });
 
