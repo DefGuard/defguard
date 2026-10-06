@@ -2063,8 +2063,7 @@ pub(crate) async fn bulk_start_enrollment(
 /// Bulk store enrollment tokens in LDAP
 ///
 /// Creates a fresh enrollment token for each of the given users and writes it to the attribute
-/// configured through `ldap_enrollment_token_attr`, as `{"enrollmentToken":…,"enrollmentUrl":…}`.
-/// No enrollment email is sent.
+/// configured through `ldap_enrollment_token_attr`. No enrollment email is sent.
 ///
 /// Disabled users are counted in `skipped`, users whose token could not be written to LDAP in
 /// `failed` - their token is still created in Defguard. The request is rejected when LDAP or
