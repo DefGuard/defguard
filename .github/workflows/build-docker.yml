@@ -91,6 +91,8 @@ jobs:
             type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}
             type=registry,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ env.SAFE_REF }}
           cache-to: type=registry,mode=max,ref=${{ env.GHCR_REPO }}:cache-${{ matrix.tag }}-${{ env.SAFE_REF }}
+          # The apt-get upgrade line never changes, so a cached runtime layer keeps Debian packages with fixed CVEs.
+          no-cache-filters: runtime
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0

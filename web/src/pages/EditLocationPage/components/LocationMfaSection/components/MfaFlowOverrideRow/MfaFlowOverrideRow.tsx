@@ -1,10 +1,15 @@
+import './style.scss';
+
 import { Reorder, useDragControls } from 'motion/react';
 import type { RefObject } from 'react';
-import { m } from '../../../../paraglide/messages';
-import type { MfaFlowAssignment, MfaFlowStepMethods } from '../../../../shared/api/types';
-import { Icon } from '../../../../shared/defguard-ui/components/Icon/Icon';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { MfaFlowAssignmentCard } from './MfaFlowAssignmentCard';
+import { m } from '../../../../../../paraglide/messages';
+import type {
+  MfaFlowAssignment,
+  MfaFlowStepMethods,
+} from '../../../../../../shared/api/types';
+import { Icon } from '../../../../../../shared/defguard-ui/components/Icon/Icon';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
+import { MfaFlowAssignmentCard } from '../MfaFlowAssignmentCard/MfaFlowAssignmentCard';
 
 type Props = {
   override: MfaFlowAssignment;
@@ -39,7 +44,7 @@ export const MfaFlowOverrideRow = ({
       dragConstraints={dragConstraints}
       dragElastic={false}
       layout="position"
-      className="assignment-row"
+      className="assignment-row mfa-flow-override-row"
     >
       <span className="marker">
         {isPresent(unavailableText) ? <Icon icon="disabled" size={16} /> : position}
