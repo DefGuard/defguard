@@ -251,7 +251,9 @@ pub(super) async fn verify(
         (VpnClientMfaMethod::Oidc, None) => Ok(verify_oidc(ephemeral)),
         (VpnClientMfaMethod::Oidc, Some(_)) => Err(credential_method_mismatch().into()),
         (VpnClientMfaMethod::MobileApprove, _) => Err(VerifyError::UnsupportedMethod),
-        (VpnClientMfaMethod::Fido2, proof) => verify_fido2(pool, ctx, ephemeral, proof).await,
+        (VpnClientMfaMethod::Fido2, proof) => {
+            verify_vpn_fido2_step(pool, ctx, ephemeral, proof).await
+        }
     }
 }
 
@@ -288,7 +290,7 @@ pub(super) fn verify_legacy(
     }
 }
 
-async fn verify_fido2(
+async fn verify_vpn_fido2_step(
     pool: &PgPool,
     ctx: &MfaSessionContext,
     ephemeral: &EphemeralState,
@@ -318,39 +320,58 @@ async fn verify_fido2(
             event: None,
         });
     };
-    let passkeys = WebAuthn::passkeys_for_user(pool, ctx.user.id).await?;
     let assertion = Assertion {
         rpid_hash: rp_id_hash.clone(),
         signature: signature.clone(),
         auth_data: authenticator_data.clone(),
         ..Default::default()
     };
+    if verify_registered_fido2_assertion(
+        pool,
+        ctx.user.id,
+        &rp_id,
+        &challenge.challenge,
+        &assertion,
+        Some(credential_id.as_slice()),
+    )
+    .await?
+    {
+        Ok(Verdict::Proved)
+    } else {
+        Ok(Verdict::Failed {
+            message: "FIDO2 challenge failed",
+        })
+    }
+}
+
+async fn verify_registered_fido2_assertion(
+    pool: &PgPool,
+    user_id: Id,
+    rp_id: &str,
+    challenge: &str,
+    assertion: &Assertion,
+    credential_id: Option<&[u8]>,
+) -> Result<bool, VerifyError> {
+    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
     for passkey in &passkeys {
-        if passkey.cred_id().as_ref() != credential_id.as_slice() {
+        if credential_id.is_some_and(|credential_id| passkey.cred_id().as_ref() != credential_id) {
             continue;
         }
         let Some(public_key) = to_ctap_public_key(passkey) else {
             continue;
         };
-        if verify_assertion(
-            &rp_id,
-            &public_key,
-            challenge.challenge.as_bytes(),
-            &assertion,
-        ) {
-            return Ok(Verdict::Proved);
+        if verify_assertion(rp_id, &public_key, challenge.as_bytes(), assertion) {
+            return Ok(true);
         }
     }
 
-    Ok(Verdict::Failed {
-        message: "FIDO2 challenge failed",
-    })
+    Ok(false)
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.
 ///
 /// Returns `Ok(false)` when no registered key verifies the assertion.
-pub async fn verify_fido2_assertion(
+pub async fn verify_mfa_config_fido2_assertion(
     pool: &PgPool,
     user_id: Id,
     challenge: &str,
@@ -380,26 +401,14 @@ pub async fn verify_fido2_assertion(
         })?
         .to_vec();
 
-    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
     let assertion = Assertion {
         rpid_hash,
         signature: signature.to_vec(),
         auth_data: auth_data.to_vec(),
         ..Default::default()
     };
-    for passkey in &passkeys {
-        if credential_id.is_some_and(|credential_id| passkey.cred_id().as_ref() != credential_id) {
-            continue;
-        }
-        let Some(public_key) = to_ctap_public_key(passkey) else {
-            continue;
-        };
-        if verify_assertion(&rp_id, &public_key, challenge.as_bytes(), &assertion) {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
+    verify_registered_fido2_assertion(pool, user_id, &rp_id, challenge, &assertion, credential_id)
+        .await
 }
 
 /// Verify a signed MobileApprove challenge.
