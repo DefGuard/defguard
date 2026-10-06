@@ -13,7 +13,6 @@ use ldap3::Ldap;
 use ldap3::{Mod, dn_escape, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
-use serde_json::json;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
@@ -366,6 +365,25 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_sync_groups: settings.ldap_sync_groups,
             ldap_enrollment_token_attr: settings.ldap_enrollment_token_attr,
         })
+    }
+}
+
+#[derive(Serialize)]
+struct EnrollmentData<'a> {
+    #[serde(rename = "enrollmentToken")]
+    token: &'a str,
+    #[serde(rename = "enrollmentUrl")]
+    url: &'a str,
+}
+
+impl<'a> EnrollmentData<'a> {
+    #[must_use]
+    pub fn new(token: &'a str, url: &'a str) -> Self {
+        Self { token, url }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
 
@@ -772,15 +790,11 @@ impl LDAPConnection {
                 "User {user_dn} not found in LDAP, cannot store enrollment token",
             )));
         }
-        let value = json!({
-            "enrollmentToken": token,
-            "enrollmentUrl": enrollment_url,
-        })
-        .to_string();
+        let data = EnrollmentData::new(token, enrollment_url).to_json();
         self.modify(
             &user_dn,
             &user_dn,
-            vec![Mod::Replace(attr.as_str(), hashset![value.as_str()])],
+            vec![Mod::Replace(attr.as_str(), hashset![data.as_str()])],
         )
         .await?;
         info!("Stored enrollment token for user {user} in LDAP");
