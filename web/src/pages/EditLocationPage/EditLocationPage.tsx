@@ -271,7 +271,8 @@ const buildLocationSubmissionData = (
       300,
     posture_checks: postureChecks,
     mfa_flows: mfaFlows,
-    group_client_mtus: groupClientMtus,
+    // Hidden overrides are cleared on save.
+    group_client_mtus: normalizedValue.client_mtu_enabled ? groupClientMtus : [],
   };
 };
 
@@ -810,11 +811,19 @@ const EditLocationForm = ({
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <ClientMtuFields form={form} fields={clientMtuFieldNames} />
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <LocationGroupMtuSection
-            overrides={pendingGroupMtus}
-            onChange={setPendingGroupMtus}
-          />
+          <form.Subscribe selector={(state) => state.values.client_mtu_enabled}>
+            {(clientMtuEnabled) =>
+              clientMtuEnabled && (
+                <>
+                  <SizedBox height={ThemeSpacing.Xl2} />
+                  <LocationGroupMtuSection
+                    overrides={pendingGroupMtus}
+                    onChange={setPendingGroupMtus}
+                  />
+                </>
+              )
+            }
+          </form.Subscribe>
         </EditPageFormSection>
         <form.Subscribe selector={(state) => state.values.allow_all_groups}>
           {(allowAllGroups) => (

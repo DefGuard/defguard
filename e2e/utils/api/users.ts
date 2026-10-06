@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { APIRequestContext, Page } from '@playwright/test';
 
 import { testsConfig } from '../../config';
 import { ApiUser, ApiUserAuthKey, ApiUserProfile, User } from '../../types';
@@ -72,4 +72,13 @@ export const apiCreateUser = async (page: Page, user: User): Promise<void> => {
       'Content-Type': 'application/json',
     },
   });
+};
+
+export const apiLogin = async (
+  api: APIRequestContext,
+  username: string,
+  password: string,
+): Promise<number> => {
+  const url = testsConfig.CORE_BASE_URL + '/auth';
+  return (await api.post(url, { data: { username, password } })).status();
 };

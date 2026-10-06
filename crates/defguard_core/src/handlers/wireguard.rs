@@ -100,8 +100,7 @@ pub struct WireguardNetworkData {
     pub service_location_mode: ServiceLocationMode,
     pub posture_checks: Vec<Id>,
     pub mfa_flows: Vec<LocationMfaFlowAssignment>,
-    /// Client MTU overrides; each group may appear once. `None` (field omitted, e.g. by older
-    /// clients) leaves saved overrides untouched on update.
+    /// Client MTU overrides; each group may appear once. `None` keeps saved overrides.
     #[serde(default)]
     pub group_client_mtus: Option<Vec<GroupClientMtu>>,
 }
@@ -385,7 +384,7 @@ pub(crate) async fn create_network(
         .group_client_mtus
         .as_ref()
         .is_some_and(|overrides| !overrides.is_empty())
-        && !has_enterprise_access(None)
+        && !has_enterprise_access(Some(LicenseFeature::GroupMTUOverride))
     {
         error!("Adding location {network_name} blocked! Group MTU requires Enterprise license.");
         return Ok(WebError::Forbidden("Group MTU requires an Enterprise license.").into());
@@ -600,9 +599,9 @@ pub(crate) async fn modify_network(
     network
         .set_allowed_groups(&mut transaction, &data.allowed_groups)
         .await?;
-    // Without a license, keep saved overrides so other fields stay editable.
+    // Without a license, keep saved overrides.
     if let Some(overrides) = &data.group_client_mtus {
-        if has_enterprise_access(None) {
+        if has_enterprise_access(Some(LicenseFeature::GroupMTUOverride)) {
             save_group_client_mtus(&network, &mut transaction, overrides).await?;
         } else {
             warn!(

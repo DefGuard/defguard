@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import type { GroupClientMtu } from '../../api/types';
+import { type GroupClientMtu, LicenseFeature } from '../../api/types';
 import { AppText } from '../../defguard-ui/components/AppText/AppText';
 import { Badge } from '../../defguard-ui/components/Badge/Badge';
 import { Button } from '../../defguard-ui/components/Button/Button';
@@ -28,7 +28,10 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
   const [editing, setEditing] = useState<Editing>();
   const [modalOpen, setModalOpen] = useState(false);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const locked = !canUseEnterpriseFeature(licenseInfo ?? null).result;
+  const locked = !canUseEnterpriseFeature(
+    licenseInfo ?? null,
+    LicenseFeature.GroupMTUOverride,
+  ).result;
 
   const { data: groupOptions = [] } = useQuery({
     ...getGroupsInfoQueryOptions,
