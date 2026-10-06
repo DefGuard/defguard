@@ -3,9 +3,12 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::{
-    Settings, WireguardNetwork,
-    settings::{OpenIdUsernameHandling, update_current_settings},
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings, WireguardNetwork,
+        settings::{OpenIdUsernameHandling, update_current_settings},
+    },
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -51,6 +54,28 @@ pub struct AddProviderData {
     // Core settings
     pub create_account: bool,
     pub username_handling: OpenIdUsernameHandling,
+}
+
+#[derive(Serialize)]
+struct OpenIdProviderResponse {
+    #[serde(flatten)]
+    provider: OpenIdProvider<Id>,
+    client_secret_set: bool,
+    google_service_account_key_set: bool,
+    okta_private_jwk_set: bool,
+    jumpcloud_api_key_set: bool,
+}
+
+impl From<OpenIdProvider<Id>> for OpenIdProviderResponse {
+    fn from(provider: OpenIdProvider<Id>) -> Self {
+        Self {
+            client_secret_set: !provider.client_secret.expose_secret().is_empty(),
+            google_service_account_key_set: provider.google_service_account_key.is_some(),
+            okta_private_jwk_set: provider.okta_private_jwk.is_some(),
+            jumpcloud_api_key_set: provider.jumpcloud_api_key.is_some(),
+            provider,
+        }
+    }
 }
 
 /// Create an OpenID provider
@@ -249,15 +274,10 @@ pub(crate) async fn get_openid_provider(
     let settings_json = json!({"create_account": settings.openid_create_account,
         "username_handling": settings.openid_username_handling});
     match OpenIdProvider::find_by_name(&appstate.pool, &name).await? {
-        Some(mut provider) => {
-            // Get rid of it, it should stay on the backend only.
-            provider.google_service_account_key = None;
-            provider.okta_private_jwk = None;
-            Ok(ApiResponse::new(
-                json!({"provider": provider, "settings": settings_json}),
-                StatusCode::OK,
-            ))
-        }
+        Some(provider) => Ok(ApiResponse::new(
+            json!({"provider": OpenIdProviderResponse::from(provider), "settings": settings_json}),
+            StatusCode::OK,
+        )),
         None => Ok(ApiResponse::new(
             json!({"provider": null, "settings": settings_json}),
             StatusCode::NO_CONTENT,
@@ -471,7 +491,9 @@ pub(crate) async fn modify_openid_provider(
         provider.base_url = provider_data.base_url;
         provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
-        provider.client_secret = provider_data.client_secret.into();
+        if !provider_data.client_secret.is_empty() {
+            provider.client_secret = provider_data.client_secret.into();
+        }
         provider.display_name = provider_data.display_name;
         provider.google_service_account_key = private_key;
         provider.google_service_account_email = provider_data.google_service_account_email;
@@ -484,7 +506,11 @@ pub(crate) async fn modify_openid_provider(
         provider.okta_private_jwk = okta_private_jwk;
         provider.okta_dirsync_client_id = provider_data.okta_dirsync_client_id;
         provider.directory_sync_group_match = group_match;
-        provider.jumpcloud_api_key = provider_data.jumpcloud_api_key.map(Into::into);
+        if let Some(key) = provider_data.jumpcloud_api_key
+            && !key.is_empty()
+        {
+            provider.jumpcloud_api_key = Some(key.into());
+        }
         provider.prefetch_users = provider_data.prefetch_users;
         provider.disable_password_management = provider_data.disable_password_management;
         provider.directory_sync_user_groups = user_groups;
@@ -530,7 +556,11 @@ pub(crate) async fn list_openid_providers(
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    let providers = OpenIdProvider::all(&appstate.pool).await?;
+    let providers = OpenIdProvider::all(&appstate.pool)
+        .await?
+        .into_iter()
+        .map(OpenIdProviderResponse::from)
+        .collect::<Vec<_>>();
     Ok(ApiResponse::json(providers, StatusCode::OK))
 }
 
@@ -559,15 +589,10 @@ pub(crate) async fn get_current_openid_provider(
     let settings_json = json!({"create_account": settings.openid_create_account,
         "username_handling": settings.openid_username_handling});
     match OpenIdProvider::get_current(&appstate.pool).await? {
-        Some(mut provider) => {
-            // Get rid of it, it should stay on the backend only.
-            provider.google_service_account_key = None;
-            provider.okta_private_jwk = None;
-            Ok(ApiResponse::new(
-                json!({"provider": provider, "settings": settings_json}),
-                StatusCode::OK,
-            ))
-        }
+        Some(provider) => Ok(ApiResponse::new(
+            json!({"provider": OpenIdProviderResponse::from(provider), "settings": settings_json}),
+            StatusCode::OK,
+        )),
         None => Ok(ApiResponse::new(
             json!({"provider": null, "settings": settings_json}),
             StatusCode::NO_CONTENT,

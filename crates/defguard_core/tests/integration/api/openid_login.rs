@@ -6,7 +6,7 @@ use defguard_common::db::{
 use defguard_core::{
     enterprise::{
         db::models::openid_provider::{
-            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
         handlers::openid_providers::AddProviderData,
         license::{License, LicenseTier, SupportType, set_cached_license},
@@ -16,7 +16,10 @@ use defguard_core::{
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 
 use super::common::{
     exceed_enterprise_limits, make_client, make_network, setup_pool, update_location_mfa_flows,
@@ -548,5 +551,221 @@ async fn test_delete_openid_provider_reports_affected_locations(
         response.status(),
         StatusCode::NO_CONTENT,
         "provider still exists after a successful DELETE"
+    );
+}
+
+const CLIENT_SECRET: &str = "super-secret-client-secret";
+const GOOGLE_KEY: &str = "super-secret-google-service-account-key";
+const OKTA_JWK: &str = "{\"kty\":\"RSA\",\"d\":\"super-secret-okta-private-jwk\"}";
+const JUMPCLOUD_KEY: &str = "super-secret-jumpcloud-api-key";
+
+fn provider_with_secrets() -> AddProviderData {
+    AddProviderData {
+        name: "test".to_owned(),
+        base_url: "https://accounts.google.com".to_owned(),
+        kind: OpenIdProviderKind::Google,
+        client_id: "client_id".to_owned(),
+        client_secret: CLIENT_SECRET.to_owned(),
+        display_name: Some("display_name".to_owned()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
+        okta_dirsync_client_id: None,
+        okta_private_jwk: Some(OKTA_JWK.to_owned()),
+        directory_sync_group_match: None,
+        username_handling: OpenIdUsernameHandling::PruneEmailDomain,
+        jumpcloud_api_key: Some(JUMPCLOUD_KEY.to_owned()),
+        prefetch_users: false,
+        disable_password_management: false,
+        directory_sync_user_groups: None,
+    }
+}
+
+async fn store_google_key(pool: &PgPool) {
+    let mut provider = OpenIdProvider::find_by_name(pool, "test")
+        .await
+        .unwrap()
+        .unwrap();
+    provider.google_service_account_key = Some(GOOGLE_KEY.to_owned().into());
+    provider.save(pool).await.unwrap();
+}
+
+fn assert_provider_hides_secrets(provider: &Value) {
+    for field in [
+        "client_secret",
+        "google_service_account_key",
+        "okta_private_jwk",
+        "jumpcloud_api_key",
+    ] {
+        assert!(
+            provider.get(field).is_none(),
+            "{field} should not be present in the response"
+        );
+        assert_eq!(
+            provider[format!("{field}_set")],
+            true,
+            "{field}_set should be true when the secret is stored"
+        );
+    }
+
+    let raw = provider.to_string();
+    for secret in [
+        CLIENT_SECRET,
+        GOOGLE_KEY,
+        "super-secret-okta-private-jwk",
+        JUMPCLOUD_KEY,
+    ] {
+        assert!(
+            !raw.contains(secret),
+            "secret value {secret:?} leaked in the response"
+        );
+    }
+}
+
+#[sqlx::test]
+async fn test_get_openid_provider_does_not_expose_secrets(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let client = make_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_with_secrets())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    store_google_key(&pool).await;
+
+    let response = client.get("/api/v1/openid/provider/current").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_provider_hides_secrets(&body["provider"]);
+
+    let response = client.get("/api/v1/openid/provider/test").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_provider_hides_secrets(&body["provider"]);
+
+    let response = client.get("/api/v1/openid/provider").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    let providers = body.as_array().unwrap();
+    assert_eq!(providers.len(), 1);
+    assert_provider_hides_secrets(&providers[0]);
+}
+
+#[sqlx::test]
+async fn test_modify_openid_provider_without_secrets_keeps_them(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let client = make_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut provider_data = provider_with_secrets();
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    store_google_key(&pool).await;
+
+    provider_data.client_secret = String::new();
+    provider_data.okta_private_jwk = None;
+    provider_data.jumpcloud_api_key = None;
+    provider_data.display_name = Some("changed".to_owned());
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let provider = OpenIdProvider::find_by_name(&pool, "test")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(provider.display_name.as_deref(), Some("changed"));
+    assert_eq!(provider.client_secret.expose_secret(), CLIENT_SECRET);
+    assert_eq!(
+        provider
+            .google_service_account_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(GOOGLE_KEY)
+    );
+    assert_eq!(
+        provider
+            .okta_private_jwk
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(OKTA_JWK)
+    );
+    assert_eq!(
+        provider
+            .jumpcloud_api_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(JUMPCLOUD_KEY)
+    );
+}
+
+#[sqlx::test]
+async fn test_modify_openid_provider_with_new_secret_replaces_it(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let client = make_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut provider_data = provider_with_secrets();
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    provider_data.client_secret = "new-client-secret".to_owned();
+    provider_data.jumpcloud_api_key = None;
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&provider_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let provider = OpenIdProvider::find_by_name(&pool, "test")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(provider.client_secret.expose_secret(), "new-client-secret");
+    assert_eq!(
+        provider
+            .jumpcloud_api_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(JUMPCLOUD_KEY)
     );
 }
