@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"vpn_client_mfa_session\" SET \"token_hash\" = $2,\"location_id\" = $3,\"device_id\" = $4,\"user_id\" = $5,\"flow_kind\" = $6,\"steps_snapshot\" = $7,\"current_step\" = $8,\"ephemeral_state\" = $9,\"failed_attempts\" = $10,\"created_at\" = $11,\"expires_at\" = $12 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "vpn_mfa_flow_kind",
+            "kind": {
+              "Enum": [
+                "legacy",
+                "multi_step"
+              ]
+            }
+          }
+        },
+        "Jsonb",
+        "Int4",
+        "Jsonb",
+        "Int4",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f423b71a66144322761b1aa1717e01ef040f1b089d1c0ace37280cc811d6a43"
+}

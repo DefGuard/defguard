@@ -40,7 +40,7 @@ use defguard_core::{
     grpc::{
         GatewayCommand,
         proxy::client_mfa::{
-            ClientMfaServer, ClientMfaStartOutcome, PostureCheckOutcome, RemoteAuthWaiters,
+            ClientMfaServer, MfaStartRejection, PostureCheckOutcome, RemoteAuthWaiters,
         },
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
@@ -882,27 +882,58 @@ impl ProxyHandler {
                 match boxed(
                     services
                         .client_mfa
-                        .start_client_mfa_login(request, received.device_info),
+                        .legacy_mfa_start(request, received.device_info),
                 )
                 .await
                 {
-                    Ok(ClientMfaStartOutcome::Approved(response_payload)) => {
+                    Ok(response_payload) => {
                         Some(core_response::Payload::ClientMfaStart(response_payload))
                     }
-                    Ok(ClientMfaStartOutcome::Rejected { failed_checks }) => Some(
+                    Err(MfaStartRejection::PostureFailed { failed_checks }) => Some(
                         core_response::Payload::DevicePostureRejected(DevicePostureRejection {
                             failed_posture_checks: failed_checks,
                         }),
                     ),
-                    Err(err) => {
+                    Err(MfaStartRejection::Status(err)) => {
                         error!("client MFA start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc MfaFlowStart (MfaFlowStartRequest) returns (MfaFlowStartResponse)
+            Some(core_request::Payload::MfaFlowStart(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .mfa_flow_start(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response) => Some(core_response::Payload::MfaFlowStart(response)),
+                    Err(MfaStartRejection::PostureFailed { failed_checks }) => Some(
+                        core_response::Payload::DevicePostureRejected(DevicePostureRejection {
+                            failed_posture_checks: failed_checks,
+                        }),
+                    ),
+                    Err(MfaStartRejection::Status(err)) => {
+                        error!("client MFA flow start error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc MfaFlowStepStart (MfaFlowStepStartRequest) returns (MfaFlowStepStartResponse)
+            Some(core_request::Payload::MfaFlowStepStart(request)) => {
+                match boxed(services.client_mfa.mfa_flow_step_start(request)).await {
+                    Ok(response) => Some(core_response::Payload::MfaFlowStepStart(response)),
+                    Err(err) => {
+                        error!("client MFA flow step start error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
                     }
                 }
             }
             // rpc ClientRemoteMfaFinish (ClientRemoteMfaFinishRequest) returns (ClientRemoteMfaFinishResponse)
             Some(core_request::Payload::AwaitRemoteMfaFinish(request)) => {
-                match boxed(services.client_mfa.await_remote_mfa_login(
+                match boxed(services.client_mfa.legacy_mfa_remote(
                     request,
                     response_tx.clone(),
                     received.id,
@@ -917,12 +948,61 @@ impl ProxyHandler {
                     }
                 }
             }
+            // rpc MfaFlowStepFinish (MfaFlowStepFinishRequest) returns (MfaFlowStepFinishResponse)
+            Some(core_request::Payload::MfaFlowStepFinish(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .mfa_flow_step_finish(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(response) => Some(core_response::Payload::MfaFlowStepFinish(response)),
+                    Err(err) => {
+                        error!("client MFA flow step finish error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc MfaFlowRemote (MfaFlowRemoteRequest) returns (MfaFlowRemoteResponse)
+            Some(core_request::Payload::MfaFlowRemote(request)) => {
+                match boxed(services.client_mfa.mfa_flow_remote(
+                    request,
+                    response_tx.clone(),
+                    received.id,
+                    received.device_info,
+                ))
+                .await
+                {
+                    Ok(()) => None,
+                    Err(err) => {
+                        error!("client MFA flow remote finish error: {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            // rpc MfaFlowApprove (MfaFlowApproveRequest) returns (google.protobuf.Empty)
+            Some(core_request::Payload::MfaFlowApprove(request)) => {
+                match boxed(
+                    services
+                        .client_mfa
+                        .mfa_flow_approve(request, received.device_info),
+                )
+                .await
+                {
+                    Ok(()) => Some(core_response::Payload::Empty(())),
+                    Err(err) => {
+                        error!("client MFA flow approve error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
             Some(core_request::Payload::ClientMfaFinish(request)) => {
                 match boxed(
                     services
                         .client_mfa
-                        .finish_client_mfa_login(request, received.device_info),
+                        .legacy_mfa_finish(request, received.device_info),
                 )
                 .await
                 {
@@ -1068,15 +1148,6 @@ impl ProxyHandler {
                     ),
                     Err(err) => {
                         error!("Posture check error: {err}");
-                        Some(core_response::Payload::CoreError(err.into()))
-                    }
-                }
-            }
-            Some(core_request::Payload::ClientMfaStepStart(request)) => {
-                match boxed(services.client_mfa.client_mfa_step_start(request)).await {
-                    Ok(response) => Some(core_response::Payload::ClientMfaStepStart(response)),
-                    Err(err) => {
-                        error!("client MFA step start error {err}");
                         Some(core_response::Payload::CoreError(err.into()))
                     }
                 }

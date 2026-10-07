@@ -40,10 +40,9 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{
         ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
-        ClientMfaStepStartRequest, ClientMfaStepStartResponse, CodeMfaSetupFinishRequest,
-        CodeMfaSetupStartRequest, DeviceConfigResponse, EnrollmentStartRequest,
-        MfaConfigAuthorizeRequest, MfaConfigEndRequest, MfaConfigFido2ChallengeRequest,
-        MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
+        CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
+        EnrollmentStartRequest, MfaConfigAuthorizeRequest, MfaConfigEndRequest,
+        MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
     },
     proxy::{
         ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
@@ -447,12 +446,11 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
     }
 }
 
-/// Assign a single-step MFA flow to a location so that `MfaFlow::derive_legacy_mode` yields a
-/// legacy mode for it.
+/// Assign a single-step MFA flow to a location.
 ///
-/// `mfa_enabled` alone is no longer enough: the legacy mode is derived from the location's flow
-/// configuration, and a location with no flows derives `None`, which the MFA start path refuses.
-async fn assign_legacy_mfa_flow(
+/// Setting `mfa_enabled` alone is not enough: the legacy MFA mode is derived from the location's
+/// flow configuration, and a location with no flow derives `None`, which the MFA start path refuses.
+async fn assign_mfa_flow(
     pool: &PgPool,
     location_id: Id,
     title: &str,
@@ -475,10 +473,11 @@ async fn assign_legacy_mfa_flow(
     .expect("failed to assign test mfa flow to location");
 }
 
-/// Insert a WireGuard network that derives the legacy `Internal` MFA mode, returning the saved
-/// `WireguardNetwork<Id>`. Use this for any test that exercises the MFA flow (the default
-/// `create_network` leaves MFA disabled).
-pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+/// Insert a WireGuard network whose single MFA step contains exactly `methods`.
+pub(crate) async fn create_mfa_network_with_methods(
+    pool: &PgPool,
+    methods: Vec<VpnClientMfaMethod>,
+) -> WireguardNetwork<Id> {
     static NET_CTR: AtomicU16 = AtomicU16::new(0);
     let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     let network = WireguardNetwork::new(
@@ -500,11 +499,21 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     .await
     .expect("failed to save test mfa wireguard network");
 
-    // The full internal method set is what derives `LocationMfaMode::Internal`.
-    assign_legacy_mfa_flow(
+    assign_mfa_flow(
         pool,
         network.id,
-        &format!("test-internal-mfa-flow-{network_number}"),
+        &format!("test-mfa-flow-{network_number}"),
+        methods,
+    )
+    .await;
+
+    network
+}
+
+/// Insert a WireGuard network that derives the legacy `Internal` MFA mode.
+pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    create_mfa_network_with_methods(
+        pool,
         vec![
             VpnClientMfaMethod::Totp,
             VpnClientMfaMethod::Email,
@@ -512,9 +521,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
             VpnClientMfaMethod::MobileApprove,
         ],
     )
-    .await;
-
-    network
+    .await
 }
 
 /// Insert a WireGuard network that derives the legacy `External` MFA mode.
@@ -541,7 +548,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     .expect("failed to save test external mfa wireguard network");
 
     // A lone OIDC method is what derives `LocationMfaMode::External`.
-    assign_legacy_mfa_flow(
+    assign_mfa_flow(
         pool,
         network.id,
         &format!("test-external-mfa-flow-{network_number}"),
@@ -654,7 +661,7 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
     user.new_email_secret(pool).await.expect("new_email_secret");
     user.enable_email_mfa(pool).await.expect("enable_email_mfa");
     // generate_email_mfa_code uses the in-memory secret; note that
-    // start_client_mfa_login also calls generate_email_mfa_code internally -
+    // legacy_mfa_start also calls generate_email_mfa_code internally -
     // the two calls will produce the same code because the in-memory secret
     // hasn't changed. But we need the code *after* the start call, so the
     // caller should call this helper before start and pass the code to finish.
@@ -730,19 +737,13 @@ pub(crate) async fn send_mfa_start(
     (id, token)
 }
 
-/// Send `ClientMfaStart` and return `(request id, token, challenge)`.
-///
-/// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
-/// and mobile-approve flows return the string the client must sign.
-///
-/// Requires `device_info` because the handler calls `parse_client_ip_agent`, same as
-/// [`send_mfa_finish`].
-pub(crate) async fn send_mfa_start_with_challenge(
+/// Send `ClientMfaStart` and return the raw response for success or error assertions.
+pub(crate) async fn send_mfa_start_raw(
     context: &mut HandlerTestContext,
     location_id: Id,
     pubkey: &str,
     method: MfaMethod,
-) -> (u64, String, Option<String>) {
+) -> CoreResponse {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
@@ -752,14 +753,26 @@ pub(crate) async fn send_mfa_start_with_challenge(
             ClientMfaStartRequest {
                 location_id,
                 pubkey: pubkey.to_owned(),
-                #[allow(deprecated)]
                 method: method as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
-    let response = context.mock_proxy_mut().recv_outbound().await;
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send `ClientMfaStart` and return `(request id, token, challenge)`.
+///
+/// The challenge is `None` for methods that do not issue one (TOTP, email, OIDC); the biometric
+/// and mobile-approve flows return the string the client must sign.
+pub(crate) async fn send_mfa_start_with_challenge(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    method: MfaMethod,
+) -> (u64, String, Option<String>) {
+    let response = send_mfa_start_raw(context, location_id, pubkey, method).await;
+    let id = response.id;
     let (token, challenge) = match &response.payload {
         Some(core_response::Payload::ClientMfaStart(r)) => (r.token.clone(), r.challenge.clone()),
         Some(core_response::Payload::CoreError(e)) => panic!(
@@ -772,79 +785,6 @@ pub(crate) async fn send_mfa_start_with_challenge(
         ),
     };
     (id, token, challenge)
-}
-
-/// Send `ClientMfaStart` with an explicit multi-step plan and return `(request id, token)`.
-///
-/// Non-empty `selected_methods` selects the multi-step path; the deprecated `method` field is
-/// ignored. Panics if the handler returns an error.
-pub(crate) async fn send_mfa_start_multi_step(
-    context: &mut HandlerTestContext,
-    location_id: Id,
-    pubkey: &str,
-    selected_methods: &[MfaMethod],
-) -> (u64, String) {
-    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
-    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
-    context.mock_proxy().send_request(CoreRequest {
-        id,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaStart(
-            ClientMfaStartRequest {
-                location_id,
-                pubkey: pubkey.to_owned(),
-                #[allow(deprecated)]
-                method: MfaMethod::Totp as i32,
-                posture_data: None,
-                selected_methods: selected_methods.iter().map(|m| *m as i32).collect(),
-            },
-        )),
-    });
-    let response = context.mock_proxy_mut().recv_outbound().await;
-    let token = match &response.payload {
-        Some(core_response::Payload::ClientMfaStart(r)) => r.token.clone(),
-        Some(core_response::Payload::CoreError(e)) => panic!(
-            "send_mfa_start_multi_step: got CoreError status={} msg={}",
-            e.status_code, e.message
-        ),
-        other => panic!(
-            "send_mfa_start_multi_step: expected ClientMfaStart response, got: {:?}",
-            other.as_ref().map(discriminant)
-        ),
-    };
-    (id, token)
-}
-
-/// Send `ClientMfaStepStart` and return the response. Panics if the handler returns an error.
-pub(crate) async fn send_mfa_step_start(
-    context: &mut HandlerTestContext,
-    token: &str,
-    method: MfaMethod,
-) -> ClientMfaStepStartResponse {
-    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
-    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
-    context.mock_proxy().send_request(CoreRequest {
-        id,
-        device_info: None,
-        payload: Some(core_request::Payload::ClientMfaStepStart(
-            ClientMfaStepStartRequest {
-                token: token.to_owned(),
-                method: method as i32,
-            },
-        )),
-    });
-    let response = context.mock_proxy_mut().recv_outbound().await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaStepStart(r)) => r,
-        Some(core_response::Payload::CoreError(e)) => panic!(
-            "send_mfa_step_start: got CoreError status={} msg={}",
-            e.status_code, e.message
-        ),
-        other => panic!(
-            "send_mfa_step_start: expected ClientMfaStepStart response, got: {:?}",
-            other.as_ref().map(discriminant)
-        ),
-    }
 }
 
 /// Register an ed25519 biometric-auth key for `device_id` and return the signing key.
@@ -894,17 +834,6 @@ pub(crate) async fn send_mfa_finish_signed(
     code: Option<&str>,
     auth_pub_key: Option<&str>,
 ) -> (CoreResponse, String) {
-    send_mfa_finish_signed_with_attempt_id(context, token, code, auth_pub_key, None).await
-}
-
-/// Send `ClientMfaFinish` carrying an optional attempt ID and return `(response, preshared_key)`.
-pub(crate) async fn send_mfa_finish_signed_with_attempt_id(
-    context: &mut HandlerTestContext,
-    token: &str,
-    code: Option<&str>,
-    auth_pub_key: Option<&str>,
-    step_attempt_id: Option<&str>,
-) -> (CoreResponse, String) {
     static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
@@ -915,15 +844,11 @@ pub(crate) async fn send_mfa_finish_signed_with_attempt_id(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: auth_pub_key.map(str::to_owned),
-                step_attempt_id: step_attempt_id.map(str::to_owned),
-                auth_data: None,
-                credential_id: None,
             },
         )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let psk = match &response.payload {
-        #[allow(deprecated)]
         Some(core_response::Payload::ClientMfaFinish(r)) => r.preshared_key.clone(),
         Some(core_response::Payload::CoreError(e)) => panic!(
             "send_mfa_finish: got CoreError status={} msg={}",
@@ -958,9 +883,6 @@ pub(crate) async fn send_mfa_finish_no_recv(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
             },
         )),
     });
@@ -986,61 +908,6 @@ pub(crate) async fn send_mfa_finish_raw(
                 token: token.to_owned(),
                 code: code.map(str::to_owned),
                 auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
-        )),
-    });
-    context.mock_proxy_mut().recv_outbound().await
-}
-
-/// Send a signed `ClientMfaFinish` with an optional attempt ID and return the raw response.
-pub(crate) async fn send_mfa_finish_signed_with_attempt_id_raw(
-    context: &mut HandlerTestContext,
-    token: &str,
-    code: Option<&str>,
-    auth_pub_key: Option<&str>,
-    step_attempt_id: Option<&str>,
-) -> CoreResponse {
-    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
-    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
-    context.mock_proxy().send_request(CoreRequest {
-        id,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: token.to_owned(),
-                code: code.map(str::to_owned),
-                auth_pub_key: auth_pub_key.map(str::to_owned),
-                step_attempt_id: step_attempt_id.map(str::to_owned),
-                auth_data: None,
-                credential_id: None,
-            },
-        )),
-    });
-    context.mock_proxy_mut().recv_outbound().await
-}
-
-/// Send `ClientMfaFinish` with a 2.2 step attempt ID and return the raw response.
-pub(crate) async fn send_mfa_finish_with_attempt_id_raw(
-    context: &mut HandlerTestContext,
-    token: &str,
-    step_attempt_id: &str,
-) -> CoreResponse {
-    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
-    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
-    context.mock_proxy().send_request(CoreRequest {
-        id,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: token.to_owned(),
-                code: None,
-                auth_pub_key: None,
-                step_attempt_id: Some(step_attempt_id.to_owned()),
-                auth_data: None,
-                credential_id: None,
             },
         )),
     });

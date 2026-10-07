@@ -7,7 +7,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
+use base64::{Engine as _, prelude::BASE64_STANDARD};
 use chrono::Utc;
 use defguard_common::db::{
     Id,
@@ -21,6 +21,7 @@ use defguard_common::db::{
         user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
         vpn_client_mfa_session::{
             MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+            VpnMfaFlowKind,
         },
         vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
         wireguard::ServiceLocationMode,
@@ -29,13 +30,15 @@ use defguard_common::db::{
 };
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaStartRequest, ClientMfaStepStartRequest, MfaMethod,
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaCodeCredential, MfaFlowApproveRequest,
+        MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStartRejectionReason,
+        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
     },
     enterprise::posture::{BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check},
     proxy::{ClientMfaOidcAuthenticateRequest, ClientMfaTokenValidationRequest, DeviceInfo},
 };
 use ed25519_dalek::{Signer, SigningKey};
-use getrandom::{SysRng, rand_core::UnwrapErr};
 use ipnetwork::IpNetwork;
 use sqlx::{
     PgPool,
@@ -46,8 +49,8 @@ use tonic::Code;
 use totp_lite::{Sha1, totp_custom};
 
 use super::{
-    AwaitRemoteMfaFinishRequest, ClientMfaServer, ClientMfaStartOutcome, CoreResponse, hash_token,
-    mfa_step_result, remove_remote_mfa_waiter,
+    AwaitRemoteMfaFinishRequest, ClientMfaServer, CoreResponse, MfaStartRejection, hash_token,
+    remove_remote_mfa_waiter,
 };
 use crate::{
     enterprise::{
@@ -63,7 +66,10 @@ use crate::{
         GatewayCommand, proto::enterprise::license::LicenseLimits,
         proxy::client_mfa::RemoteAuthWaiters,
     },
-    mfa_engine::authorize::{EventChannels, create_new_session},
+    mfa_engine::{
+        authorize::{EventChannels, create_new_session},
+        multi_step::StepCredential,
+    },
 };
 
 const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -776,6 +782,30 @@ async fn test_posture_check_failure_revokes_active_session(
 }
 
 #[sqlx::test]
+async fn test_legacy_mfa_start_rejects_fido2(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (server, _, _) = make_server(pool);
+    let error = match server
+        .legacy_mfa_start(
+            ClientMfaStartRequest {
+                location_id: 0,
+                pubkey: String::new(),
+                method: MfaMethod::Fido2 as i32,
+                posture_data: None,
+            },
+            device_info(),
+        )
+        .await
+    {
+        Ok(_) => panic!("legacy MFA start must reject FIDO2"),
+        Err(MfaStartRejection::Status(error)) => error,
+        Err(MfaStartRejection::PostureFailed { .. }) => panic!("unexpected posture rejection"),
+    };
+    assert_eq!(error.code(), Code::Unimplemented);
+    assert_eq!(error.message(), "Selected MFA method is not supported");
+}
+
+#[sqlx::test]
 async fn test_mfa_start_posture_failure_revokes_active_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -811,22 +841,19 @@ async fn test_mfa_start_posture_failure_revokes_active_session(
     };
 
     let outcome = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: Some(posture_data),
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
-        .await
-        .expect("posture check should complete");
+        .await;
     assert!(matches!(
         outcome,
-        super::ClientMfaStartOutcome::Rejected { .. }
+        Err(MfaStartRejection::PostureFailed { .. })
     ));
 
     match gateway_rx
@@ -899,20 +926,21 @@ async fn test_mfa_start_rejects_non_derivable_location_with_update_message(
     let (server, _, _) = make_server(pool);
 
     let error = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
-        .err()
-        .expect("non-derivable location should be rejected");
+        .expect_err("non-derivable location should be rejected");
+    let error = match error {
+        MfaStartRejection::Status(error) => error,
+        MfaStartRejection::PostureFailed { .. } => panic!("unexpected posture rejection"),
+    };
 
     assert_eq!(error.code(), Code::FailedPrecondition);
     assert_eq!(
@@ -1335,7 +1363,71 @@ async fn create_and_assign_mfa_flow(pool: &PgPool, location_id: Id) {
     tx.commit().await.expect("failed to commit transaction");
 }
 
-#[allow(deprecated)]
+async fn setup_mfa_flow_server(options: PgConnectOptions) -> (ClientMfaServer, PgPool, Id, String) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_mfa_flow(&pool, location.id).await;
+    let mut user = create_user(&pool).await;
+    user.enable_totp(&pool)
+        .await
+        .expect("failed to enable TOTP");
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    BiometricAuth::new(device.id, "mobile-approve-test-key".to_owned())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+    let pubkey = device.wireguard_pubkey.clone();
+    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
+    (server, pool, location.id, pubkey)
+}
+
+async fn setup_mobile_mfa_flow_server(
+    options: PgConnectOptions,
+) -> (
+    ClientMfaServer,
+    PgPool,
+    Id,
+    String,
+    String,
+    SigningKey,
+    tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+    tokio::sync::broadcast::Receiver<GatewayCommand>,
+) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_mfa_flow(&pool, location.id).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let signing_key = SigningKey::from_bytes(&[11; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
+    BiometricAuth::new(device.id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+    let pubkey = device.wireguard_pubkey.clone();
+    let (server, event_rx, gateway_rx) = make_server(pool.clone());
+    (
+        server,
+        pool,
+        location.id,
+        pubkey,
+        auth_pub_key,
+        signing_key,
+        event_rx,
+        gateway_rx,
+    )
+}
+
 async fn setup_totp_mfa_server(
     options: PgConnectOptions,
 ) -> (
@@ -1362,22 +1454,18 @@ async fn setup_totp_mfa_server(
 
     let (server, event_rx, gateway_rx) = make_server(pool);
     let start = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     (
         server,
@@ -1389,36 +1477,95 @@ async fn setup_totp_mfa_server(
     )
 }
 
-fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
-    let response = response.expect("superseded waiter should receive a response");
+fn assert_core_error_response(
+    response: Option<CoreResponse>,
+    request_id: u64,
+    status: Code,
+    message: &str,
+) {
+    let response = response.expect("parked waiter should receive a response");
     assert_eq!(response.id, request_id);
     let Some(super::Payload::CoreError(error)) = response.payload else {
-        panic!("expected a CoreError superseded response");
+        panic!("expected a CoreError response");
     };
-    assert_eq!(error.status_code, Code::Aborted as i32);
-    assert_eq!(error.message, "remote MFA wait superseded");
+    assert_eq!(error.status_code, status as i32);
+    assert_eq!(error.message, message);
+}
+
+fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
+    assert_core_error_response(
+        response,
+        request_id,
+        Code::Aborted,
+        "remote MFA wait superseded",
+    );
 }
 
 #[test]
-fn test_remove_remote_mfa_waiter_only_removes_owned_generation() {
+fn test_remote_waiters_are_scoped_by_contract_and_attempt() {
     let waiters: RemoteAuthWaiters = Arc::default();
-    let stale_generation = Arc::new(());
-    let current_generation = Arc::new(());
+    let (multi_signal_tx, _multi_signal_rx) = tokio::sync::oneshot::channel();
+    waiters.write().unwrap().insert(
+        hash_token("multi-token"),
+        super::RemoteAuthWaiter {
+            waiter_identity: Arc::new(()),
+            signal_tx: multi_signal_tx,
+            kind: super::RemoteAuthWaiterKind::MultiStep {
+                step_attempt_id: "current-attempt".to_owned(),
+            },
+        },
+    );
+
+    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "multi-token").is_none());
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "stale-attempt")
+            .is_none()
+    );
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "multi-token", "current-attempt")
+            .is_some()
+    );
+
+    let (legacy_signal_tx, _legacy_signal_rx) = tokio::sync::oneshot::channel();
+    waiters.write().unwrap().insert(
+        hash_token("legacy-token"),
+        super::RemoteAuthWaiter {
+            waiter_identity: Arc::new(()),
+            signal_tx: legacy_signal_tx,
+            kind: super::RemoteAuthWaiterKind::Legacy {
+                preshared_key: Arc::new(std::sync::Mutex::new(None)),
+            },
+        },
+    );
+    assert!(
+        super::take_multi_step_remote_mfa_waiter(&waiters, "legacy-token", "current-attempt")
+            .is_none()
+    );
+    assert!(super::take_legacy_remote_mfa_waiter(&waiters, "legacy-token").is_some());
+}
+
+#[test]
+fn test_remove_remote_mfa_waiter_only_removes_matching_identity() {
+    let waiters: RemoteAuthWaiters = Arc::default();
+    let stale_waiter_identity = Arc::new(());
+    let current_waiter_identity = Arc::new(());
     let (signal_tx, _signal_rx) = tokio::sync::oneshot::channel();
 
     waiters.write().unwrap().insert(
         "test-hash".to_owned(),
         super::RemoteAuthWaiter {
-            generation: current_generation.clone(),
+            waiter_identity: current_waiter_identity.clone(),
             signal_tx,
-            legacy_preshared_key: Arc::new(std::sync::Mutex::new(None)),
+            kind: super::RemoteAuthWaiterKind::Legacy {
+                preshared_key: Arc::new(std::sync::Mutex::new(None)),
+            },
         },
     );
 
-    remove_remote_mfa_waiter(&waiters, "test-hash", &stale_generation);
+    remove_remote_mfa_waiter(&waiters, "test-hash", &stale_waiter_identity);
     assert!(waiters.read().unwrap().contains_key("test-hash"));
 
-    remove_remote_mfa_waiter(&waiters, "test-hash", &current_generation);
+    remove_remote_mfa_waiter(&waiters, "test-hash", &current_waiter_identity);
     assert!(!waiters.read().unwrap().contains_key("test-hash"));
 }
 
@@ -1433,7 +1580,7 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
 
     let (first_response_tx, mut first_response_rx) = mpsc::unbounded_channel();
     server
-        .await_remote_mfa_login(
+        .legacy_mfa_remote(
             AwaitRemoteMfaFinishRequest {
                 token: token.clone(),
             },
@@ -1446,7 +1593,7 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
 
     let (second_response_tx, mut second_response_rx) = mpsc::unbounded_channel();
     server
-        .await_remote_mfa_login(
+        .legacy_mfa_remote(
             AwaitRemoteMfaFinishRequest {
                 token: token.clone(),
             },
@@ -1475,9 +1622,11 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
         .await
         .expect("newer waiter cleanup should finish");
 
-    assert!(
-        second_response.is_none(),
-        "newer waiter should only be cleaned up here"
+    assert_core_error_response(
+        second_response,
+        2,
+        Code::Internal,
+        "remote MFA signal channel closed",
     );
     assert!(
         newer_waiter_registered,
@@ -1487,8 +1636,46 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
 }
 
 #[sqlx::test]
-#[allow(deprecated)]
-async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_result(
+async fn test_legacy_mfa_remote_timeout_sends_terminal_error(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, _location_id, _pubkey, token, _event_rx, _gateway_rx) =
+        setup_totp_mfa_server(options).await;
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .legacy_mfa_remote_with_timeout(
+            AwaitRemoteMfaFinishRequest {
+                token: token.clone(),
+            },
+            response_tx,
+            3,
+            Duration::from_millis(1),
+        )
+        .await
+        .expect("remote waiter should park");
+
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("timed-out legacy waiter should finish");
+    assert_core_error_response(
+        response,
+        3,
+        Code::DeadlineExceeded,
+        "remote MFA wait timed out",
+    );
+    assert!(
+        !server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .contains_key(&hash_token(&token)),
+        "timeout should remove the waiter"
+    );
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_start_supersedes_parked_waiter_with_defined_result(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1496,7 +1683,7 @@ async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_resul
         setup_totp_mfa_server(options).await;
     let (response_tx, mut response_rx) = mpsc::unbounded_channel();
     server
-        .await_remote_mfa_login(
+        .legacy_mfa_remote(
             AwaitRemoteMfaFinishRequest {
                 token: token.clone(),
             },
@@ -1516,20 +1703,18 @@ async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_resul
     );
 
     let replacement = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id,
                 pubkey,
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("replacement start should succeed");
-    assert!(matches!(replacement, ClientMfaStartOutcome::Approved(_)));
+    assert!(!replacement.token.is_empty());
 
     let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
         .await
@@ -1538,8 +1723,7 @@ async fn test_start_client_mfa_login_supersedes_parked_waiter_with_defined_resul
 }
 
 #[sqlx::test]
-#[allow(deprecated)]
-async fn test_finish_client_mfa_login_totp_authorizes_session(
+async fn test_legacy_mfa_finish_totp_authorizes_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1561,23 +1745,18 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
     let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let start = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -1591,14 +1770,11 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
     );
 
     let response = server
-        .finish_client_mfa_login(
+        .legacy_mfa_finish(
             ClientMfaFinishRequest {
                 token: token.clone(),
                 code: Some(code),
                 auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
             },
             device_info(),
         )
@@ -1652,7 +1828,7 @@ async fn test_finish_client_mfa_login_totp_authorizes_session(
 }
 
 #[sqlx::test]
-async fn test_finish_client_mfa_login_failure_cap_deletes_session(
+async fn test_legacy_mfa_finish_failure_cap_deletes_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1674,35 +1850,27 @@ async fn test_finish_client_mfa_login_failure_cap_deletes_session(
     let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
 
     let start = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     // Repeating a wrong code trips the per-step cap and deletes the session.
     for _ in 0..MFA_FAILED_ATTEMPT_CAP {
         let result = server
-            .finish_client_mfa_login(
+            .legacy_mfa_finish(
                 ClientMfaFinishRequest {
                     token: token.clone(),
                     code: Some("000000".to_owned()),
                     auth_pub_key: None,
-                    step_attempt_id: None,
-                    auth_data: None,
-                    credential_id: None,
                 },
                 device_info(),
             )
@@ -1745,6 +1913,7 @@ async fn start_mfa_session_direct(pool: &PgPool, ttl: Duration) -> String {
         user.id,
         1,
         vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
         ttl,
@@ -1787,53 +1956,647 @@ async fn test_validate_mfa_token(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-async fn test_client_mfa_step_start_returns_well_formed_response(
+async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let pool = setup_pool(options).await;
-    initialize_current_settings(&pool)
+    let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
+        setup_mobile_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey: pubkey.clone(),
+                posture_data: None,
+                selected_methods: vec![MfaMethod::MobileApprove as i32],
+            },
+            device_info(),
+        )
         .await
-        .expect("failed to init settings");
-    let location = create_mfa_location(&pool).await;
-    let mut user = create_user(&pool).await;
-    user.enable_totp(&pool)
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let first_step = accepted
+        .first_step
+        .expect("flow start must include an attempt");
+    let challenge = match first_step
+        .challenge
+        .expect("MobileApprove must include a signature challenge")
+    {
+        mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
+        other => panic!("unexpected challenge: {other:?}"),
+    };
+    let token = accepted.token;
+    let step_attempt_id = first_step.step_attempt_id;
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .mfa_flow_remote(
+            MfaFlowRemoteRequest {
+                token: token.clone(),
+                step_attempt_id: step_attempt_id.clone(),
+            },
+            response_tx,
+            42,
+            device_info(),
+        )
         .await
-        .expect("failed to enable TOTP");
-    let device = create_device(&pool, user.id).await;
+        .expect("remote waiter should park");
+    assert!(
+        server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .contains_key(&hash_token(&token))
+    );
 
-    let mut tx = pool.begin().await.unwrap();
-    let (_, started) = VpnClientMfaSession::<Id>::start(
-        &mut tx,
-        location.id,
-        device.id,
-        user.id,
-        1,
-        vec![vec![VpnClientMfaMethod::Totp]],
-        VpnClientMfaMethod::Totp,
-        None,
-        VPN_MFA_SESSION_TIMEOUT,
-    )
-    .await
-    .unwrap();
-    tx.commit().await.unwrap();
-
-    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
-    let response = server
-        .client_mfa_step_start(ClientMfaStepStartRequest {
-            token: started.token,
-            method: MfaMethod::Totp as i32,
-        })
+    let stale_error = server
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: "stale-attempt".to_owned(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature: String::new(),
+                    auth_pub_key: auth_pub_key.clone(),
+                }),
+            },
+            device_info(),
+        )
         .await
-        .expect("step start should succeed");
-    assert!(!response.step_attempt_id.is_empty());
-    assert!(response.challenge.is_none());
-    // Starting the step again replaces the previous attempt.
-    assert_ne!(response.step_attempt_id, started.step_attempt_id);
+        .expect_err("a mismatched approval must be rejected");
+    assert_eq!(stale_error.code(), Code::InvalidArgument);
+    assert_eq!(stale_error.message(), "stale MFA attempt");
+    assert!(response_rx.try_recv().is_err());
+    assert!(
+        server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .contains_key(&hash_token(&token))
+    );
+
+    let signature = BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
+    server
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
+            },
+            device_info(),
+        )
+        .await
+        .expect("matching approval should wake the remote waiter");
+
+    let response = tokio::time::timeout(Duration::from_secs(2), response_rx.recv())
+        .await
+        .expect("remote waiter should finish after approval")
+        .expect("remote response sender should remain available");
+    let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
+        panic!("expected a typed remote flow response");
+    };
+    let result = response
+        .result
+        .expect("remote response must include a result");
+    let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
+        panic!("expected a completed remote result");
+    };
+    assert!(!completed.preshared_key.is_empty());
+    let remote_preshared_key = completed.preshared_key;
+    assert!(
+        server
+            .remote_mfa_responses
+            .read()
+            .expect("failed to read remote MFA waiters")
+            .is_empty()
+    );
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("session lookup should succeed")
+            .is_none()
+    );
+    let device = Device::find_by_pubkey(&pool, &pubkey)
+        .await
+        .expect("device lookup should succeed")
+        .expect("device should exist");
+    let sessions =
+        VpnClientSession::get_all_active_device_sessions_in_location(&pool, location_id, device.id)
+            .await
+            .expect("VPN session lookup should succeed");
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(
+        Some(remote_preshared_key.as_str()),
+        sessions[0].preshared_key.as_deref()
+    );
 }
 
 #[sqlx::test]
-async fn test_start_client_mfa_login_supersedes_existing_session(
+async fn test_mfa_flow_remote_observes_approval_before_registration(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, pool, location_id, pubkey, auth_pub_key, signing_key, _event_rx, _gateway_rx) =
+        setup_mobile_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey: pubkey.clone(),
+                posture_data: None,
+                selected_methods: vec![MfaMethod::MobileApprove as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let first_step = accepted
+        .first_step
+        .expect("flow start must include an attempt");
+    let challenge = match first_step
+        .challenge
+        .expect("MobileApprove must include a signature challenge")
+    {
+        mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
+        other => panic!("unexpected challenge: {other:?}"),
+    };
+    let token = accepted.token;
+    let step_attempt_id = first_step.step_attempt_id;
+    let signature = BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
+
+    server
+        .mfa_flow_approve(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: step_attempt_id.clone(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
+            },
+            device_info(),
+        )
+        .await
+        .expect("approval should be marked before remote waiting starts");
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("session lookup should succeed")
+            .is_some()
+    );
+    let device = Device::find_by_pubkey(&pool, &pubkey)
+        .await
+        .expect("device lookup should succeed")
+        .expect("device should exist");
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location_id,
+            device.id,
+        )
+        .await
+        .expect("VPN session lookup should succeed")
+        .is_empty()
+    );
+
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .mfa_flow_remote(
+            MfaFlowRemoteRequest {
+                token: token.clone(),
+                step_attempt_id,
+            },
+            response_tx,
+            43,
+            device_info(),
+        )
+        .await
+        .expect("remote waiter should observe the durable approval");
+    let response = tokio::time::timeout(Duration::from_secs(2), response_rx.recv())
+        .await
+        .expect("remote waiter should finish")
+        .expect("remote response sender should remain available");
+    let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
+        panic!("expected a typed remote flow response");
+    };
+    let Some(mfa_step_result::Outcome::Completed(completed)) = response
+        .result
+        .expect("remote response must include a result")
+        .outcome
+    else {
+        panic!("expected a completed remote result");
+    };
+    assert!(!completed.preshared_key.is_empty());
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("session lookup should succeed")
+            .is_none()
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, pool, location_id, pubkey, _auth_pub_key, _signing_key, _event_rx, _gateway_rx) =
+        setup_mobile_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey: pubkey.clone(),
+                posture_data: None,
+                selected_methods: vec![MfaMethod::MobileApprove as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let step_attempt_id = accepted
+        .first_step
+        .expect("flow start must include an attempt")
+        .step_attempt_id;
+    let token = accepted.token;
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .mfa_flow_remote_with_timeout(
+            MfaFlowRemoteRequest {
+                token: token.clone(),
+                step_attempt_id: step_attempt_id.clone(),
+            },
+            response_tx,
+            44,
+            device_info(),
+            Duration::from_millis(1),
+        )
+        .await
+        .expect("remote waiter should park");
+
+    tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            if server
+                .remote_mfa_responses
+                .read()
+                .expect("failed to read remote MFA waiters")
+                .is_empty()
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("timeout cleanup should remove the owning waiter");
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("timed-out remote waiter should send a response");
+    assert_core_error_response(
+        response,
+        44,
+        Code::DeadlineExceeded,
+        "remote MFA wait timed out",
+    );
+
+    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+    server
+        .mfa_flow_remote_with_timeout(
+            MfaFlowRemoteRequest {
+                token: token.clone(),
+                step_attempt_id,
+            },
+            response_tx,
+            45,
+            device_info(),
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("remote waiter should park");
+    let waiter = server
+        .remote_mfa_responses
+        .write()
+        .expect("failed to write remote MFA waiters")
+        .remove(&hash_token(&token))
+        .expect("parked waiter should be registered");
+    drop(waiter);
+    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+        .await
+        .expect("closed signal receiver should send a response");
+    assert_core_error_response(
+        response,
+        45,
+        Code::Internal,
+        "remote MFA signal channel closed",
+    );
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+            .await
+            .expect("session lookup should succeed")
+            .is_some()
+    );
+    let device = Device::find_by_pubkey(&pool, &pubkey)
+        .await
+        .expect("device lookup should succeed")
+        .expect("device should exist");
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location_id,
+            device.id,
+        )
+        .await
+        .expect("VPN session lookup should succeed")
+        .is_empty()
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_start_returns_initial_attempt(_: PgPoolOptions, options: PgConnectOptions) {
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let outcome = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = outcome;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should return an accepted outcome");
+    };
+    let first_step = accepted
+        .first_step
+        .expect("accepted flow start must include the first step");
+    assert!(!accepted.token.is_empty());
+    assert!(!first_step.step_attempt_id.is_empty());
+    assert!(first_step.challenge.is_none());
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("flow start must persist a session");
+    assert_eq!(session.flow_kind, VpnMfaFlowKind::MultiStep);
+    assert_eq!(
+        first_step.step_attempt_id,
+        session
+            .ephemeral_state
+            .as_ref()
+            .expect("flow start must persist an attempt")
+            .0
+            .step_attempt_id
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_start_rejection_does_not_create_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let outcome = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Fido2 as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should return a typed rejection");
+    let response = outcome;
+    let Some(mfa_flow_start_response::Outcome::Rejected(rejected)) = response.outcome else {
+        panic!("flow start should return a rejected outcome");
+    };
+    assert_eq!(rejected.rejections.len(), 1);
+    assert_eq!(rejected.rejections[0].step, 0);
+    assert_eq!(
+        rejected.rejections[0].reason,
+        MfaStartRejectionReason::MfaStartRejectionMethodNotInStep as i32
+    );
+    let session_count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM vpn_client_mfa_session WHERE location_id = $1")
+            .bind(location_id)
+            .fetch_one(&pool)
+            .await
+            .expect("session count should succeed");
+    assert_eq!(session_count, 0);
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_step_start_returns_typed_attempt(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should return an accepted outcome");
+    };
+    let initial_attempt = accepted
+        .first_step
+        .expect("accepted flow start must include the first step")
+        .step_attempt_id;
+
+    let step = server
+        .mfa_flow_step_start(MfaFlowStepStartRequest {
+            token: accepted.token.clone(),
+            method: MfaMethod::MobileApprove as i32,
+        })
+        .await
+        .expect("flow step start should succeed");
+    let started = step.started.expect("step start must include its result");
+    assert!(!started.step_attempt_id.is_empty());
+    assert_ne!(started.step_attempt_id, initial_attempt);
+    let Some(mfa_step_started::Challenge::Signature(challenge)) = started.challenge else {
+        panic!("mobile-approve step start should return a signature challenge");
+    };
+    assert!(!challenge.challenge.is_empty());
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("flow step start must preserve the session");
+    assert_eq!(
+        started.step_attempt_id,
+        session
+            .ephemeral_state
+            .as_ref()
+            .expect("flow step start must persist an attempt")
+            .0
+            .step_attempt_id
+    );
+}
+
+#[test]
+fn test_encode_step_started_uses_typed_challenge_arms() {
+    let signature = super::encode_step_started(
+        VpnClientMfaMethod::MobileApprove,
+        "signature-attempt".to_owned(),
+        Some("signature-challenge".to_owned()),
+        Vec::new(),
+    )
+    .expect("signature challenge should be well formed");
+    assert!(matches!(
+        signature.challenge,
+        Some(mfa_step_started::Challenge::Signature(challenge))
+            if challenge.challenge == "signature-challenge"
+    ));
+
+    let fido2 = super::encode_step_started(
+        VpnClientMfaMethod::Fido2,
+        "fido2-attempt".to_owned(),
+        Some("fido2-challenge".to_owned()),
+        vec!["credential".to_owned()],
+    )
+    .expect("FIDO2 challenge should be well formed");
+    assert!(matches!(
+        fido2.challenge,
+        Some(mfa_step_started::Challenge::Fido2(challenge))
+            if challenge.challenge == "fido2-challenge"
+                && challenge.credential_ids == ["credential"]
+    ));
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let attempt_id = accepted
+        .first_step
+        .expect("flow start must include an attempt")
+        .step_attempt_id;
+    let error = server
+        .mfa_flow_step_finish(
+            MfaFlowStepFinishRequest {
+                token: accepted.token,
+                step_attempt_id: attempt_id,
+                submission: None,
+            },
+            device_info(),
+        )
+        .await;
+    let error = match error {
+        Ok(_) => panic!("a TOTP step must reject an empty typed submission"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code(), Code::InvalidArgument);
+    assert_eq!(
+        error.message(),
+        "MFA credential does not match the selected method"
+    );
+}
+
+#[test]
+fn test_flow_step_finish_converts_typed_code_submission() {
+    let (token, proof) = super::into_step_proof(MfaFlowStepFinishRequest {
+        token: "token".to_owned(),
+        step_attempt_id: "attempt".to_owned(),
+        submission: Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential {
+                code: "123456".to_owned(),
+            },
+        )),
+    });
+    assert_eq!(token, "token");
+    assert_eq!(proof.step_attempt_id, "attempt");
+    assert_eq!(
+        proof.credential,
+        Some(StepCredential::Code("123456".to_owned()))
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_remote_rejects_non_mobile_step(_: PgPoolOptions, options: PgConnectOptions) {
+    let (server, _pool, location_id, pubkey) = setup_mfa_flow_server(options).await;
+    let start = server
+        .mfa_flow_start(
+            MfaFlowStartRequest {
+                location_id,
+                pubkey,
+                posture_data: None,
+                selected_methods: vec![MfaMethod::Totp as i32],
+            },
+            device_info(),
+        )
+        .await
+        .expect("flow start should succeed");
+    let response = start;
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("flow start should be accepted");
+    };
+    let attempt_id = accepted
+        .first_step
+        .expect("flow start must include an attempt")
+        .step_attempt_id;
+    let (_response_tx, _response_rx) = mpsc::unbounded_channel();
+    let error = server
+        .mfa_flow_remote(
+            MfaFlowRemoteRequest {
+                token: accepted.token,
+                step_attempt_id: attempt_id,
+            },
+            _response_tx,
+            1,
+            device_info(),
+        )
+        .await
+        .expect_err("remote waiting must reject a non-MobileApprove step");
+    assert_eq!(error.code(), Code::InvalidArgument);
+    assert_eq!(error.message(), "MFA method is not MobileApprove");
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_start_supersedes_existing_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1856,35 +2619,26 @@ async fn test_start_client_mfa_login_supersedes_existing_session(
     let request = || ClientMfaStartRequest {
         location_id: location.id,
         pubkey: device.wireguard_pubkey.clone(),
-        #[allow(deprecated)]
         method: MfaMethod::Totp as i32,
         posture_data: None,
-        selected_methods: Vec::new(),
     };
 
     let first = server
-        .start_client_mfa_login(request(), device_info())
+        .legacy_mfa_start(request(), device_info())
         .await
         .expect("first start should succeed");
-    let first_token = match first {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
-    assert!(
-        VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
-            .await
-            .unwrap()
-            .is_some()
-    );
+    let first_token = first.token;
+    let first_session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &first_token)
+        .await
+        .unwrap()
+        .expect("legacy start must persist a session");
+    assert_eq!(first_session.flow_kind, VpnMfaFlowKind::Legacy);
 
     let second = server
-        .start_client_mfa_login(request(), device_info())
+        .legacy_mfa_start(request(), device_info())
         .await
         .expect("second start should succeed");
-    let second_token = match second {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let second_token = second.token;
 
     // The first token no longer validates; the second one does.
     assert!(
@@ -1922,7 +2676,7 @@ async fn test_start_client_mfa_login_supersedes_existing_session(
 /// session was persisted, the failing request would leave a live orphan row behind and,
 /// worse, would already have superseded the caller's previous session.
 #[sqlx::test]
-async fn test_start_client_mfa_login_rejects_bad_device_info_without_persisting(
+async fn test_legacy_mfa_start_rejects_bad_device_info_without_persisting(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -1945,27 +2699,19 @@ async fn test_start_client_mfa_login_rejects_bad_device_info_without_persisting(
     let request = || ClientMfaStartRequest {
         location_id: location.id,
         pubkey: device.wireguard_pubkey.clone(),
-        #[allow(deprecated)]
         method: MfaMethod::Totp as i32,
         posture_data: None,
-        selected_methods: Vec::new(),
     };
 
     let established = server
-        .start_client_mfa_login(request(), device_info())
+        .legacy_mfa_start(request(), device_info())
         .await
         .expect("first start should succeed");
-    let established_token = match established {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let established_token = established.token;
 
     // A start carrying no device info must fail.
     assert!(
-        server
-            .start_client_mfa_login(request(), None)
-            .await
-            .is_err(),
+        server.legacy_mfa_start(request(), None).await.is_err(),
         "start without device info should be rejected"
     );
 
@@ -1988,7 +2734,6 @@ async fn test_start_client_mfa_login_rejects_bad_device_info_without_persisting(
 }
 
 #[sqlx::test]
-#[allow(deprecated)]
 async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnectOptions) {
     set_enterprise_license();
     let pool = setup_pool(options).await;
@@ -2008,23 +2753,18 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
     // Start the login on one server instance.
     let (server_a, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server_a
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     // A "restart" is a fresh server instance with a fresh in-memory waiter map over the
     // same database. The durable session must survive it.
@@ -2042,14 +2782,11 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
     );
 
     let response = server_b
-        .finish_client_mfa_login(
+        .legacy_mfa_finish(
             ClientMfaFinishRequest {
                 token: token.clone(),
                 code: Some(code),
                 auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
             },
             device_info(),
         )
@@ -2079,23 +2816,18 @@ async fn test_auth_mfa_session_with_oidc_rejects_non_oidc_method(
 
     let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     // Build a state that encodes the token and the session's step_attempt_id, as the
     // OIDC redirect does for the MFA flow.
@@ -2154,23 +2886,18 @@ async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_
 
     let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
     let start = server
-        .start_client_mfa_login(
+        .legacy_mfa_start(
             ClientMfaStartRequest {
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Totp as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
             device_info(),
         )
         .await
         .expect("start should succeed");
-    let token = match start {
-        ClientMfaStartOutcome::Approved(response) => response.token,
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
+    let token = start.token;
 
     let before = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
         .await
@@ -2295,422 +3022,4 @@ async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
     )
     .await
     .expect("failed to assign posture policy to location");
-}
-
-/// Creates a multi-step MFA flow and assigns it to the location as the default.
-async fn create_and_assign_multi_step_flow(
-    pool: &PgPool,
-    location_id: Id,
-    steps: Vec<Vec<VpnClientMfaMethod>>,
-) {
-    let mut tx = pool.begin().await.expect("failed to begin transaction");
-    let (flow, _steps) = MfaFlow::create(&mut tx, "Multi-step test flow".into(), steps)
-        .await
-        .expect("failed to create MFA flow");
-    MfaFlow::assign_to_location(
-        &mut tx,
-        location_id,
-        &[LocationMfaFlowAssignment {
-            flow_id: flow.id,
-            is_default: true,
-            group_ids: Vec::new(),
-        }],
-    )
-    .await
-    .expect("failed to assign MFA flow to location");
-    tx.commit().await.expect("failed to commit transaction");
-}
-
-struct MobileMfaTestSetup {
-    pool: PgPool,
-    server: ClientMfaServer,
-    token: String,
-    challenge: String,
-    signing_key: ed25519_dalek::SigningKey,
-    auth_pub_key: String,
-    _event_rx: tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-    _gateway_rx: tokio::sync::broadcast::Receiver<GatewayCommand>,
-}
-
-#[allow(deprecated)]
-async fn setup_mobile_mfa_test(
-    options: PgConnectOptions,
-    steps: Vec<Vec<VpnClientMfaMethod>>,
-    selected_methods: Vec<MfaMethod>,
-) -> MobileMfaTestSetup {
-    set_enterprise_license();
-    let pool = setup_pool(options).await;
-    initialize_current_settings(&pool)
-        .await
-        .expect("failed to init settings");
-
-    let location = create_mfa_location(&pool).await;
-    create_and_assign_multi_step_flow(&pool, location.id, steps).await;
-
-    let mut user = create_user(&pool).await;
-    user.totp_secret = Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    user.totp_enabled = true;
-    user.save(&pool).await.expect("failed to configure TOTP");
-
-    let device = create_device(&pool, user.id).await;
-    attach_device_to_location(&pool, location.id, device.id).await;
-
-    let mut csprng = UnwrapErr(SysRng);
-    let signing_key = SigningKey::generate(&mut csprng);
-    let auth_pub_key = B64.encode(signing_key.verifying_key().as_bytes());
-    BiometricAuth::new(device.id, auth_pub_key.clone())
-        .save(&pool)
-        .await
-        .expect("failed to register mobile authenticator");
-
-    let (server, event_rx, gateway_rx) = make_server(pool.clone());
-    let start = server
-        .start_client_mfa_login(
-            ClientMfaStartRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                method: MfaMethod::MobileApprove as i32,
-                posture_data: None,
-                selected_methods: selected_methods
-                    .into_iter()
-                    .map(|method| method as i32)
-                    .collect(),
-            },
-            device_info(),
-        )
-        .await
-        .expect("start should succeed");
-    let (token, challenge) = match start {
-        ClientMfaStartOutcome::Approved(response) => (
-            response.token,
-            response
-                .challenge
-                .expect("mobile-approve returns a challenge"),
-        ),
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
-
-    MobileMfaTestSetup {
-        pool,
-        server,
-        token,
-        challenge,
-        signing_key,
-        auth_pub_key,
-        _event_rx: event_rx,
-        _gateway_rx: gateway_rx,
-    }
-}
-
-/// A non-final legacy mobile approval advances the desktop login.
-#[sqlx::test]
-#[allow(deprecated)]
-async fn test_legacy_mobile_approval_at_non_final_step_signals_waiter_with_advanced(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    set_enterprise_license();
-    let pool = setup_pool(options).await;
-    initialize_current_settings(&pool)
-        .await
-        .expect("failed to init settings");
-
-    let location = create_mfa_location(&pool).await;
-    // Put mobile approval before TOTP to exercise a non-final step.
-    create_and_assign_multi_step_flow(
-        &pool,
-        location.id,
-        vec![
-            vec![VpnClientMfaMethod::MobileApprove],
-            vec![VpnClientMfaMethod::Totp],
-        ],
-    )
-    .await;
-
-    let mut user = create_user(&pool).await;
-    let secret = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    user.totp_secret = Some(secret.clone());
-    user.totp_enabled = true;
-    user.save(&pool).await.expect("failed to configure TOTP");
-
-    let device = create_device(&pool, user.id).await;
-    attach_device_to_location(&pool, location.id, device.id).await;
-
-    let mut csprng = UnwrapErr(SysRng);
-    let signing_key = SigningKey::generate(&mut csprng);
-    let auth_pub_key = B64.encode(signing_key.verifying_key().as_bytes());
-    BiometricAuth::new(device.id, auth_pub_key.clone())
-        .save(&pool)
-        .await
-        .expect("failed to register mobile authenticator");
-
-    let (server, _event_rx, _gateway_rx) = make_server(pool.clone());
-
-    let start = server
-        .start_client_mfa_login(
-            ClientMfaStartRequest {
-                location_id: location.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                method: MfaMethod::MobileApprove as i32,
-                posture_data: None,
-                selected_methods: vec![MfaMethod::MobileApprove as i32, MfaMethod::Totp as i32],
-            },
-            device_info(),
-        )
-        .await
-        .expect("start should succeed");
-    let (token, challenge) = match start {
-        ClientMfaStartOutcome::Approved(response) => (
-            response.token,
-            response
-                .challenge
-                .expect("mobile-approve returns a challenge"),
-        ),
-        ClientMfaStartOutcome::Rejected { .. } => panic!("unexpected rejection"),
-    };
-
-    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
-    server
-        .await_remote_mfa_login(
-            AwaitRemoteMfaFinishRequest {
-                token: token.clone(),
-            },
-            response_tx,
-            1,
-            device_info(),
-        )
-        .await
-        .expect("parking the waiter should succeed");
-    assert!(
-        server
-            .remote_mfa_responses
-            .read()
-            .unwrap()
-            .contains_key(&hash_token(&token)),
-        "waiter should be registered before the approval"
-    );
-
-    // Legacy approval: valid signature, no step_attempt_id.
-    let signature = B64.encode(signing_key.sign(challenge.as_bytes()).to_bytes());
-    let response = server
-        .finish_client_mfa_login(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some(signature),
-                auth_pub_key: Some(auth_pub_key),
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
-            device_info(),
-        )
-        .await
-        .expect("legacy mobile approval should succeed");
-
-    // Legacy approval advances the flow without minting a key.
-    match response.result.and_then(|r| r.outcome) {
-        Some(mfa_step_result::Outcome::Advanced(advanced)) => {
-            assert_eq!(advanced.next_step, 1, "should advance to the second step");
-        }
-        other => panic!("expected Advanced, got {other:?}"),
-    }
-    assert!(
-        response.preshared_key.is_empty(),
-        "a non-final step must not mint a preshared key"
-    );
-
-    assert!(
-        !server
-            .remote_mfa_responses
-            .read()
-            .unwrap()
-            .contains_key(&hash_token(&token)),
-        "waiter should be consumed after the desktop is signalled"
-    );
-    let remote_response = response_rx
-        .recv()
-        .await
-        .expect("the desktop should receive an advanced response");
-    let Some(super::Payload::AwaitRemoteMfaFinish(remote_response)) = remote_response.payload
-    else {
-        panic!("expected AwaitRemoteMfaFinish response");
-    };
-    assert!(
-        remote_response.preshared_key.is_empty(),
-        "an advanced response must not contain a preshared key"
-    );
-    match remote_response.result.and_then(|r| r.outcome) {
-        Some(mfa_step_result::Outcome::Advanced(advanced)) => {
-            assert_eq!(advanced.next_step, 1, "should advance to the second step");
-        }
-        other => panic!("expected Advanced, got {other:?}"),
-    }
-
-    let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
-        .await
-        .expect("query should succeed")
-        .expect("session should still be active");
-    assert_eq!(session.current_step, 1);
-}
-
-#[sqlx::test]
-#[allow(deprecated)]
-async fn test_marked_mobile_approval_at_non_final_step_resolves_waiter_with_advanced(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let setup = setup_mobile_mfa_test(
-        options,
-        vec![
-            vec![VpnClientMfaMethod::MobileApprove],
-            vec![VpnClientMfaMethod::Totp],
-        ],
-        vec![MfaMethod::MobileApprove, MfaMethod::Totp],
-    )
-    .await;
-    let step_start = setup
-        .server
-        .client_mfa_step_start(ClientMfaStepStartRequest {
-            token: setup.token.clone(),
-            method: MfaMethod::MobileApprove as i32,
-        })
-        .await
-        .expect("step start should succeed");
-    let challenge = step_start
-        .challenge
-        .expect("mobile-approve step start returns a challenge");
-    let step_attempt_id = step_start.step_attempt_id;
-    let token = setup.token.clone();
-
-    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
-    setup
-        .server
-        .await_remote_mfa_login(
-            AwaitRemoteMfaFinishRequest {
-                token: token.clone(),
-            },
-            response_tx,
-            1,
-            device_info(),
-        )
-        .await
-        .expect("parking the waiter should succeed");
-
-    let signature = B64.encode(setup.signing_key.sign(challenge.as_bytes()).to_bytes());
-    let response = setup
-        .server
-        .finish_client_mfa_login(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some(signature),
-                auth_pub_key: Some(setup.auth_pub_key.clone()),
-                step_attempt_id: Some(step_attempt_id),
-                auth_data: None,
-                credential_id: None,
-            },
-            device_info(),
-        )
-        .await
-        .expect("marked mobile approval should succeed");
-    assert!(response.preshared_key.is_empty());
-    assert!(matches!(
-        response.result.and_then(|result| result.outcome),
-        Some(mfa_step_result::Outcome::AwaitingExternal(_))
-    ));
-
-    let remote_response = response_rx
-        .recv()
-        .await
-        .expect("the desktop should receive an advanced response");
-    let Some(super::Payload::AwaitRemoteMfaFinish(remote_response)) = remote_response.payload
-    else {
-        panic!("expected AwaitRemoteMfaFinish response");
-    };
-    assert!(remote_response.preshared_key.is_empty());
-    match remote_response.result.and_then(|result| result.outcome) {
-        Some(mfa_step_result::Outcome::Advanced(advanced)) => {
-            assert_eq!(advanced.next_step, 1);
-        }
-        other => panic!("expected Advanced, got {other:?}"),
-    }
-
-    let session = VpnClientMfaSession::<Id>::find_active_by_token(&setup.pool, &token)
-        .await
-        .expect("query should succeed")
-        .expect("session should still be active");
-    assert_eq!(session.current_step, 1);
-}
-
-#[sqlx::test]
-#[allow(deprecated)]
-async fn test_legacy_mobile_approval_at_final_step_sends_key_to_waiter(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let setup = setup_mobile_mfa_test(
-        options,
-        vec![vec![VpnClientMfaMethod::MobileApprove]],
-        vec![MfaMethod::MobileApprove],
-    )
-    .await;
-    let token = setup.token.clone();
-    let (response_tx, mut response_rx) = mpsc::unbounded_channel();
-    setup
-        .server
-        .await_remote_mfa_login(
-            AwaitRemoteMfaFinishRequest {
-                token: token.clone(),
-            },
-            response_tx,
-            1,
-            device_info(),
-        )
-        .await
-        .expect("parking the waiter should succeed");
-
-    let signature = B64.encode(
-        setup
-            .signing_key
-            .sign(setup.challenge.as_bytes())
-            .to_bytes(),
-    );
-    let response = setup
-        .server
-        .finish_client_mfa_login(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some(signature),
-                auth_pub_key: Some(setup.auth_pub_key.clone()),
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
-            },
-            device_info(),
-        )
-        .await
-        .expect("legacy mobile approval should succeed");
-    assert!(response.preshared_key.is_empty());
-    match response.result.and_then(|result| result.outcome) {
-        Some(mfa_step_result::Outcome::Completed(completed)) => {
-            assert!(completed.preshared_key.is_empty());
-        }
-        other => panic!("expected Completed, got {other:?}"),
-    }
-
-    let remote_response = response_rx
-        .recv()
-        .await
-        .expect("the desktop should receive a completed response");
-    let Some(super::Payload::AwaitRemoteMfaFinish(remote_response)) = remote_response.payload
-    else {
-        panic!("expected AwaitRemoteMfaFinish response");
-    };
-    assert!(!remote_response.preshared_key.is_empty());
-    assert!(remote_response.result.is_none());
-    assert!(
-        VpnClientMfaSession::<Id>::find_active_by_token(&setup.pool, &token)
-            .await
-            .expect("query should succeed")
-            .is_none()
-    );
 }

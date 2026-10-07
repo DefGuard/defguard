@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use defguard_common::{
     db::{
         Id,
@@ -10,9 +12,12 @@ use defguard_common::{
 use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
 use defguard_proto::{
     client_types::{
-        ClientMfaFinishRequest, ClientMfaStartRequest, MfaMethod, MfaStepResult, mfa_step_result,
+        ClientMfaFinishRequest, ClientMfaStartRequest, MfaBiometricSignature, MfaCodeCredential,
+        MfaFlowApproveRequest, MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStepResult,
+        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
     },
-    proxy::{AwaitRemoteMfaFinishRequest, CoreRequest, core_request, core_response},
+    proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{task, time::timeout};
@@ -24,15 +29,208 @@ use super::support::{
     create_external_mfa_network, create_mfa_network, create_multi_step_mfa_network,
     create_multi_step_mfa_network_with_steps, create_network, create_user_with_device,
     expect_bidi_mfa_success, generate_totp_code, link_user_oidc_identity, make_device_info,
-    register_biometric_key, send_mfa_finish, send_mfa_finish_raw,
-    send_mfa_finish_signed_with_attempt_id, send_mfa_finish_signed_with_attempt_id_raw,
-    send_mfa_finish_with_attempt_id_raw, send_mfa_start, send_mfa_start_multi_step,
-    send_mfa_step_start, send_token_validation, set_test_license_business, setup_user_email_mfa,
-    setup_user_totp_mfa, sign_challenge,
+    register_biometric_key, send_mfa_finish, send_mfa_finish_raw, send_mfa_start,
+    send_token_validation, set_test_license_business, setup_user_email_mfa, setup_user_totp_mfa,
+    sign_challenge,
 };
-use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
+use crate::tests::common::{CORE_RESPONSE_TIMEOUT, HandlerTestContext, RECEIVE_TIMEOUT};
 
 const WRONG_REQUEST_ID: u64 = 9991;
+
+async fn send_flow_start(
+    context: &mut HandlerTestContext,
+    id: u64,
+    location_id: Id,
+    pubkey: &str,
+    selected_methods: &[MfaMethod],
+) -> CoreResponse {
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStart(MfaFlowStartRequest {
+            location_id,
+            pubkey: pubkey.to_owned(),
+            posture_data: None,
+            selected_methods: selected_methods
+                .iter()
+                .map(|method| *method as i32)
+                .collect(),
+        })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+fn accepted_flow_start(response: CoreResponse) -> (String, String, Option<String>) {
+    let Some(core_response::Payload::MfaFlowStart(response)) = response.payload else {
+        panic!("expected MfaFlowStart response");
+    };
+    let Some(mfa_flow_start_response::Outcome::Accepted(accepted)) = response.outcome else {
+        panic!("expected accepted flow start response");
+    };
+    let first_step = accepted
+        .first_step
+        .expect("flow start must include the first step");
+    let challenge = first_step.challenge.map(|challenge| match challenge {
+        mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
+        mfa_step_started::Challenge::Fido2(_) => panic!("unexpected FIDO2 challenge"),
+    });
+    (accepted.token, first_step.step_attempt_id, challenge)
+}
+
+static FLOW_REQUEST_ID: AtomicU64 = AtomicU64::new(10_000);
+
+fn next_flow_request_id() -> u64 {
+    FLOW_REQUEST_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+async fn send_mfa_start_multi_step(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    selected_methods: &[MfaMethod],
+) -> (String, String) {
+    let (token, attempt_id, _) = accepted_flow_start(
+        send_flow_start(
+            context,
+            next_flow_request_id(),
+            location_id,
+            pubkey,
+            selected_methods,
+        )
+        .await,
+    );
+    (attempt_id, token)
+}
+
+struct FlowStepStarted {
+    step_attempt_id: String,
+    challenge: Option<String>,
+}
+
+async fn send_mfa_step_start(
+    context: &mut HandlerTestContext,
+    token: &str,
+    method: MfaMethod,
+) -> FlowStepStarted {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepStart(
+            MfaFlowStepStartRequest {
+                token: token.to_owned(),
+                method: method as i32,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let Some(core_response::Payload::MfaFlowStepStart(response)) = response.payload else {
+        panic!("expected MfaFlowStepStart response");
+    };
+    let started = response
+        .started
+        .expect("step start must include attempt data");
+    let challenge = started.challenge.map(|challenge| match challenge {
+        mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
+        mfa_step_started::Challenge::Fido2(_) => panic!("unexpected FIDO2 challenge"),
+    });
+    FlowStepStarted {
+        step_attempt_id: started.step_attempt_id,
+        challenge,
+    }
+}
+
+async fn send_flow_step_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    submission: Option<mfa_flow_step_finish_request::Submission>,
+) -> CoreResponse {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepFinish(
+            MfaFlowStepFinishRequest {
+                token: token.to_owned(),
+                step_attempt_id: step_attempt_id.to_owned(),
+                submission,
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+async fn send_flow_code_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    code: String,
+) -> CoreResponse {
+    send_flow_step_finish(
+        context,
+        token,
+        step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code },
+        )),
+    )
+    .await
+}
+
+async fn send_flow_approve(
+    context: &mut HandlerTestContext,
+    token: &str,
+    step_attempt_id: &str,
+    signature: &str,
+    auth_pub_key: &str,
+) -> CoreResponse {
+    context.mock_proxy().send_request(CoreRequest {
+        id: next_flow_request_id(),
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.to_owned(),
+                step_attempt_id: step_attempt_id.to_owned(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature: signature.to_owned(),
+                    auth_pub_key: auth_pub_key.to_owned(),
+                }),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+fn flow_step_result(response: CoreResponse) -> MfaStepResult {
+    match response.payload {
+        Some(core_response::Payload::MfaFlowStepFinish(response)) => {
+            response.result.expect("step finish must include a result")
+        }
+        Some(core_response::Payload::CoreError(error)) => panic!(
+            "step finish failed with status={} msg={}",
+            error.status_code, error.message
+        ),
+        _ => panic!("expected MfaFlowStepFinish response"),
+    }
+}
+
+fn flow_remote_result(response: CoreResponse) -> MfaStepResult {
+    match response.payload {
+        Some(core_response::Payload::MfaFlowRemote(response)) => response
+            .result
+            .expect("remote finish must include a result"),
+        Some(core_response::Payload::CoreError(error)) => panic!(
+            "remote finish failed with status={} msg={}",
+            error.status_code, error.message
+        ),
+        _ => panic!("expected MfaFlowRemote response"),
+    }
+}
+
+fn biometric_submission(signature: &str) -> mfa_flow_step_finish_request::Submission {
+    mfa_flow_step_finish_request::Submission::Biometric(MfaBiometricSignature {
+        signature: signature.to_owned(),
+    })
+}
 
 #[sqlx::test]
 async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: PgConnectOptions) {
@@ -50,10 +248,8 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
@@ -84,10 +280,8 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
             ClientMfaStartRequest {
                 location_id: nonexistent_location_id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
@@ -125,6 +319,609 @@ async fn test_mfa_start_returns_token_for_totp(_: PgPoolOptions, options: PgConn
 }
 
 #[sqlx::test]
+async fn test_mfa_flow_start_dispatches_response(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network =
+        create_multi_step_mfa_network_with_steps(&context.pool, vec![vec![MfaMethod::Totp.into()]])
+            .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+
+    let response = send_flow_start(
+        &mut context,
+        1,
+        network.id,
+        &device.wireguard_pubkey,
+        &[MfaMethod::Totp],
+    )
+    .await;
+    assert_eq!(response.id, 1);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::MfaFlowStart(_))
+    ));
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_step_start_dispatches_response(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network =
+        create_multi_step_mfa_network_with_steps(&context.pool, vec![vec![MfaMethod::Totp.into()]])
+            .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+
+    let (token, _, _) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::Totp],
+        )
+        .await,
+    );
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepStart(
+            MfaFlowStepStartRequest {
+                token,
+                method: MfaMethod::Totp as i32,
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 2);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::MfaFlowStepStart(_))
+    ));
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_step_finish_dispatches_response(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::Totp.into()], vec![MfaMethod::Email.into()]],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let _ = setup_user_email_mfa(&context.pool, &mut user).await;
+
+    let (token, step_attempt_id, _) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::Totp, MfaMethod::Email],
+        )
+        .await,
+    );
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepFinish(
+            MfaFlowStepFinishRequest {
+                token,
+                step_attempt_id,
+                submission: Some(mfa_flow_step_finish_request::Submission::Code(
+                    MfaCodeCredential {
+                        code: generate_totp_code(&user),
+                    },
+                )),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 2);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::MfaFlowStepFinish(_))
+    ));
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_remote_dispatches_response(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (token, step_attempt_id, challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove, MfaMethod::Totp],
+        )
+        .await,
+    );
+    let challenge = challenge.expect("mobile approval must include a signature challenge");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: step_attempt_id.clone(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature: sign_challenge(&signing_key, &challenge),
+                    auth_pub_key,
+                }),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 2);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 3,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token,
+            step_attempt_id,
+        })),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 3);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::MfaFlowRemote(_))
+    ));
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_mfa_flow_approve_dispatches_empty_response(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::MobileApprove.into()]],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+
+    let (token, step_attempt_id, challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove],
+        )
+        .await,
+    );
+    let challenge = challenge.expect("mobile approval must include a signature challenge");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token,
+                step_attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature: sign_challenge(&signing_key, &challenge),
+                    auth_pub_key,
+                }),
+            },
+        )),
+    });
+
+    let response = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("MfaFlowApprove must return a CoreResponse");
+    assert_eq!(response.id, 2);
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::MobileApprove.into()]],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (token, step_attempt_id, challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove],
+        )
+        .await,
+    );
+    let challenge = challenge.expect("mobile approval must include a signature challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id,
+        })),
+    });
+    context.mock_proxy().send_request(CoreRequest {
+        id: 3,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some(sign_challenge(&signing_key, &challenge)),
+                auth_pub_key: Some(auth_pub_key),
+            },
+        )),
+    });
+
+    let first = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for first MFA response");
+    let second = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for second MFA response");
+    let (remote, phone) = if first.id == 2 {
+        (first, second)
+    } else {
+        (second, first)
+    };
+    assert_eq!(remote.id, 2);
+    assert_eq!(phone.id, 3);
+
+    if !matches!(
+        &remote.payload,
+        Some(core_response::Payload::MfaFlowRemote(_))
+    ) {
+        let (code, message) = assert_error_response_details(&remote);
+        panic!("MfaFlowRemote failed with {code}: {message}");
+    }
+    let Some(core_response::Payload::MfaFlowRemote(remote)) = remote.payload else {
+        panic!("expected MfaFlowRemote response");
+    };
+    let Some(result) = remote.result else {
+        panic!("remote response must include an MFA result");
+    };
+    let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
+        panic!("remote response must complete the flow");
+    };
+    assert!(!completed.preshared_key.is_empty());
+    let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert_eq!(
+        session.preshared_key.as_ref(),
+        Some(&completed.preshared_key)
+    );
+    match timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
+        .await
+        .expect("timed out waiting for gateway authorization")
+        .expect("gateway command channel closed")
+    {
+        GatewayCommand::VpnSessionAuthorized(location_id, _, _) => {
+            assert_eq!(location_id, network.id)
+        }
+        other => panic!("unexpected gateway command: {other:?}"),
+    }
+
+    let Some(core_response::Payload::ClientMfaFinish(phone)) = phone.payload else {
+        panic!("expected legacy ClientMfaFinish response");
+    };
+    assert_eq!(phone.token.as_deref(), Some(token.as_str()));
+    assert!(phone.preshared_key.is_empty());
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::MobileApprove.into()],
+        ],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (token, first_attempt_id, first_challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove, MfaMethod::MobileApprove],
+        )
+        .await,
+    );
+    let first_challenge = first_challenge.expect("first approval must include a challenge");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
+                token: token.clone(),
+                step_attempt_id: first_attempt_id.clone(),
+                proof: Some(MfaMobileApprovalProof {
+                    signature: sign_challenge(&signing_key, &first_challenge),
+                    auth_pub_key: auth_pub_key.clone(),
+                }),
+            },
+        )),
+    });
+    assert!(matches!(
+        context.mock_proxy_mut().recv_outbound().await.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 3,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepFinish(
+            MfaFlowStepFinishRequest {
+                token: token.clone(),
+                step_attempt_id: first_attempt_id.clone(),
+                submission: None,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 3);
+    let Some(core_response::Payload::MfaFlowStepFinish(response)) = response.payload else {
+        panic!("expected step finish response");
+    };
+    assert!(matches!(
+        response.result.and_then(|result| result.outcome),
+        Some(mfa_step_result::Outcome::Advanced(_))
+    ));
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 4,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowStepStart(
+            MfaFlowStepStartRequest {
+                token: token.clone(),
+                method: MfaMethod::MobileApprove as i32,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let Some(core_response::Payload::MfaFlowStepStart(response)) = response.payload else {
+        panic!("expected second MobileApprove attempt");
+    };
+    let started = response
+        .started
+        .expect("step start must return the attempt");
+    assert_ne!(started.step_attempt_id, first_attempt_id);
+    let Some(mfa_step_started::Challenge::Signature(current_challenge)) = started.challenge else {
+        panic!("second MobileApprove attempt must include a signature challenge");
+    };
+    assert_ne!(current_challenge.challenge, first_challenge);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 5,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token,
+                code: Some(sign_challenge(&signing_key, &first_challenge)),
+                auth_pub_key: Some(auth_pub_key),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_details(&response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_finish_hides_non_mobile_multi_step_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::Totp.into()], vec![MfaMethod::Totp.into()]],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let (token, _, _) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::Totp, MfaMethod::Totp],
+        )
+        .await,
+    );
+
+    let unknown_token = "unknown-mfa-token";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: unknown_token.to_owned(),
+                code: None,
+                auth_pub_key: None,
+            },
+        )),
+    });
+    let unknown_response = context.mock_proxy_mut().recv_outbound().await;
+    context.mock_proxy().send_request(CoreRequest {
+        id: 3,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token,
+                code: None,
+                auth_pub_key: None,
+            },
+        )),
+    });
+    let flow_response = context.mock_proxy_mut().recv_outbound().await;
+    let (unknown_code, unknown_message) = assert_error_response_details(&unknown_response);
+    let (flow_code, flow_message) = assert_error_response_details(&flow_response);
+    assert_eq!(unknown_response.id, 2);
+    assert_eq!(flow_response.id, 3);
+    assert_eq!(unknown_code, Code::InvalidArgument);
+    assert_eq!(unknown_message, "login session not found");
+    assert_eq!(flow_code, unknown_code);
+    assert_eq!(flow_message, unknown_message);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_finish_accounts_bad_mobile_signature(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![vec![MfaMethod::MobileApprove.into()]],
+    )
+    .await;
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (token, _, challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove],
+        )
+        .await,
+    );
+    let challenge = challenge.expect("MobileApprove must include a challenge");
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some(sign_challenge(
+                    &signing_key,
+                    &format!("{challenge} is not the challenge"),
+                )),
+                auth_pub_key: Some(auth_pub_key),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message) = assert_error_response_details(&response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("MFA session lookup must succeed")
+        .expect("failed signature must leave the session active");
+    assert_eq!(session.failed_attempts, 1);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
@@ -150,9 +947,6 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
                 token: token.clone(),
                 code: Some("000000".to_owned()),
                 auth_pub_key: None,
-                step_attempt_id: None,
-                auth_data: None,
-                credential_id: None,
             },
         )),
     });
@@ -179,10 +973,8 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: "no-such-pubkey".to_owned(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
@@ -214,10 +1006,8 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
@@ -261,10 +1051,8 @@ async fn test_mfa_start_rejects_email_when_smtp_not_configured(
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Email as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     });
@@ -387,10 +1175,8 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
             ClientMfaStartRequest {
                 location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                #[allow(deprecated)]
                 method: MfaMethod::Oidc as i32,
                 posture_data: None,
-                selected_methods: Vec::new(),
             },
         )),
     };
@@ -530,7 +1316,7 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
     setup_user_email_mfa(&context.pool, &mut user).await;
 
     // Start the TOTP -> Email flow.
-    let (_, token) = send_mfa_start_multi_step(
+    let (first_attempt_id, token) = send_mfa_start_multi_step(
         &mut context,
         network.id,
         &device.wireguard_pubkey,
@@ -545,15 +1331,18 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
 
     // Step 0 (TOTP) advances without authorizing.
     let totp = generate_totp_code(&user);
-    let response = send_mfa_finish_raw(&mut context, &token, Some(&totp)).await;
-    let next_step = match &response.payload {
-        Some(core_response::Payload::ClientMfaFinish(r)) => match &r.result {
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
-            }) => advanced.next_step,
-            _ => panic!("expected Advanced outcome"),
-        },
-        _ => panic!("expected ClientMfaFinish response"),
+    let response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &first_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code: totp },
+        )),
+    )
+    .await;
+    let next_step = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Advanced(advanced)) => advanced.next_step,
+        _ => panic!("expected Advanced outcome"),
     };
     assert_eq!(next_step, 1);
     assert!(
@@ -575,19 +1364,18 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
     let email = user
         .generate_email_mfa_code()
         .expect("email_mfa_secret must be set");
-    let response = send_mfa_finish_raw(&mut context, &token, Some(&email)).await;
-    let preshared_key = match &response.payload {
-        Some(core_response::Payload::ClientMfaFinish(r)) => match &r.result {
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-            }) => completed.preshared_key.clone(),
-            _ => panic!("expected Completed outcome"),
-        },
-        Some(core_response::Payload::CoreError(e)) => panic!(
-            "second finish got CoreError status={} msg={}",
-            e.status_code, e.message
-        ),
-        _ => panic!("expected ClientMfaFinish response"),
+    let response = send_flow_step_finish(
+        &mut context,
+        &token,
+        &step_started.step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Code(
+            MfaCodeCredential { code: email },
+        )),
+    )
+    .await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed outcome"),
     };
     assert_ne!(preshared_key, "");
 
@@ -616,7 +1404,7 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
 }
 
 #[sqlx::test]
-async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
+async fn test_mfa_flow_oidc_awaits_external_completion(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -640,7 +1428,7 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let stale_response =
-        send_mfa_finish_with_attempt_id_raw(&mut context, &token, "superseded-attempt").await;
+        send_flow_step_finish(&mut context, &token, "superseded-attempt", None).await;
     let (code, message) = assert_error_response_details(&stale_response);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "stale MFA attempt");
@@ -649,20 +1437,11 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
         .await
         .expect("failed to load OIDC MFA session")
         .expect("OIDC MFA session must remain active");
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    match &response.payload {
-        #[allow(deprecated)]
-        Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert_eq!(result.preshared_key, "");
-            assert!(matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
-                })
-            ));
-        }
-        _ => panic!("expected AwaitingExternal response"),
-    }
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::AwaitingExternal(_))
+    ));
     assert!(
         gateway_rx.try_recv().is_err(),
         "awaiting must not authorize"
@@ -706,19 +1485,10 @@ async fn test_mfa_oidc_awaits_external_completion_for_2_2_client(
             .expect("failed to mark OIDC MFA complete")
     );
 
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    let preshared_key = match &response.payload {
-        #[allow(deprecated)]
-        Some(core_response::Payload::ClientMfaFinish(result)) => match &result.result {
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-            }) => {
-                assert_eq!(result.preshared_key, completed.preshared_key);
-                completed.preshared_key.clone()
-            }
-            other => panic!("expected Completed outcome, got {other:?}"),
-        },
-        _ => panic!("expected completed response"),
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed outcome"),
     };
     assert_ne!(preshared_key, "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
@@ -769,19 +1539,11 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
         .expect("mobile approve StepStart must return a challenge");
     let mut gateway_rx = context.gateway_tx.subscribe();
 
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert_eq!(result.preshared_key, "");
-            assert!(matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
-                })
-            ));
-        }
-        _ => panic!("expected AwaitingExternal response before approval"),
-    }
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::AwaitingExternal(_))
+    ));
     assert!(
         VpnClientSession::get_all_active_device_sessions_in_location(
             &context.pool,
@@ -800,12 +1562,12 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
             .await
             .expect("failed to load mobile approval session")
             .expect("mobile approval session must remain active");
-    let stale_response = send_mfa_finish_signed_with_attempt_id_raw(
+    let stale_response = send_flow_approve(
         &mut context,
         &token,
-        Some(&signature),
-        Some(&auth_pub_key),
-        Some("stale-attempt"),
+        "stale-attempt",
+        &signature,
+        &auth_pub_key,
     )
     .await;
     let (code, message) = assert_error_response_details(&stale_response);
@@ -851,28 +1613,12 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
         "stale approval must not authorize"
     );
 
-    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
-        &mut context,
-        &token,
-        Some(&signature),
-        Some(&auth_pub_key),
-        Some(&attempt_id),
-    )
-    .await;
-    assert_eq!(preshared_key, "");
-    // New-protocol approval marks the session and returns AwaitingExternal.
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert_eq!(result.preshared_key, "");
-            assert!(matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
-                })
-            ));
-        }
-        _ => panic!("expected AwaitingExternal response after approval mark"),
-    }
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
+    assert!(matches!(
+        response.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
     assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
     assert!(
         context.bidi_events_rx.try_recv().is_err(),
@@ -903,25 +1649,10 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
     );
     assert_eq!(session.failed_attempts, 0);
 
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    let preshared_key = match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => match result.result {
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-            }) => {
-                assert_ne!(result.preshared_key, "");
-                assert_ne!(completed.preshared_key, "");
-                assert_eq!(result.preshared_key, completed.preshared_key);
-                completed.preshared_key
-            }
-            other => panic!("expected Completed response, got {other:?}"),
-        },
-        Some(core_response::Payload::CoreError(error)) => panic!(
-            "expected completed response, got core error status={} msg={}",
-            error.status_code, error.message
-        ),
-        Some(_) => panic!("expected completed response payload"),
-        None => panic!("expected completed response payload"),
+    let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
+        _ => panic!("expected Completed response"),
     };
     assert_ne!(preshared_key, "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
@@ -992,24 +1723,11 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let signature = sign_challenge(&signing_key, &challenge);
-    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
-        &mut context,
-        &token,
-        Some(&signature),
-        Some(&auth_pub_key),
-        Some(&attempt_id),
-    )
-    .await;
-    assert_eq!(preshared_key, "");
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::ClientMfaFinish(result))
-            if matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
-                })
-            )
+        Some(core_response::Payload::Empty(()))
     ));
     assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
     assert!(
@@ -1028,21 +1746,10 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
         "mark must not authorize"
     );
 
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => assert!(matches!(
-            result.result,
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
-            }) if advanced.next_step == 1
-        )),
-        Some(core_response::Payload::CoreError(error)) => panic!(
-            "expected Advanced response, got core error status={} msg={}",
-            error.status_code, error.message
-        ),
-        Some(_) => panic!("expected Advanced response payload"),
-        None => panic!("expected Advanced response payload"),
-    }
+    assert!(matches!(
+        flow_step_result(send_flow_step_finish(&mut context, &token, &attempt_id, None).await).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
     assert!(
         VpnClientSession::get_all_active_device_sessions_in_location(
             &context.pool,
@@ -1109,24 +1816,11 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     let signature = sign_challenge(&signing_key, &challenge);
-    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
-        &mut context,
-        &token,
-        Some(&signature),
-        Some(&auth_pub_key),
-        Some(&attempt_id),
-    )
-    .await;
-    assert_eq!(preshared_key, "");
+    let response =
+        send_flow_approve(&mut context, &token, &attempt_id, &signature, &auth_pub_key).await;
     assert!(matches!(
         response.payload,
-        Some(core_response::Payload::ClientMfaFinish(result))
-            if matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_)),
-                })
-            )
+        Some(core_response::Payload::Empty(()))
     ));
     assert!(gateway_rx.try_recv().is_err(), "mark must not authorize");
     assert!(
@@ -1145,21 +1839,10 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
         "mark must not authorize"
     );
 
-    let response = send_mfa_finish_with_attempt_id_raw(&mut context, &token, &attempt_id).await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => assert!(matches!(
-            result.result,
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
-            }) if advanced.next_step == 1
-        )),
-        Some(core_response::Payload::CoreError(error)) => panic!(
-            "expected Advanced response, got core error status={} msg={}",
-            error.status_code, error.message
-        ),
-        Some(_) => panic!("expected Advanced response payload"),
-        None => panic!("expected Advanced response payload"),
-    }
+    assert!(matches!(
+        flow_step_result(send_flow_step_finish(&mut context, &token, &attempt_id, None).await).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
     assert!(
         VpnClientSession::get_all_active_device_sessions_in_location(
             &context.pool,
@@ -1185,18 +1868,19 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
         .expect("session must remain active after a non-final step");
     assert_eq!(session.current_step, 1);
 
-    send_mfa_step_start(&mut context, &token, MfaMethod::Totp).await;
-    let response =
-        send_mfa_finish_raw(&mut context, &token, Some(&generate_totp_code(&user))).await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => assert!(matches!(
-            result.result,
-            Some(MfaStepResult {
-                outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-            }) if !completed.preshared_key.is_empty() && completed.preshared_key == result.preshared_key
-        )),
-        _ => panic!("expected completed TOTP response"),
-    }
+    let totp_attempt = send_mfa_step_start(&mut context, &token, MfaMethod::Totp).await;
+    let response = send_flow_code_finish(
+        &mut context,
+        &token,
+        &totp_attempt.step_attempt_id,
+        generate_totp_code(&user),
+    )
+    .await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::Completed(completed))
+            if !completed.preshared_key.is_empty()
+    ));
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
@@ -1256,6 +1940,7 @@ async fn test_parked_mobile_approval_completes_final_step(
     )
     .await;
     let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
     let challenge = started
         .challenge
         .expect("mobile approval needs a challenge");
@@ -1265,81 +1950,78 @@ async fn test_parked_mobile_approval_completes_final_step(
     context.mock_proxy().send_request(CoreRequest {
         id: 7001,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
-            AwaitRemoteMfaFinishRequest {
-                token: token.clone(),
-            },
-        )),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id: attempt_id.clone(),
+        })),
     });
     task::yield_now().await;
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 7002,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some(signature.clone()),
-                auth_pub_key: Some(auth_pub_key.clone()),
-                step_attempt_id: Some("stale-attempt".to_owned()),
-                auth_data: None,
-                credential_id: None,
-            },
-        )),
-    });
-    assert_eq!(
-        assert_error_response(&context.mock_proxy_mut().recv_outbound().await),
-        Code::InvalidArgument
-    );
+    let stale_response = send_flow_approve(
+        &mut context,
+        &token,
+        "stale-attempt",
+        &signature,
+        &auth_pub_key,
+    )
+    .await;
+    let (code, message) = assert_error_response_details(&stale_response);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "stale MFA attempt");
 
     context.mock_proxy().send_request(CoreRequest {
         id: 7003,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
                 token: token.clone(),
-                code: Some(signature),
-                auth_pub_key: Some(auth_pub_key),
-                step_attempt_id: Some(started.step_attempt_id),
-                auth_data: None,
-                credential_id: None,
+                step_attempt_id: attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
             },
         )),
     });
 
-    let first = context.mock_proxy_mut().recv_outbound().await;
-    let second = context.mock_proxy_mut().recv_outbound().await;
+    let first = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for mobile approval response");
+    let second = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for parked remote response");
+    let mut got_approve = false;
     let mut parked_key = None;
-    for response in [&first, &second] {
-        match &response.payload {
-            Some(core_response::Payload::ClientMfaFinish(result)) => {
-                assert_eq!(response.id, 7003);
-                assert_eq!(result.preshared_key, "");
-                // New-protocol approval marks the session and returns AwaitingExternal.
-                assert!(matches!(
-                    result.result,
-                    Some(MfaStepResult {
-                        outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_))
-                    })
-                ));
-            }
-            Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
-                assert_eq!(response.id, 7001);
-                let Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-                }) = &result.result
-                else {
-                    panic!("expected completed parked result");
-                };
-                assert_ne!(result.preshared_key, "");
-                assert_ne!(completed.preshared_key, "");
-                assert_eq!(result.preshared_key, completed.preshared_key);
-                parked_key = Some(completed.preshared_key.clone());
-            }
-            _ => panic!("unexpected response"),
+    for response in [first, second] {
+        if response.id == 7003 {
+            assert!(matches!(
+                response.payload,
+                Some(core_response::Payload::Empty(()))
+            ));
+            got_approve = true;
+        } else {
+            assert_eq!(response.id, 7001);
+            let result = flow_remote_result(response);
+            let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
+                panic!("expected completed parked result");
+            };
+            assert!(!completed.preshared_key.is_empty());
+            parked_key = Some(completed.preshared_key);
         }
     }
-    assert_ne!(parked_key.expect("parked response must contain a key"), "");
+    assert!(got_approve, "missing MfaFlowApprove response");
+    assert!(
+        !parked_key
+            .expect("parked response must contain a key")
+            .is_empty(),
+        "parked completion must return a key"
+    );
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
@@ -1365,7 +2047,6 @@ async fn test_parked_mobile_approval_completes_final_step(
     }
     context.finish().await.expect_server_finished().await;
 }
-
 #[sqlx::test]
 #[allow(deprecated)]
 async fn test_parked_mobile_approval_advances_non_final_step(
@@ -1395,6 +2076,7 @@ async fn test_parked_mobile_approval_advances_non_final_step(
     )
     .await;
     let started = send_mfa_step_start(&mut context, &token, MfaMethod::MobileApprove).await;
+    let attempt_id = started.step_attempt_id;
     let signature = sign_challenge(
         &signing_key,
         &started
@@ -1406,52 +2088,59 @@ async fn test_parked_mobile_approval_advances_non_final_step(
     context.mock_proxy().send_request(CoreRequest {
         id: 7101,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
-            AwaitRemoteMfaFinishRequest {
-                token: token.clone(),
-            },
-        )),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id: attempt_id.clone(),
+        })),
     });
     task::yield_now().await;
     context.mock_proxy().send_request(CoreRequest {
         id: 7102,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
+        payload: Some(core_request::Payload::MfaFlowApprove(
+            MfaFlowApproveRequest {
                 token: token.clone(),
-                code: Some(signature),
-                auth_pub_key: Some(auth_pub_key),
-                step_attempt_id: Some(started.step_attempt_id),
-                auth_data: None,
-                credential_id: None,
+                step_attempt_id: attempt_id,
+                proof: Some(MfaMobileApprovalProof {
+                    signature,
+                    auth_pub_key,
+                }),
             },
         )),
     });
 
-    let first = context.mock_proxy_mut().recv_outbound().await;
-    let second = context.mock_proxy_mut().recv_outbound().await;
-    for response in [&first, &second] {
-        match &response.payload {
-            Some(core_response::Payload::ClientMfaFinish(result)) => {
-                assert_eq!(response.id, 7102);
-                assert_eq!(result.preshared_key, "");
-                assert!(matches!(
-                    result.result,
-                    Some(MfaStepResult {
-                        outcome: Some(mfa_step_result::Outcome::AwaitingExternal(_))
-                    })
-                ));
-            }
-            Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
-                assert_eq!(response.id, 7101);
-                assert_eq!(result.preshared_key, "");
-                assert!(
-                    matches!(result.result, Some(MfaStepResult { outcome: Some(mfa_step_result::Outcome::Advanced(advanced)) }) if advanced.next_step == 1)
-                );
-            }
-            _ => panic!("unexpected response"),
+    let first = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for mobile approval response");
+    let second = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for parked remote response");
+    let mut got_approve = false;
+    let mut got_advanced = false;
+    for response in [first, second] {
+        if response.id == 7102 {
+            assert!(matches!(
+                response.payload,
+                Some(core_response::Payload::Empty(()))
+            ));
+            got_approve = true;
+        } else {
+            assert_eq!(response.id, 7101);
+            assert!(matches!(
+                flow_remote_result(response).outcome,
+                Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+            ));
+            got_advanced = true;
         }
     }
+    assert!(got_approve, "missing MfaFlowApprove response");
+    assert!(got_advanced, "missing advanced MfaFlowRemote response");
     assert!(
         VpnClientSession::get_all_active_device_sessions_in_location(
             &context.pool,
@@ -1466,7 +2155,6 @@ async fn test_parked_mobile_approval_advances_non_final_step(
     assert!(context.bidi_events_rx.try_recv().is_err());
     context.finish().await.expect_server_finished().await;
 }
-
 #[sqlx::test]
 #[allow(deprecated)]
 async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgConnectOptions) {
@@ -1486,7 +2174,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     setup_user_totp_mfa(&context.pool, &mut user).await;
     let signing_key = register_biometric_key(&context.pool, device.id).await;
 
-    let (_, token) = send_mfa_start_multi_step(
+    let (first_attempt_id, token) = send_mfa_start_multi_step(
         &mut context,
         network.id,
         &device.wireguard_pubkey,
@@ -1495,20 +2183,17 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     .await;
     let mut gateway_rx = context.gateway_tx.subscribe();
 
-    let response =
-        send_mfa_finish_raw(&mut context, &token, Some(&generate_totp_code(&user))).await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert_eq!(result.preshared_key, "");
-            assert!(matches!(
-                result.result,
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::Advanced(advanced)),
-                }) if advanced.next_step == 1
-            ));
-        }
-        _ => panic!("expected Advanced biometric flow response"),
-    }
+    let response = send_flow_code_finish(
+        &mut context,
+        &token,
+        &first_attempt_id,
+        generate_totp_code(&user),
+    )
+    .await;
+    assert!(matches!(
+        flow_step_result(response).outcome,
+        Some(mfa_step_result::Outcome::Advanced(advanced)) if advanced.next_step == 1
+    ));
     assert!(
         VpnClientSession::get_all_active_device_sessions_in_location(
             &context.pool,
@@ -1529,13 +2214,16 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     let challenge = step_started
         .challenge
         .expect("biometric StepStart must return a challenge");
-    assert_ne!(challenge, "");
-    let invalid_response = send_mfa_finish_signed_with_attempt_id_raw(
+    assert!(!challenge.is_empty());
+    let invalid_response = send_flow_step_finish(
         &mut context,
         &token,
-        Some("invalid-signature"),
-        None,
-        Some(&step_started.step_attempt_id),
+        &step_started.step_attempt_id,
+        Some(mfa_flow_step_finish_request::Submission::Biometric(
+            MfaBiometricSignature {
+                signature: "invalid-signature".to_owned(),
+            },
+        )),
     )
     .await;
     let (code, message) = assert_error_response_details(&invalid_response);
@@ -1559,28 +2247,18 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     }
 
     let signature = sign_challenge(&signing_key, &challenge);
-
-    let (response, preshared_key) = send_mfa_finish_signed_with_attempt_id(
+    let response = send_flow_step_finish(
         &mut context,
         &token,
-        Some(&signature),
-        None,
-        Some(&step_started.step_attempt_id),
+        &step_started.step_attempt_id,
+        Some(biometric_submission(&signature)),
     )
     .await;
-    match response.payload {
-        Some(core_response::Payload::ClientMfaFinish(result)) => {
-            assert!(matches!(
-                result.result.as_ref(),
-                Some(MfaStepResult {
-                    outcome: Some(mfa_step_result::Outcome::Completed(completed)),
-                }) if !completed.preshared_key.is_empty()
-                    && completed.preshared_key == result.preshared_key
-                    && completed.preshared_key == preshared_key
-            ));
-        }
+    let preshared_key = match flow_step_result(response).outcome {
+        Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
         _ => panic!("expected completed biometric response"),
-    }
+    };
+    assert!(!preshared_key.is_empty());
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
