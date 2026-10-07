@@ -903,7 +903,7 @@ async fn test_start_legacy_rejects_unlicensed_oidc(_: PgPoolOptions, options: Pg
         "https://idp.example.com".to_owned(),
         OpenIdProviderKind::Google,
         "client_id".to_owned(),
-        "client_secret".to_owned(),
+        "client_secret".to_owned().into(),
         None,
         None,
         None,
