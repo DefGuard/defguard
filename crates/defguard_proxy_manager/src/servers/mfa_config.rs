@@ -23,7 +23,7 @@ use defguard_core::{
     events::{ApiEvent, ApiEventType},
     grpc::utils::parse_client_ip_agent,
     mail::templates::mfa_code_mail,
-    mfa_engine::method::{VerifyError, fido2_credential_ids, verify_fido2_assertion},
+    mfa_engine::method::{VerifyError, fido2_credential_ids, verify_mfa_config_fido2_assertion},
 };
 use defguard_proto::{
     client_types::{
@@ -520,7 +520,7 @@ impl MfaConfigServer {
                     );
                     return Err(Status::failed_precondition("no FIDO2 challenge"));
                 };
-                verify_fido2_assertion(
+                verify_mfa_config_fido2_assertion(
                     &self.pool,
                     user.id,
                     &challenge,

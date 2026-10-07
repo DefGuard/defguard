@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use super::{authorize::ClientMfaServerError, method::InitiateError};
 
-/// Error surfaced by [`super::MfaEngine::start`] and [`super::MfaEngine::start_multi_step`].
+/// Errors returned by the legacy and multi-step start methods.
 #[derive(Debug, Error)]
 pub enum StartError {
     /// A multi-step (2+ step) flow requires a business license.
@@ -15,6 +15,8 @@ pub enum StartError {
     MultiStepNotAvailable,
     #[error("MFA plan length does not match the location's flow")]
     PlanLengthMismatch,
+    #[error("selected MFA method is not supported by location")]
+    MethodNotInStep,
     /// The selected method is not set up for this user or device.
     #[error("selected MFA method is not available")]
     MethodNotAvailable,
@@ -28,42 +30,15 @@ pub enum StartError {
     Initiate(#[from] InitiateError),
 }
 
-/// Error surfaced by [`super::MfaEngine::step_start`].
+/// Internal failures returned by shared finish helpers.
 #[derive(Debug, Error)]
-pub enum StepError {
-    #[error("login session not found")]
-    SessionNotFound,
-    #[error("MFA method is not in the current step")]
-    MethodNotInStep,
-    #[error("MFA method is not configured for this user")]
-    MethodNotConfigured,
-    #[error("unexpected error")]
-    Internal,
-    #[error(transparent)]
-    Initiate(#[from] InitiateError),
-}
-
-/// Error surfaced by [`super::MfaEngine::finish`].
-#[derive(Debug, Error)]
-pub enum FinishError {
+pub(super) enum FinishCoreError {
     #[error("login session not found")]
     SessionNotFound,
     #[error("no MFA attempt in progress")]
     UninitializedStep,
-    #[error("OIDC authentication not completed yet")]
-    OidcNotCompleted,
-    #[error("unauthorized")]
-    Unauthorized,
-    #[error("Too many failed MFA attempts. Please try connecting again.")]
-    AttemptLimit,
     #[error("stale MFA attempt")]
     StaleAttempt,
-    #[error("Challenge not found in session")]
-    MissingChallenge,
-    #[error("Challenge not found in MFA session")]
-    MissingBiometricChallenge,
-    #[error("{message}")]
-    MalformedProof { message: &'static str },
     #[error("unexpected error")]
     Internal,
     #[error(transparent)]

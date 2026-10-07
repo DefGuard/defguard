@@ -95,6 +95,8 @@ export const getLicenseFeatureLabel = (feature: LicenseFeatureValue): string => 
       return m.settings_license_feature_service_locations();
     case LicenseFeature.AclAllowedIps:
       return m.settings_license_feature_acl_allowed_ips();
+    case LicenseFeature.GroupMTUOverride:
+      return m.settings_license_feature_group_mtu_override();
     default:
       return feature;
   }

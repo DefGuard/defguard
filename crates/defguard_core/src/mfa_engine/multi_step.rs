@@ -1,0 +1,762 @@
+use std::{collections::HashSet, net::IpAddr};
+
+use defguard_common::db::{
+    Id,
+    models::{
+        Device, Settings, ThrottleScope, User, WireguardNetwork, biometric_auth::BiometricAuth,
+        vpn_client_mfa_session::VpnMfaFlowKind, vpn_client_session::VpnClientMfaMethod,
+    },
+};
+use thiserror::Error;
+use tracing::{debug, error, warn};
+
+use super::{
+    LoadedFinishContext, MfaEngine,
+    authorize::ClientMfaServerError,
+    error::{FinishCoreError, StartError},
+    filter_unlicensed_mfa_methods, is_code_method,
+    method::{Verdict, VerifyError, check_mobile_approval, verify, verify_mobile_signature},
+    poll_allowed, throttle_key,
+    types::{FinishOutcome, MultiStepStartOutcome, VerificationProof},
+};
+use crate::{
+    enterprise::is_business_license_active,
+    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
+};
+
+/// Proof fields accepted by an attempt-bound finish.
+#[derive(Debug, Eq, PartialEq)]
+pub struct StepProof {
+    pub step_attempt_id: String,
+    pub credential: Option<StepCredential>,
+}
+
+/// Credential submitted to a multi-step finish.
+#[derive(Debug, Eq, PartialEq)]
+pub enum StepCredential {
+    Code(String),
+    BiometricSignature(String),
+    Fido2(Fido2Assertion),
+}
+
+/// Binary FIDO2 assertion submitted to a multi-step finish.
+#[derive(Debug, Eq, PartialEq)]
+pub struct Fido2Assertion {
+    pub rp_id_hash: Vec<u8>,
+    pub authenticator_data: Vec<u8>,
+    pub signature: Vec<u8>,
+    pub credential_id: Vec<u8>,
+}
+
+/// Error converting a typed credential to the verifier representation.
+#[derive(Debug, Eq, Error, PartialEq)]
+pub enum ProofConversionError {
+    #[error("FIDO2 authenticator data is too short")]
+    Fido2AuthenticatorDataTooShort,
+    #[error("FIDO2 RP ID hash does not match authenticator data")]
+    Fido2RpIdHashMismatch,
+    #[error("FIDO2 credential ID is empty")]
+    Fido2CredentialIdEmpty,
+    #[error("FIDO2 signature is empty")]
+    Fido2SignatureEmpty,
+}
+
+/// Proof used by the mark-only mobile approval operation.
+#[derive(Debug, Eq, PartialEq)]
+pub struct MobileApprovalProof {
+    pub signature: String,
+    pub auth_pub_key: String,
+    pub step_attempt_id: String,
+}
+
+/// Error surfaced by [`MfaEngine::step_start`].
+#[derive(Debug, Error)]
+pub enum StepError {
+    #[error("login session not found")]
+    SessionNotFound,
+    #[error("MFA method is not in the current step")]
+    MethodNotInStep,
+    #[error("MFA method is not configured for this user")]
+    MethodNotConfigured,
+    #[error("unexpected error")]
+    Internal,
+    #[error(transparent)]
+    Initiate(#[from] super::method::InitiateError),
+}
+
+/// Errors reachable from the multi-step finish and mobile-approval methods.
+#[derive(Debug, Error)]
+pub enum StepFinishError {
+    #[error("login session not found")]
+    SessionNotFound,
+    #[error("no MFA attempt in progress")]
+    UninitializedStep,
+    #[error("unauthorized")]
+    Unauthorized,
+    #[error("Too many failed MFA attempts. Please try connecting again.")]
+    AttemptLimit,
+    #[error("stale MFA attempt")]
+    StaleAttempt,
+    #[error("Challenge not found in session")]
+    MissingChallenge,
+    #[error("Challenge not found in MFA session")]
+    MissingBiometricChallenge,
+    #[error("{message}")]
+    MalformedProof { message: &'static str },
+    #[error("unexpected error")]
+    Internal,
+    #[error(transparent)]
+    Event(#[from] ClientMfaServerError),
+}
+
+/// Why a submitted step is rejected.
+#[derive(Debug, PartialEq, Eq)]
+pub enum StartRejectionReason {
+    /// The chosen method is not in this step's allowed set.
+    MethodNotInStep,
+    /// The step has no methods left once the license filter is applied.
+    StepEmptyAfterLicense,
+    /// The user cannot satisfy the step. Deliberately opaque.
+    StepUnavailable,
+}
+
+/// A sparse per-step rejection: only failing steps are returned.
+#[derive(Debug)]
+pub struct StepRejection {
+    pub step: u32,
+    pub reason: StartRejectionReason,
+}
+
+/// Result of a multi-step start. Rejected plans create no session, token, or event.
+#[derive(Debug)]
+pub enum StartResult {
+    Accepted(MultiStepStartOutcome),
+    Rejected(Vec<StepRejection>),
+}
+
+/// Result of `step_start`: the minted attempt id plus an optional biometric / mobile-approve
+/// challenge.
+#[derive(Debug)]
+pub struct StepStarted {
+    pub step_attempt_id: String,
+    pub challenge: Option<String>,
+    /// FIDO2 only: see [`MultiStepStartOutcome::credential_ids`].
+    pub credential_ids: Vec<String>,
+}
+
+impl TryFrom<StepCredential> for VerificationProof {
+    type Error = ProofConversionError;
+
+    fn try_from(credential: StepCredential) -> Result<Self, Self::Error> {
+        match credential {
+            StepCredential::Code(code) => Ok(Self::Code(code)),
+            StepCredential::BiometricSignature(signature) => {
+                Ok(Self::BiometricSignature(signature))
+            }
+            StepCredential::Fido2(assertion) => {
+                const RP_ID_HASH_LEN: usize = 32;
+                let Fido2Assertion {
+                    rp_id_hash,
+                    authenticator_data,
+                    signature,
+                    credential_id,
+                } = assertion;
+
+                if authenticator_data.len() < RP_ID_HASH_LEN {
+                    return Err(ProofConversionError::Fido2AuthenticatorDataTooShort);
+                }
+                if authenticator_data[..RP_ID_HASH_LEN] != rp_id_hash {
+                    return Err(ProofConversionError::Fido2RpIdHashMismatch);
+                }
+                if credential_id.is_empty() {
+                    // Unknown non-empty IDs must fail verification to prevent credential enumeration.
+                    return Err(ProofConversionError::Fido2CredentialIdEmpty);
+                }
+                if signature.is_empty() {
+                    return Err(ProofConversionError::Fido2SignatureEmpty);
+                }
+
+                Ok(Self::Fido2 {
+                    rp_id_hash,
+                    signature,
+                    authenticator_data,
+                    credential_id,
+                })
+            }
+        }
+    }
+}
+
+impl MfaEngine {
+    /// Validate and start a selected multi-step plan.
+    pub async fn start_multi_step(
+        &self,
+        location: &WireguardNetwork<Id>,
+        device: &Device<Id>,
+        user: &User<Id>,
+        flow_id: Id,
+        steps: Vec<HashSet<VpnClientMfaMethod>>,
+        selected_methods: Vec<VpnClientMfaMethod>,
+    ) -> Result<StartResult, StartError> {
+        let business = is_business_license_active();
+
+        // A multi-step flow requires a Business license; fail closed.
+        if steps.len() > 1 && !business {
+            error!(
+                "Multi-step MFA requires a business license; location {} has a {}-step flow",
+                location.name,
+                steps.len()
+            );
+            return Err(StartError::MultiStepNotAvailable);
+        }
+        if selected_methods.len() != steps.len() {
+            error!(
+                "MFA plan length {} does not match the {}-step flow of location {}",
+                selected_methods.len(),
+                steps.len(),
+                location.name
+            );
+            return Err(StartError::PlanLengthMismatch);
+        }
+
+        let filtered_steps = steps
+            .iter()
+            .map(filter_unlicensed_mfa_methods)
+            .collect::<Vec<HashSet<_>>>();
+
+        let smtp_configured = Settings::get_current_settings().smtp_configured();
+        let oidc_configured = self.oidc_available().await.map_err(|err| {
+            error!("Failed to get current OpenID provider: {err}");
+            StartError::Internal
+        })?;
+        let mut rejections = Vec::new();
+        for (index, (chosen, allowed)) in selected_methods
+            .iter()
+            .zip(filtered_steps.iter())
+            .enumerate()
+        {
+            let chosen = *chosen;
+            if allowed.is_empty() {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::StepEmptyAfterLicense,
+                });
+            } else if !allowed.contains(&chosen) {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::MethodNotInStep,
+                });
+            } else if !chosen
+                .is_configured(
+                    &self.pool,
+                    user,
+                    Some(device.id),
+                    smtp_configured,
+                    oidc_configured,
+                )
+                .await
+                .map_err(|err| {
+                    error!("Failed to check MFA method configuration: {err}");
+                    StartError::Internal
+                })?
+            {
+                rejections.push(StepRejection {
+                    step: index as u32,
+                    reason: StartRejectionReason::StepUnavailable,
+                });
+            }
+        }
+
+        if !rejections.is_empty() {
+            return Ok(StartResult::Rejected(rejections));
+        }
+
+        let outcome = self
+            .start_session(
+                location,
+                device,
+                user,
+                flow_id,
+                filtered_steps,
+                VpnMfaFlowKind::MultiStep,
+                selected_methods[0],
+            )
+            .await?;
+        Ok(StartResult::Accepted(MultiStepStartOutcome {
+            token: outcome.token,
+            step_attempt_id: outcome.step_attempt_id,
+            challenge: outcome.challenge,
+            credential_ids: outcome.credential_ids,
+            superseded_token_hash: outcome.superseded_token_hash,
+        }))
+    }
+
+    /// Initiate or reissue the current step and bind it to a fresh attempt.
+    ///
+    /// Reissuing a step repeats initiation and supersedes the prior attempt, so a same-method
+    /// call resends the code. Callbacks for the superseded attempt are ignored.
+    ///
+    /// Reissuing does not change `failed_attempts`; that counter tracks rejected proofs.
+    pub async fn step_start(
+        &self,
+        token: String,
+        method: VpnClientMfaMethod,
+    ) -> Result<StepStarted, StepError> {
+        let Some(session) = self
+            .find_active_session_for_flow(&token, VpnMfaFlowKind::MultiStep)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                StepError::Internal
+            })?
+        else {
+            error!("Client login session not found");
+            return Err(StepError::SessionNotFound);
+        };
+
+        if !session
+            .current_step_methods()
+            .is_some_and(|methods| methods.contains(&method))
+        {
+            error!("MFA method {method:?} is not in the current step");
+            return Err(StepError::MethodNotInStep);
+        }
+
+        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            StepError::Internal
+        })?
+        else {
+            error!("MFA session references a missing location, device, or user");
+            return Err(StepError::Internal);
+        };
+
+        let smtp_configured = Settings::get_current_settings().smtp_configured();
+        let oidc_configured = self.oidc_provider_configured().await.map_err(|err| {
+            error!("Failed to get current OpenID provider: {err}");
+            StepError::Internal
+        })?;
+        if !method
+            .is_configured(
+                &self.pool,
+                &ctx.user,
+                Some(ctx.device.id),
+                smtp_configured,
+                oidc_configured,
+            )
+            .await
+            .map_err(|err| {
+                error!("Failed to check MFA method configuration: {err}");
+                StepError::Internal
+            })?
+        {
+            error!(
+                "MFA method {method:?} is not configured for user {}",
+                ctx.user.username
+            );
+            return Err(StepError::MethodNotConfigured);
+        }
+
+        let challenge = super::method::initiate(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                super::log_initiate_error(&err, &ctx);
+                StepError::from(err)
+            })?;
+        let credential_ids = super::method::offered_credential_ids(&self.pool, &ctx, method)
+            .await
+            .map_err(|err| {
+                error!("Failed to load FIDO2 credentials: {err}");
+                StepError::Internal
+            })?;
+
+        let mut conn = self.pool.acquire().await.map_err(|_| {
+            error!("Failed to acquire DB connection");
+            StepError::Internal
+        })?;
+        let step_attempt_id = session
+            .begin_attempt(&mut conn, method, challenge.clone())
+            .await
+            .map_err(|err| {
+                error!("Failed to begin MFA attempt: {err}");
+                StepError::Internal
+            })?;
+
+        Ok(StepStarted {
+            step_attempt_id,
+            challenge: challenge.map(|challenge| challenge.challenge),
+            credential_ids,
+        })
+    }
+
+    /// Verify and apply one attempt-bound multi-step proof.
+    pub async fn finish_step(
+        &self,
+        token: String,
+        proof: StepProof,
+        ip: IpAddr,
+    ) -> Result<FinishOutcome, StepFinishError> {
+        let StepProof {
+            step_attempt_id: attempt_id,
+            credential,
+        } = proof;
+        let loaded = self
+            .load_finish_context(&token, VpnMfaFlowKind::MultiStep, ip)
+            .await
+            .map_err(map_step_finish_core_error)?;
+        let LoadedFinishContext {
+            session,
+            ctx,
+            ephemeral,
+            context,
+        } = loaded;
+
+        if attempt_id != ephemeral.step_attempt_id {
+            error!("Stale MFA attempt: the attempt is superseded");
+            return Err(StepFinishError::StaleAttempt);
+        }
+
+        let method = ephemeral.selected_method;
+        let valid_credential = matches!(
+            (&credential, method),
+            (
+                None,
+                VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
+            ) | (
+                Some(StepCredential::Code(_)),
+                VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email,
+            ) | (
+                Some(StepCredential::BiometricSignature(_)),
+                VpnClientMfaMethod::Biometric
+            ) | (Some(StepCredential::Fido2(_)), VpnClientMfaMethod::Fido2)
+        );
+        if !valid_credential {
+            return Err(StepFinishError::MalformedProof {
+                message: "MFA credential does not match the selected method",
+            });
+        }
+
+        if matches!(
+            method,
+            VpnClientMfaMethod::Oidc | VpnClientMfaMethod::MobileApprove
+        ) && credential.is_none()
+            && !(method == VpnClientMfaMethod::MobileApprove && ephemeral.mobile_approved)
+            && !poll_allowed(&session.token_hash)
+        {
+            debug!("Throttled a poll of MFA session {}", session.id);
+            return Ok(FinishOutcome::AwaitingExternal);
+        }
+
+        let charge_key = (is_code_method(method)
+            && matches!(credential.as_ref(), Some(StepCredential::Code(_))))
+        .then(|| throttle_key(session.location_id, session.device_id));
+        if let Some(key) = &charge_key
+            && !ThrottleScope::VpnMfaCode
+                .hit(&self.pool, key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to charge an MFA code attempt: {err}");
+                    StepFinishError::Internal
+                })?
+        {
+            warn!(
+                "User {} has no MFA code attempts left for device {} at location {}",
+                ctx.user.username, ctx.device.id, ctx.location.name
+            );
+            return Err(StepFinishError::AttemptLimit);
+        }
+
+        let proof = credential
+            .map(VerificationProof::try_from)
+            .transpose()
+            .map_err(map_proof_conversion_error)?;
+        let verdict = if method == VpnClientMfaMethod::MobileApprove {
+            check_mobile_approval(&ephemeral)
+        } else {
+            match verify(&self.pool, &ctx, &ephemeral, proof.as_ref()).await {
+                Ok(verdict) => {
+                    if let Some(key) = &charge_key
+                        && matches!(&verdict, Verdict::Proved)
+                    {
+                        ThrottleScope::VpnMfaCode
+                            .refund(&self.pool, key)
+                            .await
+                            .map_err(|err| {
+                                error!("Failed to refund an MFA code attempt: {err}");
+                                StepFinishError::Internal
+                            })?;
+                    }
+                    verdict
+                }
+                Err(VerifyError::MalformedProof { message, event }) => {
+                    if let Some(event_message) = event {
+                        self.channels.emit_event(BidiStreamEvent {
+                            context: BidiRequestContext::new(
+                                context.user_id,
+                                context.username.clone(),
+                                context.ip,
+                                context.device_name.clone(),
+                            ),
+                            event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                                DesktopClientMfaEvent::Failed {
+                                    location: ctx.location.clone(),
+                                    device: ctx.device.clone(),
+                                    method: method.into(),
+                                    message: event_message.to_owned(),
+                                },
+                            )),
+                        })?;
+                    }
+                    return Err(StepFinishError::MalformedProof { message });
+                }
+                Err(error) => return Err(map_verify_error(method, error)),
+            }
+        };
+
+        match verdict {
+            Verdict::Proved => {}
+            Verdict::NotYet => return Ok(FinishOutcome::AwaitingExternal),
+            Verdict::Failed { message } => {
+                self.channels.emit_event(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: ctx.location.clone(),
+                            device: ctx.device.clone(),
+                            method: method.into(),
+                            message: message.to_owned(),
+                        },
+                    )),
+                })?;
+                if self
+                    .record_failure(session, &ctx, ip)
+                    .await
+                    .map_err(map_step_finish_core_error)?
+                {
+                    return Err(StepFinishError::AttemptLimit);
+                }
+                return Err(StepFinishError::Unauthorized);
+            }
+        }
+
+        self.advance_and_complete(
+            session,
+            &ctx,
+            context,
+            Some(&attempt_id),
+            method,
+            ephemeral.mobile_auth_device_name.as_deref(),
+        )
+        .await
+        .map_err(map_step_finish_core_error)
+    }
+
+    /// Verify and durably mark a mobile approval without advancing or authorizing the flow.
+    pub async fn approve_mobile_step(
+        &self,
+        token: String,
+        proof: MobileApprovalProof,
+        ip: IpAddr,
+    ) -> Result<(), StepFinishError> {
+        let loaded = self
+            .load_finish_context(&token, VpnMfaFlowKind::MultiStep, ip)
+            .await
+            .map_err(map_step_finish_core_error)?;
+        let LoadedFinishContext {
+            session,
+            ctx,
+            ephemeral,
+            context,
+        } = loaded;
+
+        if ephemeral.selected_method != VpnClientMfaMethod::MobileApprove {
+            return Err(StepFinishError::MalformedProof {
+                message: "Mobile approval is not the current MFA method",
+            });
+        }
+        if proof.step_attempt_id != ephemeral.step_attempt_id {
+            error!("Stale MFA attempt: the attempt is superseded");
+            return Err(StepFinishError::StaleAttempt);
+        }
+        if proof.signature.is_empty() {
+            return Err(StepFinishError::MalformedProof {
+                message: "Signature not found in request",
+            });
+        }
+        if proof.auth_pub_key.is_empty() {
+            return Err(StepFinishError::MalformedProof {
+                message: "Authorization device key missing in request",
+            });
+        }
+
+        match verify_mobile_signature(
+            &self.pool,
+            &ctx,
+            &ephemeral,
+            &proof.signature,
+            &proof.auth_pub_key,
+        )
+        .await
+        .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?
+        {
+            Verdict::Proved => {
+                let mobile_auth_device_name =
+                    BiometricAuth::find_device_name(&self.pool, ctx.user.id, &proof.auth_pub_key)
+                        .await
+                        .map_err(|err| {
+                            error!("Failed to find mobile approval device: {err}");
+                            StepFinishError::Internal
+                        })?;
+                let mut transaction = self.pool.begin().await.map_err(|err| {
+                    error!("Failed to begin transaction while marking mobile approval: {err}");
+                    StepFinishError::Internal
+                })?;
+                if !session
+                    .mark_mobile_approved(
+                        &mut transaction,
+                        &proof.step_attempt_id,
+                        mobile_auth_device_name.as_deref(),
+                    )
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to mark mobile approval: {err}");
+                        StepFinishError::Internal
+                    })?
+                {
+                    return Err(StepFinishError::StaleAttempt);
+                }
+                transaction.commit().await.map_err(|err| {
+                    error!("Failed to commit mobile approval mark: {err}");
+                    StepFinishError::Internal
+                })?;
+                Ok(())
+            }
+            Verdict::Failed { message } => {
+                self.channels.emit_event(BidiStreamEvent {
+                    context,
+                    event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                        DesktopClientMfaEvent::Failed {
+                            location: ctx.location.clone(),
+                            device: ctx.device.clone(),
+                            method: VpnClientMfaMethod::MobileApprove.into(),
+                            message: message.to_owned(),
+                        },
+                    )),
+                })?;
+                if self
+                    .record_failure(session, &ctx, ip)
+                    .await
+                    .map_err(map_step_finish_core_error)?
+                {
+                    return Err(StepFinishError::AttemptLimit);
+                }
+                Err(StepFinishError::Unauthorized)
+            }
+            Verdict::NotYet => Err(StepFinishError::Internal),
+        }
+    }
+}
+
+fn map_proof_conversion_error(error: ProofConversionError) -> StepFinishError {
+    StepFinishError::MalformedProof {
+        message: match error {
+            ProofConversionError::Fido2AuthenticatorDataTooShort => {
+                "FIDO2 authenticator data is too short"
+            }
+            ProofConversionError::Fido2RpIdHashMismatch => {
+                "FIDO2 RP ID hash does not match authenticator data"
+            }
+            ProofConversionError::Fido2CredentialIdEmpty => "FIDO2 credential ID is empty",
+            ProofConversionError::Fido2SignatureEmpty => "FIDO2 signature is empty",
+        },
+    }
+}
+
+fn map_verify_error(method: VpnClientMfaMethod, error: VerifyError) -> StepFinishError {
+    match error {
+        VerifyError::MalformedProof { message, .. } => StepFinishError::MalformedProof { message },
+        VerifyError::MissingChallenge => {
+            if method == VpnClientMfaMethod::Biometric {
+                StepFinishError::MissingBiometricChallenge
+            } else {
+                StepFinishError::MissingChallenge
+            }
+        }
+        VerifyError::Db(error) => {
+            error!("Failed to verify MFA proof: {error}");
+            StepFinishError::Internal
+        }
+        VerifyError::MissingRPID => {
+            error!("Failed to verify FIDO2: missing RP ID");
+            StepFinishError::Internal
+        }
+        VerifyError::UnsupportedMethod => StepFinishError::Internal,
+    }
+}
+
+fn map_step_finish_core_error(error: FinishCoreError) -> StepFinishError {
+    match error {
+        FinishCoreError::SessionNotFound => StepFinishError::SessionNotFound,
+        FinishCoreError::UninitializedStep => StepFinishError::UninitializedStep,
+        FinishCoreError::StaleAttempt => StepFinishError::StaleAttempt,
+        FinishCoreError::Internal => StepFinishError::Internal,
+        FinishCoreError::Event(error) => StepFinishError::Event(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_step_credential_converts_structured_fido2_assertion_without_loss() {
+        let rp_id_hash = vec![1; 32];
+        let mut authenticator_data = rp_id_hash.clone();
+        authenticator_data.extend([2, 3, 4]);
+        let signature = vec![5, 6, 7];
+        let credential_id = vec![8, 9, 10];
+        let proof = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash: rp_id_hash.clone(),
+            authenticator_data: authenticator_data.clone(),
+            signature: signature.clone(),
+            credential_id: credential_id.clone(),
+        }))
+        .expect("valid FIDO2 assertion should convert");
+
+        assert_eq!(
+            proof,
+            VerificationProof::Fido2 {
+                rp_id_hash,
+                signature,
+                authenticator_data,
+                credential_id,
+            }
+        );
+    }
+
+    #[test]
+    fn test_step_credential_rejects_mismatched_fido2_rp_id_hash() {
+        let error = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash: vec![1; 32],
+            authenticator_data: vec![2; 32],
+            signature: vec![3],
+            credential_id: vec![4],
+        }))
+        .expect_err("mismatched RP ID hash must be rejected");
+
+        assert_eq!(error, ProofConversionError::Fido2RpIdHashMismatch);
+    }
+
+    #[test]
+    fn test_step_credential_rejects_short_fido2_authenticator_data() {
+        let error = VerificationProof::try_from(StepCredential::Fido2(Fido2Assertion {
+            rp_id_hash: vec![1; 32],
+            authenticator_data: vec![1; 31],
+            signature: vec![3],
+            credential_id: vec![4],
+        }))
+        .expect_err("short FIDO2 authenticator data must be rejected");
+
+        assert_eq!(error, ProofConversionError::Fido2AuthenticatorDataTooShort);
+    }
+}

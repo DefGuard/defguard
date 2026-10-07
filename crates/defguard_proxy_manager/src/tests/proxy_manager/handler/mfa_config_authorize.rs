@@ -209,6 +209,35 @@ async fn test_fido2_authorizes_session(_: PgPoolOptions, options: PgConnectOptio
 }
 
 #[sqlx::test]
+async fn test_fido2_authorizes_session_without_credential_id(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (session, _, (signing_key, _credential_id)) =
+        start_session(&mut context, async |pool, user| {
+            register_signing_key(pool, user.id).await
+        })
+        .await;
+    let session_token = session.session_token;
+    let (challenge, _) = fido2_challenge(&mut context, &session_token).await;
+    let (signature, auth_data) = sign_challenge(&signing_key, &challenge);
+    let authorized = send_mfa_config_authorize_fido2(
+        &mut context,
+        &session_token,
+        Some(signature),
+        Some(auth_data),
+        None,
+    )
+    .await;
+    assert_authorized(&authorized);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_fido2_challenge_requires_security_key(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;

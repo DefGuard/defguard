@@ -21,9 +21,13 @@ use self::error::LdapError;
 use crate::{
     enterprise::{
         is_business_license_active,
-        ldap::model::{
-            UAC_NORMAL_ACCOUNT, extract_dn_path, ldap_sync_allowed_for_user, uac_from_entry,
-            uac_with_active, user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
+        ldap::{
+            dn::unescape_value,
+            model::{
+                Dn, UAC_NORMAL_ACCOUNT, extract_dn_path, group_in_list, has_obj_class,
+                ldap_sync_allowed_for_user, split_first_rdn, uac_from_entry, uac_with_active,
+                user_as_ldap_attrs, user_as_ldap_mod, user_from_searchentry,
+            },
         },
         limits::update_counts,
     },
@@ -33,6 +37,7 @@ use crate::{
 
 #[cfg(not(test))]
 pub mod client;
+pub mod dn;
 pub mod error;
 pub mod hash;
 pub mod model;
@@ -224,33 +229,36 @@ impl LDAPConfig {
         }
     }
 
-    /// Constructs user distinguished name.
-    ///
-    /// This function is used to construct the user's DN based on the RDN value and user path.
-    /// Prefer using `user_dn_for_user` method to ensure that the RDN value and user path are
-    /// correctly derived from the user object.
-    ///
-    /// Use it only if you need to construct a user DN manually.
+    /// Returns the DN of `user`.
     #[must_use]
-    pub(crate) fn user_dn(&self, user_rdn_value: &str, user_path: &str) -> String {
-        format!(
-            "{}={},{user_path}",
-            self.get_rdn_attr(),
-            dn_escape(user_rdn_value)
-        )
+    pub(crate) fn user_dn<I>(&self, user: &User<I>) -> Dn {
+        self.user_dn_with_rdn(user, user.ldap_rdn_value())
     }
 
-    /// Constructs the user's distinguished name based on the user object.
-    /// This should be the preferred way of getting the user DN, as it
-    /// ensures that the RDN value and user path is correctly derived from the user object.
+    /// Returns the DN that `user` has under the passed `rdn_value` (e.g. used for renames).
     #[must_use]
-    pub(crate) fn user_dn_for_user<I>(&self, user: &User<I>) -> String {
-        let path = if let Some(path) = &user.ldap_user_path {
-            path.as_str()
-        } else {
-            &self.ldap_user_search_base
-        };
-        self.user_dn(user.ldap_rdn_value(), path)
+    pub(crate) fn user_dn_with_rdn<I>(&self, user: &User<I>, rdn_value: &str) -> Dn {
+        let path = user
+            .ldap_user_path
+            .as_deref()
+            .unwrap_or(&self.ldap_user_search_base);
+        self.dn_from_parts(rdn_value, path)
+    }
+
+    /// Respells a DN the server sent the way `user_dn` builds one, for comparison.
+    ///
+    /// A server may escape a comma as `\,` where Defguard writes `\2c`, so a `member` value can name
+    /// a user and still differ from that user's DN byte for byte.
+    #[must_use]
+    pub(crate) fn dn_match_key(&self, dn: &str) -> Dn {
+        split_first_rdn(dn)
+            .and_then(|(value, path)| Some(self.dn_from_parts(&unescape_value(value)?, path)))
+            .unwrap_or_else(|| dn.into())
+    }
+
+    #[must_use]
+    fn dn_from_parts(&self, rdn_value: &str, path: &str) -> Dn {
+        format!("{}={},{path}", self.get_rdn_attr(), dn_escape(rdn_value)).into()
     }
 
     /// Constructs group distinguished name.
@@ -259,13 +267,14 @@ impl LDAPConfig {
     /// Note: This may turn out to be a problem if some groups are nested and have different DN
     /// paths.
     #[must_use]
-    pub(crate) fn group_dn(&self, groupname: &str) -> String {
+    pub(crate) fn group_dn(&self, groupname: &str) -> Dn {
         format!(
             "{}={},{}",
             self.ldap_groupname_attr,
             dn_escape(groupname),
             self.ldap_group_search_base,
         )
+        .into()
     }
 
     /// Returns all user object classes, including the main one (structural) and auxiliary classes.
@@ -365,6 +374,25 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_sync_groups: settings.ldap_sync_groups,
             ldap_enrollment_token_attr: settings.ldap_enrollment_token_attr,
         })
+    }
+}
+
+#[derive(Serialize)]
+struct EnrollmentData<'a> {
+    #[serde(rename = "enrollmentToken")]
+    token: &'a str,
+    #[serde(rename = "enrollmentUrl")]
+    url: &'a str,
+}
+
+impl<'a> EnrollmentData<'a> {
+    #[must_use]
+    pub fn new(token: &'a str, url: &'a str) -> Self {
+        Self { token, url }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_default()
     }
 }
 
@@ -482,7 +510,7 @@ impl LDAPConnection {
             return Ok(true);
         }
 
-        let dn = self.config.user_dn_for_user(user);
+        let dn = self.config.user_dn(user);
 
         if !self.user_exists(user).await? {
             debug!("User {user} does not exist, not syncing user");
@@ -496,8 +524,8 @@ impl LDAPConnection {
         );
 
         if user_groups
-            .into_iter()
-            .any(|group| self.config.ldap_sync_groups.contains(&group))
+            .iter()
+            .any(|group| group_in_list(&self.config.ldap_sync_groups, group))
         {
             debug!("User {user} is in sync groups, syncing user");
             Ok(true)
@@ -556,7 +584,7 @@ impl LDAPConnection {
     /// usernames which Defguard doesn't handle well.
     async fn user_exists<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
         let username = &user.username;
-        let dn = self.config.user_dn_for_user(user);
+        let dn = self.config.user_dn(user);
         let username_exists = self.user_exists_by_username(username).await?;
         let dn_exists = self.user_exists_by_dn(&dn).await?;
         Ok(username_exists || dn_exists)
@@ -633,7 +661,7 @@ impl LDAPConnection {
     /// Retrieves user from LDAP by DN (Distinguished Name).
     /// Returns an error if the user doesn't exist at the specified DN.
     pub async fn get_user_by_dn<I>(&mut self, user: &User<I>) -> Result<User, LdapError> {
-        let dn = self.config.user_dn_for_user(user);
+        let dn = self.config.user_dn(user);
         debug!("Trying to retrieve LDAP user with the following DN: {dn}");
         match self.get(&dn).await? {
             Some(entry) => {
@@ -655,7 +683,7 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {user}");
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {user}");
@@ -738,13 +766,8 @@ impl LDAPConnection {
                 "User {old_username} not found in LDAP, cannot modify",
             )));
         }
-        let user_dn_path = if let Some(path) = &user.ldap_user_path {
-            path.as_str()
-        } else {
-            &self.config.ldap_user_search_base
-        };
-        let old_dn = self.config.user_dn(old_rdn, user_dn_path);
-        let new_dn = self.config.user_dn(new_rdn, user_dn_path);
+        let old_dn = self.config.user_dn_with_rdn(user, old_rdn);
+        let new_dn = self.config.user_dn_with_rdn(user, new_rdn);
         let mods = user_as_ldap_mod(user, &self.config);
         self.modify(&old_dn, &new_dn, mods).await?;
         info!("Modified user {old_username} in LDAP");
@@ -757,23 +780,25 @@ impl LDAPConnection {
         &mut self,
         user: &User<Id>,
         token: &str,
+        enrollment_url: &str,
     ) -> Result<(), LdapError> {
         let Some(attr) = self.config.enrollment_token_attr().map(ToOwned::to_owned) else {
             return Err(LdapError::MissingSettings(
                 "LDAP enrollment token attribute is not configured".into(),
             ));
         };
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         debug!("Storing enrollment token for user {user} in LDAP attribute {attr}");
         if !self.user_exists_by_dn(&user_dn).await? {
             return Err(LdapError::ObjectNotFound(format!(
                 "User {user_dn} not found in LDAP, cannot store enrollment token",
             )));
         }
+        let data = EnrollmentData::new(token, enrollment_url).to_json();
         self.modify(
             &user_dn,
             &user_dn,
-            vec![Mod::Replace(attr.as_str(), hashset![token])],
+            vec![Mod::Replace(attr.as_str(), hashset![data.as_str()])],
         )
         .await?;
         info!("Stored enrollment token for user {user} in LDAP");
@@ -785,7 +810,7 @@ impl LDAPConnection {
     /// First removes the user from all group memberships (if any), then deletes the user entry.
     pub async fn delete_user<I>(&mut self, user: &User<I>) -> Result<(), LdapError> {
         debug!("Deleting user {user}");
-        let dn = self.config.user_dn_for_user(user);
+        let dn = self.config.user_dn(user);
         debug!("Removing group memberships first...");
         let user_groups = self.get_user_groups(&dn).await?;
         debug!("Removing user from groups: {user_groups:?}");
@@ -803,7 +828,11 @@ impl LDAPConnection {
     /// Activates an Active Directory user account.
     /// Sets userAccountControl to enable the account and pwdLastSet to avoid password change
     /// requirement.
-    pub async fn activate_ad_user(&mut self, user_dn: &str, active: bool) -> Result<(), LdapError> {
+    pub(crate) async fn activate_ad_user(
+        &mut self,
+        user_dn: &Dn,
+        active: bool,
+    ) -> Result<(), LdapError> {
         let uac = uac_with_active(UAC_NORMAL_ACCOUNT, active);
         let uac_str = uac.to_string();
         debug!("Activating user {user_dn}");
@@ -829,7 +858,7 @@ impl LDAPConnection {
         user: &User<I>,
         active: bool,
     ) -> Result<(), LdapError> {
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         let entry = self
             .get(&user_dn)
             .await?
@@ -867,7 +896,7 @@ impl LDAPConnection {
         password: &str,
     ) -> Result<(), LdapError> {
         debug!("Setting password for user {user}");
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
 
         if self.config.ldap_uses_ad {
             let unicode_pwd = hash::unicode_pwd(password);
@@ -883,24 +912,23 @@ impl LDAPConnection {
             let ssha_password = hash::salted_sha1_hash(password);
             let nt_password = hash::nthash(password);
             let mut mods = Vec::new();
-            if self
+            let aux_obj_classes: Vec<&str> = self
                 .config
                 .ldap_user_auxiliary_obj_classes
                 .iter()
-                .any(|e| e == UserObjectClass::SimpleSecurityObject.name())
-            {
+                .map(String::as_str)
+                .collect();
+            if has_obj_class(
+                &aux_obj_classes,
+                UserObjectClass::SimpleSecurityObject.name(),
+            ) {
                 mods.push(Mod::Replace(
                     "userPassword",
                     hashset![ssha_password.as_str()],
                 ));
             }
 
-            if self
-                .config
-                .ldap_user_auxiliary_obj_classes
-                .iter()
-                .any(|e| e == UserObjectClass::SambaSamAccount.name())
-            {
+            if has_obj_class(&aux_obj_classes, UserObjectClass::SambaSamAccount.name()) {
                 mods.push(Mod::Replace(
                     "sambaNTPassword",
                     hashset![nt_password.as_str()],
@@ -939,7 +967,7 @@ impl LDAPConnection {
         // Extend the group attr with multiple members.
         let member_dns = members
             .iter()
-            .map(|member| self.config.user_dn_for_user(member))
+            .map(|member| self.config.user_dn(member).to_string())
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();
         let member_refs = member_dns
@@ -1008,7 +1036,7 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Adding user {user} to group {groupname} in LDAP, checking if that group exists...");
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         if self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is already a member of group {groupname}, skipping");
             return Ok(());
@@ -1020,8 +1048,8 @@ impl LDAPConnection {
                 &group_dn,
                 &group_dn,
                 vec![Mod::Add(
-                    &self.config.ldap_group_member_attr.clone(),
-                    hashset![&user_dn],
+                    self.config.ldap_group_member_attr.clone(),
+                    hashset![user_dn.to_string()],
                 )],
             )
             .await?;
@@ -1044,7 +1072,7 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Removing user {user} from group {groupname} in LDAP");
-        let user_dn = self.config.user_dn_for_user(user);
+        let user_dn = self.config.user_dn(user);
         if !self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is not a member of group {groupname}, skipping");
             return Ok(());
@@ -1056,8 +1084,8 @@ impl LDAPConnection {
                 &group_dn,
                 &group_dn,
                 vec![Mod::Delete(
-                    &self.config.ldap_group_member_attr.clone(),
-                    hashset![&user_dn],
+                    self.config.ldap_group_member_attr.clone(),
+                    hashset![user_dn.to_string()],
                 )],
             )
             .await?;
