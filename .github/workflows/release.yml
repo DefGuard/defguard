@@ -32,6 +32,7 @@ jobs:
       actions: read
       contents: read
       issues: read
+      pull-requests: read
     outputs:
       version: ${{ steps.gates.outputs.version }}
     steps:
@@ -78,7 +79,7 @@ jobs:
             fi
 
             # alert-issue titles have the form "[source] branch: summary".
-            BLOCKERS=$(gh issue list --label release-blocker --state open --limit 200 --json title,url \
+            BLOCKERS=$(gh issue list --label release-blocker --search "-label:ignore-for-release" --state open --limit 200 --json title,url \
               --jq '.[] | select(.title | contains("] " + env.GITHUB_REF_NAME + ":")) | .url')
             if [[ -n $BLOCKERS ]]; then
               echo "::error::Open release-blocker issues for $GITHUB_REF_NAME. A green rehearsal (draft=false) closes its own issue."
@@ -119,11 +120,17 @@ jobs:
             done < <(git config -f .gitmodules --get-regexp '\.path$')
 
             export VERSION
-            OPEN=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100" --paginate \
-              --jq '.[] | select(.title == env.VERSION) | .open_issues')
-            if [[ ${OPEN:-0} != 0 ]]; then
-              echo "::error::Milestone $VERSION has $OPEN open issues or pull requests. Close them, or move them to another milestone."
-              exit 1
+            MILESTONE=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100" --paginate \
+              --jq '.[] | select(.title == env.VERSION) | .number')
+            if [[ -n $MILESTONE ]]; then
+              # The issues endpoint also returns pull requests.
+              OPEN=$(gh api "repos/$GH_REPO/issues?milestone=$MILESTONE&state=open&per_page=100" --paginate \
+                --jq '.[] | select(any(.labels[]; .name == "ignore-for-release") | not) | .html_url')
+              if [[ -n $OPEN ]]; then
+                echo "::error::Milestone $VERSION has open issues or pull requests. Close them, move them to another milestone, or add the ignore-for-release label."
+                echo "$OPEN"
+                exit 1
+              fi
             fi
           fi
 
