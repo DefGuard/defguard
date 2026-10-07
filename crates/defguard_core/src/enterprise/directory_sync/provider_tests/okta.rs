@@ -183,16 +183,29 @@ async fn test_user_parse() {
     assert_eq!(dir_user.email, "test_email");
     assert_eq!(dir_user.id, Some("test_id".to_owned()));
     assert!(dir_user.active);
+}
 
-    let user = User {
-        id: "test_id".to_owned(),
-        status: "INACTIVE".to_owned(),
-        profile: UserProfile {
-            email: "test_email".to_owned(),
-        },
-    };
+#[test]
+fn test_user_parse_keeps_locked_out_and_pending_users_active() {
+    for (status, active) in [
+        ("ACTIVE", true),
+        ("STAGED", true),
+        ("PROVISIONED", true),
+        ("RECOVERY", true),
+        ("PASSWORD_EXPIRED", true),
+        ("LOCKED_OUT", true),
+        ("SUSPENDED", false),
+        ("DEPROVISIONED", false),
+    ] {
+        let user = User {
+            id: "test_id".to_owned(),
+            status: status.to_owned(),
+            profile: UserProfile {
+                email: "test@example.com".to_owned(),
+            },
+        };
 
-    let dir_user: DirectoryUser = user.into();
-    assert_eq!(dir_user.email, "test_email");
-    assert!(!dir_user.active);
+        let dir_user: DirectoryUser = user.into();
+        assert_eq!(dir_user.active, active, "Okta status {status}");
+    }
 }
