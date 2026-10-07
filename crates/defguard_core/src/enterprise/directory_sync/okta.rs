@@ -95,7 +95,7 @@ impl From<User> for DirectoryUser {
     fn from(val: User) -> Self {
         Self {
             email: val.profile.email,
-            active: ACTIVE_STATUS.contains(&val.status.as_str()),
+            active: ACTIVE_STATUSES.contains(&val.status.as_str()),
             id: Some(val.id),
             // TODO: currently not supported for Okta
             user_details: None,
@@ -123,10 +123,16 @@ impl From<Group> for DirectoryGroup {
     }
 }
 
-// The status may be:
-// "ACTIVE" "DEPROVISIONED" "LOCKED_OUT" "PASSWORD_EXPIRED" "PROVISIONED" "RECOVERY" "STAGED" "SUSPENDED"
-// We currently consider only ACTIVE users as active. Change this if needed.
-const ACTIVE_STATUS: [&str; 1] = ["ACTIVE"];
+// Anyone can cause LOCKED_OUT with failed logins, so only the admin actions SUSPENDED and
+// DEPROVISIONED disable the user.
+const ACTIVE_STATUSES: [&str; 6] = [
+    "ACTIVE",
+    "STAGED",
+    "PROVISIONED",
+    "RECOVERY",
+    "PASSWORD_EXPIRED",
+    "LOCKED_OUT",
+];
 
 impl OktaDirectorySync {
     #[must_use]
