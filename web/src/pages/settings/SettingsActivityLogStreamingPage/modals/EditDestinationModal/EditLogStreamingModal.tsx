@@ -86,7 +86,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
         name: z.string().trim().min(1, m.form_error_required()),
         url: z.string().trim().min(1, m.form_error_required()),
         username: z.string().nullable(),
-        password: z.string().nullable(),
+        password: z.string().nullable().optional(),
         certificate: z.file().nullable(),
       }),
     [],
@@ -99,7 +99,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       name: modalData.name,
       url: modalData.config.url,
       username: modalData.config.username,
-      password: modalData.config.password,
+      password: undefined,
       certificate: modalData.config.cert
         ? new File([modalData.config.cert], 'certificate.pem')
         : null,
@@ -180,9 +180,9 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
 
           <form.AppField name="password">
             {(field) => (
-              <field.FormInput
+              <field.FormSecretInput
+                stored={modalData.password_set}
                 label={m.form_label_password()}
-                type="password"
                 helper={m.modal_add_log_streaming_helper_password()}
               />
             )}

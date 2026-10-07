@@ -1,7 +1,7 @@
 use std::{convert::Infallible, error::Error, str::FromStr};
 
 use secrecy::{ExposeSecret, SecretString};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::{
     Decode, Encode, Postgres, Type,
     encode::IsNull,
@@ -36,15 +36,6 @@ impl FromStr for SecretStringWrapper {
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         Ok(Self(SecretString::from(src)))
-    }
-}
-
-impl Serialize for SecretStringWrapper {
-    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        ser.serialize_str(self.0.expose_secret())
     }
 }
 

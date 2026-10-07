@@ -1164,18 +1164,23 @@ export const SmtpAuthentication = {
 export type SmtpAuthenticationValue =
   (typeof SmtpAuthentication)[keyof typeof SmtpAuthentication];
 
+export type SecretValue = string | null;
+
 export interface SettingsSMTP {
   smtp_encryption: SmtpEncryptionValue;
   smtp_server: string | null;
   smtp_port: number | null;
   smtp_user: string | null;
-  smtp_password: string | null;
+  smtp_password?: SecretValue;
+  smtp_password_set?: boolean;
   smtp_sender: string | null;
   smtp_authentication: SmtpAuthenticationValue;
   smtp_oauth_issuer_url: string | null;
   smtp_oauth_client_id: string | null;
-  smtp_oauth_client_secret: string | null;
-  smtp_oauth_refresh_token: string | null;
+  smtp_oauth_client_secret?: SecretValue;
+  smtp_oauth_client_secret_set?: boolean;
+  smtp_oauth_refresh_token?: SecretValue;
+  smtp_oauth_refresh_token_set?: boolean;
   smtp_oauth_tenant_id: string | null;
   smtp_tls_verify_cert: boolean;
 }
@@ -1204,7 +1209,8 @@ export interface SettingsBranding {
 }
 
 export interface SettingsLDAP {
-  ldap_bind_password: string | null;
+  ldap_bind_password?: SecretValue;
+  ldap_bind_password_set?: boolean;
   ldap_bind_username: string | null;
   ldap_url: string | null;
   ldap_group_member_attr: string;
@@ -1341,9 +1347,11 @@ export interface OpenIdProvider {
   base_url: string;
   kind: OpenIdProviderKindValue;
   client_id: string;
-  client_secret: string;
+  client_secret?: SecretValue;
+  client_secret_set?: boolean;
   display_name: string;
-  google_service_account_key?: string | null;
+  google_service_account_key?: SecretValue;
+  google_service_account_key_set?: boolean;
   google_service_account_email?: string | null;
   admin_email?: string | null;
   directory_sync_enabled: boolean;
@@ -1351,10 +1359,12 @@ export interface OpenIdProvider {
   directory_sync_user_behavior: DirectorySyncBehaviorValue;
   directory_sync_admin_behavior: DirectorySyncBehaviorValue;
   directory_sync_target: DirectorySyncTargetValue;
-  okta_private_jwk?: string | null;
+  okta_private_jwk?: SecretValue;
+  okta_private_jwk_set?: boolean;
   okta_dirsync_client_id?: string | null;
   directory_sync_group_match?: string[] | null;
-  jumpcloud_api_key?: string | null;
+  jumpcloud_api_key?: SecretValue;
+  jumpcloud_api_key_set?: boolean;
   prefetch_users: boolean;
   disable_password_management: boolean;
   directory_sync_user_groups?: string[] | null;
@@ -1652,6 +1662,7 @@ export interface ActivityLogStream {
   name: string;
   stream_type: ActivityLogStreamTypeValue;
   config: ActivityLogStreamConfig;
+  password_set: boolean;
 }
 export interface CreateActivityLogStreamRequest {
   name: string;
@@ -1662,7 +1673,7 @@ export interface CreateActivityLogStreamRequest {
 export interface ActivityLogStreamConfig {
   url: string;
   username: string | null;
-  password: string | null;
+  password?: SecretValue;
   cert: string | null;
 }
 

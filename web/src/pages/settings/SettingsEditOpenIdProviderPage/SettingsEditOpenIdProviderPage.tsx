@@ -84,7 +84,11 @@ export const SettingsEditOpenIdProviderPage = () => {
           directory_sync_group_match: joinCsv(formData.directory_sync_group_match),
           directory_sync_user_groups: joinCsv(formData.directory_sync_user_groups),
         };
-        const submitValues = { ...normalizedFormData, ...values };
+        const submitValues = {
+          ...normalizedFormData,
+          ...values,
+          client_secret: values.client_secret ?? '',
+        };
         await mutateAsync(submitValues);
         if (values.directory_sync_enabled) {
           try {

@@ -72,13 +72,36 @@ pub(crate) async fn broadcast_public_settings(
     }
 }
 
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SettingsResponse {
+    #[serde(flatten)]
+    settings: Settings,
+    ldap_bind_password_set: bool,
+    smtp_password_set: bool,
+    smtp_oauth_client_secret_set: bool,
+    smtp_oauth_refresh_token_set: bool,
+}
+
+impl From<Settings> for SettingsResponse {
+    fn from(value: Settings) -> Self {
+        Self {
+            ldap_bind_password_set: value.ldap_bind_password.is_some(),
+            smtp_password_set: value.smtp.password.is_some(),
+            smtp_oauth_client_secret_set: value.smtp.oauth_client_secret.is_some(),
+            smtp_oauth_refresh_token_set: value.smtp.oauth_refresh_token.is_some(),
+            settings: value,
+        }
+    }
+}
+
 /// Get instance settings
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
     path = "/api/v1/settings",
     tag = "settings",
     responses(
-        (status = 200, description = "Instance settings.", body = Settings),
+        (status = 200, description = "Instance settings.", body = SettingsResponse),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to get settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -97,7 +120,10 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
         if settings.main_logo_url.is_empty() {
             settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
         }
-        return Ok(ApiResponse::json(settings, StatusCode::OK));
+        return Ok(ApiResponse::json(
+            SettingsResponse::from(settings),
+            StatusCode::OK,
+        ));
     }
     debug!("Retrieved settings");
     Ok(ApiResponse::default())
@@ -138,6 +164,18 @@ pub(crate) async fn update_settings(
     let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
+    data.smtp.password = data.smtp.password.or(before.smtp.password.clone());
+    data.smtp.oauth_client_secret = data
+        .smtp
+        .oauth_client_secret
+        .or(before.smtp.oauth_client_secret.clone());
+    data.smtp.oauth_refresh_token = data
+        .smtp
+        .oauth_refresh_token
+        .or(before.smtp.oauth_refresh_token.clone());
+    data.ldap_bind_password = data
+        .ldap_bind_password
+        .or(before.ldap_bind_password.clone());
     data.validate()?;
     // clone for event
     let after = data.clone();
@@ -206,7 +244,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
         ("id" = i64, Path, description = "Not used."),
     ),
     responses(
-        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = Settings),
+        (status = 200, description = "Instance settings, with the branding fields restored to defaults.", body = SettingsResponse),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to restore default branding settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -242,7 +280,10 @@ pub(crate) async fn set_default_branding(
                 context,
                 event: Box::new(ApiEventType::SettingsDefaultBrandingRestored),
             })?;
-            Ok(ApiResponse::json(settings, StatusCode::OK))
+            Ok(ApiResponse::json(
+                SettingsResponse::from(settings),
+                StatusCode::OK,
+            ))
         }
         None => Err(WebError::DbError("Cannot restore settings".into())),
     }
@@ -363,6 +404,16 @@ pub async fn patch_settings(
     }
 }
 
+fn fill_ldap_password(settings: &mut Settings) {
+    let stored_settings = Settings::get_current_settings();
+    if settings.ldap_bind_password.is_none()
+        && settings.ldap_url == stored_settings.ldap_url
+        && settings.ldap_bind_username == stored_settings.ldap_bind_username
+    {
+        settings.ldap_bind_password = stored_settings.ldap_bind_password;
+    }
+}
+
 /// Test the LDAP connection using the currently saved settings
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
@@ -417,8 +468,9 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
 pub(crate) async fn test_submitted_ldap_settings(
     _admin: AdminRole,
     _license: LicenseInfo,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult {
+    fill_ldap_password(&mut settings);
     debug!("Testing LDAP connection with provided settings");
     match LDAPConnection::create_with_settings(settings).await {
         Ok(_) => {
@@ -460,8 +512,9 @@ pub(crate) async fn ldap_dry_run(
     _admin: AdminRole,
     _license: LicenseInfo,
     State(appstate): State<AppState>,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult {
+    fill_ldap_password(&mut settings);
     debug!("Performing LDAP dry run with provided settings");
     let authority = if settings.ldap_is_authoritative {
         Authority::LDAP

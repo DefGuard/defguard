@@ -2861,7 +2861,7 @@ async fn test_password_management_disabled_for_oidc_user(
         "https://example.com".to_owned(),
         OpenIdProviderKind::Custom,
         "client-id".to_owned(),
-        "client-secret".to_owned(),
+        "client-secret".to_owned().into(),
         None,
         None,
         None,

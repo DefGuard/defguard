@@ -17,6 +17,12 @@ export const baseExternalProviderConfigSchema = z.object({
   username_handling: z.enum(OpenIdProviderUsernameHandling),
 });
 
+export const editExternalProviderConfigSchema = baseExternalProviderConfigSchema.extend({
+  client_secret: baseExternalProviderConfigSchema.shape.client_secret
+    .nullable()
+    .optional(),
+});
+
 export const baseExternalProviderSyncSchema = z.object({
   directory_sync_interval: z.number().min(60, m.form_error_min({ value: 60 })),
   directory_sync_user_behavior: z.enum(DirectorySyncBehavior),

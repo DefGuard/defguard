@@ -18,6 +18,27 @@ use crate::{
     handlers::{ApiResponse, ApiResult},
 };
 
+// FIXME: temporary fix, stream config should be stored as typed fields instead of JSON.
+#[derive(Serialize)]
+struct ActivityLogStreamResponse {
+    #[serde(flatten)]
+    stream: ActivityLogStream<Id>,
+    password_set: bool,
+}
+
+impl From<ActivityLogStream<Id>> for ActivityLogStreamResponse {
+    fn from(mut stream: ActivityLogStream<Id>) -> Self {
+        let password_set = !stream.config["password"].is_null();
+        if let Some(config) = stream.config.as_object_mut() {
+            config.remove("password");
+        }
+        Self {
+            stream,
+            password_set,
+        }
+    }
+}
+
 /// List activity log streams
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
@@ -51,6 +72,10 @@ pub async fn get_activity_log_stream(
         "User {} retrieved activity log streams",
         session.user.username
     );
+    let streams: Vec<_> = streams
+        .into_iter()
+        .map(ActivityLogStreamResponse::from)
+        .collect();
     Ok(ApiResponse::json(streams, StatusCode::OK))
 }
 
@@ -146,8 +171,12 @@ pub async fn modify_activity_log_stream(
         let before = stream.clone();
         //validate config
         let _ = ActivityLogStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
+        let mut stream_config = data.stream_config;
+        if stream_config["password"].is_null() {
+            stream_config["password"] = stream.config["password"].clone();
+        }
         stream.name = data.name;
-        stream.config = data.stream_config;
+        stream.config = stream_config;
         stream.save(&appstate.pool).await?;
         info!(
             "User {session_username} modified activity log stream {}",

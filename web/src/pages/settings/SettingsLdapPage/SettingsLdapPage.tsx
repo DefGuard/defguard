@@ -101,7 +101,12 @@ const forbiddenEnrollmentTokenAttrs = ['userpassword', 'cn', 'uid', 'sambantpass
 
 const formSchema = z
   .object({
-    ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
+    ldap_bind_password: z
+      .string()
+      .trim()
+      .min(1, m.form_error_required())
+      .nullable()
+      .optional(),
     ldap_bind_username: z.string().trim().min(1, m.form_error_required()),
     ldap_url: z.url(m.form_error_invalid()).min(1, m.form_error_required()),
     ldap_group_member_attr: z.string().trim().min(1, m.form_error_required()),
@@ -185,7 +190,7 @@ const PageForm = () => {
       ldap_url: settings?.ldap_url ?? '',
       ldap_member_attr: settings?.ldap_member_attr ?? '',
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
-      ldap_bind_password: settings?.ldap_bind_password ?? '',
+      ldap_bind_password: settings?.ldap_bind_password_set ? undefined : '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
       ldap_enabled: settings?.ldap_enabled ?? false,
       ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
@@ -278,8 +283,8 @@ const PageForm = () => {
       URL.canParse(v.ldap_url.trim()) &&
       v.ldap_bind_username !== null &&
       v.ldap_bind_username.trim().length > 0 &&
-      v.ldap_bind_password !== null &&
-      v.ldap_bind_password.trim().length > 0 &&
+      (v.ldap_bind_password === undefined ||
+        (v.ldap_bind_password ?? '').trim().length > 0) &&
       v.ldap_username_attr.trim().length > 0 &&
       v.ldap_user_search_base.trim().length > 0 &&
       v.ldap_user_obj_class.trim().length > 0 &&
@@ -391,12 +396,11 @@ const PageForm = () => {
           <EvenSplit>
             <form.AppField name="ldap_bind_password">
               {(field) => (
-                <field.FormInput
+                <field.FormSecretInput
                   label={m.settings_ldap_label_bind_password()}
                   helper={m.settings_ldap_helper_bind_password()}
                   required
-                  notNull
-                  type="password"
+                  stored={settings?.ldap_bind_password_set ?? false}
                 />
               )}
             </form.AppField>

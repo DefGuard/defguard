@@ -1,6 +1,9 @@
 use std::fmt;
 
-use defguard_common::db::{Id, NoId};
+use defguard_common::{
+    db::{Id, NoId},
+    secret::SecretStringWrapper,
+};
 use defguard_proto::client_types::OpenIdProviderKind as ProtoOpenIdProviderKind;
 use model_derive::Model;
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
@@ -112,10 +115,14 @@ pub struct OpenIdProvider<I = NoId> {
     #[model(enum)]
     pub kind: OpenIdProviderKind,
     pub client_id: String,
-    pub client_secret: String,
+    #[model(secret)]
+    #[serde(skip_serializing)]
+    pub client_secret: SecretStringWrapper,
     pub display_name: Option<String>,
     // Specific stuff for Google
-    pub google_service_account_key: Option<String>,
+    #[model(secret)]
+    #[serde(skip_serializing)]
+    pub google_service_account_key: Option<SecretStringWrapper>,
     pub google_service_account_email: Option<String>,
     pub admin_email: Option<String>,
     pub directory_sync_enabled: bool,
@@ -128,13 +135,17 @@ pub struct OpenIdProvider<I = NoId> {
     #[model(enum)]
     pub directory_sync_target: DirectorySyncTarget,
     // Specific stuff for Okta
-    pub okta_private_jwk: Option<String>,
+    #[model(secret)]
+    #[serde(skip_serializing)]
+    pub okta_private_jwk: Option<SecretStringWrapper>,
     // The client ID of the directory sync app specifically
     pub okta_dirsync_client_id: Option<String>,
     #[model(ref)]
     // The groups to sync from the directory, exact match
     pub directory_sync_group_match: Vec<String>,
-    pub jumpcloud_api_key: Option<String>,
+    #[model(secret)]
+    #[serde(skip_serializing)]
+    pub jumpcloud_api_key: Option<SecretStringWrapper>,
     // Fetch all users from directory and create them in Defguard
     // TODO: currently only supported for Microsoft
     pub prefetch_users: bool,
@@ -151,9 +162,9 @@ impl OpenIdProvider {
         base_url: S,
         kind: OpenIdProviderKind,
         client_id: S,
-        client_secret: S,
+        client_secret: SecretStringWrapper,
         display_name: Option<String>,
-        google_service_account_key: Option<String>,
+        google_service_account_key: Option<SecretStringWrapper>,
         google_service_account_email: Option<String>,
         admin_email: Option<String>,
         directory_sync_enabled: bool,
@@ -161,10 +172,10 @@ impl OpenIdProvider {
         directory_sync_user_behavior: DirectorySyncUserBehavior,
         directory_sync_admin_behavior: DirectorySyncUserBehavior,
         directory_sync_target: DirectorySyncTarget,
-        okta_private_jwk: Option<String>,
+        okta_private_jwk: Option<SecretStringWrapper>,
         okta_dirsync_client_id: Option<String>,
         directory_sync_group_match: Vec<String>,
-        jumpcloud_api_key: Option<String>,
+        jumpcloud_api_key: Option<SecretStringWrapper>,
         prefetch_users: bool,
         disable_password_management: bool,
         directory_sync_user_groups: Option<Vec<String>>,
@@ -175,7 +186,7 @@ impl OpenIdProvider {
             base_url: base_url.into(),
             kind,
             client_id: client_id.into(),
-            client_secret: client_secret.into(),
+            client_secret,
             display_name,
             google_service_account_key,
             google_service_account_email,
@@ -212,9 +223,9 @@ impl OpenIdProvider {
                 self.base_url,
                 self.kind as OpenIdProviderKind,
                 self.client_id,
-                self.client_secret,
+                self.client_secret as SecretStringWrapper,
                 self.display_name,
-                self.google_service_account_key,
+                self.google_service_account_key as Option<SecretStringWrapper>,
                 self.google_service_account_email,
                 self.admin_email,
                 self.directory_sync_enabled,
@@ -222,10 +233,10 @@ impl OpenIdProvider {
                 self.directory_sync_user_behavior as DirectorySyncUserBehavior,
                 self.directory_sync_admin_behavior as DirectorySyncUserBehavior,
                 self.directory_sync_target as DirectorySyncTarget,
-                self.okta_private_jwk,
+                self.okta_private_jwk as Option<SecretStringWrapper>,
                 self.okta_dirsync_client_id,
                 &self.directory_sync_group_match,
-                self.jumpcloud_api_key,
+                self.jumpcloud_api_key as Option<SecretStringWrapper>,
                 self.prefetch_users,
                 self.disable_password_management,
                 self.directory_sync_user_groups.as_deref(),
@@ -249,11 +260,12 @@ impl OpenIdProvider<Id> {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
-            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled,
+            google_service_account_key \"google_service_account_key?: _\", google_service_account_email, admin_email, directory_sync_enabled,
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            okta_private_jwk \"okta_private_jwk?: _\", okta_dirsync_client_id, directory_sync_group_match, \
+            jumpcloud_api_key \"jumpcloud_api_key?: _\", prefetch_users, \
             disable_password_management, \
             directory_sync_user_groups \
             FROM openidprovider WHERE name = $1",
@@ -270,11 +282,12 @@ impl OpenIdProvider<Id> {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
-            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \
+            google_service_account_key \"google_service_account_key?: _\", google_service_account_email, admin_email, directory_sync_enabled, \
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users, \
+            okta_private_jwk \"okta_private_jwk?: _\", okta_dirsync_client_id, directory_sync_group_match, \
+            jumpcloud_api_key \"jumpcloud_api_key?: _\", prefetch_users, \
             disable_password_management, \
             directory_sync_user_groups \
             FROM openidprovider LIMIT 1"

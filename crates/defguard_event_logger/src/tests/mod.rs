@@ -331,7 +331,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         base_url: "http://x".into(),
         kind: OpenIdProviderKind::Google,
         client_id: "c".into(),
-        client_secret: "s".into(),
+        client_secret: "s".to_owned().into(),
         display_name: None,
         google_service_account_key: None,
         google_service_account_email: None,

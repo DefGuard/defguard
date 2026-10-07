@@ -18,7 +18,7 @@ import {
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
-  baseExternalProviderConfigSchema,
+  editExternalProviderConfigSchema,
   jumpcloudProviderSyncSchema,
 } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
@@ -29,9 +29,13 @@ const basicSchema = z
     directory_sync_user_groups: z.string().trim().nullable(),
     jumpcloud_region: z.enum(['us', 'eu', 'in']),
   })
-  .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
+  .extend(omit(editExternalProviderConfigSchema.shape, ['base_url']));
 
-const syncSchema = basicSchema.extend(jumpcloudProviderSyncSchema.shape);
+const syncSchema = basicSchema.extend(jumpcloudProviderSyncSchema.shape).extend({
+  jumpcloud_api_key: jumpcloudProviderSyncSchema.shape.jumpcloud_api_key
+    .nullable()
+    .optional(),
+});
 
 const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   basicSchema,
@@ -40,9 +44,13 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
 
 const validationSchema = syncSchema
   .omit({ jumpcloud_api_key: true })
-  .extend({ jumpcloud_api_key: z.string() })
+  .extend({ jumpcloud_api_key: z.string().nullable().optional() })
   .superRefine((val, ctx) => {
-    if (val.directory_sync_enabled && val.jumpcloud_api_key.trim().length === 0) {
+    if (
+      val.directory_sync_enabled &&
+      val.jumpcloud_api_key !== undefined &&
+      !val.jumpcloud_api_key?.trim()
+    ) {
       ctx.addIssue({
         path: ['jumpcloud_api_key'],
         code: 'custom',
@@ -61,7 +69,7 @@ export const EditJumpCloudProviderForm = ({
   const defaultValues = useMemo((): FormFields => {
     return {
       client_id: provider.client_id,
-      client_secret: provider.client_secret,
+      client_secret: provider.client_secret_set ? undefined : '',
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -71,7 +79,7 @@ export const EditJumpCloudProviderForm = ({
       directory_sync_target: provider.directory_sync_target,
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
-      jumpcloud_api_key: provider.jumpcloud_api_key ?? '',
+      jumpcloud_api_key: provider.jumpcloud_api_key_set ? undefined : '',
       jumpcloud_region: detectJumpcloudRegion(provider.base_url),
       directory_sync_user_groups: joinCsv(
         toCsvArray(provider.directory_sync_user_groups),
@@ -127,9 +135,9 @@ export const EditJumpCloudProviderForm = ({
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput
-                type="password"
+              <field.FormSecretInput
                 required
+                stored={provider.client_secret_set ?? false}
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
               />
@@ -231,9 +239,9 @@ export const EditJumpCloudProviderForm = ({
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="jumpcloud_api_key">
                   {(field) => (
-                    <field.FormInput
-                      type="password"
+                    <field.FormSecretInput
                       required
+                      stored={provider.jumpcloud_api_key_set ?? false}
                       label={m.settings_openid_provider_label_jumpcloud_api_key()}
                       helper={m.settings_openid_provider_helper_jumpcloud_api_key()}
                     />

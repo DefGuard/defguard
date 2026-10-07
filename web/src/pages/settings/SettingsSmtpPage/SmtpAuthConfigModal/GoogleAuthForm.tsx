@@ -30,7 +30,10 @@ const schema = z.object({
     .min(1, m.form_error_required())
     .regex(patternValidEmail, m.form_error_email()),
   smtp_oauth_client_id: z.string().trim().nullable(),
-  smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_oauth_client_secret: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required()),
   smtp_tls_verify_cert: z.boolean(),
 });
 
@@ -42,7 +45,7 @@ export const GoogleAuthForm = ({ initialValues, onApply, onClose }: FormProps) =
     defaultValues: {
       smtp_sender: initialValues.smtp_sender,
       smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
-      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret ?? null,
       smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
     },
     validationLogic: formChangeLogic,

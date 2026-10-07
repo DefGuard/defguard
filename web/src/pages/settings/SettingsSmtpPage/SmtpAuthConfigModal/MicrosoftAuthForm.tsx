@@ -24,19 +24,23 @@ const schema = z.object({
     .regex(patternValidEmail, m.form_error_email()),
   smtp_oauth_tenant_id: z.string().trim().nullable(),
   smtp_oauth_client_id: z.string().trim().nullable(),
-  smtp_oauth_client_secret: z.string().trim().nullable(),
+  smtp_oauth_client_secret: z.string().trim().nullable().optional(),
   smtp_tls_verify_cert: z.boolean(),
 });
 
+type FormFields = z.infer<typeof schema>;
+
 export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps) => {
+  const defaultValues: FormFields = {
+    smtp_sender: initialValues.smtp_sender,
+    smtp_oauth_tenant_id: initialValues.smtp_oauth_tenant_id,
+    smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
+    smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
+    smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
+  };
+
   const form = useAppForm({
-    defaultValues: {
-      smtp_sender: initialValues.smtp_sender,
-      smtp_oauth_tenant_id: initialValues.smtp_oauth_tenant_id,
-      smtp_oauth_client_id: initialValues.smtp_oauth_client_id,
-      smtp_oauth_client_secret: initialValues.smtp_oauth_client_secret,
-      smtp_tls_verify_cert: initialValues.smtp_tls_verify_cert,
-    },
+    defaultValues,
     validationLogic: formChangeLogic,
     validators: { onSubmit: schema, onChange: schema },
     onSubmit: async ({ value }) => {
@@ -99,11 +103,11 @@ export const MicrosoftAuthForm = ({ initialValues, onApply, onClose }: FormProps
           </form.AppField>
           <form.AppField name="smtp_oauth_client_secret">
             {(field) => (
-              <field.FormInput
+              <field.FormSecretInput
                 required
+                stored={initialValues.smtp_oauth_client_secret_set}
                 label={m.settings_smtp_label_oauth_client_secret()}
                 helper={m.settings_smtp_helper_oauth_client_secret()}
-                type="password"
               />
             )}
           </form.AppField>

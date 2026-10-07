@@ -124,7 +124,7 @@ const formSchema = z.object({
           ),
     ),
   smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-  smtp_password: z.string().trim().nullable(),
+  smtp_password: z.string().trim().nullable().optional(),
   smtp_user: z.string().trim().nullable(),
   smtp_sender: z
     .string()
@@ -135,8 +135,8 @@ const formSchema = z.object({
   smtp_authentication: z.enum(SmtpAuthentication),
   smtp_oauth_issuer_url: z.string().trim().nullable(),
   smtp_oauth_client_id: z.string().trim().nullable(),
-  smtp_oauth_client_secret: z.string().trim().nullable(),
-  smtp_oauth_refresh_token: z.string().trim().nullable(),
+  smtp_oauth_client_secret: z.string().trim().nullable().optional(),
+  smtp_oauth_refresh_token: z.string().trim().nullable().optional(),
   smtp_oauth_tenant_id: z.string().trim().nullable(),
   smtp_tls_verify_cert: z.boolean(),
 });
@@ -175,9 +175,11 @@ const Content = ({
     smtp_tls_verify_cert: true,
     smtp_user: null,
     smtp_password: null,
+    smtp_password_set: false,
     smtp_oauth_issuer_url: null,
     smtp_oauth_client_id: null,
     smtp_oauth_client_secret: null,
+    smtp_oauth_client_secret_set: false,
     smtp_oauth_refresh_token: null,
     smtp_oauth_tenant_id: null,
   });
@@ -185,7 +187,7 @@ const Content = ({
   const defaultValues = useMemo(
     (): FormFields => ({
       smtp_encryption: settings.smtp_encryption,
-      smtp_password: settings.smtp_password ?? null,
+      smtp_password: undefined,
       smtp_port: settings.smtp_port ?? 587,
       smtp_sender: settings.smtp_sender ?? '',
       smtp_server: settings.smtp_server ?? '',
@@ -193,8 +195,8 @@ const Content = ({
       smtp_authentication: settings.smtp_authentication,
       smtp_oauth_issuer_url: settings.smtp_oauth_issuer_url ?? null,
       smtp_oauth_client_id: settings.smtp_oauth_client_id ?? null,
-      smtp_oauth_client_secret: settings.smtp_oauth_client_secret ?? null,
-      smtp_oauth_refresh_token: settings.smtp_oauth_refresh_token ?? null,
+      smtp_oauth_client_secret: undefined,
+      smtp_oauth_refresh_token: undefined,
       smtp_oauth_tenant_id: settings.smtp_oauth_tenant_id ?? null,
       smtp_tls_verify_cert: settings.smtp_tls_verify_cert,
     }),
@@ -237,9 +239,11 @@ const Content = ({
       smtp_tls_verify_cert: form.state.values.smtp_tls_verify_cert,
       smtp_user: form.state.values.smtp_user,
       smtp_password: form.state.values.smtp_password,
+      smtp_password_set: settings.smtp_password_set ?? false,
       smtp_oauth_issuer_url: form.state.values.smtp_oauth_issuer_url,
       smtp_oauth_client_id: form.state.values.smtp_oauth_client_id,
       smtp_oauth_client_secret: form.state.values.smtp_oauth_client_secret,
+      smtp_oauth_client_secret_set: settings.smtp_oauth_client_secret_set ?? false,
       smtp_oauth_refresh_token: form.state.values.smtp_oauth_refresh_token,
       smtp_oauth_tenant_id: form.state.values.smtp_oauth_tenant_id,
     };

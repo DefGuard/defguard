@@ -1,4 +1,5 @@
 import { createFormHook } from '@tanstack/react-form';
+import { FormSecretInput } from './components/FormSecretInput/FormSecretInput';
 import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMultiple';
 import { FormUploadField } from './components/FormUploadField/FormUploadField';
 import { FormCheckbox } from './defguard-ui/components/form/FormCheckbox/FormCheckbox';
@@ -34,6 +35,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
     FormCheckboxGroup,
     FormDateInput,
     FormMultiSelect,
+    FormSecretInput,
   },
   formComponents: {
     FormSubmitButton,
