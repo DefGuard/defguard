@@ -89,21 +89,28 @@ export const clientMfaStart = (
   api: APIRequestContext,
   device: ClientDevice,
 ): Promise<APIResponse> =>
-  api.post(proxyUrl('/client-mfa/start'), {
-    data: {
-      location_id: device.locationId,
-      pubkey: device.pubkey,
-      method: device.method,
-      selected_methods: device.protocol === 'legacy' ? [] : [device.method],
-    },
-  });
+  device.protocol === 'legacy'
+    ? api.post(proxyUrl('/client-mfa/start'), {
+        data: {
+          location_id: device.locationId,
+          pubkey: device.pubkey,
+          method: device.method,
+        },
+      })
+    : api.post(proxyUrl('/mfa-flow/start'), {
+        data: {
+          location_id: device.locationId,
+          pubkey: device.pubkey,
+          selected_methods: [device.method],
+        },
+      });
 
 export const clientMfaStepStart = (
   api: APIRequestContext,
   token: string,
   method: MfaMethod,
 ): Promise<APIResponse> =>
-  api.post(proxyUrl('/client-mfa/step-start'), { data: { token, method } });
+  api.post(proxyUrl('/mfa-flow/step-start'), { data: { token, method } });
 
 export const clientMfaConnect = async (
   api: APIRequestContext,
@@ -111,14 +118,14 @@ export const clientMfaConnect = async (
 ): Promise<MfaAttempt> => {
   const start = await clientMfaStart(api, device);
   expect(start.status()).toBe(200);
-  const { token } = await start.json();
-  expect(token).toBeTruthy();
+  const body = await start.json();
   if (device.protocol === 'legacy') {
-    return { token };
+    expect(body.token).toBeTruthy();
+    return { token: body.token };
   }
-  const step = await clientMfaStepStart(api, token, device.method);
-  expect(step.status()).toBe(200);
-  return { token, stepAttemptId: (await step.json()).step_attempt_id };
+  const accepted = body.outcome?.Accepted;
+  expect(accepted?.token).toBeTruthy();
+  return { token: accepted.token, stepAttemptId: accepted.first_step.step_attempt_id };
 };
 
 export const clientMfaFinish = (
@@ -126,6 +133,20 @@ export const clientMfaFinish = (
   attempt: MfaAttempt,
   code: string,
 ): Promise<APIResponse> =>
-  api.post(proxyUrl('/client-mfa/finish'), {
-    data: { token: attempt.token, code, step_attempt_id: attempt.stepAttemptId },
-  });
+  attempt.stepAttemptId === undefined
+    ? api.post(proxyUrl('/client-mfa/finish'), { data: { token: attempt.token, code } })
+    : api.post(proxyUrl('/mfa-flow/step-finish'), {
+        data: {
+          token: attempt.token,
+          step_attempt_id: attempt.stepAttemptId,
+          submission: { Code: { code } },
+        },
+      });
+
+// A multi-step client gets the key inside the completed step result.
+export const presharedKey = async (
+  response: APIResponse,
+): Promise<string | undefined> => {
+  const body = await response.json();
+  return body.preshared_key ?? body.result?.outcome?.Completed?.preshared_key;
+};

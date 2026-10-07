@@ -20,6 +20,7 @@ import {
   clientMfaStepStart,
   ClientProtocol,
   MfaMethod,
+  presharedKey,
   waitForProxy,
 } from '../utils/api/clientMfa';
 import { apiLogin } from '../utils/api/users';
@@ -52,7 +53,7 @@ const expectPreconditionError = async (response: APIResponse, message: string) =
 
 const expectConnected = async (response: APIResponse) => {
   expect(response.status()).toBe(200);
-  expect((await response.json()).preshared_key).toBeTruthy();
+  expect(await presharedKey(response)).toBeTruthy();
 };
 
 const countActivityEvents = async (
@@ -266,9 +267,12 @@ test.describe('Rate limiting', () => {
       method: MfaMethod.TOTP,
     }));
 
+    // The flow start initiates the first step, so it uses one request of the limit.
     let attempt = await clientMfaConnect(request, first);
-    for (let i = 1; i < VPN_INITIATE_LIMIT / 2; i++) {
-      attempt = await clientMfaConnect(request, first);
+    for (let i = 1; i < VPN_INITIATE_LIMIT; i++) {
+      expect(
+        (await clientMfaStepStart(request, attempt.token, first.method)).status(),
+      ).toBe(200);
     }
 
     await expectPreconditionError(
