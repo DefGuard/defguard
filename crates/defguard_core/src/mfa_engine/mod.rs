@@ -52,7 +52,7 @@ pub mod method;
 pub mod multi_step;
 pub mod types;
 
-/// Only a TOTP or email code can be guessed, so only those proofs are throttled.
+/// Whether this method uses the device/location code-attempt throttle.
 fn is_code_method(method: VpnClientMfaMethod) -> bool {
     matches!(method, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email)
 }
@@ -281,7 +281,7 @@ impl MfaEngine {
                 FinishCoreError::Internal
             })?
         else {
-            error!("Client login session not found");
+            debug!("Client login session not found");
             return Err(FinishCoreError::SessionNotFound);
         };
 
@@ -295,7 +295,7 @@ impl MfaEngine {
         };
 
         let Some(ephemeral_state) = session.ephemeral_state.as_ref() else {
-            error!("No MFA attempt in progress");
+            debug!("No MFA attempt in progress");
             return Err(FinishCoreError::UninitializedStep);
         };
 

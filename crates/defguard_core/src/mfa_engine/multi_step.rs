@@ -69,6 +69,15 @@ pub struct MobileApprovalProof {
     pub step_attempt_id: String,
 }
 
+/// Returned only for a signature valid against the current `MobileApprove` attempt.
+#[derive(Debug, Eq, PartialEq)]
+pub struct VerifiedLegacyMobileProof {
+    pub step_attempt_id: String,
+    pub username: String,
+    pub device_id: Id,
+    pub location_name: String,
+}
+
 /// Error surfaced by [`MfaEngine::step_start`].
 #[derive(Debug, Error)]
 pub enum StepError {
@@ -549,6 +558,88 @@ impl MfaEngine {
         )
         .await
         .map_err(map_step_finish_core_error)
+    }
+
+    /// The legacy finish request has no attempt ID, so this checks the current attempt in a
+    /// `MultiStep` session. Verify the registered phone's signature before returning the attempt
+    /// ID so token possession alone cannot reject the session or wake the desktop. This never
+    /// marks approval or changes the session's failure count. Failed signatures use a token-scoped
+    /// throttle so invalid proofs stay opaque without allowing unlimited guesses.
+    pub async fn check_legacy_mobile_proof(
+        &self,
+        token: &str,
+        signature: &str,
+        auth_pub_key: &str,
+    ) -> Result<Option<VerifiedLegacyMobileProof>, StepFinishError> {
+        if signature.is_empty() || auth_pub_key.is_empty() {
+            return Ok(None);
+        }
+
+        let Some(session) = self
+            .find_active_session_for_flow(token, VpnMfaFlowKind::MultiStep)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                StepFinishError::Internal
+            })?
+        else {
+            return Ok(None);
+        };
+        let Some(ephemeral) = session.ephemeral_state.as_ref().map(|state| &state.0) else {
+            return Ok(None);
+        };
+        if ephemeral.selected_method != VpnClientMfaMethod::MobileApprove
+            || ephemeral.biometric_challenge.is_none()
+        {
+            return Ok(None);
+        }
+
+        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            StepFinishError::Internal
+        })?
+        else {
+            return Ok(None);
+        };
+
+        let legacy_proof_key = format!("legacy-mobile:{}", session.token_hash);
+        if !ThrottleScope::VpnMfaCode
+            .hit(&self.pool, &legacy_proof_key)
+            .await
+            .map_err(|err| {
+                error!("Failed to charge a legacy mobile proof attempt: {err}");
+                StepFinishError::Internal
+            })?
+        {
+            debug!(
+                "Throttled a legacy mobile proof for MFA session {}",
+                session.id
+            );
+            return Ok(None);
+        }
+
+        let verdict = verify_mobile_signature(&self.pool, &ctx, ephemeral, signature, auth_pub_key)
+            .await
+            .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?;
+        if !matches!(&verdict, Verdict::Failed { .. }) {
+            ThrottleScope::VpnMfaCode
+                .refund(&self.pool, &legacy_proof_key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to refund a legacy mobile proof attempt: {err}");
+                    StepFinishError::Internal
+                })?;
+        }
+
+        match verdict {
+            Verdict::Proved => Ok(Some(VerifiedLegacyMobileProof {
+                step_attempt_id: ephemeral.step_attempt_id.clone(),
+                username: ctx.user.username.clone(),
+                device_id: ctx.device.id,
+                location_name: ctx.location.name.clone(),
+            })),
+            Verdict::Failed { .. } | Verdict::NotYet => Ok(None),
+        }
     }
 
     /// Verify and durably mark a mobile approval without advancing or authorizing the flow.

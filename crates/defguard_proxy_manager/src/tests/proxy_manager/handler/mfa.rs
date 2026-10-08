@@ -4,12 +4,16 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            vpn_client_mfa_session::VpnClientMfaSession, vpn_client_session::VpnClientSession,
+            ThrottleScope, vpn_client_mfa_session::VpnClientMfaSession,
+            vpn_client_session::VpnClientSession,
         },
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
+use defguard_core::{
+    events::{BidiStreamEventType, DesktopClientMfaEvent},
+    grpc::proxy::client_mfa::LEGACY_MOBILE_CLIENT_MESSAGE,
+};
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaStartRequest, MfaBiometricSignature, MfaCodeCredential,
@@ -36,7 +40,6 @@ use super::support::{
 use crate::tests::common::{CORE_RESPONSE_TIMEOUT, HandlerTestContext, RECEIVE_TIMEOUT};
 
 const WRONG_REQUEST_ID: u64 = 9991;
-
 async fn send_flow_start(
     context: &mut HandlerTestContext,
     id: u64,
@@ -58,6 +61,44 @@ async fn send_flow_start(
         })),
     });
     context.mock_proxy_mut().recv_outbound().await
+}
+
+async fn assert_unknown_token_response_matches(
+    context: &mut HandlerTestContext,
+    request_id: u64,
+    expected_response: &CoreResponse,
+) {
+    let (expected_code, expected_message) = assert_error_response_details(expected_response);
+    context.mock_proxy().send_request(CoreRequest {
+        id: request_id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: "unknown-mfa-token".to_owned(),
+                code: None,
+                auth_pub_key: None,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, request_id);
+    let (code, message) = assert_error_response_details(&response);
+    assert_eq!(code, expected_code);
+    assert_eq!(message, expected_message);
+}
+
+async fn assert_no_active_vpn_session(context: &HandlerTestContext, network_id: Id, device_id: Id) {
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network_id,
+            device_id
+        )
+        .await
+        .expect("VPN session lookup must succeed")
+        .is_empty(),
+        "legacy mobile proof must not authorize a VPN session"
+    );
 }
 
 fn accepted_flow_start(response: CoreResponse) -> (String, String, Option<String>) {
@@ -575,7 +616,7 @@ async fn test_mfa_flow_approve_dispatches_empty_response(
 }
 
 #[sqlx::test]
-async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
+async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -609,7 +650,7 @@ async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
             token: token.clone(),
-            step_attempt_id,
+            step_attempt_id: step_attempt_id.clone(),
         })),
     });
     context.mock_proxy().send_request(CoreRequest {
@@ -619,7 +660,7 @@ async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
             ClientMfaFinishRequest {
                 token: token.clone(),
                 code: Some(sign_challenge(&signing_key, &challenge)),
-                auth_pub_key: Some(auth_pub_key),
+                auth_pub_key: Some(auth_pub_key.clone()),
             },
         )),
     });
@@ -644,21 +685,59 @@ async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
     assert_eq!(remote.id, 2);
     assert_eq!(phone.id, 3);
 
-    if !matches!(
-        &remote.payload,
-        Some(core_response::Payload::MfaFlowRemote(_))
-    ) {
-        let (code, message) = assert_error_response_details(&remote);
-        panic!("MfaFlowRemote failed with {code}: {message}");
-    }
-    let Some(core_response::Payload::MfaFlowRemote(remote)) = remote.payload else {
-        panic!("expected MfaFlowRemote response");
-    };
-    let Some(result) = remote.result else {
-        panic!("remote response must include an MFA result");
-    };
-    let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
-        panic!("remote response must complete the flow");
+    let (remote_code, remote_message) = assert_error_response_details(&remote);
+    let (phone_code, phone_message) = assert_error_response_details(&phone);
+    assert_eq!(remote_code, Code::FailedPrecondition);
+    assert_eq!(remote_message, LEGACY_MOBILE_CLIENT_MESSAGE);
+    assert_eq!(phone_code, Code::FailedPrecondition);
+    assert_eq!(phone_message, LEGACY_MOBILE_CLIENT_MESSAGE);
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("MFA session lookup must succeed")
+        .expect("gated MFA session must remain active");
+    assert_eq!(session.failed_attempts, 0);
+    let attempt = session
+        .ephemeral_state
+        .expect("mobile attempt must remain active")
+        .0;
+    assert_eq!(attempt.step_attempt_id, step_attempt_id);
+    assert!(!attempt.mobile_approved);
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
+    assert!(gateway_rx.try_recv().is_err());
+    assert!(context.bidi_events_rx.try_recv().is_err());
+
+    let signature = sign_challenge(&signing_key, &challenge);
+    let approval = send_flow_approve(
+        &mut context,
+        &token,
+        &step_attempt_id,
+        &signature,
+        &auth_pub_key,
+    )
+    .await;
+    assert!(matches!(
+        approval.payload,
+        Some(core_response::Payload::Empty(()))
+    ));
+    context.mock_proxy().send_request(CoreRequest {
+        id: 4,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::MfaFlowRemote(MfaFlowRemoteRequest {
+            token: token.clone(),
+            step_attempt_id,
+        })),
+    });
+    let resumed = timeout(
+        CORE_RESPONSE_TIMEOUT,
+        context.mock_proxy_mut().recv_outbound(),
+    )
+    .await
+    .expect("timed out waiting for 2.2 remote MFA completion");
+    assert_eq!(resumed.id, 4);
+    let Some(mfa_step_result::Outcome::Completed(completed)) = flow_remote_result(resumed).outcome
+    else {
+        panic!("2.2 mobile approval must complete the flow");
     };
     assert!(!completed.preshared_key.is_empty());
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
@@ -666,22 +745,79 @@ async fn test_legacy_mfa_finish_approves_multi_step_mobile_approve(
         session.preshared_key.as_ref(),
         Some(&completed.preshared_key)
     );
-    match timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
-        .await
-        .expect("timed out waiting for gateway authorization")
-        .expect("gateway command channel closed")
-    {
-        GatewayCommand::VpnSessionAuthorized(location_id, _, _) => {
-            assert_eq!(location_id, network.id)
-        }
-        other => panic!("unexpected gateway command: {other:?}"),
-    }
+    assert!(matches!(
+        timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
+        Ok(Ok(GatewayCommand::VpnSessionAuthorized(location_id, _, _))) if location_id == network.id
+    ));
 
-    let Some(core_response::Payload::ClientMfaFinish(phone)) = phone.payload else {
-        panic!("expected legacy ClientMfaFinish response");
-    };
-    assert_eq!(phone.token.as_deref(), Some(token.as_str()));
-    assert!(phone.preshared_key.is_empty());
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_legacy_mfa_finish_rejects_valid_proof_without_waiter_on_two_step_flow(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_multi_step_mfa_network_with_steps(
+        &context.pool,
+        vec![
+            vec![MfaMethod::MobileApprove.into()],
+            vec![MfaMethod::Totp.into()],
+        ],
+    )
+    .await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let signing_key = register_biometric_key(&context.pool, device.id).await;
+    let auth_pub_key = biometric_pub_key(&signing_key);
+    let (token, step_attempt_id, challenge) = accepted_flow_start(
+        send_flow_start(
+            &mut context,
+            1,
+            network.id,
+            &device.wireguard_pubkey,
+            &[MfaMethod::MobileApprove, MfaMethod::Totp],
+        )
+        .await,
+    );
+    let challenge = challenge.expect("mobile approval must include a signature challenge");
+    let mut gateway_rx = context.gateway_tx.subscribe();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some(sign_challenge(&signing_key, &challenge)),
+                auth_pub_key: Some(auth_pub_key),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 2);
+    let (code, message) = assert_error_response_details(&response);
+    assert_eq!(code, Code::FailedPrecondition);
+    assert_eq!(message, LEGACY_MOBILE_CLIENT_MESSAGE);
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("MFA session lookup must succeed")
+        .expect("gated MFA session must remain active");
+    assert_eq!(session.failed_attempts, 0);
+    let attempt = session
+        .ephemeral_state
+        .expect("mobile attempt must remain active")
+        .0;
+    assert_eq!(attempt.step_attempt_id, step_attempt_id);
+    assert!(!attempt.mobile_approved);
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
+    assert!(gateway_rx.try_recv().is_err());
+    assert!(context.bidi_events_rx.try_recv().is_err());
 
     context.finish().await.expect_server_finished().await;
 }
@@ -775,18 +911,20 @@ async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
     let started = response
         .started
         .expect("step start must return the attempt");
-    assert_ne!(started.step_attempt_id, first_attempt_id);
+    let current_attempt_id = started.step_attempt_id.clone();
+    assert_ne!(current_attempt_id, first_attempt_id);
     let Some(mfa_step_started::Challenge::Signature(current_challenge)) = started.challenge else {
         panic!("second MobileApprove attempt must include a signature challenge");
     };
     assert_ne!(current_challenge.challenge, first_challenge);
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 5,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
-                token,
+                token: token.clone(),
                 code: Some(sign_challenge(&signing_key, &first_challenge)),
                 auth_pub_key: Some(auth_pub_key),
             },
@@ -794,8 +932,25 @@ async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let (code, message) = assert_error_response_details(&response);
-    assert_eq!(code, Code::Unauthenticated);
-    assert_eq!(message, "unauthorized");
+    assert_eq!(response.id, 5);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "login session not found");
+
+    assert_unknown_token_response_matches(&mut context, 6, &response).await;
+
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
+        .await
+        .expect("MFA session lookup must succeed")
+        .expect("stale proof must leave the session active");
+    assert_eq!(session.failed_attempts, 0);
+    let current = session
+        .ephemeral_state
+        .expect("current mobile attempt must remain active")
+        .0;
+    assert_eq!(current.step_attempt_id, current_attempt_id);
+    assert!(!current.mobile_approved);
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
+    assert!(gateway_rx.try_recv().is_err());
 
     context.finish().await.expect_server_finished().await;
 }
@@ -865,7 +1020,7 @@ async fn test_legacy_mfa_finish_hides_non_mobile_multi_step_session(
 }
 
 #[sqlx::test]
-async fn test_legacy_mfa_finish_accounts_bad_mobile_signature(
+async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -881,7 +1036,7 @@ async fn test_legacy_mfa_finish_accounts_bad_mobile_signature(
     let (_user, device) = create_user_with_device(&context.pool).await;
     let signing_key = register_biometric_key(&context.pool, device.id).await;
     let auth_pub_key = biometric_pub_key(&signing_key);
-    let (token, _, challenge) = accepted_flow_start(
+    let (token, step_attempt_id, challenge) = accepted_flow_start(
         send_flow_start(
             &mut context,
             1,
@@ -892,6 +1047,9 @@ async fn test_legacy_mfa_finish_accounts_bad_mobile_signature(
         .await,
     );
     let challenge = challenge.expect("MobileApprove must include a challenge");
+    let invalid_signature =
+        sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
+    let mut gateway_rx = context.gateway_tx.subscribe();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
@@ -899,24 +1057,56 @@ async fn test_legacy_mfa_finish_accounts_bad_mobile_signature(
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
                 token: token.clone(),
-                code: Some(sign_challenge(
-                    &signing_key,
-                    &format!("{challenge} is not the challenge"),
-                )),
-                auth_pub_key: Some(auth_pub_key),
+                code: Some(invalid_signature.clone()),
+                auth_pub_key: Some(auth_pub_key.clone()),
             },
         )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let (code, message) = assert_error_response_details(&response);
-    assert_eq!(code, Code::Unauthenticated);
-    assert_eq!(message, "unauthorized");
+    assert_eq!(response.id, 2);
+    assert_eq!(code, Code::InvalidArgument);
+    assert_eq!(message, "login session not found");
+
+    assert_unknown_token_response_matches(&mut context, 3, &response).await;
+
+    let limit = u64::try_from(ThrottleScope::VpnMfaCode.limit())
+        .expect("MFA code throttle limit must be positive");
+    let last_request_id = 3 + limit;
+    let mut last_response = response;
+    for request_id in 4..=last_request_id {
+        context.mock_proxy().send_request(CoreRequest {
+            id: request_id,
+            device_info: Some(make_device_info()),
+            payload: Some(core_request::Payload::ClientMfaFinish(
+                ClientMfaFinishRequest {
+                    token: token.clone(),
+                    code: Some(invalid_signature.clone()),
+                    auth_pub_key: Some(auth_pub_key.clone()),
+                },
+            )),
+        });
+        last_response = context.mock_proxy_mut().recv_outbound().await;
+        let (retry_code, retry_message) = assert_error_response_details(&last_response);
+        assert_eq!(retry_code, Code::InvalidArgument);
+        assert_eq!(retry_message, "login session not found");
+    }
+    assert_unknown_token_response_matches(&mut context, last_request_id + 1, &last_response).await;
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
         .await
         .expect("MFA session lookup must succeed")
-        .expect("failed signature must leave the session active");
-    assert_eq!(session.failed_attempts, 1);
+        .expect("bad signature must leave the session active");
+    assert_eq!(session.failed_attempts, 0);
+    let attempt = session
+        .ephemeral_state
+        .expect("mobile attempt must remain active")
+        .0;
+    assert_eq!(attempt.step_attempt_id, step_attempt_id);
+    assert!(!attempt.mobile_approved);
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
+    assert!(gateway_rx.try_recv().is_err());
+    assert!(context.bidi_events_rx.try_recv().is_err());
 
     context.finish().await.expect_server_finished().await;
 }
