@@ -69,6 +69,14 @@ pub struct MobileApprovalProof {
     pub step_attempt_id: String,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct VerifiedLegacyMobileProof {
+    pub step_attempt_id: String,
+    pub username: String,
+    pub device_id: Id,
+    pub location_name: String,
+}
+
 /// Error surfaced by [`MfaEngine::step_start`].
 #[derive(Debug, Error)]
 pub enum StepError {
@@ -560,7 +568,7 @@ impl MfaEngine {
         token: &str,
         signature: &str,
         auth_pub_key: &str,
-    ) -> Result<Option<String>, StepFinishError> {
+    ) -> Result<Option<VerifiedLegacyMobileProof>, StepFinishError> {
         if signature.is_empty() || auth_pub_key.is_empty() {
             return Ok(None);
         }
@@ -596,7 +604,12 @@ impl MfaEngine {
             .await
             .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?
         {
-            Verdict::Proved => Ok(Some(ephemeral.step_attempt_id.clone())),
+            Verdict::Proved => Ok(Some(VerifiedLegacyMobileProof {
+                step_attempt_id: ephemeral.step_attempt_id.clone(),
+                username: ctx.user.username.clone(),
+                device_id: ctx.device.id,
+                location_name: ctx.location.name.clone(),
+            })),
             Verdict::Failed { .. } | Verdict::NotYet => Ok(None),
         }
     }

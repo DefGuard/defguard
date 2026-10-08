@@ -343,12 +343,15 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
     let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
     let signature =
         BASE64_STANDARD.encode(signing_key.sign(challenge.challenge.as_bytes()).to_bytes());
-    let checked_attempt_id = engine
+    let checked_proof = engine
         .check_legacy_mobile_proof(&outcome.token, &signature, &auth_pub_key)
         .await
         .expect("valid proof check should succeed")
         .expect("valid mobile proof should return the current attempt");
-    assert_eq!(checked_attempt_id, outcome.step_attempt_id);
+    assert_eq!(checked_proof.step_attempt_id, outcome.step_attempt_id);
+    assert_eq!(checked_proof.username, user.username);
+    assert_eq!(checked_proof.device_id, device.id);
+    assert_eq!(checked_proof.location_name, location.name);
 
     let unmarked = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
         .await
