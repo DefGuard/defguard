@@ -561,9 +561,10 @@ impl MfaEngine {
     }
 
     /// The legacy finish request has no attempt ID, so this checks the current attempt in a
-    /// `MultiStep` session. Verify the registered phone's signature before
-    /// returning the attempt ID so token possession alone cannot reject the session or wake the
-    /// desktop. This never marks approval or records a failure.
+    /// `MultiStep` session. Verify the registered phone's signature before returning the attempt
+    /// ID so token possession alone cannot reject the session or wake the desktop. This never
+    /// marks approval or changes the session's failure count. Failed signatures use a token-scoped
+    /// throttle so invalid proofs stay opaque without allowing unlimited guesses.
     pub async fn check_legacy_mobile_proof(
         &self,
         token: &str,
@@ -601,10 +602,36 @@ impl MfaEngine {
             return Ok(None);
         };
 
-        match verify_mobile_signature(&self.pool, &ctx, ephemeral, signature, auth_pub_key)
+        let legacy_proof_key = format!("legacy-mobile:{}", session.token_hash);
+        if !ThrottleScope::VpnMfaCode
+            .hit(&self.pool, &legacy_proof_key)
             .await
-            .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?
+            .map_err(|err| {
+                error!("Failed to charge a legacy mobile proof attempt: {err}");
+                StepFinishError::Internal
+            })?
         {
+            debug!(
+                "Throttled a legacy mobile proof for MFA session {}",
+                session.id
+            );
+            return Ok(None);
+        }
+
+        let verdict = verify_mobile_signature(&self.pool, &ctx, ephemeral, signature, auth_pub_key)
+            .await
+            .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?;
+        if !matches!(&verdict, Verdict::Failed { .. }) {
+            ThrottleScope::VpnMfaCode
+                .refund(&self.pool, &legacy_proof_key)
+                .await
+                .map_err(|err| {
+                    error!("Failed to refund a legacy mobile proof attempt: {err}");
+                    StepFinishError::Internal
+                })?;
+        }
+
+        match verdict {
             Verdict::Proved => Ok(Some(VerifiedLegacyMobileProof {
                 step_attempt_id: ephemeral.step_attempt_id.clone(),
                 username: ctx.user.username.clone(),

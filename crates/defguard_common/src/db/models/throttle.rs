@@ -7,9 +7,10 @@ use tracing::debug;
 pub enum ThrottleScope {
     /// Web and setup login steps, keyed by username.
     WebLogin,
-    /// VPN MFA TOTP and email codes, keyed by `<location_id>:<device_id>`.
+    /// VPN MFA code guesses and legacy mobile signatures.
+    /// Code guesses use `<location_id>:<device_id>`; legacy signatures use the session token hash.
     VpnMfaCode,
-    /// VPN MFA step initiations, which can send email codes, keyed like `VpnMfaCode`.
+    /// VPN MFA step initiations, which can send email codes, keyed by `<location_id>:<device_id>`.
     VpnMfaInitiate,
 }
 

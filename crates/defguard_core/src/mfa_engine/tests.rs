@@ -354,6 +354,14 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
     assert_eq!(checked_proof.username, user.username);
     assert_eq!(checked_proof.device_id, device.id);
     assert_eq!(checked_proof.location_name, location.name);
+    let legacy_proof_key = format!("legacy-mobile:{}", hash_token(&outcome.token));
+    assert_eq!(
+        ThrottleScope::VpnMfaCode
+            .attempts(&pool, &legacy_proof_key)
+            .await,
+        Some(0),
+        "a valid legacy signature is refunded"
+    );
 
     let unmarked = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
         .await
@@ -419,7 +427,7 @@ fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> String {
 }
 
 #[sqlx::test]
-async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_effects(
+async fn test_legacy_mobile_proof_check_throttles_invalid_signatures(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -436,6 +444,7 @@ async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_ef
         VpnMfaFlowKind::MultiStep,
     )
     .await;
+    let legacy_proof_key = format!("legacy-mobile:{}", hash_token(&token));
     let signing_key = SigningKey::from_bytes(&[12; 32]);
     let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
     BiometricAuth::new(session.device_id, auth_pub_key.clone())
@@ -451,6 +460,13 @@ async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_ef
             .await
             .expect("proof check should succeed"),
         None,
+    );
+    assert_eq!(
+        ThrottleScope::VpnMfaCode
+            .attempts(&pool, &legacy_proof_key)
+            .await,
+        None,
+        "a proof without a current challenge is not charged"
     );
 
     let started = engine
@@ -502,6 +518,45 @@ async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_ef
         None,
     );
 
+    let limit = ThrottleScope::VpnMfaCode.limit();
+    assert_eq!(
+        ThrottleScope::VpnMfaCode
+            .attempts(&pool, &legacy_proof_key)
+            .await,
+        Some(2),
+        "only cryptographically rejected proofs are charged"
+    );
+    for _ in 2..limit {
+        assert_eq!(
+            engine
+                .check_legacy_mobile_proof(&token, &wrong_signature, &auth_pub_key)
+                .await
+                .expect("proof check should succeed"),
+            None,
+        );
+    }
+    assert!(
+        ThrottleScope::VpnMfaCode
+            .is_blocked(&pool, &legacy_proof_key)
+            .await
+            .expect("throttle lookup should succeed")
+    );
+    let valid_signature = sign_challenge(&signing_key, &challenge);
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &valid_signature, &auth_pub_key)
+            .await
+            .expect("rate-limited proof check should succeed"),
+        None,
+        "an exhausted legacy token remains opaque"
+    );
+    assert_eq!(
+        ThrottleScope::VpnMfaCode
+            .attempts(&pool, &legacy_proof_key)
+            .await,
+        Some(limit + 1)
+    );
+
     let unchanged = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
         .await
         .expect("session lookup should succeed")
@@ -534,8 +589,18 @@ async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_ef
         .expect("session must remain active");
     assert_eq!(uninitialized.failed_attempts, 0);
     assert!(uninitialized.ephemeral_state.is_none());
+    assert_eq!(
+        ThrottleScope::VpnMfaCode
+            .attempts(&pool, &legacy_proof_key)
+            .await,
+        Some(limit + 1),
+        "a session without a current attempt is not charged"
+    );
     assert!(event_rx.try_recv().is_err());
     assert!(gateway_rx.try_recv().is_err());
+    ThrottleScope::VpnMfaCode
+        .end_window(&pool, &legacy_proof_key)
+        .await;
 }
 
 #[sqlx::test]

@@ -4,7 +4,8 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            vpn_client_mfa_session::VpnClientMfaSession, vpn_client_session::VpnClientSession,
+            ThrottleScope, vpn_client_mfa_session::VpnClientMfaSession,
+            vpn_client_session::VpnClientSession,
         },
     },
     gateway_event::GatewayCommand,
@@ -1046,6 +1047,8 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
         .await,
     );
     let challenge = challenge.expect("MobileApprove must include a challenge");
+    let invalid_signature =
+        sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
     let mut gateway_rx = context.gateway_tx.subscribe();
 
     context.mock_proxy().send_request(CoreRequest {
@@ -1054,11 +1057,8 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
                 token: token.clone(),
-                code: Some(sign_challenge(
-                    &signing_key,
-                    &format!("{challenge} is not the challenge"),
-                )),
-                auth_pub_key: Some(auth_pub_key),
+                code: Some(invalid_signature.clone()),
+                auth_pub_key: Some(auth_pub_key.clone()),
             },
         )),
     });
@@ -1069,6 +1069,29 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
     assert_eq!(message, "login session not found");
 
     assert_unknown_token_response_matches(&mut context, 3, &response).await;
+
+    let limit = u64::try_from(ThrottleScope::VpnMfaCode.limit())
+        .expect("MFA code throttle limit must be positive");
+    let last_request_id = 3 + limit;
+    let mut last_response = response;
+    for request_id in 4..=last_request_id {
+        context.mock_proxy().send_request(CoreRequest {
+            id: request_id,
+            device_info: Some(make_device_info()),
+            payload: Some(core_request::Payload::ClientMfaFinish(
+                ClientMfaFinishRequest {
+                    token: token.clone(),
+                    code: Some(invalid_signature.clone()),
+                    auth_pub_key: Some(auth_pub_key.clone()),
+                },
+            )),
+        });
+        last_response = context.mock_proxy_mut().recv_outbound().await;
+        let (retry_code, retry_message) = assert_error_response_details(&last_response);
+        assert_eq!(retry_code, Code::InvalidArgument);
+        assert_eq!(retry_message, "login session not found");
+    }
+    assert_unknown_token_response_matches(&mut context, last_request_id + 1, &last_response).await;
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
         .await

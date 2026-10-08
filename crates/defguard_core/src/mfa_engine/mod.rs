@@ -52,7 +52,7 @@ pub mod method;
 pub mod multi_step;
 pub mod types;
 
-/// Only a TOTP or email code can be guessed, so only those proofs are throttled.
+/// Whether this method uses the device/location code-attempt throttle.
 fn is_code_method(method: VpnClientMfaMethod) -> bool {
     matches!(method, VpnClientMfaMethod::Totp | VpnClientMfaMethod::Email)
 }
