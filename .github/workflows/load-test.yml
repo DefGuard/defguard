@@ -45,12 +45,13 @@ jobs:
       AWS_ROLE_ARN: ${{ secrets.LOAD_TEST_AWS_ROLE_ARN }}
       GENERATOR_INSTANCE_ID: ${{ secrets.LOAD_TEST_GENERATOR_INSTANCE_ID }}
       PROXY_URL: ${{ vars.LOAD_TEST_PROXY_URL }}
-      # NETWORK_ID: ${{ inputs.network_id }}
+      # TODO: network-id should depend on the particular load-test being performed
+      # NETWORK_ID: ${{ inputs.network_id || 1 }}
       # RPS: ${{ inputs.requests_per_second }}
       # DURATION_SECONDS: ${{ inputs.duration_seconds }}
       # MAX_IN_FLIGHT: ${{ inputs.max_in_flight }}
 
-      NETWORK_ID: ${{ inputs.network_id || vars.LOAD_TEST_NETWORK_ID }}
+      NETWORK_ID: ${{ inputs.network_id || vars.LOAD_TEST_NETWORK_ID || 1 }}
       RPS: ${{ inputs.requests_per_second || 50 }}
       DURATION_SECONDS: ${{ inputs.duration_seconds || 60 }}
       MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 256 }}
