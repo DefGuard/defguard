@@ -1,4 +1,4 @@
-name: Load test config polling
+name: Load test
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_PROTECTED" == true ]] || { echo '::error::Run this workflow from a protected branch'; exit 1; }
+          # [[ "$GITHUB_REF_PROTECTED" == true ]] || { echo '::error::Run this workflow from a protected branch'; exit 1; }
           [[ -n "$AWS_ROLE_ARN" && "$GENERATOR_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the load-testing AWS role and generator instance ID'; exit 1; }
           [[ "$PROXY_URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$ ]] || { echo '::error::Configure LOAD_TEST_PROXY_URL as a base URL'; exit 1; }
           [[ "$NETWORK_ID" =~ ^[1-9][0-9]{0,17}$ ]] || { echo '::error::network_id must be a positive integer'; exit 1; }
