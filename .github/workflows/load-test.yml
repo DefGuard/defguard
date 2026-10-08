@@ -1,6 +1,9 @@
 name: Load test
 
 on:
+  push:
+    branches:
+      - ci-load-tests
   workflow_dispatch:
     inputs:
       network_id:
@@ -42,10 +45,15 @@ jobs:
       AWS_ROLE_ARN: ${{ vars.LOAD_TEST_AWS_ROLE_ARN }}
       GENERATOR_INSTANCE_ID: ${{ vars.LOAD_TEST_GENERATOR_INSTANCE_ID }}
       PROXY_URL: ${{ vars.LOAD_TEST_PROXY_URL }}
-      NETWORK_ID: ${{ inputs.network_id }}
-      RPS: ${{ inputs.requests_per_second }}
-      DURATION_SECONDS: ${{ inputs.duration_seconds }}
-      MAX_IN_FLIGHT: ${{ inputs.max_in_flight }}
+      # NETWORK_ID: ${{ inputs.network_id }}
+      # RPS: ${{ inputs.requests_per_second }}
+      # DURATION_SECONDS: ${{ inputs.duration_seconds }}
+      # MAX_IN_FLIGHT: ${{ inputs.max_in_flight }}
+
+      NETWORK_ID: ${{ inputs.network_id || vars.LOAD_TEST_NETWORK_ID }}
+      RPS: ${{ inputs.requests_per_second || 50 }}
+      DURATION_SECONDS: ${{ inputs.duration_seconds || 60 }}
+      MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 256 }}
 
     steps:
       - name: Validate target and inputs
