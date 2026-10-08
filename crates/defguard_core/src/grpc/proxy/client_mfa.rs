@@ -418,8 +418,7 @@ impl From<StepFinishError> for Status {
 /// always multi-step MFA, which landed in 2.2.
 const LEGACY_CLIENT_MESSAGE: &str =
     "Defguard client version is too old to connect to this location. Please update your client.";
-const LEGACY_MOBILE_CLIENT_MESSAGE: &str =
-    "Defguard mobile app version is too old to approve this connection. Please update the mobile app.";
+const LEGACY_MOBILE_CLIENT_MESSAGE: &str = "Defguard mobile app version is too old to approve this connection. Please update the mobile app.";
 
 /// Sent when the location can only be passed with a security key, which the CLI
 /// cannot drive at any version.

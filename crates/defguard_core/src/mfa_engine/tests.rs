@@ -4,7 +4,10 @@ use std::{
     time::{Instant, SystemTime},
 };
 
-use base64::{Engine as _, prelude::BASE64_STANDARD, prelude::BASE64_URL_SAFE_NO_PAD};
+use base64::{
+    Engine as _,
+    prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
+};
 use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
@@ -412,6 +415,10 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
     assert!(matches!(result, FinishOutcome::Completed { .. }));
 }
 
+fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> String {
+    BASE64_STANDARD.encode(signing_key.sign(challenge.as_bytes()).to_bytes())
+}
+
 #[sqlx::test]
 async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_effects(
     _: PgPoolOptions,
@@ -454,7 +461,8 @@ async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_ef
     let challenge = started
         .challenge
         .expect("mobile attempt needs a signature challenge");
-    let wrong_signature = sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
+    let wrong_signature =
+        sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
     assert_eq!(
         engine
             .check_legacy_mobile_proof(&token, &wrong_signature, &auth_pub_key)
