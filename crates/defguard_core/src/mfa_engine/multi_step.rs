@@ -551,6 +551,56 @@ impl MfaEngine {
         .map_err(map_step_finish_core_error)
     }
 
+    /// The legacy finish request has no attempt ID, so this checks the current attempt in a
+    /// `MultiStep` session. Verify the registered phone's signature before
+    /// returning the attempt ID so token possession alone cannot reject the session or wake the
+    /// desktop. This never marks approval or records a failure.
+    pub async fn check_legacy_mobile_proof(
+        &self,
+        token: &str,
+        signature: &str,
+        auth_pub_key: &str,
+    ) -> Result<Option<String>, StepFinishError> {
+        if signature.is_empty() || auth_pub_key.is_empty() {
+            return Ok(None);
+        }
+
+        let Some(session) = self
+            .find_active_session_for_flow(token, VpnMfaFlowKind::MultiStep)
+            .await
+            .map_err(|err| {
+                error!("Failed to find MFA session: {err}");
+                StepFinishError::Internal
+            })?
+        else {
+            return Ok(None);
+        };
+        let Some(ephemeral) = session.ephemeral_state.as_ref().map(|state| &state.0) else {
+            return Ok(None);
+        };
+        if ephemeral.selected_method != VpnClientMfaMethod::MobileApprove
+            || ephemeral.biometric_challenge.is_none()
+        {
+            return Ok(None);
+        }
+
+        let Some(ctx) = session.load_context(&self.pool).await.map_err(|err| {
+            error!("Failed to load MFA session context: {err}");
+            StepFinishError::Internal
+        })?
+        else {
+            return Ok(None);
+        };
+
+        match verify_mobile_signature(&self.pool, &ctx, ephemeral, signature, auth_pub_key)
+            .await
+            .map_err(|error| map_verify_error(VpnClientMfaMethod::MobileApprove, error.into()))?
+        {
+            Verdict::Proved => Ok(Some(ephemeral.step_attempt_id.clone())),
+            Verdict::Failed { .. } | Verdict::NotYet => Ok(None),
+        }
+    }
+
     /// Verify and durably mark a mobile approval without advancing or authorizing the flow.
     pub async fn approve_mobile_step(
         &self,

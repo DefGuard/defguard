@@ -343,6 +343,29 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
     let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
     let signature =
         BASE64_STANDARD.encode(signing_key.sign(challenge.challenge.as_bytes()).to_bytes());
+    let checked_attempt_id = engine
+        .check_legacy_mobile_proof(&outcome.token, &signature, &auth_pub_key)
+        .await
+        .expect("valid proof check should succeed")
+        .expect("valid mobile proof should return the current attempt");
+    assert_eq!(checked_attempt_id, outcome.step_attempt_id);
+
+    let unmarked = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("mobile approval session must remain active");
+    assert_eq!(unmarked.failed_attempts, 0);
+    assert!(
+        !unmarked
+            .ephemeral_state
+            .as_ref()
+            .expect("attempt must remain active")
+            .0
+            .mobile_approved
+    );
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
+
     engine
         .approve_mobile_step(
             outcome.token.clone(),
@@ -384,6 +407,217 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
         .await
         .expect("approved mobile step should finish the flow");
     assert!(matches!(result, FinishOutcome::Completed { .. }));
+}
+
+#[sqlx::test]
+async fn test_legacy_mobile_proof_check_rejects_unmatched_proofs_without_side_effects(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Legacy mobile proof check",
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let signing_key = SigningKey::from_bytes(&[12; 32]);
+    let auth_pub_key = BASE64_STANDARD.encode(signing_key.verifying_key().to_bytes());
+    BiometricAuth::new(session.device_id, auth_pub_key.clone())
+        .save(&pool)
+        .await
+        .expect("failed to register mobile authenticator");
+
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+    let signature_without_challenge = sign_challenge(&signing_key, "challenge");
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &signature_without_challenge, &auth_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+
+    let started = engine
+        .step_start(token.clone(), VpnClientMfaMethod::MobileApprove)
+        .await
+        .expect("mobile attempt should start");
+    let challenge = started
+        .challenge
+        .expect("mobile attempt needs a signature challenge");
+    let wrong_signature = sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &wrong_signature, &auth_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+
+    let unowned_signing_key = SigningKey::from_bytes(&[13; 32]);
+    let unowned_pub_key = BASE64_STANDARD.encode(unowned_signing_key.verifying_key().to_bytes());
+    let unowned_signature = sign_challenge(&unowned_signing_key, &challenge);
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &unowned_signature, &unowned_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, "", &auth_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &wrong_signature, "")
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof("unknown-token", &wrong_signature, &auth_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+
+    let unchanged = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("session must remain active");
+    assert_eq!(unchanged.failed_attempts, 0);
+    let unchanged_attempt = unchanged
+        .ephemeral_state
+        .as_ref()
+        .expect("attempt must remain active")
+        .0
+        .clone();
+    assert_eq!(unchanged_attempt.step_attempt_id, started.step_attempt_id);
+    assert!(!unchanged_attempt.mobile_approved);
+
+    sqlx::query("UPDATE vpn_client_mfa_session SET ephemeral_state = NULL WHERE id = $1")
+        .bind(session.id)
+        .execute(&pool)
+        .await
+        .expect("failed to clear the MFA attempt");
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, &wrong_signature, &auth_pub_key)
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+    let uninitialized = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("session must remain active");
+    assert_eq!(uninitialized.failed_attempts, 0);
+    assert!(uninitialized.ephemeral_state.is_none());
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_legacy_mobile_proof_check_rejects_non_mobile_method_without_side_effects(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Legacy proof non-mobile method",
+        vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::MultiStep,
+    )
+    .await;
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, "signature", "key")
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+
+    let unchanged = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("session must remain active");
+    assert_eq!(unchanged.id, session.id);
+    assert_eq!(unchanged.failed_attempts, 0);
+    assert_eq!(
+        unchanged
+            .ephemeral_state
+            .expect("attempt must remain active")
+            .0
+            .selected_method,
+        VpnClientMfaMethod::Totp
+    );
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_legacy_mobile_proof_check_rejects_legacy_flow_without_side_effects(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (session, token, _) = start_session_with_flow(
+        &pool,
+        user.id,
+        "Legacy proof legacy flow",
+        vec![vec![VpnClientMfaMethod::MobileApprove]],
+        VpnMfaFlowKind::Legacy,
+    )
+    .await;
+    let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
+
+    assert_eq!(
+        engine
+            .check_legacy_mobile_proof(&token, "signature", "key")
+            .await
+            .expect("proof check should succeed"),
+        None,
+    );
+
+    let unchanged = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
+        .await
+        .expect("session lookup should succeed")
+        .expect("legacy session must remain active");
+    assert_eq!(unchanged.id, session.id);
+    assert_eq!(unchanged.flow_kind, VpnMfaFlowKind::Legacy);
+    assert_eq!(unchanged.failed_attempts, 0);
+    assert!(
+        !unchanged
+            .ephemeral_state
+            .expect("attempt must remain active")
+            .0
+            .mobile_approved
+    );
+    assert!(event_rx.try_recv().is_err());
+    assert!(gateway_rx.try_recv().is_err());
 }
 
 #[sqlx::test]
