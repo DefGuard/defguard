@@ -1827,7 +1827,6 @@ dependencies = [
 name = "defguard_grpc_tls"
 version = "0.0.0"
 dependencies = [
- "defguard_common",
  "http",
  "hyper-rustls",
  "rustls",
