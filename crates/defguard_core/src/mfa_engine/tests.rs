@@ -344,8 +344,7 @@ async fn test_multi_step_mobile_approval_is_mark_only_and_attempt_bound(
         .expect("failed to commit mobile approval session");
 
     let (engine, mut event_rx, mut gateway_rx) = make_engine(pool.clone());
-    let signature =
-        BASE64_STANDARD.encode(signing_key.sign(challenge.challenge.as_bytes()).to_bytes());
+    let signature = sign_challenge(&signing_key, &challenge.challenge);
     let checked_proof = engine
         .check_legacy_mobile_proof(&outcome.token, &signature, &auth_pub_key)
         .await
@@ -666,7 +665,7 @@ async fn test_mobile_approval_rejects_superseded_attempt_without_side_effects(
         .await
         .expect("reissued mobile attempt should start");
     let first_challenge = first.challenge.expect("mobile attempt needs a challenge");
-    let signature = BASE64_STANDARD.encode(signing_key.sign(first_challenge.as_bytes()).to_bytes());
+    let signature = sign_challenge(&signing_key, &first_challenge);
 
     let error = engine
         .approve_mobile_step(
@@ -744,7 +743,7 @@ async fn test_mobile_approval_rejection_increments_failure_once(
         .await
         .expect("mobile attempt should start");
     let challenge = attempt.challenge.expect("mobile attempt needs a challenge");
-    let signature = BASE64_STANDARD.encode(invalid_key.sign(challenge.as_bytes()).to_bytes());
+    let signature = sign_challenge(&invalid_key, &challenge);
 
     let error = Status::from(
         engine

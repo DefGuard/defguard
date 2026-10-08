@@ -9,7 +9,10 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
 };
-use defguard_core::events::{BidiStreamEventType, DesktopClientMfaEvent};
+use defguard_core::{
+    events::{BidiStreamEventType, DesktopClientMfaEvent},
+    grpc::proxy::client_mfa::LEGACY_MOBILE_CLIENT_MESSAGE,
+};
 use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaStartRequest, MfaBiometricSignature, MfaCodeCredential,
@@ -36,8 +39,6 @@ use super::support::{
 use crate::tests::common::{CORE_RESPONSE_TIMEOUT, HandlerTestContext, RECEIVE_TIMEOUT};
 
 const WRONG_REQUEST_ID: u64 = 9991;
-const LEGACY_MOBILE_CLIENT_MESSAGE: &str = "Defguard mobile app version is too old to approve this connection. Please update the mobile app.";
-
 async fn send_flow_start(
     context: &mut HandlerTestContext,
     id: u64,
@@ -59,6 +60,44 @@ async fn send_flow_start(
         })),
     });
     context.mock_proxy_mut().recv_outbound().await
+}
+
+async fn assert_unknown_token_response_matches(
+    context: &mut HandlerTestContext,
+    request_id: u64,
+    expected_response: &CoreResponse,
+) {
+    let (expected_code, expected_message) = assert_error_response_details(expected_response);
+    context.mock_proxy().send_request(CoreRequest {
+        id: request_id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: "unknown-mfa-token".to_owned(),
+                code: None,
+                auth_pub_key: None,
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, request_id);
+    let (code, message) = assert_error_response_details(&response);
+    assert_eq!(code, expected_code);
+    assert_eq!(message, expected_message);
+}
+
+async fn assert_no_active_vpn_session(context: &HandlerTestContext, network_id: Id, device_id: Id) {
+    assert!(
+        VpnClientSession::get_all_active_device_sessions_in_location(
+            &context.pool,
+            network_id,
+            device_id
+        )
+        .await
+        .expect("VPN session lookup must succeed")
+        .is_empty(),
+        "legacy mobile proof must not authorize a VPN session"
+    );
 }
 
 fn accepted_flow_start(response: CoreResponse) -> (String, String, Option<String>) {
@@ -663,17 +702,7 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
         .0;
     assert_eq!(attempt.step_attempt_id, step_attempt_id);
     assert!(!attempt.mobile_approved);
-    assert!(
-        VpnClientSession::get_all_active_device_sessions_in_location(
-            &context.pool,
-            network.id,
-            device.id
-        )
-        .await
-        .expect("VPN session lookup must succeed")
-        .is_empty(),
-        "legacy proof must not authorize a VPN session"
-    );
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
     assert!(gateway_rx.try_recv().is_err());
     assert!(context.bidi_events_rx.try_recv().is_err());
 
@@ -785,17 +814,7 @@ async fn test_legacy_mfa_finish_rejects_valid_proof_without_waiter_on_two_step_f
         .0;
     assert_eq!(attempt.step_attempt_id, step_attempt_id);
     assert!(!attempt.mobile_approved);
-    assert!(
-        VpnClientSession::get_all_active_device_sessions_in_location(
-            &context.pool,
-            network.id,
-            device.id
-        )
-        .await
-        .expect("VPN session lookup must succeed")
-        .is_empty(),
-        "legacy proof must not authorize a VPN session"
-    );
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
     assert!(gateway_rx.try_recv().is_err());
     assert!(context.bidi_events_rx.try_recv().is_err());
 
@@ -916,22 +935,7 @@ async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "login session not found");
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 6,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: "unknown-mfa-token".to_owned(),
-                code: None,
-                auth_pub_key: None,
-            },
-        )),
-    });
-    let unknown_response = context.mock_proxy_mut().recv_outbound().await;
-    let (unknown_code, unknown_message) = assert_error_response_details(&unknown_response);
-    assert_eq!(unknown_response.id, 6);
-    assert_eq!(unknown_code, code);
-    assert_eq!(unknown_message, message);
+    assert_unknown_token_response_matches(&mut context, 6, &response).await;
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
         .await
@@ -944,16 +948,7 @@ async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
         .0;
     assert_eq!(current.step_attempt_id, current_attempt_id);
     assert!(!current.mobile_approved);
-    assert!(
-        VpnClientSession::get_all_active_device_sessions_in_location(
-            &context.pool,
-            network.id,
-            device.id
-        )
-        .await
-        .expect("VPN session lookup must succeed")
-        .is_empty()
-    );
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
     assert!(gateway_rx.try_recv().is_err());
 
     context.finish().await.expect_server_finished().await;
@@ -1073,22 +1068,7 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "login session not found");
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 3,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: "unknown-mfa-token".to_owned(),
-                code: None,
-                auth_pub_key: None,
-            },
-        )),
-    });
-    let unknown_response = context.mock_proxy_mut().recv_outbound().await;
-    let (unknown_code, unknown_message) = assert_error_response_details(&unknown_response);
-    assert_eq!(unknown_response.id, 3);
-    assert_eq!(unknown_code, code);
-    assert_eq!(unknown_message, message);
+    assert_unknown_token_response_matches(&mut context, 3, &response).await;
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &token)
         .await
@@ -1101,16 +1081,7 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
         .0;
     assert_eq!(attempt.step_attempt_id, step_attempt_id);
     assert!(!attempt.mobile_approved);
-    assert!(
-        VpnClientSession::get_all_active_device_sessions_in_location(
-            &context.pool,
-            network.id,
-            device.id
-        )
-        .await
-        .expect("VPN session lookup must succeed")
-        .is_empty()
-    );
+    assert_no_active_vpn_session(&context, network.id, device.id).await;
     assert!(gateway_rx.try_recv().is_err());
     assert!(context.bidi_events_rx.try_recv().is_err());
 

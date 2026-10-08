@@ -69,6 +69,7 @@ pub struct MobileApprovalProof {
     pub step_attempt_id: String,
 }
 
+/// Returned only for a signature valid against the current `MobileApprove` attempt.
 #[derive(Debug, Eq, PartialEq)]
 pub struct VerifiedLegacyMobileProof {
     pub step_attempt_id: String,

@@ -140,6 +140,21 @@ fn remove_remote_mfa_waiter(waiters: &RemoteAuthWaiters, hash: &str, waiter_iden
     }
 }
 
+fn remove_waiter_and_send_error(
+    waiters: &RemoteAuthWaiters,
+    hash: &str,
+    waiter_identity: &Arc<()>,
+    response_tx: &UnboundedSender<CoreResponse>,
+    request_id: u64,
+    status: Status,
+) {
+    remove_remote_mfa_waiter(waiters, hash, waiter_identity);
+    let _ = response_tx.send(CoreResponse {
+        id: request_id,
+        payload: Some(Payload::CoreError(status.into())),
+    });
+}
+
 /// Removes and returns the waiting client for `hash`; signal it after unlocking.
 fn take_remote_mfa_waiter_by_hash(
     waiters: &RemoteAuthWaiters,
@@ -418,7 +433,8 @@ impl From<StepFinishError> for Status {
 /// always multi-step MFA, which landed in 2.2.
 const LEGACY_CLIENT_MESSAGE: &str =
     "Defguard client version is too old to connect to this location. Please update your client.";
-const LEGACY_MOBILE_CLIENT_MESSAGE: &str = "Defguard mobile app version is too old to approve this connection. Please update the mobile app.";
+/// Sent to the legacy mobile app and its waiting 2.2 desktop as `FailedPrecondition` (HTTP 428).
+pub const LEGACY_MOBILE_CLIENT_MESSAGE: &str = "Defguard mobile app version is too old to approve this connection. Please update the mobile app.";
 
 /// Sent when the location can only be passed with a security key, which the CLI
 /// cannot drive at any version.
@@ -1040,47 +1056,51 @@ impl ClientMfaServer {
                             .await
                     }
                     Ok(Ok(RemoteAuthSignal::MobileClientOutdated)) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
-                        let _ = response_tx.send(CoreResponse {
-                            id: request_id,
-                            payload: Some(Payload::CoreError(
-                                Status::failed_precondition(LEGACY_MOBILE_CLIENT_MESSAGE).into(),
-                            )),
-                        });
+                        remove_waiter_and_send_error(
+                            &waiters,
+                            &hash,
+                            &waiter_identity,
+                            &response_tx,
+                            request_id,
+                            Status::failed_precondition(LEGACY_MOBILE_CLIENT_MESSAGE),
+                        );
                         return;
                     }
                     Ok(Ok(RemoteAuthSignal::Superseded)) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
-                        let _ = response_tx.send(CoreResponse {
-                            id: request_id,
-                            payload: Some(Payload::CoreError(
-                                Status::aborted("remote MFA wait superseded").into(),
-                            )),
-                        });
+                        remove_waiter_and_send_error(
+                            &waiters,
+                            &hash,
+                            &waiter_identity,
+                            &response_tx,
+                            request_id,
+                            Status::aborted("remote MFA wait superseded"),
+                        );
                         return;
                     }
                     Ok(Err(err)) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         debug!("Multi-step remote MFA response channel closed: {err:?}");
-                        let _ = response_tx.send(CoreResponse {
-                            id: request_id,
-                            payload: Some(Payload::CoreError(
-                                Status::internal("remote MFA signal channel closed").into(),
-                            )),
-                        });
+                        remove_waiter_and_send_error(
+                            &waiters,
+                            &hash,
+                            &waiter_identity,
+                            &response_tx,
+                            request_id,
+                            Status::internal("remote MFA signal channel closed"),
+                        );
                         return;
                     }
                     Err(_) => {
-                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                         warn!(
                             "Multi-step remote MFA process with request_id {request_id} timed out"
                         );
-                        let _ = response_tx.send(CoreResponse {
-                            id: request_id,
-                            payload: Some(Payload::CoreError(
-                                Status::deadline_exceeded("remote MFA wait timed out").into(),
-                            )),
-                        });
+                        remove_waiter_and_send_error(
+                            &waiters,
+                            &hash,
+                            &waiter_identity,
+                            &response_tx,
+                            request_id,
+                            Status::deadline_exceeded("remote MFA wait timed out"),
+                        );
                         return;
                     }
                 },
@@ -1170,12 +1190,14 @@ impl ClientMfaServer {
         tokio::spawn(async move {
             match time::timeout(timeout, rx).await {
                 Ok(Ok(RemoteAuthSignal::Superseded)) => {
-                    let _ = response_tx.send(CoreResponse {
-                        id: request_id,
-                        payload: Some(Payload::CoreError(
-                            Status::aborted("remote MFA wait superseded").into(),
-                        )),
-                    });
+                    remove_waiter_and_send_error(
+                        &waiters,
+                        &hash,
+                        &waiter_identity,
+                        &response_tx,
+                        request_id,
+                        Status::aborted("remote MFA wait superseded"),
+                    );
                 }
                 Ok(Ok(RemoteAuthSignal::MobileClientOutdated)) => {
                     unreachable!("MobileClientOutdated can only be sent to MultiStep waiters");
@@ -1204,26 +1226,26 @@ impl ClientMfaServer {
                     });
                 }
                 Ok(Err(err)) => {
-                    // Drop the waiter so a dropped sender cannot leak a map entry.
-                    remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     debug!("Remote MFA response channel closed: {err:?}");
-                    let _ = response_tx.send(CoreResponse {
-                        id: request_id,
-                        payload: Some(Payload::CoreError(
-                            Status::internal("remote MFA signal channel closed").into(),
-                        )),
-                    });
+                    remove_waiter_and_send_error(
+                        &waiters,
+                        &hash,
+                        &waiter_identity,
+                        &response_tx,
+                        request_id,
+                        Status::internal("remote MFA signal channel closed"),
+                    );
                 }
                 Err(_) => {
-                    // Drop the waiter so a client that never finishes cannot leak map entries.
-                    remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
                     warn!("Remote MFA process with request_id {request_id} timed out");
-                    let _ = response_tx.send(CoreResponse {
-                        id: request_id,
-                        payload: Some(Payload::CoreError(
-                            Status::deadline_exceeded("remote MFA wait timed out").into(),
-                        )),
-                    });
+                    remove_waiter_and_send_error(
+                        &waiters,
+                        &hash,
+                        &waiter_identity,
+                        &response_tx,
+                        request_id,
+                        Status::deadline_exceeded("remote MFA wait timed out"),
+                    );
                 }
             }
         });
