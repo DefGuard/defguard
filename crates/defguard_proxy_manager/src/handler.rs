@@ -73,7 +73,7 @@ use tokio::{
     sync::{
         Mutex, Semaphore, TryAcquireError,
         mpsc::{self, UnboundedSender},
-        watch,
+        oneshot, watch,
     },
     task::JoinSet,
     time::sleep,
@@ -201,7 +201,7 @@ fn build_auth_info_payload(
     })
 }
 
-type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
+type ShutdownReceiver = oneshot::Receiver<bool>;
 
 #[cfg(test)]
 #[derive(Default)]

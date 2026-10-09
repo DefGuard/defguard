@@ -2,7 +2,6 @@ pub(crate) mod client;
 
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    str::FromStr,
     sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
@@ -406,7 +405,7 @@ pub(crate) fn configure_smtp(settings: &mut Settings) {
 pub(crate) fn configure_ldap(settings: &mut Settings) {
     settings.ldap_url = Some("ldap://localhost".into());
     settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
-    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     settings.ldap_username_attr = Some("uid".into());
     settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
     settings.ldap_user_obj_class = Some("inetOrgPerson".into());

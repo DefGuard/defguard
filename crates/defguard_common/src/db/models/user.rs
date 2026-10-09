@@ -1349,8 +1349,6 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
-
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
@@ -1829,7 +1827,7 @@ mod test {
         settings.smtp.sender = Some("noreply@example.com".into());
         settings.ldap_url = Some("ldap://localhost".into());
         settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
-        settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+        settings.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
         settings.ldap_username_attr = Some("uid".into());
         settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
         settings.ldap_user_obj_class = Some("inetOrgPerson".into());

@@ -1,4 +1,4 @@
-use std::{env, str::FromStr, time::Duration};
+use std::{env, time::Duration};
 
 use chrono::Utc;
 use defguard_common::{
@@ -111,15 +111,16 @@ async fn set_smtp_settings(pool: &PgPool) {
     if let Ok(refresh_token) = env::var("SMTP_OAUTH_REFRESH_TOKEN") {
         settings.smtp.oauth_issuer_url = env::var("SMTP_OAUTH_ISSUER_URL").ok();
         settings.smtp.oauth_client_id = env::var("SMTP_OAUTH_CLIENT_ID").ok();
-        settings.smtp.oauth_client_secret = Some(
-            SecretStringWrapper::from_str(&env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap()).unwrap(),
-        );
+        settings.smtp.oauth_client_secret = Some(SecretStringWrapper::from(
+            env::var("SMTP_OAUTH_CLIENT_SECRET").unwrap(),
+        ));
         settings.smtp.oauth_refresh_token = Some(refresh_token.into());
         settings.smtp.authentication = SmtpAuthentication::XOAuth2;
     } else {
         settings.smtp.user = env::var("SMTP_USER").ok();
-        settings.smtp.password =
-            Some(SecretStringWrapper::from_str(&env::var("SMTP_PASSWORD").unwrap()).unwrap());
+        settings.smtp.password = Some(SecretStringWrapper::from(
+            env::var("SMTP_PASSWORD").unwrap(),
+        ));
         settings.smtp.encryption = SmtpEncryption::StartTls;
         settings.smtp.authentication = SmtpAuthentication::Login;
     }

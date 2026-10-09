@@ -51,25 +51,6 @@ use crate::{
     Client, GatewayEventRouter, TEN_SECS, error::GatewayError, updates::GatewayUpdatesHandler,
 };
 
-#[cfg(test)]
-#[derive(Default)]
-struct GatewayTestTransport {
-    socket_path: Option<PathBuf>,
-}
-
-#[cfg(test)]
-impl GatewayTestTransport {
-    fn with_socket_path(socket_path: PathBuf) -> Self {
-        Self {
-            socket_path: Some(socket_path),
-        }
-    }
-
-    fn socket_path(&self) -> Option<&PathBuf> {
-        self.socket_path.as_ref()
-    }
-}
-
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {
     // Gateway server endpoint URL.
@@ -89,7 +70,7 @@ pub(crate) struct GatewayHandler {
     /// reconnect email is sent if and only if a disconnect email went out for that outage.
     disconnect_notification_sent: Arc<AtomicBool>,
     #[cfg(test)]
-    test_transport: GatewayTestTransport,
+    test_socket_path: Option<PathBuf>,
     #[cfg(test)]
     test_support: Option<GatewayManagerTestSupport>,
 }
@@ -124,7 +105,7 @@ impl GatewayHandler {
             pending_disconnect_notification: None,
             disconnect_notification_sent,
             #[cfg(test)]
-            test_transport: GatewayTestTransport::default(),
+            test_socket_path: None,
             #[cfg(test)]
             test_support: None,
         })
@@ -712,7 +693,7 @@ impl GatewayHandler {
             certs_rx,
             disconnect_notification_sent,
         )?;
-        handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
+        handler.test_socket_path = Some(socket_path);
         Ok(handler)
     }
 
@@ -747,8 +728,8 @@ impl GatewayHandler {
     }
 
     async fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
-        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
-            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
+        if let Some(socket_path) = self.test_socket_path.clone() {
+            Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
                 move |_: tonic::transport::Uri| {
                     let socket_path = socket_path.clone();
                     async move {
@@ -757,10 +738,10 @@ impl GatewayHandler {
                         ))
                     }
                 },
-            )));
+            )))
+        } else {
+            self.connect_tls_channel(endpoint).await
         }
-
-        self.connect_tls_channel(endpoint).await
     }
 
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {

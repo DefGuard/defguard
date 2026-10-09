@@ -1,6 +1,6 @@
 //! Integration tests that require a running LDAP server.
 
-use std::{collections::HashSet, env, str::FromStr};
+use std::{collections::HashSet, env};
 
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
@@ -54,7 +54,7 @@ async fn set_ldap_settings(pool: &PgPool) {
     settings.ldap_url = env::var("LDAP_URL").ok();
     settings.ldap_bind_username = env::var("LDAP_BIND_USERNAME").ok();
     settings.ldap_bind_password = env::var("LDAP_BIND_PASSWORD")
-        .map(|pass| SecretStringWrapper::from_str(&pass).unwrap())
+        .map(SecretStringWrapper::from)
         .ok();
     settings.ldap_group_search_base = env::var("LDAP_GROUP_SEARCH_BASE").ok();
     settings.ldap_user_search_base = env::var("LDAP_USER_SEARCH_BASE").ok();

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use defguard_common::{
     db::{
@@ -81,7 +81,7 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
     settings.smtp.sender = Some("noreply@example.com".into());
     settings.ldap_url = Some("ldap://localhost".into());
     settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
-    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     settings.ldap_username_attr = Some("uid".into());
     settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
     settings.ldap_user_obj_class = Some("inetOrgPerson".into());
