@@ -139,7 +139,10 @@ pub async fn create_admin(
     .save(&pool)
     .await?;
 
-    debug!("Initial admin user created with ID {}", user.id);
+    debug!(
+        "Initial admin user {} created with ID {}",
+        user.username, user.id
+    );
     let mut settings = Settings::get_current_settings();
     settings.default_admin_id = Some(user.id);
     update_current_settings(&pool, settings).await?;
@@ -450,8 +453,8 @@ pub async fn finish_setup(
         })?;
     if session_info.user.id != default_admin_id {
         error!(
-            "Authenticated user with ID '{}' does not match default admin user with ID '{}'",
-            session_info.user.id, default_admin_id
+            "Authenticated user '{}' (ID {}) does not match default admin user with ID '{}'",
+            session_info.user.username, session_info.user.id, default_admin_id
         );
         return Err(WebError::Forbidden("access denied"));
     }
