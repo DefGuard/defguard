@@ -36,7 +36,7 @@ concurrency:
 jobs:
   config-polling:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
     # Restrict this environment to protected branches and require approval.
     environment: LOAD-TESTING
     env:
@@ -44,6 +44,8 @@ jobs:
       AWS_REGION: ${{ vars.LOAD_TEST_AWS_REGION || 'eu-west-3' }}
       AWS_ROLE_ARN: ${{ secrets.LOAD_TEST_AWS_ROLE_ARN }}
       GENERATOR_INSTANCE_ID: ${{ secrets.LOAD_TEST_GENERATOR_INSTANCE_ID }}
+      CORE_INSTANCE_ID: ${{ secrets.LOAD_TEST_CORE_INSTANCE_ID }}
+      EDGE_INSTANCE_ID: ${{ secrets.LOAD_TEST_EDGE_INSTANCE_ID }}
       PROXY_URL: ${{ vars.LOAD_TEST_PROXY_URL }}
       # TODO: network-id should depend on the particular load-test being performed
       # NETWORK_ID: ${{ inputs.network_id || 1 }}
@@ -63,6 +65,7 @@ jobs:
           set -euo pipefail
           # [[ "$GITHUB_REF_PROTECTED" == true ]] || { echo '::error::Run this workflow from a protected branch'; exit 1; }
           [[ -n "$AWS_ROLE_ARN" && "$GENERATOR_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the load-testing AWS role and generator instance ID'; exit 1; }
+          [[ "$CORE_INSTANCE_ID" =~ ^i-[0-9a-f]+$ && "$EDGE_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the Core and Edge instance IDs'; exit 1; }
           [[ "$PROXY_URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$ ]] || { echo '::error::Configure LOAD_TEST_PROXY_URL as a base URL'; exit 1; }
           [[ "$NETWORK_ID" =~ ^[1-9][0-9]{0,17}$ ]] || { echo '::error::network_id must be a positive integer'; exit 1; }
           if ! [[ "$RPS" =~ ^[1-9][0-9]{0,4}$ ]] || (( RPS > 10000 )); then echo '::error::requests_per_second must be 1-10000'; exit 1; fi
@@ -75,6 +78,75 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: load-test-${{ github.run_id }}
+
+      - name: Update Edge and Core images through SSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_script=$(cat <<'REMOTE'
+          set -euo pipefail
+          case "$SERVICE" in
+            edge)
+              compose=/opt/defguard-edge/docker-compose.yaml
+              expected_image=ghcr.io/defguard/defguard-proxy:dev
+              port=8080
+              ;;
+            core)
+              compose=/opt/defguard-core/docker-compose.yaml
+              expected_image=ghcr.io/defguard/defguard:dev
+              port=8000
+              ;;
+            *) exit 1 ;;
+          esac
+          [[ "$(docker compose -f "$compose" config --images)" == "$expected_image" ]] || { echo "$SERVICE does not use $expected_image"; exit 1; }
+          docker compose -f "$compose" pull "$SERVICE"
+          docker compose -f "$compose" up -d --no-deps "$SERVICE"
+          for (( attempt = 0; attempt < 60; attempt++ )); do
+            container_id=$(docker compose -f "$compose" ps -q "$SERVICE")
+            if [[ -n "$container_id" && "$(docker inspect -f '{{.State.Running}}' "$container_id")" == true ]] && timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+              sleep 10
+              if [[ "$(docker inspect -f '{{.State.Running}}' "$container_id")" == true ]]; then
+                echo "$SERVICE is running on image ID $(docker inspect -f '{{.Image}}' "$container_id")"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "$SERVICE did not become ready"
+          exit 1
+          REMOTE
+          )
+          encoded_script=$(printf %s "$remote_script" | base64 -w0)
+          for service in edge core; do
+            case "$service" in
+              edge) instance_id=$EDGE_INSTANCE_ID ;;
+              core) instance_id=$CORE_INSTANCE_ID ;;
+            esac
+            printf -v command 'env SERVICE=%q bash -lc %q' "$service" "printf %s '$encoded_script' | base64 -d | bash"
+            jq -n --arg command "$command" '{commands: [$command], executionTimeout: ["600"]}' > "$RUNNER_TEMP/update-parameters.json"
+            command_id=$(aws ssm send-command --instance-ids "$instance_id" --document-name AWS-RunShellScript --parameters "file://$RUNNER_TEMP/update-parameters.json" --timeout-seconds 60 --query 'Command.CommandId' --output text)
+            echo "Updating $service through SSM command $command_id"
+            invocation="$RUNNER_TEMP/update-$service-invocation.json"
+            status=''
+            for (( attempt = 0; attempt < 65; attempt++ )); do
+              if aws ssm get-command-invocation --command-id "$command_id" --instance-id "$instance_id" --output json > "$invocation" 2>/dev/null; then
+                status=$(jq -r '.Status' "$invocation")
+                case "$status" in
+                  Success|Failed|Cancelled|TimedOut) break ;;
+                esac
+              fi
+              sleep 10
+            done
+            if [[ "$status" != Success && "$status" != Failed && "$status" != Cancelled && "$status" != TimedOut ]]; then
+              echo "::error::$service update did not finish; SSM command $command_id"
+              exit 1
+            fi
+            jq -r '.StandardOutputContent, .StandardErrorContent' "$invocation"
+            if [[ "$status" != Success || "$(jq -r '.ResponseCode' "$invocation")" != 0 ]]; then
+              echo "::error::$service update failed with status $status; SSM command $command_id"
+              exit 1
+            fi
+          done
 
       - name: Run generator on EC2 through SSM
         id: send-command
