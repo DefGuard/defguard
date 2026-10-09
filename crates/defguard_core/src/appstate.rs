@@ -7,10 +7,7 @@ use reqwest::Client;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::{
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-    },
+    sync::{broadcast, mpsc},
     task::spawn,
 };
 
@@ -27,15 +24,15 @@ const X_DEFGUARD_EVENT: &str = "x-defguard-event";
 #[derive(Clone)]
 pub struct AppState {
     pub pool: PgPool,
-    tx: UnboundedSender<AppEvent>,
-    pub gateway_tx: Sender<GatewayCommand>,
-    pub web_reload_tx: tokio::sync::broadcast::Sender<()>,
+    tx: mpsc::UnboundedSender<AppEvent>,
+    pub gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
+    pub web_reload_tx: broadcast::Sender<()>,
     key: Key,
-    pub event_tx: UnboundedSender<ApiEvent>,
-    pub ldap_tx: UnboundedSender<LdapSyncEventType>,
-    pub dirsync_tx: UnboundedSender<DirectorySyncEvent>,
+    pub event_tx: mpsc::UnboundedSender<ApiEvent>,
+    pub ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+    pub dirsync_tx: mpsc::UnboundedSender<DirectorySyncEvent>,
     pub incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    pub proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    pub proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     /// Reflects whether the HTTP server is currently running with TLS
     pub tls_active: Arc<AtomicBool>,
 }
@@ -50,7 +47,7 @@ impl AppState {
     }
 
     /// Handle webhook events
-    async fn handle_triggers(pool: PgPool, mut rx: UnboundedReceiver<AppEvent>) {
+    async fn handle_triggers(pool: PgPool, mut rx: mpsc::UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {
             debug!("WebHook triggered");
@@ -116,16 +113,16 @@ impl AppState {
     /// Create application state
     pub fn new(
         pool: PgPool,
-        tx: UnboundedSender<AppEvent>,
-        rx: UnboundedReceiver<AppEvent>,
-        gateway_tx: Sender<GatewayCommand>,
-        web_reload_tx: tokio::sync::broadcast::Sender<()>,
+        tx: mpsc::UnboundedSender<AppEvent>,
+        rx: mpsc::UnboundedReceiver<AppEvent>,
+        gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
+        web_reload_tx: broadcast::Sender<()>,
         key: Key,
-        event_tx: UnboundedSender<ApiEvent>,
-        ldap_tx: UnboundedSender<LdapSyncEventType>,
-        dirsync_tx: UnboundedSender<DirectorySyncEvent>,
+        event_tx: mpsc::UnboundedSender<ApiEvent>,
+        ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+        dirsync_tx: mpsc::UnboundedSender<DirectorySyncEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-        proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+        proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
         tls_active: Arc<AtomicBool>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));

@@ -1,6 +1,6 @@
 //! Integration tests that require a running LDAP server.
 
-use std::{collections::HashSet, env, str::FromStr};
+use std::{collections::HashSet, env};
 
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
@@ -25,20 +25,20 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::sync::{
-    broadcast::{Receiver, Sender, channel},
-    mpsc,
-};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender, unbounded_channel};
 
-fn wg_test_channel() -> (Sender<GatewayCommand>, Receiver<GatewayCommand>) {
-    channel(256)
+fn wg_test_channel() -> (
+    UnboundedSender<GatewayCommand>,
+    UnboundedReceiver<GatewayCommand>,
+) {
+    unbounded_channel()
 }
 
 async fn sync_ldap(
     ldap_conn: &mut LDAPConnection,
     pool: &PgPool,
     full: bool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
 ) {
     let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
     ldap_conn.sync(pool, full, wg_tx, &ldap_tx).await.unwrap();
@@ -54,7 +54,7 @@ async fn set_ldap_settings(pool: &PgPool) {
     settings.ldap_url = env::var("LDAP_URL").ok();
     settings.ldap_bind_username = env::var("LDAP_BIND_USERNAME").ok();
     settings.ldap_bind_password = env::var("LDAP_BIND_PASSWORD")
-        .map(|pass| SecretStringWrapper::from_str(&pass).unwrap())
+        .map(SecretStringWrapper::from)
         .ok();
     settings.ldap_group_search_base = env::var("LDAP_GROUP_SEARCH_BASE").ok();
     settings.ldap_user_search_base = env::var("LDAP_USER_SEARCH_BASE").ok();

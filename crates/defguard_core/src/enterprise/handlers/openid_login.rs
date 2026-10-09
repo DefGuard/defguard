@@ -1198,7 +1198,7 @@ mod test {
 
     fn make_app_state(pool: PgPool, key: Key) -> AppState {
         let (webhook_tx, webhook_rx) = mpsc::unbounded_channel();
-        let (gateway_tx, _gateway_rx) = broadcast::channel(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel();
         let (web_reload_tx, _web_reload_rx) = broadcast::channel(8);
         let (event_tx, _event_rx) = mpsc::unbounded_channel();
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();

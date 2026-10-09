@@ -213,11 +213,11 @@ impl TestClient {
         loop {
             match self.api_event_rx.try_recv() {
                 Ok(msg) => all_events.push((*msg.event, msg.context.user_id, msg.context.username)),
-                Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                Err(TryRecvError::Empty) => {
                     // No more messages available right now
                     break;
                 }
-                Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                Err(TryRecvError::Disconnected) => {
                     // Channel is closed
                     break;
                 }

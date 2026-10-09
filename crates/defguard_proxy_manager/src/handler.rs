@@ -72,9 +72,8 @@ use tokio::{
     select,
     sync::{
         Mutex, Semaphore, TryAcquireError,
-        broadcast::Sender,
         mpsc::{self, UnboundedSender},
-        watch,
+        oneshot, watch,
     },
     task::JoinSet,
     time::sleep,
@@ -202,7 +201,7 @@ fn build_auth_info_payload(
     })
 }
 
-type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
+type ShutdownReceiver = oneshot::Receiver<bool>;
 
 #[cfg(test)]
 #[derive(Default)]
@@ -643,7 +642,7 @@ impl ProxyHandler {
         received: CoreRequest,
         response_tx: UnboundedSender<CoreResponse>,
         services: Arc<ProxyServices>,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         handler_tx_map: HandlerTxMap,
     ) -> Result<(), ProxyError> {
         let payload = match received.payload {
@@ -1173,7 +1172,7 @@ impl ProxyHandler {
     async fn message_loop(
         &mut self,
         tx: UnboundedSender<CoreResponse>,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         resp_stream: &mut Streaming<CoreRequest>,
     ) -> Result<(), ProxyError> {
         let mut tasks = JoinSet::new();
@@ -1327,7 +1326,7 @@ impl ProxyHandler {
     async fn handle_auth_callback(
         pool: &PgPool,
         request: AuthCallbackRequest,
-        gateway_tx: &Sender<GatewayCommand>,
+        gateway_tx: &UnboundedSender<GatewayCommand>,
         services: &Arc<ProxyServices>,
     ) -> Result<Option<core_response::Payload>, ProxyError> {
         let payload = match Settings::get_current_settings()

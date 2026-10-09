@@ -29,6 +29,7 @@ use ipnetwork::IpNetwork;
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::mpsc;
 
 use super::common::{
     authenticate_admin,
@@ -553,7 +554,7 @@ async fn test_create_network_with_posture_checks_requires_enterprise_license(
     client.assert_event_queue_is_empty();
     assert_matches!(
         client_state.gateway_rx.try_recv(),
-        Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+        Err(mpsc::error::TryRecvError::Empty)
     );
 
     let response = client.get("/api/v1/network").send().await;
@@ -881,10 +882,7 @@ async fn test_modify_network_does_not_notify_gateway_when_commit_fails(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    assert_matches!(
-        gateway_rx.try_recv(),
-        Err(tokio::sync::broadcast::error::TryRecvError::Empty)
-    );
+    assert_matches!(gateway_rx.try_recv(), Err(mpsc::error::TryRecvError::Empty));
 
     let response = client
         .get(format!("/api/v1/network/{}", location.id))

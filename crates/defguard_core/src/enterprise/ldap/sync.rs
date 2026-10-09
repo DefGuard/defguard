@@ -80,7 +80,7 @@ use defguard_common::db::{
 };
 use serde::Serialize;
 use sqlx::{PgConnection, PgPool};
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
@@ -572,7 +572,7 @@ impl super::LDAPConnection {
         mut intersecting_users: Vec<(User, User<Id>)>,
         authority: Authority,
         pool: &PgPool,
-        wg_tx: &Sender<GatewayCommand>,
+        wg_tx: &UnboundedSender<GatewayCommand>,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         let sync_account_status = self.config.ldap_uses_ad && self.config.ldap_sync_account_status;
@@ -665,7 +665,7 @@ impl super::LDAPConnection {
         &mut self,
         user: &User<Id>,
         pool: &PgPool,
-        wg_tx: &Sender<GatewayCommand>,
+        wg_tx: &UnboundedSender<GatewayCommand>,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         debug!("Syncing user data for {user}");
@@ -812,7 +812,7 @@ impl super::LDAPConnection {
         &mut self,
         pool: &PgPool,
         full: bool,
-        wg_tx: &Sender<GatewayCommand>,
+        wg_tx: &UnboundedSender<GatewayCommand>,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         let settings = Settings::get_current_settings();
@@ -1141,7 +1141,7 @@ impl super::LDAPConnection {
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
-        gateway_tx: &Sender<GatewayCommand>,
+        gateway_tx: &UnboundedSender<GatewayCommand>,
         mut changes: UserSyncChanges,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {

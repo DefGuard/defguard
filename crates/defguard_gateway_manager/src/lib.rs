@@ -19,8 +19,7 @@ use sqlx::{PgPool, postgres::PgListener};
 use tokio::sync::Notify;
 use tokio::{
     sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedSender, unbounded_channel},
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
         watch::Receiver,
     },
     task::{AbortHandle, JoinHandle, JoinSet},
@@ -36,6 +35,7 @@ extern crate tracing;
 mod certs;
 mod error;
 mod handler;
+mod updates;
 
 #[cfg(test)]
 mod tests;
@@ -298,24 +298,38 @@ pub struct GatewayManager {
     #[cfg(test)]
     test_support: GatewayManagerTestSupport,
     tx: GatewayTxSet,
+    /// Taken by [`Self::run`].
+    events_rx: Option<UnboundedReceiver<GatewayCommand>>,
+    event_router: GatewayEventRouter,
 }
 
 impl GatewayManager {
     #[cfg(not(test))]
     #[must_use]
-    pub fn new(pool: PgPool, tx: GatewayTxSet) -> Self {
+    pub fn new(
+        pool: PgPool,
+        tx: GatewayTxSet,
+        events_rx: UnboundedReceiver<GatewayCommand>,
+    ) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
             disconnect_notification_sent_by_gateway: Arc::default(),
             tx,
+            events_rx: Some(events_rx),
+            event_router: GatewayEventRouter::default(),
         }
     }
 
     #[cfg(test)]
     #[must_use]
-    fn new(pool: PgPool, tx: GatewayTxSet, test_support: GatewayManagerTestSupport) -> Self {
+    fn new(
+        pool: PgPool,
+        tx: GatewayTxSet,
+        events_rx: UnboundedReceiver<GatewayCommand>,
+        test_support: GatewayManagerTestSupport,
+    ) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
@@ -323,6 +337,8 @@ impl GatewayManager {
             disconnect_notification_sent_by_gateway: Arc::default(),
             test_support,
             tx,
+            events_rx: Some(events_rx),
+            event_router: GatewayEventRouter::default(),
         }
     }
 
@@ -383,7 +399,7 @@ impl GatewayManager {
                     GatewayHandler::new_with_test_socket(
                         gateway,
                         self.pool.clone(),
-                        self.tx.events.clone(),
+                        self.event_router.clone(),
                         self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
@@ -394,7 +410,7 @@ impl GatewayManager {
                     GatewayHandler::new(
                         gateway,
                         self.pool.clone(),
-                        self.tx.events.clone(),
+                        self.event_router.clone(),
                         self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
@@ -410,7 +426,7 @@ impl GatewayManager {
         GatewayHandler::new(
             gateway,
             self.pool.clone(),
-            self.tx.events.clone(),
+            self.event_router.clone(),
             self.tx.connection_events.clone(),
             self.tx.peer_stats.clone(),
             certs_rx,
@@ -429,6 +445,9 @@ impl GatewayManager {
                 sleep(TEN_SECS).await;
             }
         }));
+        let _dispatch_events_task = self.events_rx.take().map(|events_rx| {
+            AbortTaskOnDrop::new(tokio::spawn(self.event_router.clone().run(events_rx)))
+        });
         // Stores the abort handle and a snapshot of the gateway at the time the handler was last
         // started. The snapshot is used by the Update arm to detect connection-relevant changes.
         let mut abort_handles: HashMap<Id, (AbortHandle, Gateway<Id>)> = HashMap::new();
@@ -736,20 +755,15 @@ mod unit_tests {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct GatewayTxSet {
-    events: Sender<GatewayCommand>,
     peer_stats: UnboundedSender<PeerStatsUpdate>,
     connection_events: UnboundedSender<GatewayConnectionEvent>,
 }
 
 impl GatewayTxSet {
     #[must_use]
-    pub fn new(
-        events: Sender<GatewayCommand>,
-        peer_stats: UnboundedSender<PeerStatsUpdate>,
-    ) -> Self {
+    pub fn new(peer_stats: UnboundedSender<PeerStatsUpdate>) -> Self {
         let (connection_events, _receiver) = unbounded_channel();
         Self {
-            events,
             peer_stats,
             connection_events,
         }
@@ -762,5 +776,50 @@ impl GatewayTxSet {
     ) -> Self {
         self.connection_events = connection_events;
         self
+    }
+}
+
+/// Delivers Gateway events to all updates handlers.
+#[derive(Clone, Default)]
+pub(crate) struct GatewayEventRouter {
+    senders: Arc<Mutex<HashMap<Id, UnboundedSender<GatewayCommand>>>>,
+}
+
+impl GatewayEventRouter {
+    /// Replaces any previously registered channel for this Gateway.
+    pub(crate) fn register(&self, gateway_id: Id, events_tx: UnboundedSender<GatewayCommand>) {
+        self.senders
+            .lock()
+            .expect("Failed to lock GatewayEventRouter::senders")
+            .insert(gateway_id, events_tx);
+    }
+
+    pub(crate) async fn run(self, mut events_rx: UnboundedReceiver<GatewayCommand>) {
+        while let Some(event) = events_rx.recv().await {
+            self.dispatch(&event);
+        }
+    }
+
+    /// Sends the event to all handlers, dropping closed channels.
+    fn dispatch(&self, event: &GatewayCommand) {
+        self.senders
+            .lock()
+            .expect("Failed to lock GatewayEventRouter::senders")
+            .retain(|gateway_id, events_tx| {
+                let sent = events_tx.send(event.clone()).is_ok();
+                if !sent {
+                    debug!("Updates handler for Gateway id={gateway_id} has stopped");
+                }
+                sent
+            });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn registered(&self, gateway_id: Id) -> Option<UnboundedSender<GatewayCommand>> {
+        self.senders
+            .lock()
+            .expect("Failed to lock GatewayEventRouter::senders")
+            .get(&gateway_id)
+            .cloned()
     }
 }

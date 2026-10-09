@@ -116,7 +116,7 @@ defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
-hyper-util = "0.1"
+hyper-util.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",

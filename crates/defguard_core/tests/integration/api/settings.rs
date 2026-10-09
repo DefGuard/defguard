@@ -1,4 +1,4 @@
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
 use defguard_common::{
     db::models::{
@@ -252,7 +252,7 @@ async fn test_ldap_connection_test_with_submitted_settings(
     let mut submitted = saved_settings.clone();
     submitted.ldap_url = Some("ldap://127.0.0.1:1".to_owned());
     submitted.ldap_bind_username = Some("cn=admin,dc=example,dc=com".to_owned());
-    submitted.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    submitted.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     submitted.ldap_username_attr = Some("uid".to_owned());
     submitted.ldap_user_search_base = Some("ou=users,dc=example,dc=com".to_owned());
     submitted.ldap_user_obj_class = Some("inetOrgPerson".to_owned());
@@ -716,12 +716,10 @@ async fn test_get_settings_does_not_expose_secrets(_: PgPoolOptions, options: Pg
     assert_eq!(response.status(), StatusCode::OK);
 
     let mut settings = Settings::get_current_settings();
-    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("ldap-secret").unwrap());
-    settings.smtp.password = Some(SecretStringWrapper::from_str("smtp-secret").unwrap());
-    settings.smtp.oauth_client_secret =
-        Some(SecretStringWrapper::from_str("oauth-client-secret").unwrap());
-    settings.smtp.oauth_refresh_token =
-        Some(SecretStringWrapper::from_str("oauth-refresh-token").unwrap());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from("ldap-secret"));
+    settings.smtp.password = Some(SecretStringWrapper::from("smtp-secret"));
+    settings.smtp.oauth_client_secret = Some(SecretStringWrapper::from("oauth-client-secret"));
+    settings.smtp.oauth_refresh_token = Some(SecretStringWrapper::from("oauth-refresh-token"));
     update_current_settings(&client_state.pool, settings)
         .await
         .unwrap();
@@ -769,7 +767,7 @@ async fn test_get_settings_does_not_expose_secrets(_: PgPoolOptions, options: Pg
 }
 
 fn secret(value: &str) -> Option<SecretStringWrapper> {
-    Some(SecretStringWrapper::from_str(value).unwrap())
+    Some(SecretStringWrapper::from(value))
 }
 
 async fn store_all_secrets(pool: &PgPool) {

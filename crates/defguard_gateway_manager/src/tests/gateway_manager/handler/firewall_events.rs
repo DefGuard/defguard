@@ -15,7 +15,7 @@ async fn test_matching_location_firewall_config_changed_event_produces_update(
                 context.network.id,
                 expected_firewall_config.clone(),
             )),
-        "failed to broadcast firewall config changed event"
+        "failed to send firewall config changed event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -38,7 +38,7 @@ async fn test_matching_location_firewall_disabled_event_produces_disable_update(
         context
             .events_tx()
             .send(GatewayCommand::FirewallDisabled(context.network.id)),
-        "failed to broadcast firewall disabled event"
+        "failed to send firewall disabled event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;

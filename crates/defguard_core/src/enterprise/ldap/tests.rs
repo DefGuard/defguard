@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use defguard_common::{
     db::{
@@ -14,10 +14,7 @@ use defguard_common::{
     testing::smtp::configure_working_smtp,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::sync::{
-    broadcast::{Receiver, Sender, channel},
-    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use super::{
     model::{
@@ -84,7 +81,7 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
     settings.smtp.sender = Some("noreply@example.com".into());
     settings.ldap_url = Some("ldap://localhost".into());
     settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
-    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     settings.ldap_username_attr = Some("uid".into());
     settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
     settings.ldap_user_obj_class = Some("inetOrgPerson".into());
@@ -96,8 +93,11 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
 }
 
 /// Bind both halves: a dropped receiver makes `Sender::send` fail and swallow events.
-fn wg_test_channel() -> (Sender<GatewayCommand>, Receiver<GatewayCommand>) {
-    channel(256)
+fn wg_test_channel() -> (
+    UnboundedSender<GatewayCommand>,
+    UnboundedReceiver<GatewayCommand>,
+) {
+    unbounded_channel()
 }
 
 fn ldap_test_channel() -> (
@@ -115,7 +115,7 @@ fn drain_ldap_sync_events(rx: &mut UnboundedReceiver<LdapSyncEventType>) -> Vec<
     events
 }
 
-fn drain_gateway_commands(rx: &mut Receiver<GatewayCommand>) -> Vec<GatewayCommand> {
+fn drain_gateway_commands(rx: &mut UnboundedReceiver<GatewayCommand>) -> Vec<GatewayCommand> {
     let mut events = Vec::new();
     while let Ok(event) = rx.try_recv() {
         events.push(event);
@@ -204,7 +204,7 @@ async fn defguard_sync_snapshot(
 async fn assert_incremental_sync_converges(
     ldap_conn: &mut super::LDAPConnection,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
 ) {
     let before = defguard_sync_snapshot(pool).await;
     ldap_conn.test_client_mut().clear_events();

@@ -35,7 +35,7 @@ use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
     sync::{
-        Notify, broadcast,
+        Notify,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
@@ -45,7 +45,10 @@ use tokio::{
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
-use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
+use crate::{
+    GatewayEventRouter, GatewayManager, GatewayManagerTestSupport, GatewayTxSet,
+    handler::GatewayHandler,
+};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -474,10 +477,11 @@ impl ManagerTestContext {
 
         self.set_retry_delay(FAST_RETRY_DELAY);
 
-        let (events_tx, _) = broadcast::channel(16);
+        let (_events_tx, events_rx) = mpsc::unbounded_channel();
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
-        let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
-        let mut manager = GatewayManager::new(self.pool.clone(), tx, self.control.clone());
+        let tx = GatewayTxSet::new(peer_stats_tx);
+        let mut manager =
+            GatewayManager::new(self.pool.clone(), tx, events_rx, self.control.clone());
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
@@ -524,21 +528,25 @@ pub(crate) struct HandlerTestContext {
     pub(crate) gateway: Gateway<Id>,
     pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     pub(crate) connection_events_rx: UnboundedReceiver<GatewayConnectionEvent>,
-    events_tx: Option<broadcast::Sender<GatewayCommand>>,
+    events_tx: Option<UnboundedSender<GatewayCommand>>,
+    event_router: GatewayEventRouter,
+    dispatch_task: JoinHandle<()>,
     pub(crate) mock_gateway: Option<MockGatewayHarness>,
     handler_task: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
-        let (events_tx, _) = broadcast::channel(16);
-        Self::new_with_events_tx(options, events_tx).await
+        Self::new_with_event_router(options, GatewayEventRouter::default()).await
     }
 
-    pub(crate) async fn new_with_events_tx(
+    /// Contexts sharing a router receive each other's events.
+    pub(crate) async fn new_with_event_router(
         options: PgConnectOptions,
-        events_tx: broadcast::Sender<GatewayCommand>,
+        event_router: GatewayEventRouter,
     ) -> Self {
+        let (events_tx, events_rx) = mpsc::unbounded_channel();
+        let dispatch_task = tokio::spawn(event_router.clone().run(events_rx));
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
             .await
@@ -552,7 +560,7 @@ impl HandlerTestContext {
         let mut handler = GatewayHandler::new_with_test_socket(
             gateway.clone(),
             pool.clone(),
-            events_tx.clone(),
+            event_router.clone(),
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
@@ -571,12 +579,18 @@ impl HandlerTestContext {
             peer_stats_rx,
             connection_events_rx,
             events_tx: Some(events_tx),
+            event_router,
+            dispatch_task,
             mock_gateway: Some(mock_gateway),
             handler_task: Some(handler_task),
         }
     }
 
-    pub(crate) fn events_tx(&self) -> &broadcast::Sender<GatewayCommand> {
+    pub(crate) fn is_events_handler_registered(&self) -> bool {
+        self.event_router.registered(self.gateway.id).is_some()
+    }
+
+    pub(crate) fn events_tx(&self) -> &UnboundedSender<GatewayCommand> {
         self.events_tx
             .as_ref()
             .expect("events sender already taken from context")
@@ -628,18 +642,26 @@ impl HandlerTestContext {
     }
 
     pub(crate) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
-        let initial_event_receivers = self.events_tx().receiver_count();
+        let initial_events_tx = self.event_router.registered(self.gateway.id);
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
         let connected_gateway =
             wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
         timeout(TEST_TIMEOUT, async {
-            while self.events_tx().receiver_count() <= initial_event_receivers {
+            while self
+                .event_router
+                .registered(self.gateway.id)
+                .is_none_or(|events_tx| {
+                    initial_events_tx
+                        .as_ref()
+                        .is_some_and(|initial| initial.same_channel(&events_tx))
+                })
+            {
                 sleep(Duration::from_millis(20)).await;
             }
         })
         .await
-        .expect("timed out waiting for gateway updates handler subscription");
+        .expect("timed out waiting for gateway updates handler registration");
         tokio::task::yield_now().await;
         connected_gateway
     }
@@ -686,6 +708,7 @@ impl HandlerTestContext {
 
 impl Drop for HandlerTestContext {
     fn drop(&mut self) {
+        self.dispatch_task.abort();
         if let Some(handler_task) = self.handler_task.take() {
             handler_task.abort();
         }

@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use humantime::Duration;
 use reqwest::Url;
 use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
@@ -29,7 +27,7 @@ fn test_smtp_config() {
 
     // add auth info
     settings.smtp.user = Some("smtp_user".into());
-    settings.smtp.password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+    settings.smtp.password = Some(SecretStringWrapper::from("hunter2"));
     assert!(settings.smtp_configured());
 }
 
