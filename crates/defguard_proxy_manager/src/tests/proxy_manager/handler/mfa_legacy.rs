@@ -319,7 +319,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
@@ -422,11 +422,11 @@ async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
-                assert!(!result.preshared_key.is_empty());
+                assert_ne!(result.preshared_key, "");
                 parked_key = Some(result.preshared_key.clone());
             }
             _ => panic!("unexpected response"),
@@ -786,7 +786,7 @@ async fn test_mfa_await_remote_does_not_receive_psk_after_email_finish(
     let response = context.mock_proxy_mut().recv_outbound().await;
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(response)) => {
-            assert!(!response.preshared_key.is_empty());
+            assert_ne!(response.preshared_key, "");
         }
         other => panic!(
             "expected ClientMfaFinish response, got {:?}",

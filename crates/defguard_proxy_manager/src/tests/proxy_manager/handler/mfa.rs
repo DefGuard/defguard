@@ -739,7 +739,7 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
     else {
         panic!("2.2 mobile approval must complete the flow");
     };
-    assert!(!completed.preshared_key.is_empty());
+    assert_ne!(completed.preshared_key, "");
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert_eq!(
         session.preshared_key.as_ref(),
@@ -2196,7 +2196,7 @@ async fn test_parked_mobile_approval_completes_final_step(
             let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
                 panic!("expected completed parked result");
             };
-            assert!(!completed.preshared_key.is_empty());
+            assert_ne!(completed.preshared_key, "");
             parked_key = Some(completed.preshared_key);
         }
     }
@@ -2399,7 +2399,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
     let challenge = step_started
         .challenge
         .expect("biometric StepStart must return a challenge");
-    assert!(!challenge.is_empty());
+    assert_ne!(challenge, "");
     let invalid_response = send_flow_step_finish(
         &mut context,
         &token,
@@ -2443,7 +2443,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
         Some(mfa_step_result::Outcome::Completed(completed)) => completed.preshared_key,
         _ => panic!("expected completed biometric response"),
     };
-    assert!(!preshared_key.is_empty());
+    assert_ne!(preshared_key, "");
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
