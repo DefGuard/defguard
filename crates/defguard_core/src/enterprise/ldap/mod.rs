@@ -15,7 +15,7 @@ use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use self::error::LdapError;
 use crate::{
@@ -52,7 +52,7 @@ pub mod utils;
 /// Sets LDAP sync status to OutOfSync if any errors occur during the process.
 pub(crate) async fn do_ldap_sync(
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
@@ -417,7 +417,7 @@ impl LDAPConnection {
         &mut self,
         users: Vec<&mut User<Id>>,
         pool: &PgPool,
-        wg_tx: &Sender<GatewayCommand>,
+        wg_tx: &UnboundedSender<GatewayCommand>,
         ldap_tx: &UnboundedSender<LdapSyncEventType>,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");

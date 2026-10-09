@@ -44,7 +44,10 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::sync::{broadcast, mpsc};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::{sleep, timeout},
+};
 use tonic::Code;
 use totp_lite::{Sha1, totp_custom};
 
@@ -1034,7 +1037,7 @@ async fn test_replacing_connected_mfa_session_emits_session_superseded_event(
     .await
     .expect("failed to create existing MFA session");
 
-    let (gateway_tx, mut gateway_rx) = broadcast::channel(8);
+    let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
     let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
@@ -1105,7 +1108,7 @@ async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disco
         .await
         .expect("failed to create existing new MFA session");
 
-    let (gateway_tx, mut gateway_rx) = broadcast::channel(8);
+    let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
     let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
@@ -1135,7 +1138,7 @@ async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disco
 
     assert!(matches!(
         event_rx.try_recv(),
-        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        Err(mpsc::error::TryRecvError::Empty)
     ));
 
     let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
@@ -1149,10 +1152,10 @@ fn make_server(
     pool: PgPool,
 ) -> (
     ClientMfaServer,
-    tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-    tokio::sync::broadcast::Receiver<GatewayCommand>,
+    mpsc::UnboundedReceiver<BidiStreamEvent>,
+    mpsc::UnboundedReceiver<GatewayCommand>,
 ) {
-    let (gateway_tx, gateway_rx) = broadcast::channel(8);
+    let (gateway_tx, gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
     let remote_mfa_responses: RemoteAuthWaiters = Arc::default();
 
@@ -1234,7 +1237,7 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
         .await
         .expect("failed to create previous active MFA session");
 
-    let (gateway_tx, mut gateway_rx) = broadcast::channel(4);
+    let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, _bidi_event_rx) = mpsc::unbounded_channel();
     let mut conn = pool
         .acquire()
@@ -1395,8 +1398,8 @@ async fn setup_mobile_mfa_flow_server(
     String,
     String,
     SigningKey,
-    tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-    tokio::sync::broadcast::Receiver<GatewayCommand>,
+    mpsc::UnboundedReceiver<BidiStreamEvent>,
+    mpsc::UnboundedReceiver<GatewayCommand>,
 ) {
     set_enterprise_license();
     let pool = setup_pool(options).await;
@@ -1435,8 +1438,8 @@ async fn setup_totp_mfa_server(
     Id,
     String,
     String,
-    tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
-    tokio::sync::broadcast::Receiver<GatewayCommand>,
+    mpsc::UnboundedReceiver<BidiStreamEvent>,
+    mpsc::UnboundedReceiver<GatewayCommand>,
 ) {
     set_enterprise_license();
     let pool = setup_pool(options).await;
@@ -1504,7 +1507,7 @@ fn assert_superseded_response(response: Option<CoreResponse>, request_id: u64) {
 #[test]
 fn test_remote_waiters_are_scoped_by_contract_and_attempt() {
     let waiters: RemoteAuthWaiters = Arc::default();
-    let (multi_signal_tx, _multi_signal_rx) = tokio::sync::oneshot::channel();
+    let (multi_signal_tx, _multi_signal_rx) = oneshot::channel();
     waiters.write().unwrap().insert(
         hash_token("multi-token"),
         super::RemoteAuthWaiter {
@@ -1526,7 +1529,7 @@ fn test_remote_waiters_are_scoped_by_contract_and_attempt() {
             .is_some()
     );
 
-    let (legacy_signal_tx, _legacy_signal_rx) = tokio::sync::oneshot::channel();
+    let (legacy_signal_tx, _legacy_signal_rx) = oneshot::channel();
     waiters.write().unwrap().insert(
         hash_token("legacy-token"),
         super::RemoteAuthWaiter {
@@ -1549,7 +1552,7 @@ fn test_remove_remote_mfa_waiter_only_removes_matching_identity() {
     let waiters: RemoteAuthWaiters = Arc::default();
     let stale_waiter_identity = Arc::new(());
     let current_waiter_identity = Arc::new(());
-    let (signal_tx, _signal_rx) = tokio::sync::oneshot::channel();
+    let (signal_tx, _signal_rx) = oneshot::channel();
 
     waiters.write().unwrap().insert(
         "test-hash".to_owned(),
@@ -1604,7 +1607,7 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
         .await
         .expect("second waiter should replace the first");
 
-    let first_response = tokio::time::timeout(Duration::from_secs(1), first_response_rx.recv())
+    let first_response = timeout(Duration::from_secs(1), first_response_rx.recv())
         .await
         .expect("old waiter should finish after replacement");
     let newer_waiter_registered = server
@@ -1618,7 +1621,7 @@ async fn test_duplicate_remote_mfa_park_supersedes_old_waiter_and_preserves_newe
         .write()
         .expect("failed to write remote MFA waiters")
         .remove(&hash);
-    let second_response = tokio::time::timeout(Duration::from_secs(1), second_response_rx.recv())
+    let second_response = timeout(Duration::from_secs(1), second_response_rx.recv())
         .await
         .expect("newer waiter cleanup should finish");
 
@@ -1655,7 +1658,7 @@ async fn test_legacy_mfa_remote_timeout_sends_terminal_error(
         .await
         .expect("remote waiter should park");
 
-    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+    let response = timeout(Duration::from_secs(1), response_rx.recv())
         .await
         .expect("timed-out legacy waiter should finish");
     assert_core_error_response(
@@ -1716,7 +1719,7 @@ async fn test_legacy_mfa_start_supersedes_parked_waiter_with_defined_result(
         .expect("replacement start should succeed");
     assert!(!replacement.token.is_empty());
 
-    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+    let response = timeout(Duration::from_secs(1), response_rx.recv())
         .await
         .expect("superseded waiter should finish after replacement start");
     assert_superseded_response(response, 1);
@@ -2052,7 +2055,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         .await
         .expect("matching approval should wake the remote waiter");
 
-    let response = tokio::time::timeout(Duration::from_secs(2), response_rx.recv())
+    let response = timeout(Duration::from_secs(2), response_rx.recv())
         .await
         .expect("remote waiter should finish after approval")
         .expect("remote response sender should remain available");
@@ -2180,7 +2183,7 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
         )
         .await
         .expect("remote waiter should observe the durable approval");
-    let response = tokio::time::timeout(Duration::from_secs(2), response_rx.recv())
+    let response = timeout(Duration::from_secs(2), response_rx.recv())
         .await
         .expect("remote waiter should finish")
         .expect("remote response sender should remain available");
@@ -2246,7 +2249,7 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
         .await
         .expect("remote waiter should park");
 
-    tokio::time::timeout(Duration::from_secs(1), async {
+    timeout(Duration::from_secs(1), async {
         loop {
             if server
                 .remote_mfa_responses
@@ -2256,12 +2259,12 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
             {
                 break;
             }
-            tokio::time::sleep(Duration::from_millis(5)).await;
+            sleep(Duration::from_millis(5)).await;
         }
     })
     .await
     .expect("timeout cleanup should remove the owning waiter");
-    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+    let response = timeout(Duration::from_secs(1), response_rx.recv())
         .await
         .expect("timed-out remote waiter should send a response");
     assert_core_error_response(
@@ -2292,7 +2295,7 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
         .remove(&hash_token(&token))
         .expect("parked waiter should be registered");
     drop(waiter);
-    let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+    let response = timeout(Duration::from_secs(1), response_rx.recv())
         .await
         .expect("closed signal receiver should send a response");
     assert_core_error_response(

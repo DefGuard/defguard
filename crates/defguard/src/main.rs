@@ -300,8 +300,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // setup communication channels for services
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    // RX is discarded here since it can be derived from TX later on
-    let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(256);
+    let (gateway_tx, gateway_rx) = unbounded_channel::<GatewayCommand>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
@@ -345,8 +344,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut gateway_manager = GatewayManager::new(
         pool.clone(),
-        GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx)
-            .with_connection_events(gateway_connection_event_tx),
+        GatewayTxSet::new(peer_stats_tx).with_connection_events(gateway_connection_event_tx),
+        gateway_rx,
     );
 
     debug!("Resetting proxy connection state on startup");

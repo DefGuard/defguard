@@ -18,6 +18,7 @@ use defguard_core::{
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::mpsc;
 
 use super::{
     PaginatedApiResponse,
@@ -48,12 +49,12 @@ async fn setup(options: PgConnectOptions) -> (TestClient, ClientState) {
     (client, state)
 }
 
-fn drain_gateway_events(gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>) {
+fn drain_gateway_events(gateway_rx: &mut mpsc::UnboundedReceiver<GatewayCommand>) {
     while gateway_rx.try_recv().is_ok() {}
 }
 
 fn expect_network_modified_peers(
-    gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>,
+    gateway_rx: &mut mpsc::UnboundedReceiver<GatewayCommand>,
     location_id: Id,
     expected_pubkeys: &[&str],
 ) {

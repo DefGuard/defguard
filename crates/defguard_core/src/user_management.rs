@@ -9,7 +9,7 @@ use defguard_common::db::{
 };
 use sqlx::PgConnection;
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     enterprise::{
@@ -152,7 +152,7 @@ impl UserManager {
     }
 
     /// Send all commands to Gateway. Use this method *after* database transaction is committed.
-    pub fn send(self, gateway_tx: &Sender<GatewayCommand>) {
+    pub fn send(self, gateway_tx: &UnboundedSender<GatewayCommand>) {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }
 }

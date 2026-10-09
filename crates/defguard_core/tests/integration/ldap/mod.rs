@@ -25,20 +25,20 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::sync::{
-    broadcast::{Receiver, Sender, channel},
-    mpsc,
-};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender, unbounded_channel};
 
-fn wg_test_channel() -> (Sender<GatewayCommand>, Receiver<GatewayCommand>) {
-    channel(256)
+fn wg_test_channel() -> (
+    UnboundedSender<GatewayCommand>,
+    UnboundedReceiver<GatewayCommand>,
+) {
+    unbounded_channel()
 }
 
 async fn sync_ldap(
     ldap_conn: &mut LDAPConnection,
     pool: &PgPool,
     full: bool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
 ) {
     let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
     ldap_conn.sync(pool, full, wg_tx, &ldap_tx).await.unwrap();

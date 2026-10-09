@@ -1,10 +1,10 @@
 //! Gateway command types and helpers for communicating with the gateway manager service.
 //!
 //! [`GatewayCommand`] is the primary type sent from core to the gateway manager over
-//! an in-process broadcast channel. The gateway manager converts each command to the
+//! an in-process MPSC channel. The gateway manager converts each command to the
 //! appropriate protobuf wire message before forwarding it to the gateway daemon.
 
-use tokio::sync::broadcast::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
 
 use crate::{
@@ -45,7 +45,7 @@ pub enum GatewayCommand {
 /// Sends a [`GatewayCommand`] to the gateway manager service.
 ///
 /// In API handler context prefer `AppState::send_gateway_command`.
-pub fn send_gateway_command(command: GatewayCommand, gateway_tx: &Sender<GatewayCommand>) {
+pub fn send_gateway_command(command: GatewayCommand, gateway_tx: &UnboundedSender<GatewayCommand>) {
     debug!("Sending the following command to Gateway Manager: {command:?}");
     if let Err(err) = gateway_tx.send(command) {
         error!("Error sending gateway command: {err}");
@@ -57,7 +57,7 @@ pub fn send_gateway_command(command: GatewayCommand, gateway_tx: &Sender<Gateway
 /// In API handler context prefer `AppState::send_multiple_gateway_commands`.
 pub fn send_multiple_gateway_commands(
     commands: Vec<GatewayCommand>,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
 ) {
     debug!("Sending {} gateway commands", commands.len());
     for command in commands {

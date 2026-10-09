@@ -27,7 +27,6 @@ use tokio::{
     select,
     sync::{
         Mutex, Semaphore,
-        broadcast::Sender,
         mpsc::{Receiver, UnboundedSender, unbounded_channel},
         oneshot, watch,
     },
@@ -428,7 +427,7 @@ impl ProxyManager {
 /// events, notifications, and side effects to Core components.
 #[derive(Clone)]
 pub struct ProxyTxSet {
-    wireguard: Sender<GatewayCommand>,
+    wireguard: UnboundedSender<GatewayCommand>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
     pub(crate) ldap: UnboundedSender<LdapSyncEventType>,
     pub(crate) dirsync: UnboundedSender<DirectorySyncEvent>,
@@ -439,7 +438,7 @@ pub struct ProxyTxSet {
 impl ProxyTxSet {
     #[must_use]
     pub fn new(
-        wireguard: Sender<GatewayCommand>,
+        wireguard: UnboundedSender<GatewayCommand>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
         ldap: UnboundedSender<LdapSyncEventType>,
         dirsync: UnboundedSender<DirectorySyncEvent>,

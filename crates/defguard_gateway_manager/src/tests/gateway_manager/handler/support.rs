@@ -269,16 +269,15 @@ pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
     build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
-    assert_eq!(context.events_tx().receiver_count(), 0);
+    assert!(!context.is_events_handler_registered());
 
-    let _broadcast_guard = context.events_tx().subscribe();
     let device_info =
         create_device_info_for_current_network(&context, device_name, device_pubkey, device_ip)
             .await;
 
     assert_send_ok!(
         context.events_tx().send(build_event(device_info)),
-        "failed to broadcast ignored device event"
+        "failed to send ignored device event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -309,7 +308,7 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
 
     assert_send_ok!(
         context.events_tx().send(build_event(device_info)),
-        "failed to broadcast ignored device event"
+        "failed to send ignored device event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -329,7 +328,7 @@ pub(crate) async fn assert_firewall_event_for_different_network_is_ignored(
 
     assert_send_ok!(
         context.events_tx().send(build_event(other_network.id)),
-        "failed to broadcast ignored firewall event"
+        "failed to send ignored firewall event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;

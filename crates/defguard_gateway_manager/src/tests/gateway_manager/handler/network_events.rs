@@ -12,7 +12,7 @@ async fn test_matching_location_network_deleted_event_produces_delete_update(
             context.network.id,
             context.network.name.clone(),
         )),
-        "failed to broadcast gateway event"
+        "failed to send gateway event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -51,7 +51,7 @@ async fn test_matching_location_network_modified_event_produces_modify_update(
             Vec::new(),
             None,
         )),
-        "failed to broadcast modified gateway event"
+        "failed to send modified gateway event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -96,7 +96,7 @@ async fn test_matching_location_network_created_event_produces_create_update(
             context.network.id,
             created_network,
         )),
-        "failed to broadcast created gateway event"
+        "failed to send created gateway event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -118,10 +118,11 @@ async fn test_only_matching_handler_receives_network_modified_update(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let (events_tx, _) = tokio::sync::broadcast::channel(16);
+    let event_router = GatewayEventRouter::default();
     let mut matching_context =
-        HandlerTestContext::new_with_events_tx(options.clone(), events_tx.clone()).await;
-    let mut unrelated_context = HandlerTestContext::new_with_events_tx(options, events_tx).await;
+        HandlerTestContext::new_with_event_router(options.clone(), event_router.clone()).await;
+    let mut unrelated_context =
+        HandlerTestContext::new_with_event_router(options, event_router).await;
 
     assert_ne!(matching_context.network.id, unrelated_context.network.id);
 
@@ -151,7 +152,7 @@ async fn test_only_matching_handler_receives_network_modified_update(
                 Vec::new(),
                 None,
             )),
-        "failed to broadcast modified gateway event"
+        "failed to send modified gateway event"
     );
 
     let outbound = matching_context.mock_gateway_mut().recv_outbound().await;
@@ -193,7 +194,7 @@ async fn test_different_location_network_created_event_is_ignored(
             other_network.id,
             other_network,
         )),
-        "failed to broadcast unrelated created gateway event"
+        "failed to send unrelated created gateway event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -216,7 +217,7 @@ async fn test_different_location_network_deleted_event_is_ignored(
             other_network.id,
             other_network.name.clone(),
         )),
-        "failed to broadcast unrelated gateway event"
+        "failed to send unrelated gateway event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -226,7 +227,7 @@ async fn test_different_location_network_deleted_event_is_ignored(
             context.network.id,
             context.network.name.clone(),
         )),
-        "failed to broadcast owned gateway event"
+        "failed to send owned gateway event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;

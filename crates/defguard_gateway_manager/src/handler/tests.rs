@@ -18,15 +18,14 @@ use defguard_common::{
         },
         setup_pool,
     },
-    gateway_event::GatewayCommand,
     gateway_types::WireguardPeer,
 };
 use defguard_proto::gateway::{Configuration, PeerStats, core_response};
 use prost_types::Timestamp;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
+use tokio::sync::{mpsc::unbounded_channel, watch};
 
-use crate::updates::GatewayUpdatesHandler;
+use crate::{GatewayEventRouter, updates::GatewayUpdatesHandler};
 
 use super::{GatewayHandler, try_protos_into_stats_message};
 
@@ -210,7 +209,7 @@ fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
 
 fn test_handler(mfa_enabled: bool) -> GatewayUpdatesHandler {
     let network = test_network(mfa_enabled);
-    let (events_tx, events_rx) = broadcast::channel(1);
+    let (events_tx, events_rx) = unbounded_channel();
     let (tx, _rx) = unbounded_channel();
     drop(events_tx);
 
@@ -377,14 +376,13 @@ async fn test_send_configuration_includes_mfa_peers_with_session_preshared_key(
         .save(&pool)
         .await
         .unwrap();
-    let (events_tx, _events_rx) = broadcast::channel::<GatewayCommand>(1);
     let (connection_events_tx, _connection_events_rx) = unbounded_channel();
     let (peer_stats_tx, _peer_stats_rx) = unbounded_channel();
     let (_certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::<Id, String>::new()));
     let handler = GatewayHandler::new(
         gateway,
         pool.clone(),
-        events_tx,
+        GatewayEventRouter::default(),
         connection_events_tx,
         peer_stats_tx,
         certs_rx,

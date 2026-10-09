@@ -36,7 +36,7 @@ use defguard_version::{Version, client::ClientVersionInterceptor};
 use ipnetwork::IpNetwork;
 use reqwest::Url;
 use sqlx::PgPool;
-use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
+use tokio::{sync::mpsc, time::timeout};
 use tonic::{
     Request, Status,
     service::Interceptor,
@@ -171,7 +171,7 @@ fn format_component_log(timestamp: &str, level: &str, target: &str, message: &st
     format!("{timestamp} {level} {target}: message={message}")
 }
 
-fn collect_stream_logs(log_rx: &mut UnboundedReceiver<String>) -> Vec<String> {
+fn collect_stream_logs(log_rx: &mut mpsc::UnboundedReceiver<String>) -> Vec<String> {
     let mut logs = Vec::new();
     while let Ok(log) = log_rx.try_recv() {
         logs.push(log);
@@ -189,7 +189,7 @@ fn collect_core_logs(log_buffer: &SetupLogBuffer) -> Vec<String> {
 fn merge_failure_logs(
     message: impl Into<String>,
     log_buffer: &SetupLogBuffer,
-    log_rx: &mut UnboundedReceiver<String>,
+    log_rx: &mut mpsc::UnboundedReceiver<String>,
 ) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     let msg = message.into();
     error!("{msg}");
@@ -250,7 +250,7 @@ async fn run_edge_adoption_attempt_scoped(
     ca_key_der: Vec<u8>,
 ) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     debug!("Starting edge adoption attempt host={host} port={port}");
-    let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let (log_tx, mut log_rx) = mpsc::unbounded_channel::<String>();
     let endpoint_str = format!("http://{host}:{port}");
     let url = match Url::parse(&endpoint_str) {
         Ok(url) => url,
@@ -573,7 +573,7 @@ async fn run_gateway_adoption_attempt_scoped(
     ca_key_der: Vec<u8>,
 ) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     debug!("Starting gateway adoption attempt host={host} port={port}");
-    let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let (log_tx, mut log_rx) = mpsc::unbounded_channel::<String>();
 
     let endpoint_str = format!("http://{host}:{port}");
     let url = match Url::parse(&endpoint_str) {

@@ -643,7 +643,7 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
         .await,
     );
     let challenge = challenge.expect("mobile approval must include a signature challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
@@ -747,7 +747,7 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
     );
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
-        Ok(Ok(GatewayCommand::VpnSessionAuthorized(location_id, _, _))) if location_id == network.id
+        Ok(Some(GatewayCommand::VpnSessionAuthorized(location_id, _, _))) if location_id == network.id
     ));
 
     context.finish().await.expect_server_finished().await;
@@ -785,7 +785,7 @@ async fn test_legacy_mfa_finish_rejects_valid_proof_without_waiter_on_two_step_f
         .await,
     );
     let challenge = challenge.expect("mobile approval must include a signature challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
@@ -917,7 +917,7 @@ async fn test_legacy_mfa_finish_rejects_previous_mobile_attempt_challenge(
         panic!("second MobileApprove attempt must include a signature challenge");
     };
     assert_ne!(current_challenge.challenge, first_challenge);
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 5,
@@ -1049,7 +1049,7 @@ async fn test_legacy_mfa_finish_hides_bad_mobile_signature(
     let challenge = challenge.expect("MobileApprove must include a challenge");
     let invalid_signature =
         sign_challenge(&signing_key, &format!("{challenge} is not the challenge"));
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
@@ -1300,9 +1300,6 @@ async fn test_mfa_token_valid_before_finish_invalid_after(
     let valid = send_token_validation(&mut context, &token).await;
     assert!(valid, "token must be valid after start");
 
-    // Subscribe before finish so the handler's gateway_tx.send() has a receiver
-    let _gateway_rx = context.gateway_tx.subscribe();
-
     let code = user.generate_email_mfa_code().expect("generate email code");
     send_mfa_finish(&mut context, &token, Some(&code)).await;
 
@@ -1410,8 +1407,6 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     setup_user_totp_mfa(&context.pool, &mut user).await;
 
     // ---- First MFA cycle ----
-    // Must subscribe before finish so the send has a receiver.
-    let _gw_rx1 = context.gateway_tx.subscribe();
 
     let (_, token1) = send_mfa_start(
         &mut context,
@@ -1452,7 +1447,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     // Subscribe before finish so both VpnSessionDeauthorized and
     // VpnSessionAuthorized have an active receiver.
-    let mut gw_rx2 = context.gateway_tx.subscribe();
+    let mut gw_rx2 = context.take_gateway_rx();
 
     let code2 = generate_totp_code(&user);
     let (_, psk2) = send_mfa_finish(&mut context, &token2, Some(&code2)).await;
@@ -1461,7 +1456,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
         "second MFA cycle must return a non-empty PSK"
     );
 
-    // Receive events from the gateway broadcast channel.  The handler sends
+    // Receive events from the gateway channel.  The handler sends
     // VpnSessionDeauthorized (for the old session) and then VpnSessionAuthorized
     // (for the new session) in that order.
     let mut got_disconnected = false;
@@ -1515,9 +1510,9 @@ async fn test_multi_step_mfa_full_flow(_: PgPoolOptions, options: PgConnectOptio
     .await;
     assert_ne!(token, "");
 
-    // Subscribe to the gateway broadcast before finishing so the collect path's
+    // Subscribe to the gateway channel before finishing so the collect path's
     // gateway send has a live receiver.
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     // Step 0 (TOTP) advances without authorizing.
     let totp = generate_totp_code(&user);
@@ -1615,7 +1610,7 @@ async fn test_mfa_flow_oidc_awaits_external_completion(
     .await;
     let started = send_mfa_step_start(&mut context, &token, MfaMethod::Oidc).await;
     let attempt_id = started.step_attempt_id;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let stale_response =
         send_flow_step_finish(&mut context, &token, "superseded-attempt", None).await;
@@ -1727,7 +1722,7 @@ async fn test_new_protocol_mobile_approve_marks_and_collects_by_poll(
     let challenge = started
         .challenge
         .expect("mobile approve StepStart must return a challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let response = send_flow_step_finish(&mut context, &token, &attempt_id, None).await;
     assert!(matches!(
@@ -1910,7 +1905,7 @@ async fn test_new_protocol_mobile_approve_advances_non_final_step(
     let challenge = started
         .challenge
         .expect("mobile approve StepStart must return a challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let signature = sign_challenge(&signing_key, &challenge);
     let response =
@@ -2003,7 +1998,7 @@ async fn test_new_protocol_mobile_approve_non_final_device_name_reaches_success_
     let challenge = started
         .challenge
         .expect("mobile approve StepStart must return a challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let signature = sign_challenge(&signing_key, &challenge);
     let response =
@@ -2135,7 +2130,7 @@ async fn test_parked_mobile_approval_completes_final_step(
         .challenge
         .expect("mobile approval needs a challenge");
     let signature = sign_challenge(&signing_key, &challenge);
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 7001,
@@ -2215,7 +2210,7 @@ async fn test_parked_mobile_approval_completes_final_step(
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,
-        Ok(Ok(GatewayCommand::VpnSessionAuthorized(id, _, _))) if id == network.id
+        Ok(Some(GatewayCommand::VpnSessionAuthorized(id, _, _))) if id == network.id
     ));
     let event = context
         .bidi_events_rx
@@ -2273,7 +2268,7 @@ async fn test_parked_mobile_approval_advances_non_final_step(
             .challenge
             .expect("mobile approval needs a challenge"),
     );
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: 7101,
@@ -2371,7 +2366,7 @@ async fn test_multi_step_biometric_flow_completes(_: PgPoolOptions, options: PgC
         &[MfaMethod::Totp, MfaMethod::Biometric],
     )
     .await;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let response = send_flow_code_finish(
         &mut context,

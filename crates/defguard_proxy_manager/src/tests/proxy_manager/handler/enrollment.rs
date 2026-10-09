@@ -517,7 +517,7 @@ async fn test_new_device_sends_gateway_device_created_event(
     start_enrollment_session(&mut context, &token.id).await;
 
     // Subscribe to gateway commands BEFORE sending the request.
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let pubkey = "DhsoNUJPXGl2g5CdqrfE0d7r+AUSHyw5RlNgbXqHlKE=";
     context.mock_proxy().send_request(CoreRequest {

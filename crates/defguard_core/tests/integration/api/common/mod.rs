@@ -37,10 +37,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
-    sync::{
-        broadcast::{self, Receiver},
-        mpsc::{self, channel, unbounded_channel},
-    },
+    sync::{broadcast, mpsc},
 };
 
 use self::client::TestClient;
@@ -59,7 +56,7 @@ pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri
 pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub gateway_rx: Receiver<GatewayCommand>,
+    pub gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
     pub proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
     pub test_user: User<Id>,
     #[allow(dead_code)]
@@ -70,7 +67,7 @@ impl ClientState {
     pub fn new(
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        gateway_rx: Receiver<GatewayCommand>,
+        gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
         proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
         test_user: User<Id>,
         config: DefGuardConfig,
@@ -91,10 +88,10 @@ pub(crate) async fn make_base_client(
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {
-    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
-    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let (api_event_tx, api_event_rx) = mpsc::unbounded_channel::<ApiEvent>();
+    let (tx, rx) = mpsc::unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (gateway_tx, gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+    let (gateway_tx, gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
     let license = License::new(
         "test_customer".to_owned(),
@@ -110,7 +107,7 @@ pub(crate) async fn make_base_client(
 
     set_cached_license(Some(license));
 
-    let (proxy_control_tx, proxy_control_rx) = channel(10);
+    let (proxy_control_tx, proxy_control_rx) = mpsc::channel(8);
 
     let client_state = ClientState::new(
         pool.clone(),
@@ -142,8 +139,8 @@ pub(crate) async fn make_base_client(
             .as_bytes(),
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
-    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
-    let (dirsync_tx, _dirsync_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+    let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
 
     let tls_active = Arc::new(AtomicBool::new(false));
     let webapp = build_webapp(

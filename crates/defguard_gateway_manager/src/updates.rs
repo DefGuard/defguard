@@ -13,7 +13,7 @@ use defguard_proto::{
     gateway::{Configuration, CoreResponse, Peer, Update, UpdateType, core_response, update},
 };
 use sqlx::PgPool;
-use tokio::sync::{broadcast, mpsc::UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tonic::{Code, Status};
 
 /// Helper struct for handling gateway events.
@@ -23,7 +23,7 @@ pub(crate) struct GatewayUpdatesHandler {
     gateway_name: String,
     pool: Option<PgPool>,
     pub(crate) session_authorization_required: bool,
-    events_rx: broadcast::Receiver<GatewayCommand>,
+    events_rx: UnboundedReceiver<GatewayCommand>,
     tx: UnboundedSender<CoreResponse>,
 }
 
@@ -34,7 +34,7 @@ impl GatewayUpdatesHandler {
         network: WireguardNetwork<Id>,
         gateway_name: String,
         pool: Option<PgPool>,
-        events_rx: broadcast::Receiver<GatewayCommand>,
+        events_rx: UnboundedReceiver<GatewayCommand>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
         Self {
@@ -144,15 +144,14 @@ impl GatewayUpdatesHandler {
 
     /// Process incoming Gateway events
     ///
-    /// Main gRPC server uses a shared channel for broadcasting all gateway events
-    /// so the handler must determine if an event is relevant for the network being serviced
+    /// Every handler receives all events, so it must skip those for other networks.
     pub(crate) async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
             self.gateway_name, self.network
         );
         self.refresh_session_authorization_required().await;
-        while let Ok(update) = self.events_rx.recv().await {
+        while let Some(update) = self.events_rx.recv().await {
             debug!("Received WireGuard update: {update:?}");
             let result = match update {
                 GatewayCommand::NetworkCreated(network_id, network) => {

@@ -8,7 +8,7 @@ use defguard_common::db::{
     models::{User, group::Group},
 };
 use sqlx::PgPool;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::{LDAPConnection, error::LdapError};
 use crate::{
@@ -122,7 +122,7 @@ pub(crate) async fn login_through_ldap_with_connection(
 pub async fn ldap_update_user_state(
     user: &mut User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let vec = vec![user];
@@ -133,7 +133,7 @@ pub async fn ldap_update_user_state(
 pub(crate) async fn ldap_update_users_state(
     users: Vec<&mut User<Id>>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _ = Box::pin(with_ldap_status(pool, async {
@@ -241,7 +241,7 @@ pub(crate) async fn ldap_handle_user_modify(
     old_username: &str,
     current_user: &mut User<Id>,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
 ) {
     let _: Result<(), LdapError> = Box::pin(with_ldap_status(pool, async {

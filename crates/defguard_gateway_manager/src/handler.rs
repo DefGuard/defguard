@@ -17,7 +17,6 @@ use defguard_common::{
         Id,
         models::{Certificates, Settings, WireguardNetwork, gateway::Gateway},
     },
-    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
@@ -37,7 +36,6 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        broadcast::Sender,
         mpsc::{self, UnboundedSender},
         watch,
     },
@@ -49,7 +47,9 @@ use tonic::transport::{Channel, Endpoint};
 
 #[cfg(test)]
 use crate::GatewayManagerTestSupport;
-use crate::{Client, TEN_SECS, error::GatewayError, updates::GatewayUpdatesHandler};
+use crate::{
+    Client, GatewayEventRouter, TEN_SECS, error::GatewayError, updates::GatewayUpdatesHandler,
+};
 
 #[cfg(test)]
 #[derive(Default)]
@@ -77,7 +77,7 @@ pub(crate) struct GatewayHandler {
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
-    events_tx: Sender<GatewayCommand>,
+    event_router: GatewayEventRouter,
     connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -98,7 +98,7 @@ impl GatewayHandler {
     pub fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
-        events_tx: Sender<GatewayCommand>,
+        event_router: GatewayEventRouter,
         connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -116,7 +116,7 @@ impl GatewayHandler {
             gateway,
             message_id: AtomicU64::new(0),
             pool,
-            events_tx,
+            event_router,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
@@ -576,17 +576,19 @@ impl GatewayHandler {
                                     info!("Sent configuration to {}", self.gateway);
                                     config_sent = true;
                                     self.mark_connected_and_maybe_notify(&network.name).await;
+                                    let (events_tx, events_rx) = mpsc::unbounded_channel();
                                     let mut updates_handler = GatewayUpdatesHandler::new(
                                         self.gateway.location_id,
                                         network,
                                         self.gateway.name.clone(),
                                         Some(self.pool.clone()),
-                                        self.events_tx.subscribe(),
+                                        events_rx,
                                         tx.clone(),
                                     );
                                     let handle = tokio::spawn(async move {
                                         updates_handler.run().await;
                                     });
+                                    self.event_router.register(self.gateway.id, events_tx);
                                     self.updates_handler_handle = Some(handle);
                                 }
                                 Err(err) => {
@@ -694,7 +696,7 @@ impl GatewayHandler {
     pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
-        events_tx: Sender<GatewayCommand>,
+        event_router: GatewayEventRouter,
         connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -704,7 +706,7 @@ impl GatewayHandler {
         let mut handler = Self::new(
             gateway,
             pool,
-            events_tx,
+            event_router,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,

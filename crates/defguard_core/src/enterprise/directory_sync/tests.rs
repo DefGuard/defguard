@@ -14,7 +14,7 @@ mod test {
     };
     use ipnetwork::IpNetwork;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use tokio::sync::{broadcast, mpsc};
+    use tokio::sync::mpsc;
 
     use super::super::{testprovider::FAILING_GROUP, *};
     use crate::{
@@ -47,7 +47,7 @@ mod test {
         )));
     }
 
-    async fn do_test_directory_sync(pool: &PgPool, gateway_tx: &broadcast::Sender<GatewayCommand>) {
+    async fn do_test_directory_sync(pool: &PgPool, gateway_tx: &UnboundedSender<GatewayCommand>) {
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel::<LdapSyncEventType>();
         let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
         do_directory_sync(pool, gateway_tx, &ldap_tx, &dirsync_tx)
@@ -199,7 +199,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -243,7 +243,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config);
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -339,7 +339,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -384,7 +384,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         User::init_admin_user(&pool, "pass123").await.unwrap();
 
         let _ = make_test_provider(
@@ -441,7 +441,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -512,7 +512,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Disable,
@@ -597,7 +597,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16); // Added mut gateway_rx
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -677,7 +677,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -744,7 +744,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -777,7 +777,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -807,7 +807,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -832,7 +832,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -886,7 +886,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -914,7 +914,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -961,7 +961,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel::<GatewayCommand>();
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1001,7 +1001,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // disable prefetching users
         make_test_provider(
@@ -1035,7 +1035,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users
         make_test_provider(
@@ -1069,7 +1069,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users, import only members of group1
         let mut provider = make_test_provider(
@@ -1110,7 +1110,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users, import only members of a group that doesn't exist
         // in the directory
@@ -1148,7 +1148,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // limit the sync to a group whose member query always fails
         let mut provider = make_test_provider(
@@ -1184,7 +1184,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users
         make_test_provider(
@@ -1238,7 +1238,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users
         make_test_provider(
@@ -1329,7 +1329,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users
         make_test_provider(
@@ -1432,7 +1432,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         make_test_provider(
             &pool,
@@ -1550,7 +1550,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config);
-        let (gateway_tx, mut gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // enable prefetching users
         make_test_provider(
@@ -1605,7 +1605,7 @@ mod test {
 
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayCommand>(16);
+        let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
         // prefetch disabled, restrict sync to a group that has no members in the directory
         let mut provider = make_test_provider(
