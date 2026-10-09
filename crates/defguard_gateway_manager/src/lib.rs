@@ -36,6 +36,7 @@ extern crate tracing;
 mod certs;
 mod error;
 mod handler;
+mod updates;
 
 #[cfg(test)]
 mod tests;
