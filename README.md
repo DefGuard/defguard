@@ -23,7 +23,7 @@ For detailed security information see the [secure-by-design documentation](https
 
 - 🌐 **WireGuard VPN** — multiple locations with per-location access control, MFA per connection, self-service device setup, kernel and userspace support
 - 👥 **Identity & Access Management** — internal OIDC provider for SSO, external OIDC (Google, Microsoft, custom), LDAP/AD sync, remote enrollment, user self-service
-- 🔑 **Multi-Factor Authentication** — TOTP, WebAuthn/FIDO2, email tokens, biometric via mobile app
+- 🔑 [**Multi-Factor Authentication**](https://defguard.net/wireguard-mfa/)  — TOTP, WebAuthn/FIDO2, email tokens, biometric via mobile app
 - 🛡️ **Firewall** — allow/deny rules per VPN location by user or group, applied in real time
 - 📋 **Activity Log** — audit log with filtering and search; real-time SIEM streaming (Enterprise)
 - 🔗 **Integrations** — webhooks and REST API
