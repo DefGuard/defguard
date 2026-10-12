@@ -4,7 +4,10 @@ use std::{
     time::{Instant, SystemTime},
 };
 
-use base64::{Engine as _, prelude::BASE64_STANDARD, prelude::BASE64_URL_SAFE_NO_PAD};
+use base64::{
+    Engine as _,
+    prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
+};
 use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
