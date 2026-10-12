@@ -575,8 +575,7 @@ impl AclRule {
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
 
-        let affected_locations: Vec<WireguardNetwork<Id>> =
-            affected_locations.into_iter().collect();
+        let affected_locations = affected_locations.into_iter().collect::<Vec<_>>();
         debug!(
             "{} locations affected by applied ACL rules. Sending gateway firewall update events \
             for each location",

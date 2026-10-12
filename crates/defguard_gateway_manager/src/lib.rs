@@ -695,8 +695,8 @@ fn needs_restart(old: &Gateway<Id>, new: &Gateway<Id>) -> bool {
         || old.core_client_cert_key_der != new.core_client_cert_key_der
 }
 
-/// Shared set of outbound channels that gateway instances use to forward
-/// events, notifications, and side effects to Core components.
+/// Shared set of outbound channels that gateway instances use to forward events, notifications,
+/// and side effects to Core components.
 #[derive(Clone)]
 pub struct GatewayTxSet {
     peer_stats: UnboundedSender<PeerStatsUpdate>,
@@ -706,7 +706,7 @@ pub struct GatewayTxSet {
 impl GatewayTxSet {
     #[must_use]
     pub fn new(peer_stats: UnboundedSender<PeerStatsUpdate>) -> Self {
-        let (connection_events, _receiver) = unbounded_channel();
+        let (connection_events, _) = unbounded_channel();
         Self {
             peer_stats,
             connection_events,
