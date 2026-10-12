@@ -128,23 +128,21 @@ jobs:
           COMMAND_ID: ${{ steps.send-command.outputs.command_id }}
         run: |
           set -euo pipefail
-          invocation="$RUNNER_TEMP/load-test-invocation.json"
           status=''
           for (( attempt = 0; attempt < 170; attempt++ )); do
-            if aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json > "$invocation" 2>/dev/null; then
-              status=$(jq -r '.Status' "$invocation")
-              case "$status" in
-                Success|Failed|Cancelled|TimedOut) break ;;
-              esac
-            fi
+            invocation=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json 2>/dev/null) || { sleep 15; continue; }
+            status=$(jq -r '.Status' <<< "$invocation")
+            case "$status" in
+              Success|Failed|Cancelled|TimedOut) break ;;
+            esac
             sleep 15
           done
-          if [[ "$status" != Success && "$status" != Failed && "$status" != Cancelled && "$status" != TimedOut ]]; then
-            echo "::error::SSM command $COMMAND_ID did not finish within the workflow deadline"
-            exit 1
-          fi
-          jq -r '.StandardOutputContent, .StandardErrorContent' "$invocation"
-          if [[ "$status" != Success || "$(jq -r '.ResponseCode' "$invocation")" != 0 ]]; then
+          case "$status" in
+            Success|Failed|Cancelled|TimedOut) ;;
+            *) echo "::error::SSM command $COMMAND_ID did not finish within the workflow deadline"; exit 1 ;;
+          esac
+          jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$invocation"
+          if [[ "$status" != Success || "$(jq -r '.ResponseCode' <<< "$invocation")" != 0 ]]; then
             echo "::error::SSM command $COMMAND_ID finished with status $status"
             exit 1
           fi
