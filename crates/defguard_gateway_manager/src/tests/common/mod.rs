@@ -39,7 +39,7 @@ use tokio::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
-    task::JoinHandle,
+    task::{JoinHandle, yield_now},
     time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
@@ -662,7 +662,7 @@ impl HandlerTestContext {
         })
         .await
         .expect("timed out waiting for gateway updates handler registration");
-        tokio::task::yield_now().await;
+        yield_now().await;
         connected_gateway
     }
 

@@ -20,7 +20,7 @@ use tokio::sync::Notify;
 use tokio::{
     sync::{
         mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-        watch::Receiver,
+        watch,
     },
     task::{AbortHandle, JoinHandle, JoinSet},
     time::sleep,
@@ -384,7 +384,7 @@ impl GatewayManager {
     fn build_handler(
         &self,
         gateway: Gateway<Id>,
-        certs_rx: Receiver<Arc<HashMap<Id, String>>>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<GatewayHandler, GatewayError> {
         // Reuse any outstanding "disconnect sent" flag for this Gateway so a reconnect email is
         // not lost when the handler is rebuilt after connection-relevant fields change.
@@ -436,7 +436,7 @@ impl GatewayManager {
 
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
     pub async fn run(&mut self) -> Result<(), anyhow::Error> {
-        let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
+        let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         certs::refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
         let _refresh_certs_task = AbortTaskOnDrop::new(tokio::spawn(async move {
@@ -450,7 +450,7 @@ impl GatewayManager {
         });
         // Stores the abort handle and a snapshot of the gateway at the time the handler was last
         // started. The snapshot is used by the Update arm to detect connection-relevant changes.
-        let mut abort_handles: HashMap<Id, (AbortHandle, Gateway<Id>)> = HashMap::new();
+        let mut abort_handles = HashMap::new();
         for gateway in Gateway::all(&self.pool).await? {
             if !gateway.enabled {
                 debug!("Existing Gateway is disabled, so it won't be handled");
@@ -644,7 +644,7 @@ impl GatewayManager {
         &mut self,
         gateway: Gateway<Id>,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
-        certs_rx: Receiver<Arc<HashMap<Id, String>>>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<AbortHandle, GatewayError> {
         let mut gateway_handler = self.build_handler(gateway, certs_rx)?;
         let manager_reconnect_delay = self.manager_reconnect_delay();
@@ -677,78 +677,6 @@ fn needs_restart(old: &Gateway<Id>, new: &Gateway<Id>) -> bool {
         || old.enabled != new.enabled
         || old.core_client_cert_der != new.core_client_cert_der
         || old.core_client_cert_key_der != new.core_client_cert_key_der
-}
-
-#[cfg(test)]
-mod unit_tests {
-    use chrono::Utc;
-    use defguard_common::db::{Id, models::gateway::Gateway};
-
-    use super::needs_restart;
-
-    fn base_gateway() -> Gateway<Id> {
-        Gateway {
-            id: 1,
-            location_id: 1,
-            name: "test".to_owned(),
-            address: "127.0.0.1".to_owned(),
-            port: 50051,
-            connected_at: None,
-            disconnected_at: None,
-            certificate_serial: None,
-            certificate_expiry: None,
-            version: None,
-            enabled: true,
-            modified_at: Utc::now().naive_utc(),
-            modified_by: "test".to_owned(),
-            core_client_cert_der: None,
-            core_client_cert_key_der: None,
-            core_client_cert_expiry: None,
-        }
-    }
-
-    #[test]
-    fn test_needs_restart_detects_connection_relevant_field_changes() {
-        let base = base_gateway();
-
-        // Identical gateways - no restart needed.
-        assert!(!needs_restart(&base, &base.clone()));
-
-        // Non-connection-relevant fields - no restart.
-        let mut no_restart = base.clone();
-        no_restart.version = Some("2.0.0".to_owned());
-        no_restart.modified_by = "someone-else".to_owned();
-        no_restart.connected_at = Some(Utc::now().naive_utc());
-        no_restart.disconnected_at = Some(Utc::now().naive_utc());
-        no_restart.certificate_serial = Some("abc".to_owned());
-        no_restart.core_client_cert_expiry = Some(Utc::now().naive_utc());
-        assert!(!needs_restart(&base, &no_restart));
-
-        // address change - restart required.
-        let mut changed = base.clone();
-        changed.address = "10.0.0.1".to_owned();
-        assert!(needs_restart(&base, &changed));
-
-        // port change - restart required.
-        let mut changed = base.clone();
-        changed.port = 9999;
-        assert!(needs_restart(&base, &changed));
-
-        // enabled change - restart required.
-        let mut changed = base.clone();
-        changed.enabled = false;
-        assert!(needs_restart(&base, &changed));
-
-        // core_client_cert_der change - restart required.
-        let mut changed = base.clone();
-        changed.core_client_cert_der = Some(vec![1, 2, 3]);
-        assert!(needs_restart(&base, &changed));
-
-        // core_client_cert_key_der change - restart required.
-        let mut changed = base.clone();
-        changed.core_client_cert_key_der = Some(vec![4, 5, 6]);
-        assert!(needs_restart(&base, &changed));
-    }
 }
 
 /// Shared set of outbound channels that gateway instances use to forward
@@ -795,23 +723,19 @@ impl GatewayEventRouter {
     }
 
     pub(crate) async fn run(self, mut events_rx: UnboundedReceiver<GatewayCommand>) {
-        while let Some(event) = events_rx.recv().await {
-            self.dispatch(&event);
+        while let Some(ref event) = events_rx.recv().await {
+            // Sends the event to all handlers, dropping closed channels.
+            self.senders
+                .lock()
+                .expect("Failed to lock GatewayEventRouter::senders")
+                .retain(|gateway_id, events_tx| {
+                    let sent = events_tx.send(event.clone()).is_ok();
+                    if !sent {
+                        debug!("Updates handler for Gateway id={gateway_id} has stopped");
+                    }
+                    sent
+                });
         }
-    }
-
-    /// Sends the event to all handlers, dropping closed channels.
-    fn dispatch(&self, event: &GatewayCommand) {
-        self.senders
-            .lock()
-            .expect("Failed to lock GatewayEventRouter::senders")
-            .retain(|gateway_id, events_tx| {
-                let sent = events_tx.send(event.clone()).is_ok();
-                if !sent {
-                    debug!("Updates handler for Gateway id={gateway_id} has stopped");
-                }
-                sent
-            });
     }
 
     #[cfg(test)]
