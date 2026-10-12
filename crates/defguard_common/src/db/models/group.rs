@@ -232,7 +232,7 @@ mod test {
         assert!(!user.remove_from_group(&pool, &group).await.unwrap());
 
         let members = group.member_usernames(&pool).await.unwrap();
-        assert!(members.is_empty());
+        assert_eq!(members, [] as [String; 0]);
     }
 
     #[sqlx::test]

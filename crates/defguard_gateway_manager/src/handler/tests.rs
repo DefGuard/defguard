@@ -207,11 +207,11 @@ fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
     assert!(config.firewall_config.is_none());
 }
 
-fn test_handler(mfa_enabled: bool) -> GatewayUpdatesHandler {
+fn test_handler<'a>(mfa_enabled: bool) -> GatewayUpdatesHandler<'a> {
     let network = test_network(mfa_enabled);
     let (tx, _rx) = unbounded_channel();
 
-    GatewayUpdatesHandler::new(network, "gateway".into(), None, tx)
+    GatewayUpdatesHandler::new(network, "gateway", None, tx)
 }
 
 #[test]
@@ -269,7 +269,7 @@ fn test_runtime_peer_update_preserves_session_preshared_key_for_authorized_mfa_p
 #[test]
 fn test_runtime_peer_update_preserves_session_preshared_key_for_authorized_posture_peer() {
     let mut handler = test_handler(false);
-    handler.session_authorization_required = true;
+    handler.set_session_authorization_required(true);
 
     let peer = handler
         .runtime_peer_update(

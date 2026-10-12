@@ -191,7 +191,7 @@ async fn test_explicit_user_allow(_: PgPoolOptions, options: PgConnectOptions) {
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &other_user)
         .await
         .unwrap();
-    assert!(result.is_empty());
+    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -253,7 +253,7 @@ async fn test_group_membership_allow(_: PgPoolOptions, options: PgConnectOptions
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &non_member)
         .await
         .unwrap();
-    assert!(result.is_empty());
+    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -546,7 +546,7 @@ async fn test_non_matching_rule_excluded(_: PgPoolOptions, options: PgConnectOpt
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
         .await
         .unwrap();
-    assert!(result.is_empty());
+    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -699,7 +699,7 @@ async fn test_predefined_destination_included(_: PgPoolOptions, options: PgConne
         .await
         .unwrap();
 
-    assert_eq!(result, vec!["172.16.0.0/12".parse().unwrap()]);
+    assert_eq!(result, ["172.16.0.0/12".parse().unwrap()]);
 }
 
 #[sqlx::test]

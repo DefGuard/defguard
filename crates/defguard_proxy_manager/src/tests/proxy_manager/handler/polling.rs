@@ -302,7 +302,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
     set_test_license_business();
 
     let _network = create_network(&context.pool).await;
-    let (_user, device) = create_user_with_device(&context.pool).await;
+    let (user, device) = create_user_with_device(&context.pool).await;
     let token_str = create_polling_token(&context.pool, device.id).await;
 
     // First poll.
@@ -326,7 +326,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
     // Re-run add_to_all_networks so the device gets a WireguardNetworkDevice
     // row for the newly created network (required for config-building).
     let mut conn = context.pool.acquire().await.expect("acquire connection");
-    join_device_to_all_networks(&mut conn, &device, &_user)
+    join_device_to_all_networks(&mut conn, &device, &user)
         .await
         .expect("add device to all networks");
 

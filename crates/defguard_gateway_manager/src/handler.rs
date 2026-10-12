@@ -170,7 +170,7 @@ impl GatewayHandler {
 
         if let Err(()) = url.set_scheme("http") {
             return Err(GatewayError::EndpointError(format!(
-                "Failed to set http scheme for Gateway URL {:?}",
+                "Failed to set HTTP scheme for Gateway URL {:?}",
                 self.url
             )));
         }
@@ -201,7 +201,7 @@ impl GatewayHandler {
         let mut network = WireguardNetwork::find_by_id(&mut *conn, network_id)
             .await?
             .ok_or_else(|| {
-                GatewayError::NotFound(format!("Network with id {network_id} not found"))
+                GatewayError::NotFound(format!("Network with ID {network_id} not found"))
             })?;
 
         debug!(
@@ -540,7 +540,7 @@ impl GatewayHandler {
             };
             match message {
                 Ok(None) => {
-                    info!("Stream was closed by the sender.");
+                    info!("Stream was closed by the sender");
                     self.handle_stream_disconnection(
                         &clients,
                         retry_on_connect_failure,
@@ -550,7 +550,7 @@ impl GatewayHandler {
                     return Ok(());
                 }
                 Ok(Some(received)) => {
-                    info!("Received message from Gateway.");
+                    info!("Received message from Gateway");
                     debug!("Message from Gateway {uri}");
 
                     match received.payload {
@@ -570,8 +570,8 @@ impl GatewayHandler {
                                     self.mark_connected_and_maybe_notify(&network.name).await;
                                     let mut handler = GatewayUpdatesHandler::new(
                                         network,
-                                        self.gateway.name.clone(),
-                                        Some(self.pool.clone()),
+                                        &self.gateway.name,
+                                        Some(&self.pool),
                                         tx.clone(),
                                     );
                                     handler.start().await;

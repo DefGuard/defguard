@@ -17,23 +17,23 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 /// Helper struct for handling gateway events.
-pub(crate) struct GatewayUpdatesHandler {
+pub(crate) struct GatewayUpdatesHandler<'a> {
     network: WireguardNetwork<Id>,
-    gateway_name: String,
-    pool: Option<PgPool>,
-    pub(crate) session_authorization_required: bool,
+    gateway_name: &'a str,
+    pool: Option<&'a PgPool>,
+    session_authorization_required: bool,
     tx: UnboundedSender<CoreResponse>,
 }
 
-impl GatewayUpdatesHandler {
+impl<'a> GatewayUpdatesHandler<'a> {
     #[must_use]
     pub(crate) fn new(
         network: WireguardNetwork<Id>,
-        gateway_name: String,
-        pool: Option<PgPool>,
+        gateway_name: &'a str,
+        pool: Option<&'a PgPool>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
-        // Sane default.
+        // Sane default. It will be updated in `start()`.
         let session_authorization_required = network.mfa_enabled;
         Self {
             network,
@@ -44,30 +44,32 @@ impl GatewayUpdatesHandler {
         }
     }
 
-    async fn authorization_required_for(
-        network: &WireguardNetwork<Id>,
-        pool: Option<&PgPool>,
-    ) -> bool {
-        if network.mfa_enabled {
-            return true;
-        }
-
-        let Some(pool) = pool else {
-            return false;
-        };
-
-        match network.has_postures(pool).await {
-            Ok(has_postures) => has_postures,
-            Err(err) => {
-                error!("Failed to fetch postures for location {network}: {err}");
-                false
-            }
-        }
+    #[cfg(test)]
+    pub(crate) fn set_session_authorization_required(&mut self, value: bool) {
+        self.session_authorization_required = value;
     }
 
     async fn refresh_session_authorization_required(&mut self) {
-        self.session_authorization_required =
-            Self::authorization_required_for(&self.network, self.pool.as_ref()).await;
+        if self.network.mfa_enabled {
+            self.session_authorization_required = true;
+            return;
+        }
+
+        let Some(pool) = self.pool else {
+            self.session_authorization_required = false;
+            return;
+        };
+
+        self.session_authorization_required = match self.network.has_postures(pool).await {
+            Ok(has_postures) => has_postures,
+            Err(err) => {
+                error!(
+                    "Failed to fetch postures for location {}: {err}",
+                    self.network
+                );
+                false
+            }
+        };
     }
 
     #[must_use]
@@ -90,7 +92,8 @@ impl GatewayUpdatesHandler {
 
         if !is_authorized {
             debug!(
-                "Skipping gateway peer update for WireGuard device {peer_label} in runtime-authorized location {} because there is no active VPN session",
+                "Skipping gateway peer update for WireGuard device {peer_label} in \
+                runtime-authorized location {} because there is no active VPN session",
                 self.network.name
             );
             return None;
@@ -98,7 +101,8 @@ impl GatewayUpdatesHandler {
 
         let Some(preshared_key) = preshared_key else {
             debug!(
-                "Skipping gateway peer update for WireGuard device {peer_label} in location {} because the runtime preshared key is missing",
+                "Skipping gateway peer update for WireGuard device {peer_label} in location {} \
+                because the runtime preshared key is missing",
                 self.network.name
             );
             return None;
@@ -279,8 +283,8 @@ impl GatewayUpdatesHandler {
         update_type: UpdateType,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {network}");
-        let proto_peers = peers.into_iter().map(Into::into).collect();
-        let proto_firewall = firewall_config.map(ProtoFirewallConfig::from);
+        let peers = peers.into_iter().map(Into::into).collect();
+        let firewall_config = firewall_config.map(ProtoFirewallConfig::from);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
@@ -290,8 +294,8 @@ impl GatewayUpdatesHandler {
                     private_key: network.prvkey.clone(),
                     addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
-                    peers: proto_peers,
-                    firewall_config: proto_firewall,
+                    peers,
+                    firewall_config,
                     mtu: network.mtu.cast_unsigned(),
                     fwmark: network.fwmark as u32,
                 })),
@@ -302,10 +306,11 @@ impl GatewayUpdatesHandler {
                 error: {err}",
             );
             error!(msg);
-            return Err(Status::new(Code::Internal, msg));
+            Err(Status::new(Code::Internal, msg))
+        } else {
+            debug!("Network update sent for network {network}");
+            Ok(())
         }
-        debug!("Network update sent for network {network}");
-        Ok(())
     }
 
     /// Sends delete network command to gateway
@@ -396,7 +401,7 @@ impl GatewayUpdatesHandler {
             "Sending firewall config update for network {} with config {firewall_config:?}",
             self.network
         );
-        let proto_firewall: ProtoFirewallConfig = firewall_config.into();
+        let proto_firewall = ProtoFirewallConfig::from(firewall_config);
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
