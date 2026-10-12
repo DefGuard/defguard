@@ -211,9 +211,7 @@ fn test_handler(mfa_enabled: bool) -> GatewayUpdatesHandler {
     let network = test_network(mfa_enabled);
     let (tx, _rx) = unbounded_channel();
 
-    let mut handler = GatewayUpdatesHandler::new(network.id, network, "gateway".into(), None, tx);
-    handler.session_authorization_required = handler.network.mfa_enabled;
-    handler
+    GatewayUpdatesHandler::new(network, "gateway".into(), None, tx)
 }
 
 #[test]

@@ -569,7 +569,6 @@ impl GatewayHandler {
                                     config_sent = true;
                                     self.mark_connected_and_maybe_notify(&network.name).await;
                                     let mut handler = GatewayUpdatesHandler::new(
-                                        self.gateway.location_id,
                                         network,
                                         self.gateway.name.clone(),
                                         Some(self.pool.clone()),

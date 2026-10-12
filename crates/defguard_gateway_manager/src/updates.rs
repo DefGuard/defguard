@@ -18,8 +18,7 @@ use tonic::{Code, Status};
 
 /// Helper struct for handling gateway events.
 pub(crate) struct GatewayUpdatesHandler {
-    network_id: Id,
-    pub(crate) network: WireguardNetwork<Id>,
+    network: WireguardNetwork<Id>,
     gateway_name: String,
     pool: Option<PgPool>,
     pub(crate) session_authorization_required: bool,
@@ -29,18 +28,18 @@ pub(crate) struct GatewayUpdatesHandler {
 impl GatewayUpdatesHandler {
     #[must_use]
     pub(crate) fn new(
-        network_id: Id,
         network: WireguardNetwork<Id>,
         gateway_name: String,
         pool: Option<PgPool>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
+        // Sane default.
+        let session_authorization_required = network.mfa_enabled;
         Self {
-            network_id,
             network,
             gateway_name,
             pool,
-            session_authorization_required: false,
+            session_authorization_required,
             tx,
         }
     }
@@ -155,14 +154,14 @@ impl GatewayUpdatesHandler {
         debug!("Received WireGuard update: {update:?}");
         match update {
             GatewayCommand::NetworkCreated(network) => {
-                if network.id == self.network_id {
+                if network.id == self.network.id {
                     self.send_network_update(&network, Vec::new(), None, UpdateType::Create)
                 } else {
                     Ok(())
                 }
             }
             GatewayCommand::NetworkModified(network, peers, maybe_firewall_config) => {
-                if network.id == self.network_id {
+                if network.id == self.network.id {
                     let result = self.send_network_update(
                         &network,
                         peers,
@@ -178,7 +177,7 @@ impl GatewayUpdatesHandler {
                 }
             }
             GatewayCommand::NetworkDeleted(network_id, network_name) => {
-                if network_id == self.network_id {
+                if network_id == self.network.id {
                     self.send_network_delete(&network_name)
                 } else {
                     Ok(())
@@ -189,7 +188,7 @@ impl GatewayUpdatesHandler {
                 match device
                     .network_info
                     .iter()
-                    .find(|info| info.network_id == self.network_id)
+                    .find(|info| info.network_id == self.network.id)
                 {
                     Some(network_info) => self.send_runtime_device_update(
                         &device.device.name,
@@ -205,7 +204,7 @@ impl GatewayUpdatesHandler {
                 match device
                     .network_info
                     .iter()
-                    .find(|info| info.network_id == self.network_id)
+                    .find(|info| info.network_id == self.network.id)
                 {
                     Some(network_info) => self.send_runtime_device_update(
                         &device.device.name,
@@ -221,35 +220,35 @@ impl GatewayUpdatesHandler {
                 match device
                     .network_info
                     .iter()
-                    .find(|info| info.network_id == self.network_id)
+                    .find(|info| info.network_id == self.network.id)
                 {
                     Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
                     None => Ok(()),
                 }
             }
             GatewayCommand::FirewallConfigChanged(location_id, firewall_config) => {
-                if location_id == self.network_id {
+                if location_id == self.network.id {
                     self.send_firewall_update(firewall_config)
                 } else {
                     Ok(())
                 }
             }
             GatewayCommand::FirewallDisabled(location_id) => {
-                if location_id == self.network_id {
+                if location_id == self.network.id {
                     self.send_firewall_disable()
                 } else {
                     Ok(())
                 }
             }
             GatewayCommand::VpnSessionDeauthorized(location_id, device) => {
-                if location_id == self.network_id {
+                if location_id == self.network.id {
                     self.send_peer_delete(&device.wireguard_pubkey)
                 } else {
                     Ok(())
                 }
             }
             GatewayCommand::VpnSessionAuthorized(location_id, device, network_info) => {
-                if location_id == self.network_id {
+                if location_id == self.network.id {
                     if network_info.network_id != location_id {
                         error!(
                             "Received VPN authorization success event for location {location_id} \
