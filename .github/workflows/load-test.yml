@@ -1,9 +1,6 @@
 name: Load test
 
 on:
-  push:
-    branches:
-      - ci-load-tests
   workflow_dispatch:
     inputs:
       polling_network_id:
@@ -56,6 +53,7 @@ concurrency:
 
 jobs:
   load-tests:
+    if: ${{ github.ref == 'refs/heads/dev' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Restrict this environment to protected branches and require approval.
