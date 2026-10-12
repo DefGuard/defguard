@@ -154,15 +154,15 @@ impl GatewayUpdatesHandler {
     pub(crate) async fn handle_event(&mut self, update: GatewayCommand) -> Result<(), Status> {
         debug!("Received WireGuard update: {update:?}");
         match update {
-            GatewayCommand::NetworkCreated(network_id, network) => {
-                if network_id == self.network_id {
+            GatewayCommand::NetworkCreated(network) => {
+                if network.id == self.network_id {
                     self.send_network_update(&network, Vec::new(), None, UpdateType::Create)
                 } else {
                     Ok(())
                 }
             }
-            GatewayCommand::NetworkModified(network_id, network, peers, maybe_firewall_config) => {
-                if network_id == self.network_id {
+            GatewayCommand::NetworkModified(network, peers, maybe_firewall_config) => {
+                if network.id == self.network_id {
                     let result = self.send_network_update(
                         &network,
                         peers,

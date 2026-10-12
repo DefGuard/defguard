@@ -59,10 +59,10 @@ fn expect_network_modified_peers(
     expected_pubkeys: &[&str],
 ) {
     let event = gateway_rx.try_recv().unwrap();
-    let GatewayCommand::NetworkModified(id, _, peers, _) = event else {
+    let GatewayCommand::NetworkModified(location, peers, _) = event else {
         panic!("expected NetworkModified, got {event:?}");
     };
-    assert_eq!(id, location_id);
+    assert_eq!(location.id, location_id);
     let actual_pubkeys = peers
         .iter()
         .map(|peer| peer.pubkey.as_str())

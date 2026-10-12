@@ -25,9 +25,8 @@ use crate::{
 /// protobuf wire types happens at the serialization boundary in the gateway manager.
 #[derive(Clone, Debug)]
 pub enum GatewayCommand {
-    NetworkCreated(Id, WireguardNetwork<Id>),
+    NetworkCreated(WireguardNetwork<Id>),
     NetworkModified(
-        Id,
         WireguardNetwork<Id>,
         Vec<WireguardPeer>,
         Option<FirewallConfig>,

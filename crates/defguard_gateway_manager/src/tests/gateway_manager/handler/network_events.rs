@@ -33,11 +33,9 @@ async fn test_matching_location_network_modified_event_produces_modify_update(
     let mut modified_network = context
         .network
         .clone()
-        .set_address([
-            "10.20.0.1/24"
-                .parse()
-                .expect("failed to parse modified network address"),
-        ])
+        .set_address(["10.20.0.1/24"
+            .parse()
+            .expect("failed to parse modified network address")])
         .expect("failed to set modified network address");
     modified_network.name = format!("{}-modified", context.network.name);
     modified_network.port = 51821;
@@ -46,7 +44,6 @@ async fn test_matching_location_network_modified_event_produces_modify_update(
 
     assert_send_ok!(
         context.events_tx().send(GatewayCommand::NetworkModified(
-            context.network.id,
             modified_network,
             Vec::new(),
             None,
@@ -80,11 +77,9 @@ async fn test_matching_location_network_created_event_produces_create_update(
     let mut created_network = context
         .network
         .clone()
-        .set_address([
-            "10.40.0.1/24"
-                .parse()
-                .expect("failed to parse created network address"),
-        ])
+        .set_address(["10.40.0.1/24"
+            .parse()
+            .expect("failed to parse created network address")])
         .expect("failed to set created network address");
     created_network.name = format!("{}-created", context.network.name);
     created_network.port = 51841;
@@ -92,10 +87,9 @@ async fn test_matching_location_network_created_event_produces_create_update(
     created_network.fwmark = 17;
 
     assert_send_ok!(
-        context.events_tx().send(GatewayCommand::NetworkCreated(
-            context.network.id,
-            created_network,
-        )),
+        context
+            .events_tx()
+            .send(GatewayCommand::NetworkCreated(created_network)),
         "failed to send created gateway event"
     );
 
@@ -129,11 +123,9 @@ async fn test_only_matching_handler_receives_network_modified_update(
     let mut modified_network = matching_context
         .network
         .clone()
-        .set_address([
-            "10.30.0.1/24"
-                .parse()
-                .expect("failed to parse modified network address"),
-        ])
+        .set_address(["10.30.0.1/24"
+            .parse()
+            .expect("failed to parse modified network address")])
         .expect("failed to set modified network address");
     modified_network.name = format!("{}-modified", matching_context.network.name);
     modified_network.port = 51831;
@@ -141,12 +133,7 @@ async fn test_only_matching_handler_receives_network_modified_update(
     modified_network.fwmark = 7;
 
     // Every handler receives all events.
-    let event = GatewayCommand::NetworkModified(
-        matching_context.network.id,
-        modified_network,
-        Vec::new(),
-        None,
-    );
+    let event = GatewayCommand::NetworkModified(modified_network, Vec::new(), None);
     assert_send_ok!(
         unrelated_context.events_tx().send(event.clone()),
         "failed to send modified gateway event"
@@ -165,8 +152,14 @@ async fn test_only_matching_handler_receives_network_modified_update(
         1400,
         7,
     );
-    matching_context.mock_gateway_mut().expect_no_outbound().await;
-    unrelated_context.mock_gateway_mut().expect_no_outbound().await;
+    matching_context
+        .mock_gateway_mut()
+        .expect_no_outbound()
+        .await;
+    unrelated_context
+        .mock_gateway_mut()
+        .expect_no_outbound()
+        .await;
 
     matching_context
         .finish()
@@ -191,10 +184,9 @@ async fn test_different_location_network_created_event_is_ignored(
 
     let _ = context.complete_config_handshake().await;
     assert_send_ok!(
-        context.events_tx().send(GatewayCommand::NetworkCreated(
-            other_network.id,
-            other_network,
-        )),
+        context
+            .events_tx()
+            .send(GatewayCommand::NetworkCreated(other_network)),
         "failed to send unrelated created gateway event"
     );
 

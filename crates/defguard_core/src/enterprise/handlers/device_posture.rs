@@ -65,7 +65,6 @@ async fn build_location_peer_refresh_commands(
         let peers = get_location_allowed_peers(&location, &mut *conn).await?;
         let maybe_firewall_config = try_get_location_firewall_config(&location, &mut *conn).await?;
         commands.push(GatewayCommand::NetworkModified(
-            location.id,
             location,
             peers,
             maybe_firewall_config,

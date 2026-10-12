@@ -258,7 +258,6 @@ async fn license_status_check(
             let disable_firewall = location.acl_enabled && firewall_config.is_none();
             let location_id = location.id;
             gateway_tx.send(GatewayCommand::NetworkModified(
-                location_id,
                 location,
                 peers,
                 firewall_config,
@@ -577,8 +576,8 @@ mod test {
         license_status_check(pool, gateway_tx).await.unwrap();
 
         while let Ok(command) = gateway_rx.try_recv() {
-            if let GatewayCommand::NetworkModified(id, _, peers, _) = command
-                && id == location_id
+            if let GatewayCommand::NetworkModified(location, peers, _) = command
+                && location.id == location_id
             {
                 return peers;
             }
