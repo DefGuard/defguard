@@ -54,9 +54,9 @@ jobs:
       # MAX_IN_FLIGHT: ${{ inputs.max_in_flight }}
 
       NETWORK_ID: ${{ inputs.network_id || vars.LOAD_TEST_NETWORK_ID || 1 }}
-      RPS: ${{ inputs.requests_per_second || 50 }}
-      DURATION_SECONDS: ${{ inputs.duration_seconds || 60 }}
-      MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 256 }}
+      RPS: ${{ inputs.requests_per_second || 1000 }}
+      DURATION_SECONDS: ${{ inputs.duration_seconds || 120 }}
+      MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 1024 }}
 
     steps:
       - name: Validate parameter bounds
