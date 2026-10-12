@@ -15,7 +15,7 @@ pub struct Config {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Seeds one device for every generated user.
+    /// Seeds generated users and assigns their devices to selected networks.
     Seed(SeedArgs),
     /// Seeds users and a group in the dedicated OpenLDAP load-test OU.
     SeedLdap(SeedLdapArgs),
@@ -32,8 +32,16 @@ pub struct SeedArgs {
     pub users: NonZeroUsize,
 
     /// ID of the location receiving the devices.
+    #[arg(
+        long,
+        required_unless_present = "all_networks",
+        conflicts_with = "all_networks"
+    )]
+    pub network_id: Option<i64>,
+
+    /// Assign the generated users' devices to every existing network.
     #[arg(long)]
-    pub network_id: i64,
+    pub all_networks: bool,
 
     #[command(flatten)]
     pub database: DatabaseArgs,
@@ -175,4 +183,43 @@ pub struct ConfigPollingArgs {
     /// Optional test duration. Without it, the test runs until Ctrl-C.
     #[arg(long, value_parser = humantime::parse_duration)]
     pub duration: Option<Duration>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn seed_requires_one_network_selection() {
+        let network =
+            Config::try_parse_from(["generator", "seed", "--users", "2", "--network-id", "2"])
+                .unwrap();
+        let Command::Seed(network) = network.command else {
+            panic!("expected seed command");
+        };
+        assert_eq!(network.network_id, Some(2));
+        assert!(!network.all_networks);
+
+        let all = Config::try_parse_from(["generator", "seed", "--users", "2", "--all-networks"])
+            .unwrap();
+        let Command::Seed(all) = all.command else {
+            panic!("expected seed command");
+        };
+        assert_eq!(all.network_id, None);
+        assert!(all.all_networks);
+
+        assert!(Config::try_parse_from(["generator", "seed", "--users", "2"]).is_err());
+        assert!(
+            Config::try_parse_from([
+                "generator",
+                "seed",
+                "--users",
+                "2",
+                "--network-id",
+                "2",
+                "--all-networks",
+            ])
+            .is_err()
+        );
+    }
 }

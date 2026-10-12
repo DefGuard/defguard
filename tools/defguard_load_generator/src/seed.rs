@@ -25,6 +25,7 @@ const TOTP_SECRET_BYTES: usize = 20;
 
 #[derive(FromRow)]
 struct Network {
+    id: i64,
     address: Vec<IpNetwork>,
     allow_all_groups: bool,
 }
@@ -41,85 +42,133 @@ pub async fn run(args: SeedArgs) -> anyhow::Result<()> {
         .connect_with(options)
         .await?;
     let mut connection = pool.acquire().await?;
-    let network = query_as::<_, Network>(
-        "SELECT address, allow_all_groups FROM wireguard_network WHERE id = $1",
-    )
-    .bind(args.network_id)
-    .fetch_optional(&mut *connection)
-    .await?
-    .with_context(|| format!("network {} does not exist", args.network_id))?;
-    let assigned_ips: Vec<IpNetwork> = query_scalar(
-        "SELECT unnest(wireguard_ips) FROM wireguard_network_device WHERE wireguard_network_id = $1",
+    let selected_networks: Vec<Network> = query_as(
+        "SELECT id, address, allow_all_groups FROM wireguard_network \
+         WHERE ($1::bigint IS NULL OR id = $1) ORDER BY id",
     )
     .bind(args.network_id)
     .fetch_all(&mut *connection)
     .await?;
-    let mut used_ips = assigned_ips.into_iter().map(|ip| ip.ip()).collect();
+    if selected_networks.is_empty() {
+        anyhow::bail!("no networks found for selection {:?}", args.network_id);
+    }
+    let mut networks = Vec::with_capacity(selected_networks.len());
+    for network in selected_networks {
+        validate_network_capacity(&network, args.users.get())?;
+        let assigned_ips: Vec<IpNetwork> = query_scalar(
+            "SELECT unnest(wireguard_ips) FROM wireguard_network_device WHERE wireguard_network_id = $1",
+        )
+        .bind(network.id)
+        .fetch_all(&mut *connection)
+        .await?;
+        let used_ips = assigned_ips.into_iter().map(|ip| ip.ip()).collect();
+        networks.push((network, used_ips));
+    }
 
     tracing::info!(
         users = args.users.get(),
-        network_id = args.network_id,
+        networks = networks.len(),
         "seeding users and devices"
     );
     let password_hash = password_hash()?;
 
     for index in 1..=args.users.get() {
-        let totp_secret = totp_secret();
-        let user_id: i64 = query_scalar(
-            "INSERT INTO \"user\" \
-             (username, password_hash, last_name, first_name, email, ldap_rdn, \
-              mfa_enabled, totp_enabled, totp_secret, mfa_method, is_active, enrollment_pending) \
-             VALUES ($1, $2, $3, $4, $5, $1, TRUE, TRUE, $6, 'one_time_password'::mfa_method, TRUE, FALSE) \
-             RETURNING id",
-        )
-        .bind(user_name(index))
-        .bind(&password_hash)
-        .bind("Load test")
-        .bind("User")
-        .bind(user_email(index))
-        .bind(&totp_secret)
-        .fetch_one(&mut *connection)
-        .await?;
+        let username = user_name(index);
+        let user_id: i64 = match query_scalar("SELECT id FROM \"user\" WHERE username = $1")
+            .bind(&username)
+            .fetch_optional(&mut *connection)
+            .await?
+        {
+            Some(id) => id,
+            None => {
+                query_scalar(
+                    "INSERT INTO \"user\" \
+                     (username, password_hash, last_name, first_name, email, ldap_rdn, \
+                      mfa_enabled, totp_enabled, totp_secret, mfa_method, is_active, enrollment_pending) \
+                     VALUES ($1, $2, $3, $4, $5, $1, TRUE, TRUE, $6, 'one_time_password'::mfa_method, TRUE, FALSE) \
+                     RETURNING id",
+                )
+                .bind(&username)
+                .bind(&password_hash)
+                .bind("Load test")
+                .bind("User")
+                .bind(user_email(index))
+                .bind(totp_secret())
+                .fetch_one(&mut *connection)
+                .await?
+            }
+        };
 
-        if !network.allow_all_groups {
-            query(
-                "INSERT INTO group_user (group_id, user_id) \
-                 SELECT group_id, $1 FROM wireguard_network_allowed_group WHERE network_id = $2 \
-                 ON CONFLICT DO NOTHING",
-            )
-            .bind(user_id)
-            .bind(args.network_id)
-            .execute(&mut *connection)
-            .await?;
+        let device_id: i64 = match query_scalar(
+            "SELECT id FROM device WHERE user_id = $1 AND name = $2 ORDER BY id LIMIT 1",
+        )
+        .bind(user_id)
+        .bind(device_name(index))
+        .fetch_optional(&mut *connection)
+        .await?
+        {
+            Some(id) => id,
+            None => {
+                query_scalar(
+                    "INSERT INTO device (name, wireguard_pubkey, user_id, created, device_type, configured) \
+                     VALUES ($1, $2, $3, NOW(), 'user'::device_type, true) RETURNING id",
+                )
+                .bind(device_name(index))
+                .bind(wireguard_public_key())
+                .bind(user_id)
+                .fetch_one(&mut *connection)
+                .await?
+            }
+        };
+
+        let has_token: bool =
+            query_scalar("SELECT EXISTS (SELECT 1 FROM pollingtoken WHERE device_id = $1)")
+                .bind(device_id)
+                .fetch_one(&mut *connection)
+                .await?;
+        if !has_token {
+            query("INSERT INTO pollingtoken (token, device_id) VALUES ($1, $2)")
+                .bind(polling_token())
+                .bind(device_id)
+                .execute(&mut *connection)
+                .await?;
         }
 
-        let device_id: i64 = query_scalar(
-            "INSERT INTO device (name, wireguard_pubkey, user_id, created, device_type, configured) \
-             VALUES ($1, $2, $3, NOW(), 'user'::device_type, true) RETURNING id",
-        )
-        .bind(device_name(index))
-        .bind(wireguard_public_key())
-        .bind(user_id)
-        .fetch_one(&mut *connection)
-        .await?;
+        for (network, used_ips) in &mut networks {
+            if !network.allow_all_groups {
+                query(
+                    "INSERT INTO group_user (group_id, user_id) \
+                     SELECT group_id, $1 FROM wireguard_network_allowed_group WHERE network_id = $2 \
+                     ON CONFLICT DO NOTHING",
+                )
+                .bind(user_id)
+                .bind(network.id)
+                .execute(&mut *connection)
+                .await?;
+            }
 
-        let device_ips = allocate_ips(&network.address, &used_ips)?;
-        query(
-            "INSERT INTO wireguard_network_device (device_id, wireguard_network_id, wireguard_ips) \
-             VALUES ($1, $2, $3)",
-        )
-        .bind(device_id)
-        .bind(args.network_id)
-        .bind(&device_ips)
-        .execute(&mut *connection)
-        .await?;
-        used_ips.extend(device_ips.iter().map(IpNetwork::ip));
-
-        query("INSERT INTO pollingtoken (token, device_id) VALUES ($1, $2)")
-            .bind(polling_token())
+            let assigned: bool = query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM wireguard_network_device \
+                 WHERE device_id = $1 AND wireguard_network_id = $2)",
+            )
             .bind(device_id)
-            .execute(&mut *connection)
+            .bind(network.id)
+            .fetch_one(&mut *connection)
             .await?;
+            if !assigned {
+                let device_ips = allocate_ips(&network.address, used_ips)?;
+                query(
+                    "INSERT INTO wireguard_network_device (device_id, wireguard_network_id, wireguard_ips) \
+                     VALUES ($1, $2, $3)",
+                )
+                .bind(device_id)
+                .bind(network.id)
+                .bind(&device_ips)
+                .execute(&mut *connection)
+                .await?;
+                used_ips.extend(device_ips.iter().map(IpNetwork::ip));
+            }
+        }
 
         if index == 1 || index % 100 == 0 || index == args.users.get() {
             tracing::info!(seeded_users = index, "seed progress");
@@ -130,7 +179,28 @@ pub async fn run(args: SeedArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Skips network, broadcast, and already assigned addresses.
+fn validate_network_capacity(network: &Network, users: usize) -> anyhow::Result<()> {
+    if network.address.is_empty() {
+        anyhow::bail!("network {} has no address ranges", network.id);
+    }
+    for address in &network.address {
+        let capacity = address
+            .iter()
+            .filter(|ip| is_usable_host(address, *ip))
+            .take(users)
+            .count();
+        if capacity < users {
+            anyhow::bail!(
+                "network {} address range {} cannot hold {} seeded devices",
+                network.id,
+                address,
+                users
+            );
+        }
+    }
+    Ok(())
+}
+
 fn allocate_ips(
     addresses: &[IpNetwork],
     used_ips: &HashSet<IpAddr>,
@@ -140,16 +210,15 @@ fn allocate_ips(
         .map(|address| {
             address
                 .iter()
-                .find(|ip| {
-                    *ip != address.ip()
-                        && *ip != address.network()
-                        && *ip != address.broadcast()
-                        && !used_ips.contains(ip)
-                })
+                .find(|ip| is_usable_host(address, *ip) && !used_ips.contains(ip))
                 .map(IpNetwork::from)
                 .with_context(|| format!("network address space is exhausted for {address}"))
         })
         .collect()
+}
+
+fn is_usable_host(address: &IpNetwork, ip: IpAddr) -> bool {
+    ip != address.ip() && ip != address.network() && ip != address.broadcast()
 }
 
 fn user_name(index: usize) -> String {
@@ -184,4 +253,32 @@ fn totp_secret() -> Vec<u8> {
     let mut secret = vec![0_u8; TOTP_SECRET_BYTES];
     OsRng.fill(&mut secret[..]);
     secret
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capacity_check_rejects_small_or_empty_networks() {
+        let mut network = Network {
+            id: 2,
+            address: vec!["10.0.0.1/30".parse().unwrap()],
+            allow_all_groups: true,
+        };
+        assert!(validate_network_capacity(&network, 2).is_err());
+        assert!(validate_network_capacity(&network, 1).is_ok());
+        network.address.clear();
+        assert!(validate_network_capacity(&network, 1).is_err());
+    }
+
+    #[test]
+    fn allocation_skips_addresses_already_used_in_network() {
+        let subnet: IpNetwork = "10.0.0.1/30".parse().unwrap();
+        let first = allocate_ips(&[subnet], &HashSet::new()).unwrap();
+        assert_eq!(first, vec!["10.0.0.2".parse::<IpNetwork>().unwrap()]);
+
+        let used = first.iter().map(IpNetwork::ip).collect();
+        assert!(allocate_ips(&[subnet], &used).is_err());
+    }
 }
