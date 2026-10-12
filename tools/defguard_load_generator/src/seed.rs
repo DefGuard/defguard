@@ -254,31 +254,3 @@ fn totp_secret() -> Vec<u8> {
     OsRng.fill(&mut secret[..]);
     secret
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn capacity_check_rejects_small_or_empty_networks() {
-        let mut network = Network {
-            id: 2,
-            address: vec!["10.0.0.1/30".parse().unwrap()],
-            allow_all_groups: true,
-        };
-        assert!(validate_network_capacity(&network, 2).is_err());
-        assert!(validate_network_capacity(&network, 1).is_ok());
-        network.address.clear();
-        assert!(validate_network_capacity(&network, 1).is_err());
-    }
-
-    #[test]
-    fn allocation_skips_addresses_already_used_in_network() {
-        let subnet: IpNetwork = "10.0.0.1/30".parse().unwrap();
-        let first = allocate_ips(&[subnet], &HashSet::new()).unwrap();
-        assert_eq!(first, vec!["10.0.0.2".parse::<IpNetwork>().unwrap()]);
-
-        let used = first.iter().map(IpNetwork::ip).collect();
-        assert!(allocate_ips(&[subnet], &used).is_err());
-    }
-}

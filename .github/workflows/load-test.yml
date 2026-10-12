@@ -59,7 +59,6 @@ jobs:
     # Restrict this environment to protected branches and require approval.
     environment: LOAD-TESTING
     env:
-      # Set these variables in the load-testing environment; keep DB credentials on EC2.
       AWS_REGION: ${{ vars.LOAD_TEST_AWS_REGION || 'eu-west-3' }}
       AWS_ROLE_ARN: ${{ secrets.LOAD_TEST_AWS_ROLE_ARN }}
       GENERATOR_INSTANCE_ID: ${{ secrets.LOAD_TEST_GENERATOR_INSTANCE_ID }}
