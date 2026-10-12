@@ -626,7 +626,7 @@ async fn test_posture_check_pass_emits_posture_check_passed_event(
         .expect("posture check should pass")
     {
         super::PostureCheckOutcome::Approved { preshared_key } => {
-            assert!(!preshared_key.is_empty());
+            assert_ne!(preshared_key, "");
         }
         super::PostureCheckOutcome::Rejected { failed_checks } => {
             panic!("posture check unexpectedly failed: {failed_checks:?}")
@@ -1717,7 +1717,7 @@ async fn test_legacy_mfa_start_supersedes_parked_waiter_with_defined_result(
         )
         .await
         .expect("replacement start should succeed");
-    assert!(!replacement.token.is_empty());
+    assert_ne!(replacement.token, "");
 
     let response = timeout(Duration::from_secs(1), response_rx.recv())
         .await
@@ -1783,7 +1783,7 @@ async fn test_legacy_mfa_finish_totp_authorizes_session(
         )
         .await
         .expect("finish should succeed");
-    assert!(!response.preshared_key.is_empty());
+    assert_ne!(response.preshared_key, "");
 
     // The successful finish is audited.
     let event = event_rx
@@ -1989,7 +1989,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         .expect("MobileApprove must include a signature challenge")
     {
         mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
-        other => panic!("unexpected challenge: {other:?}"),
+        other @ mfa_step_started::Challenge::Fido2(_) => panic!("unexpected challenge: {other:?}"),
     };
     let token = accepted.token;
     let step_attempt_id = first_step.step_attempt_id;
@@ -2068,7 +2068,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
         panic!("expected a completed remote result");
     };
-    assert!(!completed.preshared_key.is_empty());
+    assert_ne!(completed.preshared_key, "");
     let remote_preshared_key = completed.preshared_key;
     assert!(
         server
@@ -2129,7 +2129,7 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
         .expect("MobileApprove must include a signature challenge")
     {
         mfa_step_started::Challenge::Signature(challenge) => challenge.challenge,
-        other => panic!("unexpected challenge: {other:?}"),
+        other @ mfa_step_started::Challenge::Fido2(_) => panic!("unexpected challenge: {other:?}"),
     };
     let token = accepted.token;
     let step_attempt_id = first_step.step_attempt_id;
@@ -2197,7 +2197,7 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
     else {
         panic!("expected a completed remote result");
     };
-    assert!(!completed.preshared_key.is_empty());
+    assert_ne!(completed.preshared_key, "");
     assert!(
         VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
             .await
@@ -2348,8 +2348,8 @@ async fn test_mfa_flow_start_returns_initial_attempt(_: PgPoolOptions, options: 
     let first_step = accepted
         .first_step
         .expect("accepted flow start must include the first step");
-    assert!(!accepted.token.is_empty());
-    assert!(!first_step.step_attempt_id.is_empty());
+    assert_ne!(accepted.token, "");
+    assert_ne!(first_step.step_attempt_id, "");
     assert!(first_step.challenge.is_none());
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
@@ -2440,12 +2440,12 @@ async fn test_mfa_flow_step_start_returns_typed_attempt(
         .await
         .expect("flow step start should succeed");
     let started = step.started.expect("step start must include its result");
-    assert!(!started.step_attempt_id.is_empty());
+    assert_ne!(started.step_attempt_id, "");
     assert_ne!(started.step_attempt_id, initial_attempt);
     let Some(mfa_step_started::Challenge::Signature(challenge)) = started.challenge else {
         panic!("mobile-approve step start should return a signature challenge");
     };
-    assert!(!challenge.challenge.is_empty());
+    assert_ne!(challenge.challenge, "");
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &accepted.token)
         .await
@@ -2528,9 +2528,8 @@ async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
             device_info(),
         )
         .await;
-    let error = match error {
-        Ok(_) => panic!("a TOTP step must reject an empty typed submission"),
-        Err(error) => error,
+    let Err(error) = error else {
+        panic!("a TOTP step must reject an empty typed submission");
     };
     assert_eq!(error.code(), Code::InvalidArgument);
     assert_eq!(
@@ -2581,14 +2580,14 @@ async fn test_mfa_flow_remote_rejects_non_mobile_step(_: PgPoolOptions, options:
         .first_step
         .expect("flow start must include an attempt")
         .step_attempt_id;
-    let (_response_tx, _response_rx) = mpsc::unbounded_channel();
+    let (response_tx, _response_rx) = mpsc::unbounded_channel();
     let error = server
         .mfa_flow_remote(
             MfaFlowRemoteRequest {
                 token: accepted.token,
                 step_attempt_id: attempt_id,
             },
-            _response_tx,
+            response_tx,
             1,
             device_info(),
         )
@@ -2795,7 +2794,7 @@ async fn test_finish_survives_server_restart(_: PgPoolOptions, options: PgConnec
         )
         .await
         .expect("finish should succeed after restart");
-    assert!(!response.preshared_key.is_empty());
+    assert_ne!(response.preshared_key, "");
 }
 
 #[sqlx::test]

@@ -269,8 +269,6 @@ pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
     build_event: fn(DeviceInfo) -> GatewayCommand,
 ) {
     let mut context = HandlerTestContext::new(options).await;
-    assert!(!context.is_events_handler_registered());
-
     let device_info =
         create_device_info_for_current_network(&context, device_name, device_pubkey, device_ip)
             .await;

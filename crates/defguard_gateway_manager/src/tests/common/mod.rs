@@ -39,16 +39,13 @@ use tokio::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
-    task::{JoinHandle, yield_now},
+    task::JoinHandle,
     time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
-use crate::{
-    GatewayEventRouter, GatewayManager, GatewayManagerTestSupport, GatewayTxSet,
-    handler::GatewayHandler,
-};
+use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -529,24 +526,13 @@ pub(crate) struct HandlerTestContext {
     pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     pub(crate) connection_events_rx: UnboundedReceiver<GatewayConnectionEvent>,
     events_tx: Option<UnboundedSender<GatewayCommand>>,
-    event_router: GatewayEventRouter,
-    dispatch_task: JoinHandle<()>,
     pub(crate) mock_gateway: Option<MockGatewayHarness>,
     handler_task: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
-        Self::new_with_event_router(options, GatewayEventRouter::default()).await
-    }
-
-    /// Contexts sharing a router receive each other's events.
-    pub(crate) async fn new_with_event_router(
-        options: PgConnectOptions,
-        event_router: GatewayEventRouter,
-    ) -> Self {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
-        let dispatch_task = tokio::spawn(event_router.clone().run(events_rx));
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
             .await
@@ -560,7 +546,7 @@ impl HandlerTestContext {
         let mut handler = GatewayHandler::new_with_test_socket(
             gateway.clone(),
             pool.clone(),
-            event_router.clone(),
+            events_rx,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
@@ -579,15 +565,9 @@ impl HandlerTestContext {
             peer_stats_rx,
             connection_events_rx,
             events_tx: Some(events_tx),
-            event_router,
-            dispatch_task,
             mock_gateway: Some(mock_gateway),
             handler_task: Some(handler_task),
         }
-    }
-
-    pub(crate) fn is_events_handler_registered(&self) -> bool {
-        self.event_router.registered(self.gateway.id).is_some()
     }
 
     pub(crate) fn events_tx(&self) -> &UnboundedSender<GatewayCommand> {
@@ -642,28 +622,9 @@ impl HandlerTestContext {
     }
 
     pub(crate) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
-        let initial_events_tx = self.event_router.registered(self.gateway.id);
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
-        let connected_gateway =
-            wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
-        timeout(TEST_TIMEOUT, async {
-            while self
-                .event_router
-                .registered(self.gateway.id)
-                .is_none_or(|events_tx| {
-                    initial_events_tx
-                        .as_ref()
-                        .is_some_and(|initial| initial.same_channel(&events_tx))
-                })
-            {
-                sleep(Duration::from_millis(20)).await;
-            }
-        })
-        .await
-        .expect("timed out waiting for gateway updates handler registration");
-        yield_now().await;
-        connected_gateway
+        wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await
     }
 
     pub(crate) async fn finish(mut self) -> MockGatewayHarness {
@@ -708,7 +669,6 @@ impl HandlerTestContext {
 
 impl Drop for HandlerTestContext {
     fn drop(&mut self) {
-        self.dispatch_task.abort();
         if let Some(handler_task) = self.handler_task.take() {
             handler_task.abort();
         }

@@ -13,7 +13,7 @@ use defguard_proto::{
     gateway::{Configuration, CoreResponse, Peer, Update, UpdateType, core_response, update},
 };
 use sqlx::PgPool;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 /// Helper struct for handling gateway events.
@@ -23,7 +23,6 @@ pub(crate) struct GatewayUpdatesHandler {
     gateway_name: String,
     pool: Option<PgPool>,
     pub(crate) session_authorization_required: bool,
-    events_rx: UnboundedReceiver<GatewayCommand>,
     tx: UnboundedSender<CoreResponse>,
 }
 
@@ -34,7 +33,6 @@ impl GatewayUpdatesHandler {
         network: WireguardNetwork<Id>,
         gateway_name: String,
         pool: Option<PgPool>,
-        events_rx: UnboundedReceiver<GatewayCommand>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
         Self {
@@ -43,7 +41,6 @@ impl GatewayUpdatesHandler {
             gateway_name,
             pool,
             session_authorization_required: false,
-            events_rx,
             tx,
         }
     }
@@ -142,143 +139,134 @@ impl GatewayUpdatesHandler {
         self.send_peer_update(peer, update_type)
     }
 
-    /// Process incoming Gateway events
-    ///
-    /// Every handler receives all events, so it must skip those for other networks.
-    pub(crate) async fn run(&mut self) {
+    /// Must be called before handling events.
+    pub(crate) async fn start(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
             self.gateway_name, self.network
         );
         self.refresh_session_authorization_required().await;
-        while let Some(update) = self.events_rx.recv().await {
-            debug!("Received WireGuard update: {update:?}");
-            let result = match update {
-                GatewayCommand::NetworkCreated(network_id, network) => {
-                    if network_id == self.network_id {
-                        self.send_network_update(&network, Vec::new(), None, UpdateType::Create)
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::NetworkModified(
-                    network_id,
-                    network,
-                    peers,
-                    maybe_firewall_config,
-                ) => {
-                    if network_id == self.network_id {
-                        let result = self.send_network_update(
-                            &network,
-                            peers,
-                            maybe_firewall_config,
-                            UpdateType::Modify,
-                        );
-                        // update stored network data
-                        self.network = network;
-                        self.refresh_session_authorization_required().await;
-                        result
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::NetworkDeleted(network_id, network_name) => {
-                    if network_id == self.network_id {
-                        self.send_network_delete(&network_name)
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::DeviceCreated(device) => {
-                    // check if a peer has to be added in the current network
-                    match device
-                        .network_info
-                        .iter()
-                        .find(|info| info.network_id == self.network_id)
-                    {
-                        Some(network_info) => self.send_runtime_device_update(
-                            &device.device.name,
-                            device.device.wireguard_pubkey,
-                            network_info,
-                            UpdateType::Create,
-                        ),
-                        None => Ok(()),
-                    }
-                }
-                GatewayCommand::DeviceModified(device) => {
-                    // check if a peer has to be updated in the current network
-                    match device
-                        .network_info
-                        .iter()
-                        .find(|info| info.network_id == self.network_id)
-                    {
-                        Some(network_info) => self.send_runtime_device_update(
-                            &device.device.name,
-                            device.device.wireguard_pubkey,
-                            network_info,
-                            UpdateType::Modify,
-                        ),
-                        None => Ok(()),
-                    }
-                }
-                GatewayCommand::DeviceDeleted(device) => {
-                    // check if a peer has to be updated in the current network
-                    match device
-                        .network_info
-                        .iter()
-                        .find(|info| info.network_id == self.network_id)
-                    {
-                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
-                        None => Ok(()),
-                    }
-                }
-                GatewayCommand::FirewallConfigChanged(location_id, firewall_config) => {
-                    if location_id == self.network_id {
-                        self.send_firewall_update(firewall_config)
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::FirewallDisabled(location_id) => {
-                    if location_id == self.network_id {
-                        self.send_firewall_disable()
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::VpnSessionDeauthorized(location_id, device) => {
-                    if location_id == self.network_id {
-                        self.send_peer_delete(&device.wireguard_pubkey)
-                    } else {
-                        Ok(())
-                    }
-                }
-                GatewayCommand::VpnSessionAuthorized(location_id, device, network_info) => {
-                    if location_id == self.network_id {
-                        if network_info.network_id != location_id {
-                            error!(
-                                "Received VPN authorization success event for location {location_id} with invalid runtime network info: {network_info:?}"
-                            );
-                            continue;
-                        }
+    }
 
-                        self.send_runtime_device_update(
-                            &device.name,
-                            device.wireguard_pubkey,
-                            &network_info,
-                            UpdateType::Create,
-                        )
-                    } else {
-                        Ok(())
-                    }
+    /// Process incoming Gateway event
+    ///
+    /// Every handler receives all events, so it must skip those for other networks.
+    pub(crate) async fn handle_event(&mut self, update: GatewayCommand) -> Result<(), Status> {
+        debug!("Received WireGuard update: {update:?}");
+        match update {
+            GatewayCommand::NetworkCreated(network_id, network) => {
+                if network_id == self.network_id {
+                    self.send_network_update(&network, Vec::new(), None, UpdateType::Create)
+                } else {
+                    Ok(())
                 }
-            };
-            if result.is_err() {
-                error!(
-                    "Closing update steam to gateway: {}, network {}",
-                    self.gateway_name, self.network
-                );
-                break;
+            }
+            GatewayCommand::NetworkModified(network_id, network, peers, maybe_firewall_config) => {
+                if network_id == self.network_id {
+                    let result = self.send_network_update(
+                        &network,
+                        peers,
+                        maybe_firewall_config,
+                        UpdateType::Modify,
+                    );
+                    // update stored network data
+                    self.network = network;
+                    self.refresh_session_authorization_required().await;
+                    result
+                } else {
+                    Ok(())
+                }
+            }
+            GatewayCommand::NetworkDeleted(network_id, network_name) => {
+                if network_id == self.network_id {
+                    self.send_network_delete(&network_name)
+                } else {
+                    Ok(())
+                }
+            }
+            GatewayCommand::DeviceCreated(device) => {
+                // check if a peer has to be added in the current network
+                match device
+                    .network_info
+                    .iter()
+                    .find(|info| info.network_id == self.network_id)
+                {
+                    Some(network_info) => self.send_runtime_device_update(
+                        &device.device.name,
+                        device.device.wireguard_pubkey,
+                        network_info,
+                        UpdateType::Create,
+                    ),
+                    None => Ok(()),
+                }
+            }
+            GatewayCommand::DeviceModified(device) => {
+                // check if a peer has to be updated in the current network
+                match device
+                    .network_info
+                    .iter()
+                    .find(|info| info.network_id == self.network_id)
+                {
+                    Some(network_info) => self.send_runtime_device_update(
+                        &device.device.name,
+                        device.device.wireguard_pubkey,
+                        network_info,
+                        UpdateType::Modify,
+                    ),
+                    None => Ok(()),
+                }
+            }
+            GatewayCommand::DeviceDeleted(device) => {
+                // check if a peer has to be updated in the current network
+                match device
+                    .network_info
+                    .iter()
+                    .find(|info| info.network_id == self.network_id)
+                {
+                    Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
+                    None => Ok(()),
+                }
+            }
+            GatewayCommand::FirewallConfigChanged(location_id, firewall_config) => {
+                if location_id == self.network_id {
+                    self.send_firewall_update(firewall_config)
+                } else {
+                    Ok(())
+                }
+            }
+            GatewayCommand::FirewallDisabled(location_id) => {
+                if location_id == self.network_id {
+                    self.send_firewall_disable()
+                } else {
+                    Ok(())
+                }
+            }
+            GatewayCommand::VpnSessionDeauthorized(location_id, device) => {
+                if location_id == self.network_id {
+                    self.send_peer_delete(&device.wireguard_pubkey)
+                } else {
+                    Ok(())
+                }
+            }
+            GatewayCommand::VpnSessionAuthorized(location_id, device, network_info) => {
+                if location_id == self.network_id {
+                    if network_info.network_id != location_id {
+                        error!(
+                            "Received VPN authorization success event for location {location_id} \
+                            with invalid runtime network info: {network_info:?}"
+                        );
+                        return Ok(());
+                    }
+
+                    self.send_runtime_device_update(
+                        &device.name,
+                        device.wireguard_pubkey,
+                        &network_info,
+                        UpdateType::Create,
+                    )
+                } else {
+                    Ok(())
+                }
             }
         }
     }

@@ -25,7 +25,7 @@ use prost_types::Timestamp;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::{mpsc::unbounded_channel, watch};
 
-use crate::{GatewayEventRouter, updates::GatewayUpdatesHandler};
+use crate::updates::GatewayUpdatesHandler;
 
 use super::{GatewayHandler, try_protos_into_stats_message};
 
@@ -209,12 +209,9 @@ fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
 
 fn test_handler(mfa_enabled: bool) -> GatewayUpdatesHandler {
     let network = test_network(mfa_enabled);
-    let (events_tx, events_rx) = unbounded_channel();
     let (tx, _rx) = unbounded_channel();
-    drop(events_tx);
 
-    let mut handler =
-        GatewayUpdatesHandler::new(network.id, network, "gateway".into(), None, events_rx, tx);
+    let mut handler = GatewayUpdatesHandler::new(network.id, network, "gateway".into(), None, tx);
     handler.session_authorization_required = handler.network.mfa_enabled;
     handler
 }
@@ -382,7 +379,7 @@ async fn test_send_configuration_includes_mfa_peers_with_session_preshared_key(
     let handler = GatewayHandler::new(
         gateway,
         pool.clone(),
-        GatewayEventRouter::default(),
+        unbounded_channel().1,
         connection_events_tx,
         peer_stats_tx,
         certs_rx,

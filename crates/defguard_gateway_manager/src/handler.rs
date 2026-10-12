@@ -17,6 +17,7 @@ use defguard_common::{
         Id,
         models::{Certificates, Settings, WireguardNetwork, gateway::Gateway},
     },
+    gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
@@ -36,7 +37,7 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        mpsc::{self, UnboundedSender},
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
         watch,
     },
     task::JoinHandle,
@@ -47,9 +48,7 @@ use tonic::transport::{Channel, Endpoint};
 
 #[cfg(test)]
 use crate::GatewayManagerTestSupport;
-use crate::{
-    Client, GatewayEventRouter, TEN_SECS, error::GatewayError, updates::GatewayUpdatesHandler,
-};
+use crate::{Client, TEN_SECS, error::GatewayError, updates::GatewayUpdatesHandler};
 
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {
@@ -58,11 +57,10 @@ pub(crate) struct GatewayHandler {
     gateway: Gateway<Id>,
     message_id: AtomicU64,
     pool: PgPool,
-    event_router: GatewayEventRouter,
+    events_rx: UnboundedReceiver<GatewayCommand>,
     connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-    updates_handler_handle: Option<JoinHandle<()>>,
     /// Disconnect email notification waiting out the inactivity threshold. Aborted when the
     /// Gateway reconnects inside the window, so short outages produce no email at all.
     pending_disconnect_notification: Option<JoinHandle<()>>,
@@ -79,7 +77,7 @@ impl GatewayHandler {
     pub fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
-        event_router: GatewayEventRouter,
+        events_rx: UnboundedReceiver<GatewayCommand>,
         connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -97,11 +95,10 @@ impl GatewayHandler {
             gateway,
             message_id: AtomicU64::new(0),
             pool,
-            event_router,
+            events_rx,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
-            updates_handler_handle: None,
             pending_disconnect_notification: None,
             disconnect_notification_sent,
             #[cfg(test)]
@@ -525,9 +522,23 @@ impl GatewayHandler {
 
         let mut resp_stream = response.into_inner();
         let mut config_sent = false;
+        let mut updates_handler: Option<GatewayUpdatesHandler> = None;
 
         loop {
-            match resp_stream.message().await {
+            let message = tokio::select! {
+                message = resp_stream.message() => message,
+                Some(event) = self.events_rx.recv() => {
+                    // Events are discarded until configuration has been sent.
+                    if let Some(handler) = updates_handler.as_mut()
+                        && handler.handle_event(event).await.is_err()
+                    {
+                        error!("Closing update stream to {}", self.gateway);
+                        updates_handler = None;
+                    }
+                    continue;
+                }
+            };
+            match message {
                 Ok(None) => {
                     info!("Stream was closed by the sender.");
                     self.handle_stream_disconnection(
@@ -557,20 +568,15 @@ impl GatewayHandler {
                                     info!("Sent configuration to {}", self.gateway);
                                     config_sent = true;
                                     self.mark_connected_and_maybe_notify(&network.name).await;
-                                    let (events_tx, events_rx) = mpsc::unbounded_channel();
-                                    let mut updates_handler = GatewayUpdatesHandler::new(
+                                    let mut handler = GatewayUpdatesHandler::new(
                                         self.gateway.location_id,
                                         network,
                                         self.gateway.name.clone(),
                                         Some(self.pool.clone()),
-                                        events_rx,
                                         tx.clone(),
                                     );
-                                    let handle = tokio::spawn(async move {
-                                        updates_handler.run().await;
-                                    });
-                                    self.event_router.register(self.gateway.id, events_tx);
-                                    self.updates_handler_handle = Some(handle);
+                                    handler.start().await;
+                                    updates_handler = Some(handler);
                                 }
                                 Err(err) => {
                                     error!(
@@ -647,9 +653,6 @@ impl GatewayHandler {
 
 impl Drop for GatewayHandler {
     fn drop(&mut self) {
-        if let Some(handle) = self.updates_handler_handle.take() {
-            handle.abort();
-        }
         if let Some(handle) = self.pending_disconnect_notification.take() {
             handle.abort();
         }
@@ -677,7 +680,7 @@ impl GatewayHandler {
     pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
-        event_router: GatewayEventRouter,
+        events_rx: UnboundedReceiver<GatewayCommand>,
         connection_events_tx: UnboundedSender<GatewayConnectionEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -687,7 +690,7 @@ impl GatewayHandler {
         let mut handler = Self::new(
             gateway,
             pool,
-            event_router,
+            events_rx,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,

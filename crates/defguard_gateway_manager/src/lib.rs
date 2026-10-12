@@ -300,7 +300,8 @@ pub struct GatewayManager {
     tx: GatewayTxSet,
     /// Taken by [`Self::run`].
     events_rx: Option<UnboundedReceiver<GatewayCommand>>,
-    event_router: GatewayEventRouter,
+    /// Per-Gateway channels feeding each `GatewayHandler`.
+    event_senders: Arc<Mutex<HashMap<Id, UnboundedSender<GatewayCommand>>>>,
 }
 
 impl GatewayManager {
@@ -318,7 +319,7 @@ impl GatewayManager {
             disconnect_notification_sent_by_gateway: Arc::default(),
             tx,
             events_rx: Some(events_rx),
-            event_router: GatewayEventRouter::default(),
+            event_senders: Arc::default(),
         }
     }
 
@@ -338,7 +339,7 @@ impl GatewayManager {
             test_support,
             tx,
             events_rx: Some(events_rx),
-            event_router: GatewayEventRouter::default(),
+            event_senders: Arc::default(),
         }
     }
 
@@ -384,6 +385,7 @@ impl GatewayManager {
     fn build_handler(
         &self,
         gateway: Gateway<Id>,
+        events_rx: UnboundedReceiver<GatewayCommand>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<GatewayHandler, GatewayError> {
         // Reuse any outstanding "disconnect sent" flag for this Gateway so a reconnect email is
@@ -399,7 +401,7 @@ impl GatewayManager {
                     GatewayHandler::new_with_test_socket(
                         gateway,
                         self.pool.clone(),
-                        self.event_router.clone(),
+                        events_rx,
                         self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
@@ -410,7 +412,7 @@ impl GatewayManager {
                     GatewayHandler::new(
                         gateway,
                         self.pool.clone(),
-                        self.event_router.clone(),
+                        events_rx,
                         self.tx.connection_events.clone(),
                         self.tx.peer_stats.clone(),
                         certs_rx,
@@ -426,7 +428,7 @@ impl GatewayManager {
         GatewayHandler::new(
             gateway,
             self.pool.clone(),
-            self.event_router.clone(),
+            events_rx,
             self.tx.connection_events.clone(),
             self.tx.peer_stats.clone(),
             certs_rx,
@@ -445,8 +447,17 @@ impl GatewayManager {
                 sleep(TEN_SECS).await;
             }
         }));
-        let _dispatch_events_task = self.events_rx.take().map(|events_rx| {
-            AbortTaskOnDrop::new(tokio::spawn(self.event_router.clone().run(events_rx)))
+        let _dispatch_events_task = self.events_rx.take().map(|mut events_rx| {
+            let event_senders = Arc::clone(&self.event_senders);
+            AbortTaskOnDrop::new(tokio::spawn(async move {
+                while let Some(ref event) = events_rx.recv().await {
+                    // Send the event to all handlers, dropping closed channels.
+                    event_senders
+                        .lock()
+                        .expect("Failed to lock GatewayManager::event_senders")
+                        .retain(|_, events_tx| events_tx.send(event.clone()).is_ok());
+                }
+            }))
         });
         // Stores the abort handle and a snapshot of the gateway at the time the handler was last
         // started. The snapshot is used by the Update arm to detect connection-relevant changes.
@@ -646,7 +657,12 @@ impl GatewayManager {
         clients: Arc<Mutex<HashMap<Id, Client>>>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<AbortHandle, GatewayError> {
-        let mut gateway_handler = self.build_handler(gateway, certs_rx)?;
+        let (events_tx, events_rx) = unbounded_channel();
+        self.event_senders
+            .lock()
+            .expect("Failed to lock GatewayManager::event_senders")
+            .insert(gateway.id, events_tx);
+        let mut gateway_handler = self.build_handler(gateway, events_rx, certs_rx)?;
         let manager_reconnect_delay = self.manager_reconnect_delay();
         let abort_handle = self.handlers.spawn(async move {
             gateway_handler
@@ -704,46 +720,5 @@ impl GatewayTxSet {
     ) -> Self {
         self.connection_events = connection_events;
         self
-    }
-}
-
-/// Delivers Gateway events to all updates handlers.
-#[derive(Clone, Default)]
-pub(crate) struct GatewayEventRouter {
-    senders: Arc<Mutex<HashMap<Id, UnboundedSender<GatewayCommand>>>>,
-}
-
-impl GatewayEventRouter {
-    /// Replaces any previously registered channel for this Gateway.
-    pub(crate) fn register(&self, gateway_id: Id, events_tx: UnboundedSender<GatewayCommand>) {
-        self.senders
-            .lock()
-            .expect("Failed to lock GatewayEventRouter::senders")
-            .insert(gateway_id, events_tx);
-    }
-
-    pub(crate) async fn run(self, mut events_rx: UnboundedReceiver<GatewayCommand>) {
-        while let Some(ref event) = events_rx.recv().await {
-            // Sends the event to all handlers, dropping closed channels.
-            self.senders
-                .lock()
-                .expect("Failed to lock GatewayEventRouter::senders")
-                .retain(|gateway_id, events_tx| {
-                    let sent = events_tx.send(event.clone()).is_ok();
-                    if !sent {
-                        debug!("Updates handler for Gateway id={gateway_id} has stopped");
-                    }
-                    sent
-                });
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn registered(&self, gateway_id: Id) -> Option<UnboundedSender<GatewayCommand>> {
-        self.senders
-            .lock()
-            .expect("Failed to lock GatewayEventRouter::senders")
-            .get(&gateway_id)
-            .cloned()
     }
 }

@@ -118,11 +118,8 @@ async fn test_only_matching_handler_receives_network_modified_update(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let event_router = GatewayEventRouter::default();
-    let mut matching_context =
-        HandlerTestContext::new_with_event_router(options.clone(), event_router.clone()).await;
-    let mut unrelated_context =
-        HandlerTestContext::new_with_event_router(options, event_router).await;
+    let mut matching_context = HandlerTestContext::new(options.clone()).await;
+    let mut unrelated_context = HandlerTestContext::new(options).await;
 
     assert_ne!(matching_context.network.id, unrelated_context.network.id);
 
@@ -143,15 +140,19 @@ async fn test_only_matching_handler_receives_network_modified_update(
     modified_network.mtu = 1400;
     modified_network.fwmark = 7;
 
+    // Every handler receives all events.
+    let event = GatewayCommand::NetworkModified(
+        matching_context.network.id,
+        modified_network,
+        Vec::new(),
+        None,
+    );
     assert_send_ok!(
-        matching_context
-            .events_tx()
-            .send(GatewayCommand::NetworkModified(
-                matching_context.network.id,
-                modified_network,
-                Vec::new(),
-                None,
-            )),
+        unrelated_context.events_tx().send(event.clone()),
+        "failed to send modified gateway event"
+    );
+    assert_send_ok!(
+        matching_context.events_tx().send(event),
         "failed to send modified gateway event"
     );
 
