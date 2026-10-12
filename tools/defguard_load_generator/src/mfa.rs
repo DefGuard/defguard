@@ -16,7 +16,7 @@ use totp_lite::{Sha1, totp_custom};
 use crate::{
     client_info::platform_header,
     config::{ClientMfaArgs, DatabaseArgs},
-    runner::{LoadLoopConfig, run_load_loop},
+    runner::{LoadLoopConfig, LoadLoopStats, run_load_loop},
 };
 
 const START_PATH: &str = "/api/v1/client-mfa/start";
@@ -168,6 +168,17 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
         peak_in_flight = stats.peak_in_flight,
         "client MFA load test complete"
     );
+    fail_on_overload(&stats)
+}
+
+fn fail_on_overload(stats: &LoadLoopStats) -> anyhow::Result<()> {
+    if stats.dropped > 0 || stats.unavailable > 0 {
+        anyhow::bail!(
+            "load generator overload: {} MFA flows dropped at max_in_flight, {} skipped because all actors were busy",
+            stats.dropped,
+            stats.unavailable
+        );
+    }
     Ok(())
 }
 
