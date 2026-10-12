@@ -55,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  config-polling:
+  load-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Restrict this environment to protected branches and require approval.
