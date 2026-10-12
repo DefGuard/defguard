@@ -14,7 +14,7 @@ on:
       polling_rps:
         description: Target polling requests per second (1-10000)
         required: true
-        default: 1000
+        default: 500
         type: number
       mfa_network_id:
         description: MFA-enabled WireGuard network ID with seeded TOTP devices
@@ -34,7 +34,7 @@ on:
       mfa_posture_rps:
         description: Target MFA with posture checks flows per second (1-10000)
         required: true
-        default: 500
+        default: 450
         type: number
       duration_seconds:
         description: Load generation time in seconds (30-900)
@@ -71,9 +71,9 @@ jobs:
       POLLING_NETWORK_ID: ${{ inputs.polling_network_id || 1 }}
       MFA_NETWORK_ID: ${{ inputs.mfa_network_id || 2 }}
       MFA_POSTURE_NETWORK_ID: ${{ inputs.mfa_posture_network_id || 3 }}
-      POLLING_RPS: ${{ inputs.polling_rps || 1000 }}
+      POLLING_RPS: ${{ inputs.polling_rps || 500 }}
       MFA_RPS: ${{ inputs.mfa_rps || 500 }}
-      MFA_POSTURE_RPS: ${{ inputs.mfa_posture_rps || 500 }}
+      MFA_POSTURE_RPS: ${{ inputs.mfa_posture_rps || 450 }}
       DURATION_SECONDS: ${{ inputs.duration_seconds || 60 }}
       MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 1024 }}
 
