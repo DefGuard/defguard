@@ -74,73 +74,20 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: load-test-${{ github.run_id }}
 
-      - name: Update Edge and Core images through SSM
+      - name: Update Edge and Core images
         shell: bash
         run: |
           set -euo pipefail
-          remote_script=$(cat <<'REMOTE'
-          set -euo pipefail
-          case "$SERVICE" in
-            edge)
-              compose=/opt/defguard-edge/docker-compose.yaml
-              expected_image=ghcr.io/defguard/defguard-proxy:dev
-              port=8080
-              ;;
-            core)
-              compose=/opt/defguard-core/docker-compose.yaml
-              expected_image=ghcr.io/defguard/defguard:dev
-              port=8000
-              ;;
-            *) exit 1 ;;
-          esac
-          [[ "$(docker compose -f "$compose" config --images)" == "$expected_image" ]] || { echo "$SERVICE does not use $expected_image"; exit 1; }
-          docker compose -f "$compose" pull "$SERVICE"
-          docker compose -f "$compose" up -d --no-deps "$SERVICE"
-          for (( attempt = 0; attempt < 60; attempt++ )); do
-            container_id=$(docker compose -f "$compose" ps -q "$SERVICE")
-            if [[ -n "$container_id" && "$(docker inspect -f '{{.State.Running}}' "$container_id")" == true ]] && timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
-              sleep 10
-              if [[ "$(docker inspect -f '{{.State.Running}}' "$container_id")" == true ]]; then
-                echo "$SERVICE is running on image ID $(docker inspect -f '{{.Image}}' "$container_id")"
-                exit 0
-              fi
-            fi
-            sleep 5
-          done
-          echo "$SERVICE did not become ready"
-          exit 1
-          REMOTE
-          )
-          encoded_script=$(printf %s "$remote_script" | base64 -w0)
           for service in edge core; do
             case "$service" in
-              edge) instance_id=$EDGE_INSTANCE_ID ;;
-              core) instance_id=$CORE_INSTANCE_ID ;;
+              edge) instance_id=$EDGE_INSTANCE_ID; compose=/opt/defguard-edge/docker-compose.yaml ;;
+              core) instance_id=$CORE_INSTANCE_ID; compose=/opt/defguard-core/docker-compose.yaml ;;
             esac
-            printf -v command 'env SERVICE=%q bash -lc %q' "$service" "printf %s '$encoded_script' | base64 -d | bash"
-            jq -n --arg command "$command" '{commands: [$command], executionTimeout: ["600"]}' > "$RUNNER_TEMP/update-parameters.json"
-            command_id=$(aws ssm send-command --instance-ids "$instance_id" --document-name AWS-RunShellScript --parameters "file://$RUNNER_TEMP/update-parameters.json" --timeout-seconds 60 --query 'Command.CommandId' --output text)
+            parameters=$(jq -nc --arg c "$compose" --arg s "$service" '{commands: ["set -e", "docker compose -f \($c) pull \($s)", "docker compose -f \($c) up -d --no-deps \($s)"], executionTimeout: ["600"]}')
+            command_id=$(aws ssm send-command --instance-ids "$instance_id" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
             echo "Updating $service through SSM command $command_id"
-            invocation="$RUNNER_TEMP/update-$service-invocation.json"
-            status=''
-            for (( attempt = 0; attempt < 65; attempt++ )); do
-              if aws ssm get-command-invocation --command-id "$command_id" --instance-id "$instance_id" --output json > "$invocation" 2>/dev/null; then
-                status=$(jq -r '.Status' "$invocation")
-                case "$status" in
-                  Success|Failed|Cancelled|TimedOut) break ;;
-                esac
-              fi
-              sleep 10
-            done
-            if [[ "$status" != Success && "$status" != Failed && "$status" != Cancelled && "$status" != TimedOut ]]; then
-              echo "::error::$service update did not finish; SSM command $command_id"
-              exit 1
-            fi
-            jq -r '.StandardOutputContent, .StandardErrorContent' "$invocation"
-            if [[ "$status" != Success || "$(jq -r '.ResponseCode' "$invocation")" != 0 ]]; then
-              echo "::error::$service update failed with status $status; SSM command $command_id"
-              exit 1
-            fi
+            aws ssm wait command-executed --command-id "$command_id" --instance-id "$instance_id"
+            echo "$service update finished with SSM status Success"
           done
 
       - name: Run generator on EC2 through SSM
