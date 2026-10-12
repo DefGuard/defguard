@@ -9,7 +9,7 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
-use defguard_grpc_tls::certs::proxy_mtls_channel;
+use defguard_grpc_tls::certs::{ProxyTlsTarget, proxy_mtls_channel};
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
 };
@@ -270,8 +270,18 @@ pub(crate) async fn call_proxy_trigger_acme(
         cert_serial.to_owned(),
     )])));
 
-    let channel = proxy_mtls_channel(proxy, &ca_cert_der, certs_rx)
-        .map_err(|e| (format!("Failed to build mTLS channel: {e}"), Vec::new()))?;
+    let channel = proxy_mtls_channel(
+        ProxyTlsTarget {
+            id: proxy.id,
+            address: &proxy.address,
+            port: proxy.port,
+            client_cert_der: proxy.core_client_cert_der.as_deref(),
+            client_key_der: proxy.core_client_cert_key_der.as_deref(),
+        },
+        &ca_cert_der,
+        certs_rx,
+    )
+    .map_err(|e| (format!("Failed to build mTLS channel: {e}"), Vec::new()))?;
 
     let version = Version::parse(VERSION)
         .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;

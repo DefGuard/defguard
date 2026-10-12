@@ -45,7 +45,7 @@ use defguard_core::{
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
-use defguard_grpc_tls::certs::proxy_mtls_channel;
+use defguard_grpc_tls::certs::{ProxyTlsTarget, proxy_mtls_channel};
 use defguard_proto::{
     client_types::{
         AuthFlowType as ProtoAuthFlowType, AuthInfoRequest,
@@ -396,8 +396,18 @@ impl ProxyHandler {
                 ))
             })?;
 
-        proxy_mtls_channel(&proxy, &ca_cert_der, certs_rx)
-            .map_err(|e| ProxyError::TlsConfigError(e.to_string()))
+        proxy_mtls_channel(
+            ProxyTlsTarget {
+                id: proxy.id,
+                address: &proxy.address,
+                port: proxy.port,
+                client_cert_der: proxy.core_client_cert_der.as_deref(),
+                client_key_der: proxy.core_client_cert_key_der.as_deref(),
+            },
+            &ca_cert_der,
+            certs_rx,
+        )
+        .map_err(|e| ProxyError::TlsConfigError(e.to_string()))
     }
 
     #[cfg(not(test))]
