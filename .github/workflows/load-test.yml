@@ -90,23 +90,18 @@ jobs:
             echo "$service update finished with SSM status Success"
           done
 
-      - name: Run generator on EC2 through SSM
+      - name: Run polling load test
         id: send-command
         shell: bash
         run: |
           set -euo pipefail
           remote_script=$(cat <<'REMOTE'
           set -euo pipefail
-          mkdir -p "$HOME/.cache"
-          exec 9>"$HOME/.cache/defguard-load-test.lock"
+          exec 9>"$HOME/.defguard-load-test.lock"
           flock -n 9 || { echo 'Another load test is already running'; exit 1; }
-          source "$HOME/.cargo/env"
-          [[ -r "$HOME/.config/defguard-load-test.env" ]] || { echo 'Configure $HOME/.config/defguard-load-test.env on the generator instance'; exit 1; }
           set -a
           source "$HOME/.config/defguard-load-test.env"
           set +a
-          : "${DEFGUARD_DB_PASSWORD:?Configure database access on the generator instance}"
-          command -v protoc >/dev/null || { echo 'Install protobuf-compiler on the generator instance'; exit 1; }
           cd "$HOME/defguard"
           git fetch origin "$LOAD_TEST_REV"
           git checkout --detach "$LOAD_TEST_REV"
@@ -122,8 +117,8 @@ jobs:
           )
           encoded_script=$(printf %s "$remote_script" | base64 -w0)
           printf -v command 'runuser -u ubuntu -- env LOAD_TEST_REV=%q LOAD_TEST_PROXY_URL=%q NETWORK_ID=%q RPS=%q DURATION_SECONDS=%q MAX_IN_FLIGHT=%q bash -lc %q' "$GITHUB_SHA" "$PROXY_URL" "$NETWORK_ID" "$RPS" "$DURATION_SECONDS" "$MAX_IN_FLIGHT" "printf %s '$encoded_script' | base64 -d | bash"
-          jq -n --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}' > "$RUNNER_TEMP/load-test-parameters.json"
-          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "file://$RUNNER_TEMP/load-test-parameters.json" --timeout-seconds 60 --query 'Command.CommandId' --output text)
+          parameters=$(jq -nc --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}')
+          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
           echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
           echo "SSM command: $command_id"
 
