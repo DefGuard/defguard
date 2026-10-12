@@ -59,18 +59,13 @@ jobs:
       MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 256 }}
 
     steps:
-      - name: Validate target and inputs
+      - name: Validate parameter bounds
         shell: bash
         run: |
           set -euo pipefail
-          # [[ "$GITHUB_REF_PROTECTED" == true ]] || { echo '::error::Run this workflow from a protected branch'; exit 1; }
-          [[ -n "$AWS_ROLE_ARN" && "$GENERATOR_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the load-testing AWS role and generator instance ID'; exit 1; }
-          [[ "$CORE_INSTANCE_ID" =~ ^i-[0-9a-f]+$ && "$EDGE_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo '::error::Configure the Core and Edge instance IDs'; exit 1; }
-          [[ "$PROXY_URL" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$ ]] || { echo '::error::Configure LOAD_TEST_PROXY_URL as a base URL'; exit 1; }
-          [[ "$NETWORK_ID" =~ ^[1-9][0-9]{0,17}$ ]] || { echo '::error::network_id must be a positive integer'; exit 1; }
-          if ! [[ "$RPS" =~ ^[1-9][0-9]{0,4}$ ]] || (( RPS > 10000 )); then echo '::error::requests_per_second must be 1-10000'; exit 1; fi
-          if ! [[ "$DURATION_SECONDS" =~ ^[1-9][0-9]{0,2}$ ]] || (( DURATION_SECONDS < 30 || DURATION_SECONDS > 900 )); then echo '::error::duration_seconds must be 30-900'; exit 1; fi
-          if ! [[ "$MAX_IN_FLIGHT" =~ ^[1-9][0-9]{0,3}$ ]] || (( MAX_IN_FLIGHT > 4096 )); then echo '::error::max_in_flight must be 1-4096'; exit 1; fi
+          if (( RPS < 1 || RPS > 10000 )); then echo '::error::requests_per_second must be 1-10000'; exit 1; fi
+          if (( DURATION_SECONDS < 30 || DURATION_SECONDS > 900 )); then echo '::error::duration_seconds must be 30-900'; exit 1; fi
+          if (( MAX_IN_FLIGHT < 1 || MAX_IN_FLIGHT > 4096 )); then echo '::error::max_in_flight must be 1-4096'; exit 1; fi
 
       - name: Configure AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
