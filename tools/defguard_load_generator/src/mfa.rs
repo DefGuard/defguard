@@ -123,6 +123,13 @@ impl Metrics {
     }
 }
 
+fn request_rate(count: u64, duration: Duration) -> f64 {
+    if duration.is_zero() {
+        return 0.0;
+    }
+    count as f64 / duration.as_secs_f64()
+}
+
 pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     let actors = load_actors(&args.database, args.network_id).await?;
     if actors.is_empty() {
@@ -134,6 +141,7 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     let location_id = args.network_id;
     let with_posture_checks = args.with_posture_checks;
     let mut metrics = Metrics::default();
+    let started_at = Instant::now();
     let stats = run_load_loop(
         actors,
         LoadLoopConfig {
@@ -156,6 +164,12 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     .await?;
 
     tracing::info!(
+        elapsed = ?started_at.elapsed(),
+        load_duration = ?stats.load_duration,
+        total_duration = ?stats.total_duration,
+        target_rps = args.requests_per_second.get(),
+        scheduled_rps = request_rate(stats.scheduled, stats.load_duration),
+        successful_rps = request_rate(metrics.successful, stats.total_duration),
         scheduled = stats.scheduled,
         completed = stats.completed,
         successful = metrics.successful,
