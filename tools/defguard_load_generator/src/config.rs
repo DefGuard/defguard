@@ -149,6 +149,10 @@ pub struct ClientMfaArgs {
     #[arg(long, default_value_t = 1024)]
     pub max_in_flight: usize,
 
+    /// Minimum percentage of completed MFA flows that must succeed.
+    #[arg(long, default_value_t = 90, value_parser = clap::value_parser!(u8).range(1..=100))]
+    pub min_success_percent: u8,
+
     /// Include synthetic passing Linux posture data in each MFA start request.
     #[arg(long)]
     pub with_posture_checks: bool,
@@ -179,6 +183,10 @@ pub struct ConfigPollingArgs {
     /// Maximum number of polling requests running concurrently.
     #[arg(long, default_value_t = 1024)]
     pub max_in_flight: usize,
+
+    /// Minimum percentage of completed polling requests that must succeed.
+    #[arg(long, default_value_t = 90, value_parser = clap::value_parser!(u8).range(1..=100))]
+    pub min_success_percent: u8,
 
     /// Optional test duration. Without it, the test runs until Ctrl-C.
     #[arg(long, value_parser = humantime::parse_duration)]

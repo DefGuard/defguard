@@ -17,7 +17,7 @@ use tokio::task::JoinError;
 use crate::{
     client_info::platform_header,
     config::{ConfigPollingArgs, DatabaseArgs},
-    runner::LoadLoopConfig,
+    runner::{LoadLoopConfig, ensure_success_rate},
 };
 
 const POLLING_PATH: &str = "/api/v1/poll";
@@ -81,6 +81,7 @@ struct SharedLoadTestState {
     duration: Option<Duration>,
     max_in_flight: usize,
     requests_per_second: NonZeroU64,
+    min_success_percent: u8,
 }
 
 /// Polling load test with one request per scheduled task.
@@ -91,6 +92,7 @@ pub struct ConfigPollingLoadTest {
     requests_per_second: NonZeroU64,
     duration: Option<Duration>,
     max_in_flight: usize,
+    min_success_percent: u8,
 }
 
 impl ConfigPollingLoadTest {
@@ -103,6 +105,7 @@ impl ConfigPollingLoadTest {
             requests_per_second: args.requests_per_second,
             duration: args.duration,
             max_in_flight: args.max_in_flight,
+            min_success_percent: args.min_success_percent,
         }
     }
 
@@ -139,6 +142,7 @@ impl ConfigPollingLoadTest {
             duration: self.duration,
             max_in_flight: self.max_in_flight,
             requests_per_second: self.requests_per_second,
+            min_success_percent: self.min_success_percent,
         })
     }
 }
@@ -237,7 +241,12 @@ async fn run_load_loop(state: SharedLoadTestState) -> anyhow::Result<()> {
     metrics.dropped_requests = stats.dropped;
     metrics.peak_in_flight = stats.peak_in_flight;
     report_final_results(&metrics, &state, stats.load_duration, stats.total_duration);
-    fail_on_overload(stats.dropped)
+    fail_on_overload(stats.dropped)?;
+    ensure_success_rate(
+        metrics.successful_requests,
+        stats.completed,
+        state.min_success_percent,
+    )
 }
 
 fn fail_on_overload(dropped: u64) -> anyhow::Result<()> {
@@ -309,6 +318,7 @@ fn report_final_results(
         load_duration = ?load_duration,
         total_duration = ?total_duration,
         target_rps = state.requests_per_second.get(),
+        min_success_percent = state.min_success_percent,
         scheduled_rps,
         successful_rps,
         scheduled = metrics.scheduled_requests,

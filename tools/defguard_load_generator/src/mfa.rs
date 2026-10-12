@@ -16,7 +16,7 @@ use totp_lite::{Sha1, totp_custom};
 use crate::{
     client_info::platform_header,
     config::{ClientMfaArgs, DatabaseArgs},
-    runner::{LoadLoopConfig, LoadLoopStats, run_load_loop},
+    runner::{LoadLoopConfig, LoadLoopStats, ensure_success_rate, run_load_loop},
 };
 
 const START_PATH: &str = "/api/v1/client-mfa/start";
@@ -168,6 +168,7 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
         load_duration = ?stats.load_duration,
         total_duration = ?stats.total_duration,
         target_rps = args.requests_per_second.get(),
+        min_success_percent = args.min_success_percent,
         scheduled_rps = request_rate(stats.scheduled, stats.load_duration),
         successful_rps = request_rate(metrics.successful, stats.total_duration),
         scheduled = stats.scheduled,
@@ -182,7 +183,12 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
         peak_in_flight = stats.peak_in_flight,
         "client MFA load test complete"
     );
-    fail_on_overload(&stats)
+    fail_on_overload(&stats)?;
+    ensure_success_rate(
+        metrics.successful,
+        stats.completed,
+        args.min_success_percent,
+    )
 }
 
 fn fail_on_overload(stats: &LoadLoopStats) -> anyhow::Result<()> {
