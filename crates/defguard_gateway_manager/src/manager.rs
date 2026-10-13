@@ -23,7 +23,7 @@ use tonic::Request;
 use crate::GatewayManagerTestSupport;
 use crate::{
     AbortTaskOnDrop, Client, GatewayTxSet, TEN_SECS, certs, error::GatewayError,
-    handler::GatewayHandler, needs_restart,
+    handler::GatewayHandler,
 };
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
@@ -289,7 +289,7 @@ impl GatewayManager {
 
                             // Only restart the handler when connection-relevant fields have actually changed
                             let should_restart = match abort_handles.get(&gateway_id) {
-                                Some((_, snapshot)) => needs_restart(snapshot, &gateway),
+                                Some((_, snapshot)) => snapshot.needs_restart(&gateway),
                                 // Gateway not currently handled - treat as needing a (re)start.
                                 None => true,
                             };

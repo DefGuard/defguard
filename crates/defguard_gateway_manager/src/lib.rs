@@ -9,10 +9,9 @@ use std::{
     },
 };
 
-use defguard_common::{
-    db::{Id, models::gateway::Gateway},
-    messages::peer_stats_update::PeerStatsUpdate,
-};
+#[cfg(test)]
+use defguard_common::db::{Id, models::gateway::Gateway};
+use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
 use defguard_core::events::GatewayConnectionEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
@@ -288,20 +287,6 @@ impl GatewayManagerTestSupport {
             .expect("Failed to lock GatewayManager disconnect notification delay override")
             .unwrap_or(configured_delay)
     }
-}
-
-/// Returns true if the gateway handler must be restarted: its location, address, port,
-/// enabled flag or client certificate has changed.
-///
-/// Other fields are ignored, because the handler itself updates them via `gateway.save()`,
-/// and restarting on those would loop forever.
-fn needs_restart(old: &Gateway<Id>, new: &Gateway<Id>) -> bool {
-    old.location_id != new.location_id
-        || old.address != new.address
-        || old.port != new.port
-        || old.enabled != new.enabled
-        || old.core_client_cert_der != new.core_client_cert_der
-        || old.core_client_cert_key_der != new.core_client_cert_key_der
 }
 
 /// Shared set of outbound channels that gateway instances use to forward events, notifications,
