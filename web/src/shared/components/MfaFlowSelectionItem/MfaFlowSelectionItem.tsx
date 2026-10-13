@@ -53,7 +53,9 @@ export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
               }}
             >
               <Icon
-                icon={IconKind.InfoOutlined}
+                icon={
+                  hasAvailabilityIssues ? IconKind.AttentionFilled : IconKind.InfoOutlined
+                }
                 size={20}
                 staticColor={
                   hasAvailabilityIssues
