@@ -455,7 +455,7 @@ async fn test_runtime_mfa_state_keeps_session_preshared_key_for_authorized_runti
         disconnected_at: None,
         is_mfa_session: true,
         state: VpnClientSessionState::Connected,
-        preshared_key: Some("runtime-session-psk".into()),
+        preshared_key: Some("runtime-session-psk".to_owned().into()),
     };
 
     let network_info =
@@ -463,7 +463,7 @@ async fn test_runtime_mfa_state_keeps_session_preshared_key_for_authorized_runti
 
     assert_eq!(
         network_info.preshared_key,
-        Some("runtime-session-psk".into())
+        Some("runtime-session-psk".to_owned().into())
     );
     assert!(network_info.is_authorized);
 }
@@ -601,7 +601,7 @@ async fn test_device_info_keeps_mfa_session_preshared_key_for_authorized_full_sy
         Some(Utc::now().naive_utc()),
         true,
     );
-    session.preshared_key = Some("device-info-session-psk".into());
+    session.preshared_key = Some("device-info-session-psk".to_owned().into());
     session.save(&pool).await.unwrap();
 
     let device_info = DeviceInfo::from_device(&pool, device).await.unwrap();
@@ -614,7 +614,7 @@ async fn test_device_info_keeps_mfa_session_preshared_key_for_authorized_full_sy
     assert!(network_info.is_authorized);
     assert_eq!(
         network_info.preshared_key,
-        Some("device-info-session-psk".into())
+        Some("device-info-session-psk".to_owned().into())
     );
 }
 
@@ -676,7 +676,7 @@ async fn test_device_info_keeps_non_mfa_location_authorized_without_exposing_ses
     wireguard_network_device.insert(&pool).await.unwrap();
 
     let mut session = VpnClientSession::new(network.id, user.id, device.id, None, false);
-    session.preshared_key = Some("legacy-session-psk".into());
+    session.preshared_key = Some("legacy-session-psk".to_owned().into());
     session.save(&pool).await.unwrap();
 
     let device_info = DeviceInfo::from_device(&pool, device).await.unwrap();
@@ -1484,4 +1484,26 @@ async fn test_saturated_network(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
     assert_eq!(5, network_devices.len(), "{network_devices:#?}");
+}
+
+#[test]
+fn test_device_network_info_debug_redacts_preshared_key_and_skips_serialization() {
+    use crate::secret::SecretStringWrapper;
+
+    let network_info = DeviceNetworkInfo {
+        network_id: 1,
+        device_wireguard_ips: Vec::new(),
+        preshared_key: Some(SecretStringWrapper::from(
+            "device-network-secret".to_owned(),
+        )),
+        is_authorized: true,
+    };
+
+    let debug = format!("{network_info:?}");
+    assert!(!debug.contains("device-network-secret"));
+    assert!(debug.contains("preshared_key: Some("));
+
+    let serialized = serde_json::to_string(&network_info).unwrap();
+    assert!(!serialized.contains("preshared_key"));
+    assert!(!serialized.contains("device-network-secret"));
 }

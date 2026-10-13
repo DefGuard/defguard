@@ -565,7 +565,7 @@ mod test {
         .unwrap();
 
         let mut session = VpnClientSession::new(location.id, user.id, device.id, None, true);
-        session.preshared_key = Some("test-psk".into());
+        session.preshared_key = Some("test-psk".to_owned().into());
         session.save(&mut *conn).await.unwrap();
 
         location

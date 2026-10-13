@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1",
+  "query": "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" FROM vpn_client_session s LEFT JOIN LATERAL ( SELECT latest_handshake FROM vpn_session_stats WHERE session_id = s.id ORDER BY latest_handshake DESC LIMIT 1 ) ss ON true WHERE location_id = $1 AND state = 'connected' AND (NOW() - ss.latest_handshake) > $2 * interval '1 second'",
   "describe": {
     "columns": [
       {
@@ -115,7 +115,7 @@
       },
       {
         "ordinal": 9,
-        "name": "preshared_key",
+        "name": "preshared_key?: _",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -128,7 +128,7 @@
     "parameters": {
       "Left": [
         "Int8",
-        "Int8"
+        "Float8"
       ]
     },
     "nullable": [
@@ -144,5 +144,5 @@
       true
     ]
   },
-  "hash": "8e0fc1e62f766a720e54c817646b49904e7e4f1c6c5a7f1d0e4126243e89017f"
+  "hash": "7434a12f27e1cbe776201f2e14bded86438763177dff2d5fe35ffb648145be2d"
 }

@@ -19,6 +19,7 @@ use defguard_common::{
         },
         wireguard_key::WireguardKey,
     },
+    secret::SecretStringWrapper,
     types::user_info::UserInfo,
 };
 use defguard_proto::{
@@ -254,7 +255,9 @@ impl From<FinishOutcome> for MfaStepResult {
                 mfa_step_result::Outcome::Advanced(MfaAdvanced { next_step })
             }
             FinishOutcome::Completed { preshared_key } => {
-                mfa_step_result::Outcome::Completed(MfaCompleted { preshared_key })
+                mfa_step_result::Outcome::Completed(MfaCompleted {
+                    preshared_key: preshared_key.expose_secret().to_owned(),
+                })
             }
             FinishOutcome::AwaitingExternal => {
                 mfa_step_result::Outcome::AwaitingExternal(MfaAwaitingExternal {})
@@ -1312,12 +1315,12 @@ impl ClientMfaServer {
                         *waiter_key
                             .lock()
                             .expect("Failed to lock legacy remote MFA preshared key") =
-                            Some(preshared_key.clone());
+                            Some(preshared_key.expose_secret().to_owned());
                         signal_remote_mfa_waiter(waiter, RemoteAuthSignal::Approved);
                     }
                     String::new()
                 } else {
-                    preshared_key.clone()
+                    preshared_key.expose_secret().to_owned()
                 }
             }
             LegacyFinishOutcome::AwaitingExternal => String::new(),
@@ -1586,6 +1589,7 @@ impl ClientMfaServer {
 
         // Posture check succeeded - create a VPN session.
         let key = WireguardKey::generate();
+        let preshared_key = SecretStringWrapper::from(key.public());
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction for posture session: {err}");
@@ -1602,7 +1606,7 @@ impl ClientMfaServer {
         };
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public());
+            build_authorized_gateway_network_info(network_device, preshared_key.clone());
 
         create_new_session(
             &self.channels,
@@ -1611,7 +1615,7 @@ impl ClientMfaServer {
             &user,
             &device,
             false,
-            key.public(),
+            preshared_key.clone(),
         )
         .await?;
 

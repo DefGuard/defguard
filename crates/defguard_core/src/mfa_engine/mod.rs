@@ -26,6 +26,7 @@ use defguard_common::db::{
     },
     wireguard_key::WireguardKey,
 };
+use defguard_common::secret::SecretStringWrapper;
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tracing::{debug, error, warn};
@@ -406,6 +407,7 @@ impl MfaEngine {
             .map(|flow| flow.title);
 
         let key = WireguardKey::generate();
+        let preshared_key = SecretStringWrapper::from(key.public());
 
         let vpn_client_session = create_new_session(
             &self.channels,
@@ -414,7 +416,7 @@ impl MfaEngine {
             &ctx.user,
             &ctx.device,
             true,
-            key.public(),
+            preshared_key.clone(),
         )
         .await
         .map_err(|err| {
@@ -430,7 +432,7 @@ impl MfaEngine {
         );
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public());
+            build_authorized_gateway_network_info(network_device, preshared_key.clone());
 
         let gateway_command = GatewayCommand::VpnSessionAuthorized(
             ctx.location.id,
@@ -467,9 +469,7 @@ impl MfaEngine {
         })?;
 
         Ok(CompletedFlow {
-            outcome: FinishOutcome::Completed {
-                preshared_key: key.public(),
-            },
+            outcome: FinishOutcome::Completed { preshared_key },
             gateway_command,
             event,
         })

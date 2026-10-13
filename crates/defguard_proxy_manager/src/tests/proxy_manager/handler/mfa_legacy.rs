@@ -337,7 +337,13 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     );
 
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
-    assert_eq!(session.preshared_key.as_ref(), parked_key.as_ref());
+    assert_eq!(
+        session
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        parked_key.as_deref()
+    );
 
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
@@ -435,7 +441,13 @@ async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
     let parked_key = parked_key.expect("parked response must contain a key");
 
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
-    assert_eq!(session.preshared_key.as_ref(), Some(&parked_key));
+    assert_eq!(
+        session
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(parked_key.as_str())
+    );
 
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await

@@ -24,6 +24,7 @@ use defguard_common::{
     gateway_event::GatewayCommand,
     gateway_types::{FirewallConfig, WireguardPeer},
     messages::peer_stats_update::PeerStatsUpdate,
+    secret::SecretStringWrapper,
 };
 use defguard_core::{
     enterprise::firewall::try_get_location_firewall_config,
@@ -846,7 +847,7 @@ impl GatewayUpdatesHandler {
         peer_pubkey: String,
         allowed_ips: Vec<String>,
         is_authorized: bool,
-        preshared_key: Option<String>,
+        preshared_key: Option<SecretStringWrapper>,
     ) -> Option<Peer> {
         if !self.session_authorization_required {
             return Some(Peer {
@@ -876,7 +877,7 @@ impl GatewayUpdatesHandler {
         Some(Peer {
             pubkey: peer_pubkey,
             allowed_ips,
-            preshared_key: Some(preshared_key),
+            preshared_key: Some(preshared_key.expose_secret().to_owned()),
             keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
         })
     }
@@ -1275,7 +1276,7 @@ mod tests {
             Id,
             models::{
                 Device, DeviceType, User,
-                device::WireguardNetworkDevice,
+                device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
                 gateway::Gateway,
                 vpn_client_session::VpnClientSession,
                 wireguard::{ServiceLocationMode, WireguardNetwork},
@@ -1422,7 +1423,7 @@ mod tests {
             vec![WireguardPeer {
                 pubkey: "peer-public-key".to_owned(),
                 allowed_ips: vec!["10.10.0.2/32".to_owned()],
-                preshared_key: Some("peer-preshared-key".to_owned()),
+                preshared_key: Some("peer-preshared-key".to_owned().into()),
                 keepalive_interval: Some(25),
             }],
             Some(NativeFirewallConfig {
@@ -1486,6 +1487,34 @@ mod tests {
     }
 
     #[test]
+    fn device_modified_debug_redacts_network_preshared_key() {
+        let device = Device::new(
+            "test-device".to_owned(),
+            "test-pubkey".to_owned(),
+            1,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .with_id(1);
+        let command = GatewayCommand::DeviceModified(DeviceInfo {
+            device,
+            network_info: vec![DeviceNetworkInfo {
+                network_id: 1,
+                device_wireguard_ips: Vec::new(),
+                preshared_key: Some(defguard_common::secret::SecretStringWrapper::from(
+                    "device-modified-secret".to_owned(),
+                )),
+                is_authorized: true,
+            }],
+        });
+
+        let debug = format!("{command:?}");
+        assert!(!debug.contains("device-modified-secret"));
+        assert!(debug.contains("preshared_key: Some("));
+    }
+
+    #[test]
     fn test_runtime_peer_update_strips_preshared_key_for_non_mfa_locations() {
         let handler = test_handler(false);
 
@@ -1495,7 +1524,7 @@ mod tests {
                 "device-pubkey".into(),
                 vec!["10.1.1.2".into()],
                 true,
-                Some("legacy-psk".into()),
+                Some("legacy-psk".to_owned().into()),
             )
             .unwrap();
 
@@ -1530,7 +1559,7 @@ mod tests {
                 "device-pubkey".into(),
                 vec!["10.1.1.2".into()],
                 true,
-                Some("session-psk".into()),
+                Some("session-psk".to_owned().into()),
             )
             .unwrap();
 
@@ -1548,7 +1577,7 @@ mod tests {
                 "device-pubkey".into(),
                 vec!["10.1.1.2".into()],
                 true,
-                Some("session-psk".into()),
+                Some("session-psk".to_owned().into()),
             )
             .unwrap();
 
@@ -1626,7 +1655,7 @@ mod tests {
 
         let mut new_session =
             VpnClientSession::new(network.id, user.id, new_device.id, None, false);
-        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.preshared_key = Some("new-session-psk".to_owned().into());
         new_session.save(&pool).await.unwrap();
 
         let mut connected_session = VpnClientSession::new(
@@ -1636,7 +1665,7 @@ mod tests {
             Some(Utc::now().naive_utc()),
             false,
         );
-        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.preshared_key = Some("connected-session-psk".to_owned().into());
         connected_session.save(&pool).await.unwrap();
 
         let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, "test")

@@ -12,6 +12,7 @@ use crate::db::{
         vpn_session_stats::VpnSessionStats, webauthn::WebAuthn,
     },
 };
+use crate::secret::SecretStringWrapper;
 
 #[derive(Clone, Debug, Default, PartialEq, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
@@ -151,7 +152,8 @@ pub struct VpnClientSession<I = NoId> {
     pub is_mfa_session: bool,
     #[model(enum)]
     pub state: VpnClientSessionState,
-    pub preshared_key: Option<String>,
+    #[model(option)]
+    pub preshared_key: Option<SecretStringWrapper>,
 }
 
 impl VpnClientSession {
@@ -197,7 +199,7 @@ impl VpnClientSession<Id> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
 			ORDER BY created_at DESC, id DESC \
@@ -217,7 +219,7 @@ impl VpnClientSession<Id> {
         query_as!(
             Self,
             "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-                is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+                is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state IN ('new', 'connected') \
             ORDER BY device_id, created_at DESC, id DESC",
@@ -253,7 +255,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
-	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
 			FROM vpn_client_session s \
 			LEFT JOIN LATERAL ( \
 				SELECT latest_handshake \
@@ -277,7 +279,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND state = 'new' \
             AND (NOW() - created_at) > $2 * interval '1 second'",
@@ -295,7 +297,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \
+	            is_mfa_session, state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
 			ORDER BY created_at DESC, id DESC",
@@ -312,12 +314,26 @@ mod tests {
         postgres::{PgConnectOptions, PgPoolOptions},
     };
 
-    use super::VpnClientMfaMethod;
+    use super::{VpnClientMfaMethod, VpnClientSession};
     use crate::db::{
         Id, NoId,
         models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
         setup_pool,
     };
+    use crate::secret::SecretStringWrapper;
+
+    #[test]
+    fn test_vpn_client_session_debug_redacts_preshared_key() {
+        let mut session = VpnClientSession::new(1, 2, 3, None, true);
+        session.preshared_key = Some(SecretStringWrapper::from("vpn-session-secret".to_owned()));
+
+        let debug = format!("{session:?}");
+        assert!(!debug.contains("vpn-session-secret"));
+        assert!(debug.contains("preshared_key: Some("));
+
+        let session = VpnClientSession::new(1, 2, 3, None, false);
+        assert!(format!("{session:?}").contains("preshared_key: None"));
+    }
 
     async fn create_user(pool: &PgPool) -> User<Id> {
         User::new(

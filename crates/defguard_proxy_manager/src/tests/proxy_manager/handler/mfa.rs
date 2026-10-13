@@ -742,8 +742,11 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
     assert!(!completed.preshared_key.is_empty());
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert_eq!(
-        session.preshared_key.as_ref(),
-        Some(&completed.preshared_key)
+        session
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(completed.preshared_key.as_str())
     );
     assert!(matches!(
         timeout(RECEIVE_TIMEOUT, gateway_rx.recv()).await,

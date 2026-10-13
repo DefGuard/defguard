@@ -104,7 +104,7 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
         .expect("expected MFA test network");
 
     let mut session = VpnClientSession::new(network_id, device.user_id, device.id, None, false);
-    session.preshared_key = Some(preshared_key.to_owned());
+    session.preshared_key = Some(preshared_key.to_owned().into());
     session
         .save(&context.pool)
         .await
@@ -117,7 +117,10 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
 
     assert!(device_network_info.is_authorized);
     assert_eq!(
-        device_network_info.preshared_key.as_deref(),
+        device_network_info
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
         Some(preshared_key)
     );
 
@@ -146,7 +149,7 @@ pub(crate) async fn create_authorized_posture_device_for_current_network(
     let network_info = DeviceNetworkInfo::from_authorized_vpn_session(
         context.network.id,
         network_device.wireguard_ips,
-        preshared_key.to_owned(),
+        preshared_key.to_owned().into(),
     );
 
     (device, network_info)

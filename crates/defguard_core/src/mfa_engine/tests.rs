@@ -28,6 +28,7 @@ use defguard_common::{
         },
         setup_pool,
     },
+    secret::SecretStringWrapper,
     testing::smtp::configure_working_smtp,
 };
 use defguard_proto::client_types::MfaMethod;
@@ -46,7 +47,10 @@ use uuid::Uuid;
 use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
 use webauthn_rs::prelude::Passkey;
 
-use super::{MfaEngine, POLL_LIMIT, POLL_WINDOW, PollWindows};
+use super::{
+    MfaEngine, POLL_LIMIT, POLL_WINDOW, PollWindows,
+    types::{FinishOutcome, LegacyFinishOutcome},
+};
 use crate::{
     enterprise::{
         db::models::openid_provider::{
@@ -65,9 +69,21 @@ use crate::{
             Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError,
             StepFinishError, StepProof,
         },
-        types::{FinishOutcome, VerificationProof},
+        types::VerificationProof,
     },
 };
+
+#[test]
+fn finish_outcomes_debug_redact_preshared_keys() {
+    let preshared_key = SecretStringWrapper::from("mfa-finish-secret".to_owned());
+    let finish = FinishOutcome::Completed {
+        preshared_key: preshared_key.clone(),
+    };
+    let legacy = LegacyFinishOutcome::Completed { preshared_key };
+
+    assert!(!format!("{finish:?}").contains("mfa-finish-secret"));
+    assert!(!format!("{legacy:?}").contains("mfa-finish-secret"));
+}
 
 fn set_test_license_business() {
     let license = License::new(
@@ -2245,7 +2261,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     let FinishOutcome::Completed { preshared_key } = outcome else {
         panic!("expected a completed flow")
     };
-    assert!(!preshared_key.is_empty());
+    assert!(!preshared_key.expose_secret().is_empty());
 
     let sessions =
         VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)
