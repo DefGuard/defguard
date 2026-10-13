@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev
+      - ci-load-tests
   workflow_dispatch:
     inputs:
       polling_network_id:
@@ -56,7 +57,7 @@ concurrency:
 
 jobs:
   load-tests:
-    if: ${{ github.ref == 'refs/heads/dev' }}
+    # if: ${{ github.ref == 'refs/heads/dev' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Restrict this environment to dev without required reviewers for unattended runs.
