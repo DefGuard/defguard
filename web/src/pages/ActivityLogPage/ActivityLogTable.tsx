@@ -15,6 +15,7 @@ import {
   ActivityLogModule,
   type ActivityLogModuleValue,
   activityLogEventDisplay,
+  getActivityLogEventLabel,
 } from '../../shared/api/activity-log-types';
 import type { ActivityLogEvent } from '../../shared/api/types';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
@@ -116,7 +117,7 @@ export const ActivityLogTable = ({
         },
         cell: (info) => {
           const event = info.getValue();
-          const label = activityLogEventDisplay[event];
+          const label = getActivityLogEventLabel(event);
           return (
             <TableCell>
               {hasLogDetails(event) ? (

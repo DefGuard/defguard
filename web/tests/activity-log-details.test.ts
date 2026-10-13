@@ -3,13 +3,21 @@ import {
   buildLogDetailsChanges,
   hasLogDetails,
 } from '../src/pages/ActivityLogPage/logDetails';
-import { ActivityLogEventType } from '../src/shared/api/activity-log-types';
+import {
+  ActivityLogEventType,
+  getActivityLogEventLabel,
+} from '../src/shared/api/activity-log-types';
 
 describe('activity log details', () => {
   it('marks settings events as clickable and leaves other events alone', () => {
     expect(hasLogDetails(ActivityLogEventType.SettingsUpdatedPartial)).toBe(true);
     expect(hasLogDetails(ActivityLogEventType.EnterpriseSettingsUpdated)).toBe(true);
     expect(hasLogDetails(ActivityLogEventType.UserLogin)).toBe(false);
+  });
+
+  it('falls back to the raw event value when no message exists', () => {
+    expect(getActivityLogEventLabel(ActivityLogEventType.UserLogin)).toBe('User login');
+    expect(getActivityLogEventLabel('event_from_future')).toBe('event_from_future');
   });
 
   it('builds labelled rows for changed and unchanged settings fields', () => {

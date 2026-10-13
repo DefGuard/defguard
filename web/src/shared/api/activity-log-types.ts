@@ -27,6 +27,8 @@ export const ActivityLogEventType = {
   UserModified: 'user_modified',
   UserRemoved: 'user_removed',
   UserGroupsModified: 'user_groups_modified',
+  UserEnabled: 'user_enabled',
+  UserDisabled: 'user_disabled',
 
   MfaDisabled: 'mfa_disabled',
   UserMfaDisabled: 'user_mfa_disabled',
@@ -55,6 +57,7 @@ export const ActivityLogEventType = {
   VpnClientMfaDisconnected: 'vpn_client_mfa_disconnected',
   VpnClientMfaSuccess: 'vpn_client_mfa_success',
   VpnClientMfaFailed: 'vpn_client_mfa_failed',
+  VpnClientMfaAborted: 'vpn_client_mfa_aborted',
   VpnClientSessionSuperseded: 'vpn_client_session_superseded',
   VpnClientMfaSessionSuperseded: 'vpn_client_mfa_session_superseded',
   VpnClientMfaLoginSuperseded: 'vpn_client_mfa_login_superseded',
@@ -131,6 +134,10 @@ export const ActivityLogEventType = {
   DevicePostureDuplicated: 'device_posture_duplicated',
   DevicePostureLocationsAssigned: 'device_posture_locations_assigned',
   LocationPosturesAssigned: 'location_postures_assigned',
+  MfaFlowCreated: 'mfa_flow_created',
+  MfaFlowUpdated: 'mfa_flow_updated',
+  MfaFlowDeleted: 'mfa_flow_deleted',
+  LocationMfaFlowsAssigned: 'location_mfa_flows_assigned',
   DevicePostureCheckPassed: 'device_posture_check_passed',
   DevicePostureCheckFailed: 'device_posture_check_failed',
 
@@ -179,5 +186,8 @@ const valueToTranslation = () => {
 
 export const activityLogEventDisplay: Record<ActivityLogEventTypeValue, string> =
   valueToTranslation();
+
+export const getActivityLogEventLabel = (event: string) =>
+  activityLogEventDisplay[event as ActivityLogEventTypeValue] ?? event;
 
 export const activityLogEventsSet = new Set(activityLogEvents);
