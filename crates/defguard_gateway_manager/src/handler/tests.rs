@@ -25,9 +25,8 @@ use prost_types::Timestamp;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::{mpsc::unbounded_channel, watch};
 
-use crate::updates::GatewayUpdatesHandler;
-
 use super::{GatewayHandler, try_protos_into_stats_message};
+use crate::updates::GatewayUpdatesHandler;
 
 fn test_network(mfa_enabled: bool) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
