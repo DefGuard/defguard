@@ -96,7 +96,7 @@ const UNKNOWN_FAMILY: &str = "Other";
 
 pub static USER_AGENT_PARSER: LazyLock<Extractor<'static>> = LazyLock::new(|| {
     let regexes: Regexes =
-        serde_yaml::from_slice(include_bytes!("../user_agent_header_regexes.yaml"))
+        serde_saphyr::from_slice(include_bytes!("../user_agent_header_regexes.yaml"))
             .expect("Failed to load user agent regexes");
     Extractor::try_from(regexes).expect("Parser creation failed")
 });

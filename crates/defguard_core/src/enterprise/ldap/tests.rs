@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use defguard_common::{
     db::{
         models::{
-            Device, DeviceType, WireguardNetwork,
+            Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             group::Permission,
             settings::{LdapSyncStatus, initialize_current_settings},
@@ -868,8 +868,8 @@ async fn test_user_in_ldap_sync_groups() {
 
 #[test]
 fn test_compute_user_sync_changes_empty_lists() {
-    let mut ldap_users: Vec<User> = Vec::new();
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut ldap_users = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -879,10 +879,10 @@ fn test_compute_user_sync_changes_empty_lists() {
     );
 
     // No users in either system, should result in no changes
-    assert!(changes.delete_defguard.is_empty());
-    assert!(changes.add_defguard.is_empty());
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[test]
@@ -897,7 +897,7 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -907,11 +907,11 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     // When LDAP is authoritative, users in LDAP but not Defguard should be added to Defguard
-    assert!(changes.delete_defguard.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
     assert_eq!(changes.add_defguard.len(), 1);
     assert_eq!(changes.add_defguard[0].username, "test_user");
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[sqlx::test]
@@ -930,7 +930,7 @@ fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnect
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = Vec::new();
+    let mut ldap_users = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -964,7 +964,7 @@ fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = Vec::new();
+    let mut ldap_users = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -994,7 +994,7 @@ fn test_defguard_authority_delete_from_ldap() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
