@@ -41,7 +41,7 @@ use defguard_core::{
     version::IncompatibleComponents,
 };
 use defguard_event_logger::run_event_logger;
-use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
+use defguard_gateway_manager::{GatewayTxSet, manager::GatewayManager};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::{

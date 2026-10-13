@@ -45,7 +45,9 @@ use tokio::{
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
-use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
+use crate::{
+    GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler, manager::GatewayManager,
+};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
