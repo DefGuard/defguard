@@ -1,9 +1,6 @@
 name: Load test
 
 on:
-  push:
-    branches:
-      - ci-load-tests
   workflow_call:
   workflow_dispatch:
     inputs:
