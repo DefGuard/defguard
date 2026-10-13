@@ -156,6 +156,10 @@ webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets"] }
 x509-parser = "0.18"
 
+# optimize proc-macros and build scripts
+[profile.dev.build-override]
+opt-level = 3
+
 [profile.release]
 codegen-units = 1
 panic = "abort"

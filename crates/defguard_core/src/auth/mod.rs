@@ -303,13 +303,13 @@ mod tests {
         let all_scopes = vec!["email".to_owned(), "profile".to_owned(), "phone".to_owned()];
         let requested_scopes = vec!["email".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
-        assert_eq!(result, vec!["email", "profile"]);
+        assert_eq!(result, ["email", "profile"]);
 
         // Some requested scopes are not available
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
         let requested_scopes = vec!["email".to_owned(), "phone".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
-        assert_eq!(result, vec!["email", "profile"]);
+        assert_eq!(result, ["email", "profile"]);
 
         // No requested scopes
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
@@ -333,7 +333,7 @@ mod tests {
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
         let requested_scopes = vec!["email".to_owned(), "email".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
-        assert_eq!(result, vec!["email", "email", "profile"]);
+        assert_eq!(result, ["email", "email", "profile"]);
 
         // Case sensitivity
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
@@ -345,6 +345,6 @@ mod tests {
         let all_scopes = vec!["email".to_owned()];
         let requested_scopes = vec!["email".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
-        assert_eq!(result, vec!["email"]);
+        assert_eq!(result, ["email"]);
     }
 }

@@ -111,12 +111,15 @@ mod test {
     use std::{net::IpAddr, str::FromStr};
 
     use chrono::Utc;
-    use defguard_common::db::{
-        models::{
-            Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, user::User,
-            vpn_client_session::VpnClientSession, wireguard::ServiceLocationMode,
+    use defguard_common::{
+        db::{
+            models::{
+                Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, user::User,
+                vpn_client_session::VpnClientSession, wireguard::ServiceLocationMode,
+            },
+            setup_pool,
         },
-        setup_pool,
+        gateway_types::WireguardPeer,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -313,7 +316,7 @@ mod test {
             .await
             .unwrap();
 
-        assert!(peers.is_empty());
+        assert_eq!(peers, [] as [WireguardPeer; 0]);
     }
 
     #[sqlx::test]

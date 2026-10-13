@@ -622,8 +622,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let web_deny_rule = &generated_firewall_rules[2];
     assert_eq!(web_deny_rule.verdict, FirewallPolicy::Deny);
     assert!(web_deny_rule.protocols.is_empty());
-    assert!(web_deny_rule.destination_ports.is_empty());
-    assert!(web_deny_rule.source_addrs.is_empty());
+    assert_eq!(web_deny_rule.destination_ports, [] as [Port; 0]);
+    assert_eq!(web_deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         web_deny_rule.destination_addrs,
         [IpAddress::IpSubnet("192.168.1.0/24".to_owned())]
@@ -668,9 +668,9 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     // Second ACL - DNS Access DENY
     let dns_deny_rule = &generated_firewall_rules[3];
     assert_eq!(dns_deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(dns_deny_rule.protocols.is_empty(),);
-    assert!(dns_deny_rule.destination_ports.is_empty(),);
-    assert!(dns_deny_rule.source_addrs.is_empty(),);
+    assert!(dns_deny_rule.protocols.is_empty());
+    assert_eq!(dns_deny_rule.destination_ports, [] as [Port; 0]);
+    assert_eq!(dns_deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(dns_deny_rule.destination_addrs, expected_destination_addrs);
 }
 
@@ -979,8 +979,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let web_deny_rule = &generated_firewall_rules[2];
     assert_eq!(web_deny_rule.verdict, FirewallPolicy::Deny);
     assert!(web_deny_rule.protocols.is_empty());
-    assert!(web_deny_rule.destination_ports.is_empty());
-    assert!(web_deny_rule.source_addrs.is_empty());
+    assert_eq!(web_deny_rule.destination_ports, [] as [Port; 0]);
+    assert_eq!(web_deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         web_deny_rule.destination_addrs,
         [IpAddress::IpSubnet("fc00::/112".to_owned())]
@@ -1032,9 +1032,9 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     // Second ACL - DNS Access DENY
     let dns_deny_rule = &generated_firewall_rules[3];
     assert_eq!(dns_deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(dns_deny_rule.protocols.is_empty(),);
-    assert!(dns_deny_rule.destination_ports.is_empty(),);
-    assert!(dns_deny_rule.source_addrs.is_empty(),);
+    assert!(dns_deny_rule.protocols.is_empty());
+    assert_eq!(dns_deny_rule.destination_ports, [] as [Port; 0]);
+    assert_eq!(dns_deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(dns_deny_rule.destination_addrs, expected_destination_addrs);
 }
 
@@ -1387,8 +1387,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let web_deny_rule_ipv4 = &generated_firewall_rules[4];
     assert_eq!(web_deny_rule_ipv4.verdict, FirewallPolicy::Deny);
     assert!(web_deny_rule_ipv4.protocols.is_empty());
-    assert!(web_deny_rule_ipv4.destination_ports.is_empty());
-    assert!(web_deny_rule_ipv4.source_addrs.is_empty());
+    assert_eq!(web_deny_rule_ipv4.destination_ports, [] as [Port; 0]);
+    assert_eq!(web_deny_rule_ipv4.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         web_deny_rule_ipv4.destination_addrs,
         [IpAddress::IpSubnet("192.168.1.0/24".to_owned())]
@@ -1397,8 +1397,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let web_deny_rule_ipv6 = &generated_firewall_rules[5];
     assert_eq!(web_deny_rule_ipv6.verdict, FirewallPolicy::Deny);
     assert!(web_deny_rule_ipv6.protocols.is_empty());
-    assert!(web_deny_rule_ipv6.destination_ports.is_empty());
-    assert!(web_deny_rule_ipv6.source_addrs.is_empty());
+    assert_eq!(web_deny_rule_ipv6.destination_ports, [] as [Port; 0]);
+    assert_eq!(web_deny_rule_ipv6.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         web_deny_rule_ipv6.destination_addrs,
         [IpAddress::IpSubnet("fc00::/112".to_owned())]
@@ -1497,9 +1497,9 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     // Second ACL - DNS Access DENY
     let dns_deny_rule_ipv4 = &generated_firewall_rules[6];
     assert_eq!(dns_deny_rule_ipv4.verdict, FirewallPolicy::Deny);
-    assert!(dns_deny_rule_ipv4.protocols.is_empty(),);
-    assert!(dns_deny_rule_ipv4.destination_ports.is_empty(),);
-    assert!(dns_deny_rule_ipv4.source_addrs.is_empty(),);
+    assert!(dns_deny_rule_ipv4.protocols.is_empty());
+    assert_eq!(dns_deny_rule_ipv4.destination_ports, [] as [Port; 0]);
+    assert_eq!(dns_deny_rule_ipv4.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         dns_deny_rule_ipv4.destination_addrs,
         expected_destination_addrs_v4
@@ -1507,9 +1507,9 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     let dns_deny_rule_ipv6 = &generated_firewall_rules[7];
     assert_eq!(dns_deny_rule_ipv6.verdict, FirewallPolicy::Deny);
-    assert!(dns_deny_rule_ipv6.protocols.is_empty(),);
-    assert!(dns_deny_rule_ipv6.destination_ports.is_empty(),);
-    assert!(dns_deny_rule_ipv6.source_addrs.is_empty(),);
+    assert!(dns_deny_rule_ipv6.protocols.is_empty());
+    assert_eq!(dns_deny_rule_ipv6.destination_ports, [] as [Port; 0]);
+    assert_eq!(dns_deny_rule_ipv6.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         dns_deny_rule_ipv6.destination_addrs,
         expected_destination_addrs_v6
@@ -1606,7 +1606,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
-    assert!(allow_rule.destination_ports.is_empty());
+    assert_eq!(allow_rule.destination_ports, [] as [Port; 0]);
     assert!(allow_rule.protocols.is_empty());
     assert_eq!(
         allow_rule.comment,
@@ -1616,7 +1616,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     let alias_allow_rule = &generated_firewall_rules[1];
     assert_eq!(alias_allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(alias_allow_rule.source_addrs, expected_source_addrs);
-    assert!(alias_allow_rule.destination_addrs.is_empty());
+    assert_eq!(alias_allow_rule.destination_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         alias_allow_rule.destination_ports,
         vec![Port::Range(GwPortRange {
@@ -1632,9 +1632,9 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     let deny_rule = &generated_firewall_rules[2];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
+    assert_eq!(deny_rule.destination_ports, [] as [Port; 0]);
     assert!(deny_rule.protocols.is_empty());
     assert_eq!(
         deny_rule.comment,
@@ -1643,9 +1643,9 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     let alias_deny_rule = &generated_firewall_rules[3];
     assert_eq!(alias_deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(alias_deny_rule.source_addrs.is_empty());
-    assert!(alias_deny_rule.destination_addrs.is_empty());
-    assert!(alias_deny_rule.destination_ports.is_empty());
+    assert_eq!(alias_deny_rule.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(alias_deny_rule.destination_addrs, [] as [IpAddress; 0]);
+    assert_eq!(alias_deny_rule.destination_ports, [] as [Port; 0]);
     assert!(alias_deny_rule.protocols.is_empty());
     assert_eq!(
         alias_deny_rule.comment,
@@ -1771,12 +1771,12 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     let alias_deny_rule_1 = &generated_firewall_rules[2];
     assert_eq!(alias_deny_rule_1.verdict, FirewallPolicy::Deny);
-    assert!(alias_deny_rule_1.source_addrs.is_empty());
+    assert_eq!(alias_deny_rule_1.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         alias_deny_rule_1.destination_addrs,
         vec![IpAddress::Ip("10.0.2.3".to_owned()),]
     );
-    assert!(alias_deny_rule_1.destination_ports.is_empty());
+    assert_eq!(alias_deny_rule_1.destination_ports, [] as [Port; 0]);
     assert!(alias_deny_rule_1.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_1.comment,
@@ -1785,12 +1785,12 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     let alias_deny_rule_2 = &generated_firewall_rules[3];
     assert_eq!(alias_deny_rule_2.verdict, FirewallPolicy::Deny);
-    assert!(alias_deny_rule_2.source_addrs.is_empty());
+    assert_eq!(alias_deny_rule_2.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(
         alias_deny_rule_2.destination_addrs,
         vec![IpAddress::Ip("10.0.2.4".to_owned()),]
     );
-    assert!(alias_deny_rule_2.destination_ports.is_empty());
+    assert_eq!(alias_deny_rule_2.destination_ports, [] as [Port; 0]);
     assert!(alias_deny_rule_2.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_2.comment,
@@ -1973,9 +1973,9 @@ async fn test_allow_all_groups_expands_all_group_members_into_firewall_sources(
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
+    assert_eq!(deny_rule.destination_ports, [] as [Port; 0]);
     assert!(deny_rule.protocols.is_empty());
 }
 
@@ -2111,9 +2111,9 @@ async fn test_allow_all_groups_deduplicates_shared_group_members_before_source_r
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
+    assert_eq!(deny_rule.destination_ports, [] as [Port; 0]);
     assert!(deny_rule.protocols.is_empty());
 }
 
@@ -2229,9 +2229,9 @@ async fn test_deny_all_groups_excludes_members_of_every_group_from_firewall_sour
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
+    assert_eq!(deny_rule.destination_ports, [] as [Port; 0]);
     assert!(deny_rule.protocols.is_empty());
 }
 
@@ -2378,9 +2378,9 @@ async fn test_deny_all_groups_deduplicates_shared_group_members_before_source_fi
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
+    assert_eq!(deny_rule.destination_ports, [] as [Port; 0]);
     assert!(deny_rule.protocols.is_empty());
 }
 
@@ -2522,13 +2522,13 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     assert_eq!(allow_rule_ipv4.ip_version, IpVersion::Ipv4);
     assert_eq!(allow_rule_ipv4.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
-    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+    assert_eq!(allow_rule_ipv4.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule_ipv4 = &generated_firewall_rules_ipv4[1];
     assert_eq!(deny_rule_ipv4.ip_version, IpVersion::Ipv4);
     assert_eq!(deny_rule_ipv4.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule_ipv4.source_addrs.is_empty());
-    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+    assert_eq!(deny_rule_ipv4.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule_ipv4.destination_addrs, [] as [IpAddress; 0]);
 
     // check generated rules for IPv6 only location
     let generated_firewall_rules_ipv6 = try_get_location_firewall_config(&location_ipv6, &mut conn)
@@ -2548,13 +2548,13 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     assert_eq!(allow_rule_ipv6.ip_version, IpVersion::Ipv6);
     assert_eq!(allow_rule_ipv6.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
-    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+    assert_eq!(allow_rule_ipv6.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule_ipv6 = &generated_firewall_rules_ipv6[1];
     assert_eq!(deny_rule_ipv6.ip_version, IpVersion::Ipv6);
     assert_eq!(deny_rule_ipv6.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule_ipv6.source_addrs.is_empty());
-    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+    assert_eq!(deny_rule_ipv6.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule_ipv6.destination_addrs, [] as [IpAddress; 0]);
 
     // check generated rules for IPv4 and IPv6 location
     let generated_firewall_rules_ipv4_and_ipv6 =
@@ -2569,23 +2569,23 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     assert_eq!(allow_rule_ipv4.ip_version, IpVersion::Ipv4);
     assert_eq!(allow_rule_ipv4.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
-    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+    assert_eq!(allow_rule_ipv4.destination_addrs, [] as [IpAddress; 0]);
 
     let allow_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[1];
     assert_eq!(allow_rule_ipv6.ip_version, IpVersion::Ipv6);
     assert_eq!(allow_rule_ipv6.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
-    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+    assert_eq!(allow_rule_ipv6.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[2];
     assert_eq!(deny_rule_ipv4.ip_version, IpVersion::Ipv4);
     assert_eq!(deny_rule_ipv4.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule_ipv4.source_addrs.is_empty());
-    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+    assert_eq!(deny_rule_ipv4.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule_ipv4.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[3];
     assert_eq!(deny_rule_ipv6.ip_version, IpVersion::Ipv6);
     assert_eq!(deny_rule_ipv6.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule_ipv6.source_addrs.is_empty());
-    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+    assert_eq!(deny_rule_ipv6.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule_ipv6.destination_addrs, [] as [IpAddress; 0]);
 }

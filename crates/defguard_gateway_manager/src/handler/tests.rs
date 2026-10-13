@@ -150,7 +150,10 @@ fn try_protos_into_stats_message_returns_none_for_invalid_timestamp() {
 #[test]
 fn gen_config_maps_network_fields() {
     use defguard_common::gateway_types::{FirewallConfig as NativeFirewallConfig, FirewallPolicy};
-    use defguard_proto::enterprise::firewall::FirewallPolicy as ProtoFirewallPolicy;
+    use defguard_proto::enterprise::firewall::{
+        FirewallPolicy as ProtoFirewallPolicy, FirewallRule, SnatBinding,
+    };
+
     let config = Configuration::new(
         &build_network(),
         vec![WireguardPeer {
@@ -169,7 +172,7 @@ fn gen_config_maps_network_fields() {
     assert_eq!(config.name, "test-network");
     assert_eq!(config.port, 51820);
     assert_eq!(config.private_key, "network-private-key");
-    assert_eq!(config.addresses, vec!["10.10.0.1/24", "fd00::1/64"]);
+    assert_eq!(config.addresses, ["10.10.0.1/24", "fd00::1/64"]);
     assert_eq!(config.mtu, 1420);
     assert_eq!(config.fwmark, 4321);
 
@@ -178,7 +181,7 @@ fn gen_config_maps_network_fields() {
         .first()
         .expect("generated config should include peer");
     assert_eq!(peer.pubkey, "peer-public-key");
-    assert_eq!(peer.allowed_ips, vec!["10.10.0.2/32"]);
+    assert_eq!(peer.allowed_ips, ["10.10.0.2/32"]);
     assert_eq!(peer.preshared_key.as_deref(), Some("peer-preshared-key"));
     assert_eq!(peer.keepalive_interval, Some(25));
 
@@ -189,14 +192,8 @@ fn gen_config_maps_network_fields() {
         firewall_config.default_policy,
         ProtoFirewallPolicy::Unspecified as i32
     );
-    assert_eq!(
-        firewall_config.rules,
-        [] as [defguard_proto::enterprise::firewall::FirewallRule; 0]
-    );
-    assert_eq!(
-        firewall_config.snat_bindings,
-        [] as [defguard_proto::enterprise::firewall::SnatBinding; 0]
-    );
+    assert_eq!(firewall_config.rules, [] as [FirewallRule; 0]);
+    assert_eq!(firewall_config.snat_bindings, [] as [SnatBinding; 0]);
 }
 
 #[test]

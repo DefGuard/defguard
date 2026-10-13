@@ -31,7 +31,7 @@ pub struct Gateway<I = NoId> {
     pub core_client_cert_expiry: Option<NaiveDateTime>,
 }
 
-impl<I: fmt::Debug> fmt::Debug for Gateway<I> {
+impl fmt::Debug for Gateway<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Gateway")
             .field("id", &self.id)
@@ -216,7 +216,7 @@ impl Gateway<Id> {
     {
         let result = query_scalar!(
             "UPDATE gateway SET enabled = false WHERE enabled AND id NOT IN (\
-                SELECT DISTINCT ON (location_id) id FROM gateway WHERE enabled ORDER BY location_id, id
+            SELECT DISTINCT ON (location_id) id FROM gateway WHERE enabled ORDER BY location_id, id
             )"
         )
         .execute(executor)
@@ -225,6 +225,20 @@ impl Gateway<Id> {
         tracing::debug!("Disabled {} Gateways", result.rows_affected());
 
         Ok(())
+    }
+
+    /// For `GatewayHandler`, return `true` if the gateway must be restarted.
+    ///
+    /// Other fields are ignored, because the handler itself updates them via `gateway.save()`,
+    /// and restarting on those would loop forever.
+    #[must_use]
+    pub fn needs_restart(&self, other: &Self) -> bool {
+        self.location_id != other.location_id
+            || self.address != other.address
+            || self.port != other.port
+            || self.enabled != other.enabled
+            || self.core_client_cert_der != other.core_client_cert_der
+            || self.core_client_cert_key_der != other.core_client_cert_key_der
     }
 }
 
