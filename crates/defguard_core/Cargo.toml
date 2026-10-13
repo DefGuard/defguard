@@ -94,7 +94,8 @@ webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
 ammonia = "4.1"
 regex = "1.10"
-uaparser = "0.6"
+serde_yaml = "0.9"
+ua-parser = "0.2"
 async-stream = "0.3"
 
 [features]

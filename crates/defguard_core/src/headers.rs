@@ -1,9 +1,6 @@
-use std::{
-    borrow::Borrow,
-    sync::{
-        Arc, LazyLock,
-        atomic::{AtomicBool, Ordering},
-    },
+use std::sync::{
+    Arc, LazyLock,
+    atomic::{AtomicBool, Ordering},
 };
 
 use axum::{
@@ -17,7 +14,7 @@ use defguard_common::db::{
     models::{DeviceLoginEvent, User},
 };
 use sqlx::PgPool;
-use uaparser::{Client, Parser, UserAgentParser};
+use ua_parser::{Extractor, Regexes, device, os, user_agent};
 
 use crate::mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 
@@ -94,74 +91,103 @@ pub(crate) async fn security_headers_middleware(
     response
 }
 
-pub static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
-    let regexes = include_bytes!("../user_agent_header_regexes.yaml");
-    UserAgentParser::from_bytes(regexes).expect("Parser creation failed")
+/// Family reported by uap-core when nothing matches.
+const UNKNOWN_FAMILY: &str = "Other";
+
+pub static USER_AGENT_PARSER: LazyLock<Extractor<'static>> = LazyLock::new(|| {
+    let regexes: Regexes =
+        serde_yaml::from_slice(include_bytes!("../user_agent_header_regexes.yaml"))
+            .expect("Failed to load user agent regexes");
+    Extractor::try_from(regexes).expect("Parser creation failed")
 });
+
+/// User agent split into browser, OS and device by [`USER_AGENT_PARSER`].
+pub(crate) struct ParsedUserAgent<'a> {
+    browser: Option<user_agent::ValueRef<'a>>,
+    os: Option<os::ValueRef<'a>>,
+    device: Option<device::ValueRef<'a>>,
+}
+
+impl<'a> ParsedUserAgent<'a> {
+    #[must_use]
+    pub(crate) fn parse(user_agent: &'a str) -> Self {
+        let (browser, os, device) = USER_AGENT_PARSER.extract(user_agent);
+        Self {
+            browser,
+            os,
+            device,
+        }
+    }
+
+    fn browser_family(&self) -> &str {
+        self.browser
+            .as_ref()
+            .map_or(UNKNOWN_FAMILY, |browser| &browser.family)
+    }
+
+    fn os_family(&self) -> &str {
+        self.os.as_ref().map_or(UNKNOWN_FAMILY, |os| &os.os)
+    }
+
+    fn device_family(&self) -> &str {
+        self.device
+            .as_ref()
+            .map_or(UNKNOWN_FAMILY, |device| &device.device)
+    }
+
+    fn device_model(&self) -> Option<&str> {
+        self.device.as_ref()?.model.as_deref()
+    }
+
+    fn device_brand(&self) -> Option<&str> {
+        self.device.as_ref()?.brand.as_deref()
+    }
+
+    /// OS version as "major[.minor[.patch]]", or empty if unknown.
+    fn os_version(&self) -> String {
+        let Some(os) = &self.os else {
+            return String::new();
+        };
+        [&os.major, &os.minor, &os.patch]
+            .into_iter()
+            .map_while(|part| part.as_deref())
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+}
 
 #[must_use]
 pub fn get_device_info(user_agent: &str) -> String {
     let escaped = tera::escape_html(user_agent);
-    let client = USER_AGENT_PARSER.parse(&escaped);
-    get_user_agent_device(&client)
+    get_user_agent_device(&ParsedUserAgent::parse(&escaped))
 }
 
 #[must_use]
-pub(crate) fn get_user_agent_device(user_agent_client: &Client) -> String {
-    let device_type = user_agent_client
-        .device
-        .model
-        .as_ref()
-        .map_or("unknown model", Borrow::borrow);
-
-    let mut device_version = String::new();
-    if let Some(major) = &user_agent_client.os.major {
-        device_version.push_str(major);
-
-        if let Some(minor) = &user_agent_client.os.minor {
-            device_version.push('.');
-            device_version.push_str(minor);
-
-            if let Some(patch) = &user_agent_client.os.patch {
-                device_version.push('.');
-                device_version.push_str(patch);
-            }
-        }
-    }
-
-    let mut device_os = user_agent_client.os.family.to_string();
-    device_os.push(' ');
-    device_os.push_str(&device_version);
-    device_os.push_str(", ");
-    device_os.push_str(&user_agent_client.user_agent.family);
-
-    format!("{device_type}, OS: {device_os}")
+pub(crate) fn get_user_agent_device(user_agent: &ParsedUserAgent) -> String {
+    format!(
+        "{}, OS: {} {}, {}",
+        user_agent.device_model().unwrap_or("unknown model"),
+        user_agent.os_family(),
+        user_agent.os_version(),
+        user_agent.browser_family(),
+    )
 }
 
 fn get_user_agent_device_login_data(
     user_id: Id,
     ip_address: String,
     event_type: String,
-    user_agent_client: &Client,
+    user_agent: &ParsedUserAgent,
 ) -> DeviceLoginEvent {
-    let model = user_agent_client
-        .device
-        .model
-        .as_ref()
-        .map(ToString::to_string);
-
-    let brand = user_agent_client
-        .device
-        .brand
-        .as_ref()
-        .map(ToString::to_string);
-
-    let family = user_agent_client.device.family.to_string();
-    let os_family = user_agent_client.os.family.to_string();
-    let browser = user_agent_client.user_agent.family.to_string();
-
     DeviceLoginEvent::new(
-        user_id, ip_address, model, family, brand, os_family, browser, event_type,
+        user_id,
+        ip_address,
+        user_agent.device_model().map(ToString::to_string),
+        user_agent.device_family().to_string(),
+        user_agent.device_brand().map(ToString::to_string),
+        user_agent.os_family().to_string(),
+        user_agent.browser_family().to_string(),
+        event_type,
     )
 }
 
@@ -171,7 +197,7 @@ pub(crate) async fn check_new_device_login(
     user: &User<Id>,
     ip_address: String,
     event_type: String,
-    agent: Client<'_>,
+    agent: ParsedUserAgent<'_>,
 ) -> Result<(), TemplateError> {
     let device_login_event =
         get_user_agent_device_login_data(user.id, ip_address, event_type, &agent);
@@ -191,4 +217,35 @@ pub(crate) async fn check_new_device_login(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_user_agent() {
+        let agent = ParsedUserAgent::parse(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 \
+            (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1",
+        );
+        assert_eq!(agent.device_model(), Some("iPhone"));
+        assert_eq!(agent.device_brand(), Some("Apple"));
+        assert_eq!(agent.device_family(), "iPhone");
+        assert_eq!(agent.os_family(), "iOS");
+        assert_eq!(agent.os_version(), "17.6.1");
+        assert_eq!(agent.browser_family(), "Mobile Safari");
+        assert_eq!(
+            get_user_agent_device(&agent),
+            "iPhone, OS: iOS 17.6.1, Mobile Safari"
+        );
+
+        let agent = ParsedUserAgent::parse("");
+        assert_eq!(agent.device_model(), None);
+        assert_eq!(agent.device_family(), "Other");
+        assert_eq!(
+            get_user_agent_device(&agent),
+            "unknown model, OS: Other , Other"
+        );
+    }
 }
