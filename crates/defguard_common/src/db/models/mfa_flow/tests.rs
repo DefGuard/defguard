@@ -786,6 +786,113 @@ async fn test_check_deletable_allows_disabled_location(
 }
 
 #[sqlx::test]
+async fn test_check_deletable_allows_disabled_default_only_assignment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (flow, _) = create_flow(&pool).await;
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.5.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let result = MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow.id).await;
+    assert!(
+        result.is_ok(),
+        "a disabled location does not require its default flow: {result:?}"
+    );
+}
+
+#[sqlx::test]
+async fn test_check_deletable_disabled_default_keeps_group_override(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let mut tx = pool.begin().await.unwrap();
+    let (default_flow, _) = MfaFlow::create(
+        &mut tx,
+        "Disabled Default".into(),
+        vec![vec![VpnClientMfaMethod::Totp]],
+    )
+    .await
+    .unwrap();
+    let (override_flow, _) = MfaFlow::create(
+        &mut tx,
+        "Disabled Override".into(),
+        vec![vec![VpnClientMfaMethod::Biometric]],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.5.2/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    let group = Group::new("disabled-default-override")
+        .save(&pool)
+        .await
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        network.id,
+        &[
+            LocationMfaFlowAssignment {
+                flow_id: default_flow.id,
+                is_default: true,
+                group_ids: Vec::new(),
+            },
+            LocationMfaFlowAssignment {
+                flow_id: override_flow.id,
+                is_default: false,
+                group_ids: vec![group.id],
+            },
+        ],
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    MfaFlow::check_deletable(&mut tx, default_flow.id)
+        .await
+        .expect("a disabled location does not require its default flow");
+    query!("DELETE FROM mfa_flow WHERE id = $1", default_flow.id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    let remaining = MfaFlow::for_location(&pool, network.id).await.unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].id, override_flow.id);
+    assert!(!remaining[0].is_default);
+    assert_eq!(remaining[0].group_ids, vec![group.id]);
+}
+
+#[sqlx::test]
 async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (flow1, _) = create_flow(&pool).await;
@@ -802,8 +909,18 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
         (f, s)
     };
 
-    let network = WireguardNetwork::default()
-        .try_set_address("10.0.5.1/24")
+    let mut enabled_network = WireguardNetwork::default()
+        .try_set_address("10.0.5.3/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    enabled_network.mfa_enabled = true;
+    enabled_network.save(&pool).await.unwrap();
+    let enabled_location_name = enabled_network.name.clone();
+
+    let disabled_network = WireguardNetwork::default()
+        .try_set_address("10.0.5.4/24")
         .unwrap()
         .save(&pool)
         .await
@@ -813,7 +930,7 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     let mut tx = pool.begin().await.unwrap();
     MfaFlow::assign_to_location(
         &mut tx,
-        network.id,
+        enabled_network.id,
         &[
             LocationMfaFlowAssignment {
                 flow_id: flow1.id,
@@ -829,17 +946,32 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     )
     .await
     .unwrap();
+    MfaFlow::assign_to_location(
+        &mut tx,
+        disabled_network.id,
+        &[LocationMfaFlowAssignment {
+            flow_id: flow1.id,
+            is_default: true,
+            group_ids: Vec::new(),
+        }],
+    )
+    .await
+    .unwrap();
     tx.commit().await.unwrap();
 
-    // flow2 is not the only assignment and not default → OK
+    // flow2 is not the only assignment and not default, so it can be deleted.
     assert!(
         MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow2.id)
             .await
             .is_ok()
     );
-    // flow1 is the default → refused
+    // The default is protected only by the MFA-enabled location.
     let result = MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow1.id).await;
-    assert!(matches!(result, Err(MfaFlowDeleteError::FlowIsDefault(_))));
+    assert!(matches!(
+        result,
+        Err(MfaFlowDeleteError::FlowIsDefault(locations))
+            if locations == vec![enabled_location_name]
+    ));
 }
 
 /// A delete that passes its checks must not race an assignment that makes the same flow a

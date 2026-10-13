@@ -669,8 +669,8 @@ impl MfaFlow<Id> {
     /// Checks whether a flow can be deleted, returning an error naming the
     /// affected locations if it cannot.
     ///
-    /// [`MfaFlowDeleteError::LocationRequiresFlow`] is scoped to MFA-enabled locations: a flow
-    /// that is the only assignment for an MFA-disabled location can be deleted.
+    /// Both [`MfaFlowDeleteError::LocationRequiresFlow`] and
+    /// [`MfaFlowDeleteError::FlowIsDefault`] apply only to MFA-enabled locations.
     ///
     /// Must be called on the same connection as the subsequent DELETE, and inside its
     /// transaction: the checks below and the delete have to be atomic with respect to
@@ -704,12 +704,12 @@ impl MfaFlow<Id> {
             return Err(MfaFlowDeleteError::LocationRequiresFlow(orphaned));
         }
 
-        // Flow is the designated default for any location?
+        // Flow is the designated default for any MFA-enabled location?
         let defaults: Vec<String> = query_scalar!(
             "SELECT wn.name \
              FROM location_mfa_flow lmf \
              JOIN wireguard_network wn ON wn.id = lmf.location_id \
-             WHERE lmf.flow_id = $1 AND lmf.is_default = true",
+             WHERE lmf.flow_id = $1 AND lmf.is_default = true AND wn.mfa_enabled = true",
             flow_id
         )
         .fetch_all(&mut *conn)
@@ -735,9 +735,9 @@ impl MfaFlow<Id> {
     ///
     /// 1. The location has no assignments at all. This is legitimate and transient: a location can
     ///    be `mfa_enabled` before its policy has been built.
-    /// 2. The location has assignments but none is flagged default. The API makes this
-    ///    unreachable, since [`Self::assign_to_location`] rejects it and [`Self::check_deletable`]
-    ///    refuses to remove a default, so this arm only guards data predating those rules.
+    /// 2. The location has assignments but none is flagged default. This can happen when the
+    ///    default flow is deleted from an MFA-disabled location: its assignment is removed while
+    ///    group-scoped overrides remain. Re-enabling MFA requires assigning a new default.
     pub async fn resolve_for_user(
         executor: &mut PgConnection,
         location_id: Id,
