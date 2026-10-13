@@ -50,6 +50,8 @@ on:
 
 permissions:
   id-token: write
+  contents: read
+  actions: read
 
 concurrency:
   group: defguard-load-tests
@@ -283,3 +285,18 @@ jobs:
             echo "::error::MFA with posture checks SSM command $COMMAND_ID finished with status $status"
             exit 1
           fi
+
+  alert-load-test-failure:
+    needs: load-tests
+    # if: ${{ failure() && github.ref == 'refs/heads/dev' }}
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/alert-e2e-failure.yml
+    with:
+      source: load-test
+      extra_labels: load-test
+      workflow: load-test.yml
+      failure_summary: load test failed
+    secrets:
+      ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
