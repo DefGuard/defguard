@@ -3,7 +3,8 @@ name: Load test
 on:
   push:
     branches:
-      - dev
+      - ci-load-tests
+  workflow_call:
   workflow_dispatch:
     inputs:
       polling_network_id:
@@ -88,6 +89,10 @@ jobs:
           if (( DURATION_SECONDS < 30 || DURATION_SECONDS > 900 )); then echo '::error::duration_seconds must be 30-900'; exit 1; fi
           if (( MAX_IN_FLIGHT < 1 || MAX_IN_FLIGHT > 4096 )); then echo '::error::max_in_flight must be 1-4096'; exit 1; fi
 
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
       - name: Configure AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
@@ -112,176 +117,16 @@ jobs:
           done
 
       - name: Run polling load test
-        id: send-command
         shell: bash
-        run: |
-          set -euo pipefail
-          remote_script=$(cat <<'REMOTE'
-          set -euo pipefail
-          exec 9>"$HOME/.defguard-load-test.lock"
-          flock -n 9 || { echo 'Another load test is already running'; exit 1; }
-          set -a
-          source "$HOME/.config/defguard-load-test.env"
-          set +a
-          cd "$HOME/defguard"
-          git fetch origin "$LOAD_TEST_REV"
-          git checkout --detach "$LOAD_TEST_REV"
-          git submodule update --init --recursive
-          cargo build --locked --release -p defguard_load_generator
-          ./target/release/defguard_load_generator test config-polling \
-            --proxy-url "$LOAD_TEST_PROXY_URL" \
-            --network-id "$POLLING_NETWORK_ID" \
-            --requests-per-second "$POLLING_RPS" \
-            --duration "${DURATION_SECONDS}s" \
-            --max-in-flight "$MAX_IN_FLIGHT"
-          REMOTE
-          )
-          encoded_script=$(printf %s "$remote_script" | base64 -w0)
-          printf -v command 'runuser -u ubuntu -- env LOAD_TEST_REV=%q LOAD_TEST_PROXY_URL=%q POLLING_NETWORK_ID=%q POLLING_RPS=%q DURATION_SECONDS=%q MAX_IN_FLIGHT=%q bash -lc %q' "$GITHUB_SHA" "$PROXY_URL" "$POLLING_NETWORK_ID" "$POLLING_RPS" "$DURATION_SECONDS" "$MAX_IN_FLIGHT" "printf %s '$encoded_script' | base64 -d | bash"
-          parameters=$(jq -nc --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}')
-          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
-          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
-          echo "SSM command: $command_id"
-
-      - name: Wait for result and show output
-        shell: bash
-        env:
-          COMMAND_ID: ${{ steps.send-command.outputs.command_id }}
-        run: |
-          set -euo pipefail
-          status=''
-          for (( attempt = 0; attempt < 170; attempt++ )); do
-            invocation=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json 2>/dev/null) || { sleep 15; continue; }
-            status=$(jq -r '.Status' <<< "$invocation")
-            case "$status" in
-              Success|Failed|Cancelled|TimedOut) break ;;
-            esac
-            sleep 15
-          done
-          case "$status" in
-            Success|Failed|Cancelled|TimedOut) ;;
-            *) echo "::error::SSM command $COMMAND_ID did not finish within the workflow deadline"; exit 1 ;;
-          esac
-          jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$invocation"
-          if [[ "$status" != Success || "$(jq -r '.ResponseCode' <<< "$invocation")" != 0 ]]; then
-            echo "::error::SSM command $COMMAND_ID finished with status $status"
-            exit 1
-          fi
+        run: bash .github/scripts/run-load-test.sh polling "$POLLING_NETWORK_ID" "$POLLING_RPS"
 
       - name: Run TOTP MFA load test
-        id: send-mfa-command
         shell: bash
-        run: |
-          set -euo pipefail
-          remote_script=$(cat <<'REMOTE'
-          set -euo pipefail
-          exec 9>"$HOME/.defguard-load-test.lock"
-          flock -n 9 || { echo 'Another load test is already running'; exit 1; }
-          set -a
-          source "$HOME/.config/defguard-load-test.env"
-          set +a
-          cd "$HOME/defguard"
-          git fetch origin "$LOAD_TEST_REV"
-          git checkout --detach "$LOAD_TEST_REV"
-          git submodule update --init --recursive
-          cargo build --locked --release -p defguard_load_generator
-          ./target/release/defguard_load_generator test client-mfa \
-            --proxy-url "$LOAD_TEST_PROXY_URL" \
-            --network-id "$MFA_NETWORK_ID" \
-            --requests-per-second "$MFA_RPS" \
-            --duration "${DURATION_SECONDS}s" \
-            --max-in-flight "$MAX_IN_FLIGHT"
-          REMOTE
-          )
-          encoded_script=$(printf %s "$remote_script" | base64 -w0)
-          printf -v command 'runuser -u ubuntu -- env LOAD_TEST_REV=%q LOAD_TEST_PROXY_URL=%q MFA_NETWORK_ID=%q MFA_RPS=%q DURATION_SECONDS=%q MAX_IN_FLIGHT=%q bash -lc %q' "$GITHUB_SHA" "$PROXY_URL" "$MFA_NETWORK_ID" "$MFA_RPS" "$DURATION_SECONDS" "$MAX_IN_FLIGHT" "printf %s '$encoded_script' | base64 -d | bash"
-          parameters=$(jq -nc --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}')
-          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
-          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
-          echo "MFA SSM command: $command_id"
-
-      - name: Wait for MFA result and show output
-        shell: bash
-        env:
-          COMMAND_ID: ${{ steps.send-mfa-command.outputs.command_id }}
-        run: |
-          set -euo pipefail
-          status=''
-          for (( attempt = 0; attempt < 170; attempt++ )); do
-            invocation=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json 2>/dev/null) || { sleep 15; continue; }
-            status=$(jq -r '.Status' <<< "$invocation")
-            case "$status" in
-              Success|Failed|Cancelled|TimedOut) break ;;
-            esac
-            sleep 15
-          done
-          case "$status" in
-            Success|Failed|Cancelled|TimedOut) ;;
-            *) echo "::error::MFA SSM command $COMMAND_ID did not finish within the workflow deadline"; exit 1 ;;
-          esac
-          jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$invocation"
-          if [[ "$status" != Success || "$(jq -r '.ResponseCode' <<< "$invocation")" != 0 ]]; then
-            echo "::error::MFA SSM command $COMMAND_ID finished with status $status"
-            exit 1
-          fi
+        run: bash .github/scripts/run-load-test.sh mfa "$MFA_NETWORK_ID" "$MFA_RPS"
 
       - name: Run MFA with posture checks load test
-        id: send-mfa-posture-command
         shell: bash
-        run: |
-          set -euo pipefail
-          remote_script=$(cat <<'REMOTE'
-          set -euo pipefail
-          exec 9>"$HOME/.defguard-load-test.lock"
-          flock -n 9 || { echo 'Another load test is already running'; exit 1; }
-          set -a
-          source "$HOME/.config/defguard-load-test.env"
-          set +a
-          cd "$HOME/defguard"
-          git fetch origin "$LOAD_TEST_REV"
-          git checkout --detach "$LOAD_TEST_REV"
-          git submodule update --init --recursive
-          cargo build --locked --release -p defguard_load_generator
-          ./target/release/defguard_load_generator test client-mfa \
-            --proxy-url "$LOAD_TEST_PROXY_URL" \
-            --network-id "$MFA_POSTURE_NETWORK_ID" \
-            --requests-per-second "$MFA_POSTURE_RPS" \
-            --duration "${DURATION_SECONDS}s" \
-            --max-in-flight "$MAX_IN_FLIGHT" \
-            --with-posture-checks
-          REMOTE
-          )
-          encoded_script=$(printf %s "$remote_script" | base64 -w0)
-          printf -v command 'runuser -u ubuntu -- env LOAD_TEST_REV=%q LOAD_TEST_PROXY_URL=%q MFA_POSTURE_NETWORK_ID=%q MFA_POSTURE_RPS=%q DURATION_SECONDS=%q MAX_IN_FLIGHT=%q bash -lc %q' "$GITHUB_SHA" "$PROXY_URL" "$MFA_POSTURE_NETWORK_ID" "$MFA_POSTURE_RPS" "$DURATION_SECONDS" "$MAX_IN_FLIGHT" "printf %s '$encoded_script' | base64 -d | bash"
-          parameters=$(jq -nc --arg command "$command" '{commands: [$command], executionTimeout: ["2400"]}')
-          command_id=$(aws ssm send-command --instance-ids "$GENERATOR_INSTANCE_ID" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
-          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
-          echo "MFA with posture checks SSM command: $command_id"
-
-      - name: Wait for MFA with posture checks result and show output
-        shell: bash
-        env:
-          COMMAND_ID: ${{ steps.send-mfa-posture-command.outputs.command_id }}
-        run: |
-          set -euo pipefail
-          status=''
-          for (( attempt = 0; attempt < 170; attempt++ )); do
-            invocation=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$GENERATOR_INSTANCE_ID" --output json 2>/dev/null) || { sleep 15; continue; }
-            status=$(jq -r '.Status' <<< "$invocation")
-            case "$status" in
-              Success|Failed|Cancelled|TimedOut) break ;;
-            esac
-            sleep 15
-          done
-          case "$status" in
-            Success|Failed|Cancelled|TimedOut) ;;
-            *) echo "::error::MFA with posture checks SSM command $COMMAND_ID did not finish within the workflow deadline"; exit 1 ;;
-          esac
-          jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$invocation"
-          if [[ "$status" != Success || "$(jq -r '.ResponseCode' <<< "$invocation")" != 0 ]]; then
-            echo "::error::MFA with posture checks SSM command $COMMAND_ID finished with status $status"
-            exit 1
-          fi
+        run: bash .github/scripts/run-load-test.sh mfa_posture "$MFA_POSTURE_NETWORK_ID" "$MFA_POSTURE_RPS"
 
   alert-load-test-failure:
     needs: load-tests
