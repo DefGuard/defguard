@@ -3,12 +3,14 @@
   max-width: 320px;
 
   .summary-item {
-    grid-template-columns: 60px fit-content(320px);
+    grid-template-columns: 60px minmax(0, 1fr);
     column-gap: var(--spacing-md);
 
     .content > p {
       gap: var(--spacing-xs);
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 }
