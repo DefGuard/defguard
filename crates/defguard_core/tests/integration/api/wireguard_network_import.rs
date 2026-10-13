@@ -11,7 +11,7 @@ use defguard_core::{
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::sync::broadcast::error::TryRecvError;
+use tokio::sync::mpsc::error::TryRecvError;
 
 use super::common::{fetch_user_details, make_test_client, setup_pool};
 

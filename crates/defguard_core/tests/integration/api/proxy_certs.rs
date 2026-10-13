@@ -40,10 +40,7 @@ use sqlx::{
 };
 use tokio::{
     net::TcpListener,
-    sync::{
-        broadcast,
-        mpsc::{Receiver, Sender, channel, unbounded_channel},
-    },
+    sync::{broadcast, mpsc},
     time::{sleep, timeout},
 };
 
@@ -55,7 +52,7 @@ const BROADCAST_TIMEOUT: Duration = Duration::from_secs(5);
 
 // Mock: captures messages sent to the proxy manager channel.
 struct ProxyBroadcastCapture {
-    rx: Receiver<ProxyControlMessage>,
+    rx: mpsc::Receiver<ProxyControlMessage>,
 }
 
 impl ProxyBroadcastCapture {
@@ -135,14 +132,14 @@ async fn make_test_client_with_proxy_rx(
 
     // Use a channel large enough that sends never block in tests.
     let (proxy_control_tx, proxy_control_rx): (
-        Sender<ProxyControlMessage>,
-        Receiver<ProxyControlMessage>,
-    ) = channel(32);
+        mpsc::Sender<ProxyControlMessage>,
+        mpsc::Receiver<ProxyControlMessage>,
+    ) = mpsc::channel(32);
 
-    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
-    let (tx, rx) = unbounded_channel::<AppEvent>();
+    let (api_event_tx, api_event_rx) = mpsc::unbounded_channel::<ApiEvent>();
+    let (tx, rx) = mpsc::unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (gateway_tx, _wg_rx) = broadcast::channel::<GatewayCommand>(16);
+    let (gateway_tx, _wg_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
     let license = License::new(
         "test_customer".to_owned(),
@@ -163,8 +160,8 @@ async fn make_test_client_with_proxy_rx(
             .as_bytes(),
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
-    let (ldap_tx, _ldap_rx) = tokio::sync::mpsc::unbounded_channel();
-    let (dirsync_tx, _dirsync_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
+    let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
 
     let webapp = build_webapp(
         tx,

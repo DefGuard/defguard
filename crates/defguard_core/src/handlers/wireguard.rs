@@ -471,7 +471,7 @@ pub(crate) async fn create_network(
     }
     transaction.commit().await?;
 
-    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.clone()));
 
     info!(
         "User {} created WireGuard network {network_name}",
@@ -701,7 +701,7 @@ pub(crate) async fn modify_network(
     let maybe_firewall_config =
         try_get_location_firewall_config(&network, &mut transaction).await?;
     let gateway_command =
-        GatewayCommand::NetworkModified(network.id, network.clone(), peers, maybe_firewall_config);
+        GatewayCommand::NetworkModified(network.clone(), peers, maybe_firewall_config);
 
     // commit DB transaction
     transaction.commit().await?;
@@ -1034,7 +1034,7 @@ pub(crate) async fn import_network(
         .await?;
 
     info!("New network {network} created");
-    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.id, network.clone()));
+    appstate.send_gateway_command(GatewayCommand::NetworkCreated(network.clone()));
 
     let reserved_ips = imported_devices
         .iter()

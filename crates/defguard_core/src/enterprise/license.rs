@@ -24,7 +24,7 @@ use prost::Message;
 use sqlx::PgPool;
 use strum::VariantArray;
 use thiserror::Error;
-use tokio::time::sleep;
+use tokio::{sync::mpsc, time::sleep};
 
 use crate::{
     enterprise::{
@@ -613,7 +613,7 @@ const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 /// Keep one enabled Gateway per location and one Edge per instance.
 async fn trim_gateways_and_edges(
     pool: &PgPool,
-    proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    proxy_control_tx: &mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), LicenseError> {
     Gateway::leave_one_enabled(pool).await?;
 
@@ -641,7 +641,7 @@ async fn trim_gateways_and_edges(
 #[instrument(skip_all)]
 pub async fn run_periodic_license_check(
     pool: &PgPool,
-    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), LicenseError> {
     let config = server_config();
     let mut check_period: Duration = *config.check_period;

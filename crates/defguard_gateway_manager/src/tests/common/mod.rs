@@ -35,7 +35,7 @@ use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
     sync::{
-        Notify, broadcast,
+        Notify,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
@@ -45,7 +45,9 @@ use tokio::{
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
-use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
+use crate::{
+    GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler, manager::GatewayManager,
+};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -474,10 +476,11 @@ impl ManagerTestContext {
 
         self.set_retry_delay(FAST_RETRY_DELAY);
 
-        let (events_tx, _) = broadcast::channel(16);
+        let (_events_tx, events_rx) = mpsc::unbounded_channel();
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
-        let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
-        let mut manager = GatewayManager::new(self.pool.clone(), tx, self.control.clone());
+        let tx = GatewayTxSet::new(peer_stats_tx);
+        let mut manager =
+            GatewayManager::new(self.pool.clone(), tx, events_rx, self.control.clone());
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
@@ -524,21 +527,14 @@ pub(crate) struct HandlerTestContext {
     pub(crate) gateway: Gateway<Id>,
     pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     pub(crate) connection_events_rx: UnboundedReceiver<GatewayConnectionEvent>,
-    events_tx: Option<broadcast::Sender<GatewayCommand>>,
+    events_tx: Option<UnboundedSender<GatewayCommand>>,
     pub(crate) mock_gateway: Option<MockGatewayHarness>,
     handler_task: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
-        let (events_tx, _) = broadcast::channel(16);
-        Self::new_with_events_tx(options, events_tx).await
-    }
-
-    pub(crate) async fn new_with_events_tx(
-        options: PgConnectOptions,
-        events_tx: broadcast::Sender<GatewayCommand>,
-    ) -> Self {
+        let (events_tx, events_rx) = mpsc::unbounded_channel();
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
             .await
@@ -552,7 +548,7 @@ impl HandlerTestContext {
         let mut handler = GatewayHandler::new_with_test_socket(
             gateway.clone(),
             pool.clone(),
-            events_tx.clone(),
+            events_rx,
             connection_events_tx,
             peer_stats_tx,
             certs_rx,
@@ -576,7 +572,7 @@ impl HandlerTestContext {
         }
     }
 
-    pub(crate) fn events_tx(&self) -> &broadcast::Sender<GatewayCommand> {
+    pub(crate) fn events_tx(&self) -> &UnboundedSender<GatewayCommand> {
         self.events_tx
             .as_ref()
             .expect("events sender already taken from context")
@@ -628,20 +624,9 @@ impl HandlerTestContext {
     }
 
     pub(crate) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
-        let initial_event_receivers = self.events_tx().receiver_count();
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
-        let connected_gateway =
-            wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
-        timeout(TEST_TIMEOUT, async {
-            while self.events_tx().receiver_count() <= initial_event_receivers {
-                sleep(Duration::from_millis(20)).await;
-            }
-        })
-        .await
-        .expect("timed out waiting for gateway updates handler subscription");
-        tokio::task::yield_now().await;
-        connected_gateway
+        wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await
     }
 
     pub(crate) async fn finish(mut self) -> MockGatewayHarness {

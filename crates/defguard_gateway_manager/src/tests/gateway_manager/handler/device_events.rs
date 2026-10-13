@@ -19,7 +19,7 @@ async fn test_device_created_for_network_produces_peer_create_update(
         context
             .events_tx()
             .send(GatewayCommand::DeviceCreated(device_info)),
-        "failed to broadcast created device event"
+        "failed to send created device event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -88,7 +88,7 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
         context
             .events_tx()
             .send(GatewayCommand::DeviceModified(device_info)),
-        "failed to broadcast modified device event"
+        "failed to send modified device event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -140,7 +140,7 @@ async fn test_device_deleted_for_network_produces_peer_delete_update(
         context
             .events_tx()
             .send(GatewayCommand::DeviceDeleted(device_info)),
-        "failed to broadcast deleted device event"
+        "failed to send deleted device event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;

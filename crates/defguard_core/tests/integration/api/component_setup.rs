@@ -18,7 +18,12 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::{net::TcpListener, sync::Notify, task::JoinHandle, time::timeout};
+use tokio::{
+    net::TcpListener,
+    sync::{Notify, mpsc},
+    task::JoinHandle,
+    time::timeout,
+};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
 use tracing::{debug, info};
@@ -226,7 +231,7 @@ impl GatewaySetup for MockGatewaySetupService {
     type StartStream = UnboundedReceiverStream<Result<LogEntry, Status>>;
 
     async fn start(&self, _request: Request<()>) -> Result<Response<Self::StartStream>, Status> {
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::unbounded_channel();
 
         tokio::spawn(async move {
             for i in 0..3u32 {

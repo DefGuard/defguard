@@ -77,10 +77,7 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     spawn,
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-    },
+    sync::{broadcast, mpsc},
     time::sleep,
 };
 use tower_governor::{
@@ -299,18 +296,18 @@ fn openapi_route() -> Router<AppState> {
 }
 
 pub fn build_webapp(
-    webhook_tx: UnboundedSender<AppEvent>,
-    webhook_rx: UnboundedReceiver<AppEvent>,
-    gateway_tx: Sender<GatewayCommand>,
-    web_reload_tx: tokio::sync::broadcast::Sender<()>,
+    webhook_tx: mpsc::UnboundedSender<AppEvent>,
+    webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
+    gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
+    web_reload_tx: broadcast::Sender<()>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     key: Key,
-    event_tx: UnboundedSender<ApiEvent>,
-    ldap_tx: UnboundedSender<LdapSyncEventType>,
-    dirsync_tx: UnboundedSender<DirectorySyncEvent>,
+    event_tx: mpsc::UnboundedSender<ApiEvent>,
+    ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: mpsc::UnboundedSender<DirectorySyncEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     tls_active: Arc<AtomicBool>,
     server_config: &DefGuardConfig,
 ) -> Router {
@@ -890,16 +887,16 @@ pub fn apply_security_layers(router: Router, tls_active: Arc<AtomicBool>) -> Rou
 #[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    webhook_tx: UnboundedSender<AppEvent>,
-    webhook_rx: UnboundedReceiver<AppEvent>,
-    gateway_tx: Sender<GatewayCommand>,
-    web_reload_tx: tokio::sync::broadcast::Sender<()>,
+    webhook_tx: mpsc::UnboundedSender<AppEvent>,
+    webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
+    gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
+    web_reload_tx: broadcast::Sender<()>,
     pool: PgPool,
-    event_tx: UnboundedSender<ApiEvent>,
-    ldap_tx: UnboundedSender<LdapSyncEventType>,
-    dirsync_tx: UnboundedSender<DirectorySyncEvent>,
+    event_tx: mpsc::UnboundedSender<ApiEvent>,
+    ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
+    dirsync_tx: mpsc::UnboundedSender<DirectorySyncEvent>,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
     let settings = Settings::get_current_settings();
     let key = Key::from(settings.secret_key_required()?.as_bytes());
@@ -983,12 +980,12 @@ pub async fn run_web_server(
                         handle.graceful_shutdown(Some(Duration::from_secs(30)));
                         let _ = server_task.await;
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    Err(broadcast::error::RecvError::Lagged(_)) => {
                         info!("Missed core web server reload signal, restarting listener");
                         handle.graceful_shutdown(Some(Duration::from_secs(30)));
                         let _ = server_task.await;
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    Err(broadcast::error::RecvError::Closed) => {
                         return Err(anyhow!("Core web reload channel closed unexpectedly"));
                     }
                 }

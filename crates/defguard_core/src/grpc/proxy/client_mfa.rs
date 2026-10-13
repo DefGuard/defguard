@@ -42,7 +42,7 @@ use defguard_proto::{
 };
 use sqlx::{PgConnection, PgPool, Postgres, pool::PoolConnection};
 use tokio::{
-    sync::{broadcast::Sender, mpsc::UnboundedSender, oneshot},
+    sync::{mpsc::UnboundedSender, oneshot},
     time,
 };
 use tonic::{Code, Status};
@@ -445,7 +445,7 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: RemoteAuthWaiters,
     ) -> Self {

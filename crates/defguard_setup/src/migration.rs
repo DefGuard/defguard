@@ -60,7 +60,7 @@ use crate::handlers::{
 pub struct MigrationWebapp {
     pub router: Router,
     _event_rx: mpsc::UnboundedReceiver<ApiEvent>,
-    _gateway_rx: broadcast::Receiver<GatewayCommand>,
+    _gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
     _proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
 }
 
@@ -73,7 +73,7 @@ pub fn build_migration_webapp(
     let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
     let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
-    let (gateway_tx, gateway_rx) = broadcast::channel::<GatewayCommand>(64);
+    let (gateway_tx, gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
     let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));

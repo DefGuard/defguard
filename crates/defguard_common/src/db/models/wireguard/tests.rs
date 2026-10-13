@@ -3,7 +3,7 @@ use std::{assert_matches, net::Ipv6Addr, str::FromStr};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::db::setup_pool;
+use crate::db::{models::device, setup_pool};
 
 #[test]
 fn test_set_address() {
@@ -135,7 +135,7 @@ async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectO
         .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), Id::from(999))
         .await
         .unwrap();
-    assert!(devices.is_empty());
+    assert_eq!(devices, [] as [device::Device<i64>; 0]);
 }
 
 #[sqlx::test]
@@ -223,7 +223,7 @@ async fn test_get_allowed_devices_for_user_with_groups(
         .get_allowed_devices_for_user(&mut transaction, user2.id)
         .await
         .unwrap();
-    assert!(devices.is_empty());
+    assert_eq!(devices, [] as [device::Device<i64>; 0]);
 }
 
 #[sqlx::test]

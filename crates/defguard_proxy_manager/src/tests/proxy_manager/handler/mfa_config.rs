@@ -30,9 +30,8 @@ async fn test_mfa_config_session_gates_factor_setup(_: PgPoolOptions, options: P
 
     let start_response =
         send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
-    let session = match &start_response.payload {
-        Some(core_response::Payload::MfaConfigStart(response)) => response,
-        _ => panic!("expected MfaConfigStartResponse"),
+    let Some(core_response::Payload::MfaConfigStart(session)) = &start_response.payload else {
+        panic!("expected MfaConfigStartResponse")
     };
     assert_eq!(session.available_methods, vec![MfaMethod::Totp as i32]);
     assert!(!session.email_fallback);
@@ -97,9 +96,8 @@ async fn test_email_fallback_enables_email_factor(_: PgPoolOptions, options: PgC
 
     let start_response =
         send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
-    let session = match &start_response.payload {
-        Some(core_response::Payload::MfaConfigStart(response)) => response,
-        _ => panic!("expected MfaConfigStartResponse"),
+    let Some(core_response::Payload::MfaConfigStart(session)) = &start_response.payload else {
+        panic!("expected MfaConfigStartResponse")
     };
     assert_eq!(session.available_methods, [] as [i32; 0]);
     assert!(session.email_fallback);
@@ -237,9 +235,8 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
 
     let start_response =
         send_mfa_config_start(&mut context, &polling_token, &device.wireguard_pubkey).await;
-    let session = match &start_response.payload {
-        Some(core_response::Payload::MfaConfigStart(response)) => response,
-        _ => panic!("expected MfaConfigStartResponse"),
+    let Some(core_response::Payload::MfaConfigStart(session)) = &start_response.payload else {
+        panic!("expected MfaConfigStartResponse")
     };
     assert_eq!(session.available_methods, vec![MfaMethod::Fido2 as i32]);
     assert!(

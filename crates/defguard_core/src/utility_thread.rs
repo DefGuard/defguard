@@ -49,7 +49,7 @@ const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 #[instrument(skip_all)]
 pub async fn run_utility_thread(
     pool: &PgPool,
-    gateway_tx: broadcast::Sender<GatewayCommand>,
+    gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
     web_reload_tx: broadcast::Sender<()>,
     ldap_tx: mpsc::UnboundedSender<LdapSyncEventType>,
@@ -241,7 +241,7 @@ impl LicenseGates {
 
 async fn license_status_check(
     pool: &PgPool,
-    gateway_tx: broadcast::Sender<GatewayCommand>,
+    gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
 ) -> Result<(), anyhow::Error> {
     let mut conn = pool.acquire().await?;
     for location in WireguardNetwork::all(pool).await? {
@@ -258,7 +258,6 @@ async fn license_status_check(
             let disable_firewall = location.acl_enabled && firewall_config.is_none();
             let location_id = location.id;
             gateway_tx.send(GatewayCommand::NetworkModified(
-                location_id,
                 location,
                 peers,
                 firewall_config,
@@ -286,7 +285,7 @@ async fn license_status_check(
 /// Find newly expired ACL rules and update their status.
 async fn expired_acl_rules_check(
     pool: &PgPool,
-    gateway_tx: broadcast::Sender<GatewayCommand>,
+    gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
 ) -> Result<(), anyhow::Error> {
     // mark relevant rules as expired
     let updated_rules = query_as!(
@@ -573,12 +572,12 @@ mod test {
 
     /// Reconcile gateway state and return the peer list for `location_id`.
     async fn reconcile_peers(pool: &PgPool, location_id: Id) -> Vec<WireguardPeer> {
-        let (gateway_tx, mut gateway_rx) = broadcast::channel(16);
+        let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel();
         license_status_check(pool, gateway_tx).await.unwrap();
 
         while let Ok(command) = gateway_rx.try_recv() {
-            if let GatewayCommand::NetworkModified(id, _, peers, _) = command
-                && id == location_id
+            if let GatewayCommand::NetworkModified(location, peers, _) = command
+                && location.id == location_id
             {
                 return peers;
             }

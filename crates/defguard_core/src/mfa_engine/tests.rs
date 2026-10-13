@@ -39,7 +39,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 use tonic::{Code, Status};
 use totp_lite::{Sha1, totp_custom};
 use uuid::Uuid;
@@ -98,9 +98,9 @@ fn make_engine(
 ) -> (
     MfaEngine,
     mpsc::UnboundedReceiver<BidiStreamEvent>,
-    broadcast::Receiver<GatewayCommand>,
+    mpsc::UnboundedReceiver<GatewayCommand>,
 ) {
-    let (gateway_tx, gateway_rx) = broadcast::channel(8);
+    let (gateway_tx, gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, bidi_event_rx) = mpsc::unbounded_channel();
     (
         MfaEngine::new(pool, gateway_tx, bidi_event_tx),
@@ -1401,7 +1401,7 @@ async fn start_fido2_test_attempt(
 ) -> (
     MfaEngine,
     mpsc::UnboundedReceiver<BidiStreamEvent>,
-    broadcast::Receiver<GatewayCommand>,
+    mpsc::UnboundedReceiver<GatewayCommand>,
     String,
     String,
 ) {

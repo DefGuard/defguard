@@ -21,7 +21,6 @@ use defguard_common::{
 };
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
-use uaparser::Parser;
 use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
@@ -44,7 +43,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ClientIpAddr, SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},
-    headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
+    headers::{ParsedUserAgent, check_new_device_login, get_user_agent_device},
     mail::templates::{mfa_activation_mail, mfa_code_mail, mfa_configured_mail},
     server_config,
 };
@@ -57,7 +56,7 @@ pub async fn create_session(
     user_agent: &str,
     user: &mut User<Id>,
 ) -> Result<(Session, Option<UserInfo>, Option<MFAInfo>), WebError> {
-    let agent = USER_AGENT_PARSER.parse(user_agent);
+    let agent = ParsedUserAgent::parse(user_agent);
     let device_info = get_user_agent_device(&agent);
     debug!("Cleaning up expired sessions...");
     Session::delete_expired(pool).await?;

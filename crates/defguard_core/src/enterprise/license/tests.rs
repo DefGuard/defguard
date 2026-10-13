@@ -4,6 +4,7 @@ use defguard_common::db::{
     setup_pool,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::mpsc;
 
 use super::*;
 
@@ -350,8 +351,7 @@ async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOption
         .await
         .unwrap();
 
-    let (proxy_control_tx, mut proxy_control_rx) =
-        tokio::sync::mpsc::channel::<ProxyControlMessage>(8);
+    let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel::<ProxyControlMessage>(8);
 
     trim_gateways_and_edges(&pool, &proxy_control_tx)
         .await

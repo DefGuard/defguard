@@ -16,7 +16,7 @@ use defguard_common::{
 };
 use sqlx::PgConnection;
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     device_access::join_device_to_all_networks,
@@ -60,7 +60,7 @@ impl LocationManager {
     }
 
     /// Send all commands to Gateway. Use this method *after* database transaction is committed.
-    pub(crate) fn send(self, gateway_tx: &Sender<GatewayCommand>) {
+    pub(crate) fn send(self, gateway_tx: &UnboundedSender<GatewayCommand>) {
         send_multiple_gateway_commands(self.gateway_commands, gateway_tx);
     }
 }

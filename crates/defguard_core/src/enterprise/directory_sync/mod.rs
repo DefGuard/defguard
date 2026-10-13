@@ -12,7 +12,7 @@ use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::{
     db::models::{
@@ -351,7 +351,7 @@ async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
     pool: &PgPool,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
     provider_name: &str,
@@ -467,7 +467,7 @@ pub(crate) async fn test_directory_sync_connection(
 pub async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {
@@ -567,7 +567,7 @@ async fn create_and_add_to_group(
 async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
     provider_name: &str,
@@ -739,7 +739,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 
 async fn sync_all_users_state(
     pool: &PgPool,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
     all_users: &[DirectoryUser],
@@ -1292,7 +1292,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 // Performs the directory sync job. This function is called by the utility thread.
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
-    gateway_tx: &Sender<GatewayCommand>,
+    gateway_tx: &UnboundedSender<GatewayCommand>,
     ldap_tx: &UnboundedSender<LdapSyncEventType>,
     dirsync_tx: &UnboundedSender<DirectorySyncEvent>,
 ) -> Result<(), DirectorySyncError> {

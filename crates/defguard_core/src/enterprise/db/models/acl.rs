@@ -17,7 +17,7 @@ use sqlx::{
     query, query_as, query_scalar,
 };
 use thiserror::Error;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     enterprise::{
@@ -555,7 +555,7 @@ impl AclRule {
         rules: &[Id],
         actor: &str,
         pool: &PgPool,
-        gateway_tx: &Sender<GatewayCommand>,
+        gateway_tx: &UnboundedSender<GatewayCommand>,
     ) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = pool.begin().await?;
@@ -575,8 +575,7 @@ impl AclRule {
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
 
-        let affected_locations: Vec<WireguardNetwork<Id>> =
-            affected_locations.into_iter().collect();
+        let affected_locations = affected_locations.into_iter().collect::<Vec<_>>();
         debug!(
             "{} locations affected by applied ACL rules. Sending gateway firewall update events \
             for each location",
@@ -1830,7 +1829,7 @@ impl AclAlias {
         kind: AliasKind,
         actor: &str,
         pool: &PgPool,
-        gateway_tx: &Sender<GatewayCommand>,
+        gateway_tx: &UnboundedSender<GatewayCommand>,
     ) -> Result<(), AclError> {
         debug!(
             "Applying {} ACL aliases of kind {kind:?}: {aliases:?}",

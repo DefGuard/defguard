@@ -344,7 +344,6 @@ mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
         pin::Pin,
-        str::FromStr,
         sync::{Arc, Once},
         time::Duration,
     };
@@ -555,7 +554,7 @@ mod tests {
         settings.smtp.port = Some(587);
         settings.smtp.sender = Some("noreply@example.com".into());
         settings.smtp.user = Some(String::new());
-        settings.smtp.password = Some(SecretStringWrapper::from_str("").unwrap());
+        settings.smtp.password = Some(SecretStringWrapper::from(""));
         defguard_common::db::models::settings::set_settings(Some(settings));
     }
 

@@ -103,7 +103,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     .await;
 
     // Subscribe before finish so the gateway send has a receiver.
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let code = generate_totp_code(&user);
     let (_, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
@@ -152,7 +152,7 @@ async fn test_legacy_totp_login_completes_with_fido2_on_location(
         MfaMethod::Totp,
     )
     .await;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
     let code = generate_totp_code(&user);
     let (response, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
     assert!(
@@ -198,7 +198,7 @@ async fn test_mfa_finish_succeeds_with_biometric_signature(
     let challenge = challenge.expect("biometric start must return a challenge to sign");
 
     // Subscribe before finish so the handler's gateway_tx.send() has a receiver.
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let signature = sign_challenge(&signing_key, &challenge);
     let (_, psk) = send_mfa_finish(&mut context, &token, Some(&signature)).await;
@@ -245,7 +245,7 @@ async fn test_mfa_finish_rejects_empty_legacy_mobile_approve_proof(
         MfaMethod::MobileApprove,
     )
     .await;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let response = send_mfa_finish_raw(&mut context, &token, None).await;
     let (code, message) = assert_error_response_details(&response);
@@ -286,7 +286,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
     .await;
     let challenge = challenge.expect("mobile approve start must return a challenge to sign");
 
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: AWAIT_ID,
@@ -319,7 +319,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
@@ -389,7 +389,7 @@ async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
     )
     .await;
     let challenge = challenge.expect("legacy mobile-approve start should return a challenge");
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     context.mock_proxy().send_request(CoreRequest {
         id: AWAIT_ID,
@@ -422,11 +422,11 @@ async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
         match &response.payload {
             Some(core_response::Payload::ClientMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID + 1);
-                assert!(result.preshared_key.is_empty());
+                assert_eq!(result.preshared_key, "");
             }
             Some(core_response::Payload::AwaitRemoteMfaFinish(result)) => {
                 assert_eq!(response.id, AWAIT_ID);
-                assert!(!result.preshared_key.is_empty());
+                assert_ne!(result.preshared_key, "");
                 parked_key = Some(result.preshared_key.clone());
             }
             _ => panic!("unexpected response"),
@@ -483,7 +483,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     .await;
 
     // Subscribe before finish so the gateway send has a receiver.
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let _ = code; // keep binding so the setup_user_email_mfa call is not dead
     // Generate the finish code from the same secret.
@@ -531,7 +531,7 @@ async fn test_legacy_email_login_completes_with_fido2_on_location(
         MfaMethod::Email,
     )
     .await;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
     let code = user.generate_email_mfa_code().expect("generate email code");
     let (response, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
     assert!(
@@ -670,7 +670,7 @@ async fn test_mfa_finish_succeeds_after_oidc_completion(
         MfaMethod::Oidc,
     )
     .await;
-    let mut gateway_rx = context.gateway_tx.subscribe();
+    let mut gateway_rx = context.take_gateway_rx();
 
     let response = send_mfa_finish_raw(&mut context, &token, None).await;
     let (code, message) = assert_error_response_details(&response);
@@ -779,9 +779,6 @@ async fn test_mfa_await_remote_does_not_receive_psk_after_email_finish(
     // Let the handler register the waiter.
     task::yield_now().await;
 
-    // Subscribe before finish so the gateway send has a receiver.
-    let _gateway_rx = context.gateway_tx.subscribe();
-
     // Finish without receiving so the response can be checked below.
     let code = user.generate_email_mfa_code().expect("generate email code");
     send_mfa_finish_no_recv(&mut context, &token, Some(&code)).await;
@@ -789,7 +786,7 @@ async fn test_mfa_await_remote_does_not_receive_psk_after_email_finish(
     let response = context.mock_proxy_mut().recv_outbound().await;
     match response.payload {
         Some(core_response::Payload::ClientMfaFinish(response)) => {
-            assert!(!response.preshared_key.is_empty());
+            assert_ne!(response.preshared_key, "");
         }
         other => panic!(
             "expected ClientMfaFinish response, got {:?}",

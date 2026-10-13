@@ -27,7 +27,7 @@ use defguard_common::db::{
     wireguard_key::WireguardKey,
 };
 use sqlx::{PgConnection, PgPool};
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error, warn};
 
 use crate::{
@@ -150,7 +150,7 @@ impl MfaEngine {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {

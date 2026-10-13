@@ -48,15 +48,12 @@ use defguard_proto::client_types::{
     NewDevice, RegisterMobileAuthRequest,
 };
 use sqlx::{PgConnection, PgPool, query_scalar};
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedSender, error::SendError},
-};
+use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
-    gateway_tx: Sender<GatewayCommand>,
+    gateway_tx: UnboundedSender<GatewayCommand>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ldap_tx: UnboundedSender<LdapSyncEventType>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -66,7 +63,7 @@ impl EnrollmentServer {
     #[must_use]
     pub(crate) fn new(
         pool: PgPool,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         ldap_tx: UnboundedSender<LdapSyncEventType>,
         event_tx: UnboundedSender<ApiEvent>,
@@ -1331,7 +1328,7 @@ mod test {
     use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
     use defguard_proto::{client_types::EnrollmentStartRequest, proxy::DeviceInfo};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use tokio::sync::{broadcast, mpsc::unbounded_channel};
+    use tokio::sync::mpsc::unbounded_channel;
 
     use super::EnrollmentServer;
 
@@ -1369,7 +1366,7 @@ mod test {
         settings.enrollment_send_welcome_email = false;
         update_current_settings(&pool, settings).await.unwrap();
 
-        let (gateway_tx, _) = broadcast::channel(1);
+        let (gateway_tx, _) = unbounded_channel();
         let (bidi_event_tx, _) = unbounded_channel();
         let (ldap_tx, _) = unbounded_channel();
         let (event_tx, _) = unbounded_channel();
@@ -1426,7 +1423,7 @@ mod test {
         settings.enrollment_display_welcome_message = false;
         update_current_settings(&pool, settings).await.unwrap();
 
-        let (gateway_tx, _gateway_rx) = broadcast::channel(1);
+        let (gateway_tx, _gateway_rx) = unbounded_channel();
         let (bidi_event_tx, _bidi_events_rx) = unbounded_channel();
         let (ldap_tx, _ldap_rx) = unbounded_channel();
         let (event_tx, _event_rx) = unbounded_channel();

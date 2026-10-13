@@ -38,7 +38,7 @@ use description::{get_api_event_description, get_enrollment_event_description};
 use error::EventLoggerError;
 use message::{Event, EventContext, EventLoggerMessage};
 use sqlx::PgPool;
-use tokio::sync::{Notify, mpsc::UnboundedReceiver};
+use tokio::sync::{Notify, broadcast, mpsc};
 use tracing::{debug, error, info, trace};
 
 pub mod description;
@@ -51,18 +51,17 @@ const MESSAGE_LIMIT: usize = 100;
 #[allow(clippy::too_many_arguments)]
 pub async fn run_event_logger(
     pool: PgPool,
-    api_event_rx: UnboundedReceiver<ApiEvent>,
-    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
-    session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
-    ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
-    directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
-    gateway_connection_event_rx: UnboundedReceiver<GatewayConnectionEvent>,
-    proxy_connection_event_rx: UnboundedReceiver<ProxyConnectionEvent>,
+    api_event_rx: mpsc::UnboundedReceiver<ApiEvent>,
+    bidi_event_rx: mpsc::UnboundedReceiver<BidiStreamEvent>,
+    session_manager_event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
+    ldap_sync_event_rx: mpsc::UnboundedReceiver<LdapSyncEventType>,
+    directory_sync_event_rx: mpsc::UnboundedReceiver<DirectorySyncEvent>,
+    gateway_connection_event_rx: mpsc::UnboundedReceiver<GatewayConnectionEvent>,
+    proxy_connection_event_rx: mpsc::UnboundedReceiver<ProxyConnectionEvent>,
     activity_log_stream_reload_notify: Arc<Notify>,
-    activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
+    activity_log_messages_tx: broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
-    let (event_logger_tx, mut event_logger_rx) =
-        tokio::sync::mpsc::unbounded_channel::<EventLoggerMessage>();
+    let (event_logger_tx, mut event_logger_rx) = mpsc::unbounded_channel::<EventLoggerMessage>();
 
     // Spawn a task that reads from all source channels and forwards
     // translated messages to the internal channel.
@@ -105,15 +104,15 @@ pub async fn run_event_logger(
 /// is dropped, causing the batch loop to shut down gracefully.
 #[allow(clippy::too_many_arguments)]
 async fn translate_and_forward(
-    mut api_event_rx: UnboundedReceiver<ApiEvent>,
-    mut bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
-    mut session_manager_event_rx: UnboundedReceiver<SessionManagerEvent>,
-    mut ldap_sync_event_rx: UnboundedReceiver<LdapSyncEventType>,
-    mut directory_sync_event_rx: UnboundedReceiver<DirectorySyncEvent>,
-    mut gateway_connection_event_rx: UnboundedReceiver<GatewayConnectionEvent>,
-    mut proxy_connection_event_rx: UnboundedReceiver<ProxyConnectionEvent>,
+    mut api_event_rx: mpsc::UnboundedReceiver<ApiEvent>,
+    mut bidi_event_rx: mpsc::UnboundedReceiver<BidiStreamEvent>,
+    mut session_manager_event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
+    mut ldap_sync_event_rx: mpsc::UnboundedReceiver<LdapSyncEventType>,
+    mut directory_sync_event_rx: mpsc::UnboundedReceiver<DirectorySyncEvent>,
+    mut gateway_connection_event_rx: mpsc::UnboundedReceiver<GatewayConnectionEvent>,
+    mut proxy_connection_event_rx: mpsc::UnboundedReceiver<ProxyConnectionEvent>,
     reload_notify: Arc<Notify>,
-    event_logger_tx: tokio::sync::mpsc::UnboundedSender<EventLoggerMessage>,
+    event_logger_tx: mpsc::UnboundedSender<EventLoggerMessage>,
 ) {
     loop {
         let message = tokio::select! {
@@ -1239,7 +1238,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
 async fn process_batch(
     pool: &PgPool,
     message_buffer: Vec<EventLoggerMessage>,
-    activity_log_messages_tx: &tokio::sync::broadcast::Sender<Bytes>,
+    activity_log_messages_tx: &broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
     let mut transaction = pool.begin().await?;
     let mut serialized_activity_log_events = String::new();

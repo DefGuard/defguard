@@ -377,8 +377,8 @@ async fn send_oidc_callback(
     state_payload: &str,
     sub: &str,
 ) -> CoreResponse {
-    let nonce = "mfa-config-oidc-nonce";
     static OIDC_CALLBACK_CTR: AtomicU64 = AtomicU64::new(6250);
+    let nonce = "mfa-config-oidc-nonce";
     context.mock_proxy().send_request(CoreRequest {
         id: OIDC_CALLBACK_CTR.fetch_add(1, Ordering::Relaxed),
         device_info: Some(make_device_info()),
@@ -412,7 +412,7 @@ async fn test_oidc_authorizes_session(_: PgPoolOptions, options: PgConnectOption
         link_user_oidc_identity(pool, user).await;
     })
     .await;
-    assert_eq!(session.available_methods, vec![MfaMethod::Oidc as i32]);
+    assert_eq!(session.available_methods, [MfaMethod::Oidc as i32]);
     assert!(
         !session.email_fallback,
         "OIDC must replace the email fallback"
