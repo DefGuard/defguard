@@ -23,7 +23,7 @@ async fn test_matching_location_posture_vpn_session_authorized_produces_peer_cre
             device,
             network_device,
         )),
-        "failed to broadcast posture VPN session authorized event"
+        "failed to send posture VPN session authorized event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -65,7 +65,7 @@ async fn test_matching_location_posture_vpn_session_authorized_without_psk_is_sk
             device,
             network_device,
         )),
-        "failed to broadcast posture VPN session authorized event without PSK"
+        "failed to send posture VPN session authorized event without PSK"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -98,7 +98,7 @@ async fn test_matching_location_vpn_session_authorized_produces_peer_create(
             device,
             network_device,
         )),
-        "failed to broadcast VPN session authorized event"
+        "failed to send VPN session authorized event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;
@@ -144,7 +144,7 @@ async fn test_vpn_session_authorized_with_mismatched_network_id_is_ignored(
             device,
             network_device,
         )),
-        "failed to broadcast mismatched VPN session authorized event"
+        "failed to send mismatched VPN session authorized event"
     );
 
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -177,7 +177,7 @@ async fn test_matching_location_vpn_session_deauthorized_produces_peer_delete(
                 context.network.id,
                 device,
             )),
-        "failed to broadcast VPN session deauthorized event"
+        "failed to send VPN session deauthorized event"
     );
 
     let outbound = context.mock_gateway_mut().recv_outbound().await;

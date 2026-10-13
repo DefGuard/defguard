@@ -42,12 +42,8 @@ use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey, traits::PublicKeyParts};
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::{TcpListener, UnixListener},
-    sync::{
-        Notify, Semaphore, broadcast,
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-        oneshot, watch,
-    },
-    task::JoinHandle,
+    sync::{Notify, Semaphore, mpsc, oneshot, watch},
+    task::{JoinHandle, yield_now},
     time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
@@ -105,9 +101,9 @@ pub(crate) fn mock_proxy_socket_path() -> PathBuf {
 ///   - sends `CoreRequest` messages back (injected via `inbound_tx`)
 struct MockProxyState {
     /// Messages sent by the handler (CoreResponse) forwarded here for assertions.
-    outbound_tx: UnboundedSender<CoreResponse>,
+    outbound_tx: mpsc::UnboundedSender<CoreResponse>,
     /// Receiver side for requests we want to inject into the handler (CoreRequest).
-    inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
+    inbound_rx: Mutex<Option<mpsc::UnboundedReceiver<Result<CoreRequest, Status>>>>,
     /// One-shot notifier that fires once on the first connection.
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
     connection_count: AtomicU16,
@@ -131,7 +127,9 @@ impl MockProxyState {
         }
     }
 
-    fn take_inbound_rx(&self) -> Result<UnboundedReceiver<Result<CoreRequest, Status>>, Status> {
+    fn take_inbound_rx(
+        &self,
+    ) -> Result<mpsc::UnboundedReceiver<Result<CoreRequest, Status>>, Status> {
         self.inbound_rx
             .lock()
             .expect("failed to lock inbound receiver")
@@ -203,9 +201,9 @@ pub(crate) struct MockProxyHarness {
     state: Arc<MockProxyState>,
     socket_path: PathBuf,
     /// Sender to inject `CoreRequest` messages into the live stream.
-    inbound_tx: Option<UnboundedSender<Result<CoreRequest, Status>>>,
+    inbound_tx: Option<mpsc::UnboundedSender<Result<CoreRequest, Status>>>,
     /// Receiver of `CoreResponse` messages forwarded from the handler.
-    outbound_rx: UnboundedReceiver<CoreResponse>,
+    outbound_rx: mpsc::UnboundedReceiver<CoreResponse>,
     connected_rx: oneshot::Receiver<()>,
     server_task: Option<JoinHandle<Result<(), io::Error>>>,
 }
@@ -402,10 +400,10 @@ impl Drop for MockProxyHarness {
 pub(crate) struct HandlerTestContext {
     pub(crate) pool: PgPool,
     pub(crate) proxy: Proxy<Id>,
-    pub(crate) gateway_tx: broadcast::Sender<GatewayCommand>,
-    pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
-    pub(crate) event_rx: UnboundedReceiver<ApiEvent>,
-    pub(crate) connection_events_rx: UnboundedReceiver<ProxyConnectionEvent>,
+    gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
+    pub(crate) bidi_events_rx: mpsc::UnboundedReceiver<BidiStreamEvent>,
+    pub(crate) event_rx: mpsc::UnboundedReceiver<ApiEvent>,
+    pub(crate) connection_events_rx: mpsc::UnboundedReceiver<ProxyConnectionEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     remote_mfa_responses: RemoteAuthWaiters,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
@@ -421,7 +419,7 @@ impl HandlerTestContext {
 
     pub(crate) async fn new_with_semaphore(
         options: PgConnectOptions,
-        semaphore: Arc<tokio::sync::Semaphore>,
+        semaphore: Arc<Semaphore>,
     ) -> Self {
         let pool = setup_pool(options).await;
         initialize_current_settings(&pool)
@@ -437,20 +435,14 @@ impl HandlerTestContext {
 
         let proxy = create_proxy(&pool).await;
 
-        let (gateway_tx, _) = broadcast::channel(16);
+        let (gateway_tx, gateway_rx) = mpsc::unbounded_channel();
         let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
         let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let (connection_events_tx, connection_events_rx) = mpsc::unbounded_channel();
-        let tx_set = ProxyTxSet::new(
-            gateway_tx.clone(),
-            bidi_events_tx,
-            ldap_tx,
-            dirsync_tx,
-            event_tx,
-        )
-        .with_connection_events(connection_events_tx);
+        let tx_set = ProxyTxSet::new(gateway_tx, bidi_events_tx, ldap_tx, dirsync_tx, event_tx)
+            .with_connection_events(connection_events_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -491,7 +483,7 @@ impl HandlerTestContext {
         Self {
             pool,
             proxy,
-            gateway_tx,
+            gateway_rx,
             bidi_events_rx,
             event_rx,
             connection_events_rx,
@@ -500,6 +492,14 @@ impl HandlerTestContext {
             handler_task: Some(handler_task),
             _shutdown_tx: Some(shutdown_tx),
         }
+    }
+
+    /// Discards events received so far.
+    pub(crate) fn take_gateway_rx(&mut self) -> mpsc::UnboundedReceiver<GatewayCommand> {
+        let (_, closed_rx) = mpsc::unbounded_channel();
+        let mut gateway_rx = std::mem::replace(&mut self.gateway_rx, closed_rx);
+        while gateway_rx.try_recv().is_ok() {}
+        gateway_rx
     }
 
     pub(crate) fn mock_proxy(&self) -> &MockProxyHarness {
@@ -545,7 +545,7 @@ impl HandlerTestContext {
 
         timeout(TEST_TIMEOUT, async {
             while Arc::strong_count(&self.remote_mfa_responses) > 1 {
-                tokio::task::yield_now().await;
+                yield_now().await;
             }
         })
         .await
@@ -554,7 +554,9 @@ impl HandlerTestContext {
         mock_proxy
     }
 
-    pub(crate) fn take_connection_events_rx(&mut self) -> UnboundedReceiver<ProxyConnectionEvent> {
+    pub(crate) fn take_connection_events_rx(
+        &mut self,
+    ) -> mpsc::UnboundedReceiver<ProxyConnectionEvent> {
         let (_, receiver) = mpsc::unbounded_channel();
         std::mem::replace(&mut self.connection_events_rx, receiver)
     }
@@ -594,8 +596,7 @@ pub(crate) struct ManagerTestContext {
     pub(crate) pool: PgPool,
     control: ProxyManagerTestSupport,
     /// Sender for the proxy control channel used by `ProxyManager`.
-    pub(crate) proxy_control_tx:
-        tokio::sync::mpsc::Sender<defguard_common::types::proxy::ProxyControlMessage>,
+    pub(crate) proxy_control_tx: mpsc::Sender<defguard_common::types::proxy::ProxyControlMessage>,
     manager_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
 }
 
@@ -607,7 +608,7 @@ impl ManagerTestContext {
             .expect("failed to initialize global settings for proxy manager tests");
 
         let (proxy_control_tx, _proxy_control_rx_placeholder) =
-            tokio::sync::mpsc::channel::<defguard_common::types::proxy::ProxyControlMessage>(16);
+            mpsc::channel::<defguard_common::types::proxy::ProxyControlMessage>(16);
 
         let control = ProxyManagerTestSupport::default();
 
@@ -649,7 +650,7 @@ impl ManagerTestContext {
     pub(crate) async fn start(&mut self) {
         assert!(self.manager_task.is_none(), "proxy manager already started");
 
-        let (gateway_tx, _) = broadcast::channel(16);
+        let (gateway_tx, _) = mpsc::unbounded_channel();
         let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
         let (ldap_tx, _ldap_rx) = mpsc::unbounded_channel();
         let (dirsync_tx, _dirsync_rx) = mpsc::unbounded_channel();
@@ -661,7 +662,7 @@ impl ManagerTestContext {
         ));
 
         let (proxy_control_tx, proxy_control_rx) =
-            tokio::sync::mpsc::channel::<defguard_common::types::proxy::ProxyControlMessage>(16);
+            mpsc::channel::<defguard_common::types::proxy::ProxyControlMessage>(16);
         self.proxy_control_tx = proxy_control_tx;
 
         let manager = ProxyManager::new_for_test(
@@ -675,7 +676,7 @@ impl ManagerTestContext {
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         // No PgListener in proxy manager - just yield to let the manager start.
-        tokio::task::yield_now().await;
+        yield_now().await;
 
         self.manager_task = Some(manager_task);
     }

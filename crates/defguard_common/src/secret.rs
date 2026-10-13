@@ -1,4 +1,4 @@
-use std::{convert::Infallible, error::Error, str::FromStr};
+use std::error::Error;
 
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
@@ -31,11 +31,9 @@ impl From<String> for SecretStringWrapper {
     }
 }
 
-impl FromStr for SecretStringWrapper {
-    type Err = Infallible;
-
-    fn from_str(src: &str) -> Result<Self, Self::Err> {
-        Ok(Self(SecretString::from(src)))
+impl From<&str> for SecretStringWrapper {
+    fn from(value: &str) -> Self {
+        Self(SecretString::from(value))
     }
 }
 

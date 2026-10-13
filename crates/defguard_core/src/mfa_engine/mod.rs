@@ -12,23 +12,26 @@ use std::{
     time::{Duration, Instant},
 };
 
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, ThrottleScope, User, WireguardNetwork,
-        device::WireguardNetworkDevice,
-        mfa_flow::MfaFlow,
-        vpn_client_mfa_session::{
-            EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepOutcome,
-            StepsSnapshot, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, ThrottleScope, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            mfa_flow::MfaFlow,
+            vpn_client_mfa_session::{
+                EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext,
+                StepOutcome, StepsSnapshot, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+                VpnMfaFlowKind,
+            },
+            vpn_client_session::VpnClientMfaMethod,
         },
-        vpn_client_session::VpnClientMfaMethod,
+        wireguard_key::WireguardKey,
     },
-    wireguard_key::WireguardKey,
+    secret::SecretStringWrapper,
 };
-use defguard_common::secret::SecretStringWrapper;
 use sqlx::{PgConnection, PgPool};
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error, warn};
 
 use crate::{
@@ -151,7 +154,7 @@ impl MfaEngine {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {

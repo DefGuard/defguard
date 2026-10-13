@@ -5,14 +5,16 @@ use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query_as};
 
-use crate::db::{
-    Id, NoId,
-    models::{
-        WireguardNetwork, biometric_auth::BiometricAuth, user::User,
-        vpn_session_stats::VpnSessionStats, webauthn::WebAuthn,
+use crate::{
+    db::{
+        Id, NoId,
+        models::{
+            WireguardNetwork, biometric_auth::BiometricAuth, user::User,
+            vpn_session_stats::VpnSessionStats, webauthn::WebAuthn,
+        },
     },
+    secret::SecretStringWrapper,
 };
-use crate::secret::SecretStringWrapper;
 
 #[derive(Clone, Debug, Default, PartialEq, Type)]
 #[sqlx(type_name = "vpn_client_session_state", rename_all = "lowercase")]
@@ -315,12 +317,14 @@ mod tests {
     };
 
     use super::{VpnClientMfaMethod, VpnClientSession};
-    use crate::db::{
-        Id, NoId,
-        models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
-        setup_pool,
+    use crate::{
+        db::{
+            Id, NoId,
+            models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
+            setup_pool,
+        },
+        secret::SecretStringWrapper,
     };
-    use crate::secret::SecretStringWrapper;
 
     #[test]
     fn test_vpn_client_session_debug_redacts_preshared_key() {

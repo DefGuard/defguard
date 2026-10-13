@@ -28,20 +28,14 @@ use defguard_session_manager::{
 };
 use ipnetwork::IpNetwork;
 use sqlx::{PgExecutor, PgPool, query, query_scalar};
-use tokio::{
-    sync::{
-        broadcast,
-        mpsc::{self},
-    },
-    time::interval,
-};
+use tokio::{sync::mpsc, time::interval};
 
 pub(crate) struct SessionManagerHarness {
     pub(crate) manager: SessionManager,
     stats_tx: mpsc::UnboundedSender<PeerStatsUpdate>,
     pub(crate) stats_rx: mpsc::UnboundedReceiver<PeerStatsUpdate>,
     pub(crate) event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
-    pub(crate) gateway_rx: broadcast::Receiver<GatewayCommand>,
+    pub(crate) gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
 }
 
 pub(crate) fn assert_no_session_manager_events(harness: &mut SessionManagerHarness) {
@@ -56,12 +50,9 @@ pub(crate) fn assert_no_session_manager_events(harness: &mut SessionManagerHarne
 
 pub(crate) fn assert_no_gateway_events(harness: &mut SessionManagerHarness) {
     match harness.gateway_rx.try_recv() {
-        Err(broadcast::error::TryRecvError::Empty) => {}
-        Err(broadcast::error::TryRecvError::Closed) => {
-            panic!("gateway event channel closed unexpectedly")
-        }
-        Err(broadcast::error::TryRecvError::Lagged(skipped)) => {
-            panic!("gateway event channel lagged and skipped {skipped} events")
+        Err(mpsc::error::TryRecvError::Empty) => {}
+        Err(mpsc::error::TryRecvError::Disconnected) => {
+            panic!("gateway event channel disconnected unexpectedly")
         }
         Ok(event) => panic!("unexpected gateway event: {event:?}"),
     }
@@ -71,7 +62,7 @@ impl SessionManagerHarness {
     pub(crate) fn new(pool: PgPool) -> Self {
         let (stats_tx, stats_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
-        let (gateway_tx, gateway_rx) = broadcast::channel(16);
+        let (gateway_tx, gateway_rx) = mpsc::unbounded_channel();
         let manager = SessionManager::new(pool, event_tx, gateway_tx);
 
         Self {

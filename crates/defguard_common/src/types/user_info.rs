@@ -311,8 +311,14 @@ mod test {
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);
-        assert!(group2.member_usernames(&pool).await.unwrap().is_empty());
-        assert!(group4.member_usernames(&pool).await.unwrap().is_empty());
+        assert_eq!(
+            group2.member_usernames(&pool).await.unwrap(),
+            [] as [std::string::String; 0]
+        );
+        assert_eq!(
+            group4.member_usernames(&pool).await.unwrap(),
+            [] as [std::string::String; 0]
+        );
     }
 
     // Admin updating another user must be able to change all profile

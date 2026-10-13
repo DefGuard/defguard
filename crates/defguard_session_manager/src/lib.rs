@@ -12,10 +12,7 @@ use defguard_common::{
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::{
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-    },
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time::{Duration, Interval, interval},
 };
 use tracing::{debug, error, info, trace};
@@ -42,7 +39,7 @@ pub async fn run_session_manager(
     pool: PgPool,
     mut peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayCommand>,
+    gateway_tx: UnboundedSender<GatewayCommand>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
     let mut session_update_timer = interval(SESSION_UPDATE_INTERVAL);
@@ -103,7 +100,7 @@ pub async fn run_session_manager_iteration(
 pub struct SessionManager {
     pool: PgPool,
     session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-    gateway_tx: Sender<GatewayCommand>,
+    gateway_tx: UnboundedSender<GatewayCommand>,
 }
 
 impl SessionManager {
@@ -111,7 +108,7 @@ impl SessionManager {
     pub fn new(
         pool: PgPool,
         session_manager_event_tx: UnboundedSender<SessionManagerEvent>,
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
     ) -> Self {
         Self {
             pool,

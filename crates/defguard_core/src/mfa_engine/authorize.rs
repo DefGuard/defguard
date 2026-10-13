@@ -13,10 +13,7 @@ use defguard_common::{
 };
 use sqlx::PgConnection;
 use thiserror::Error;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedSender, error::SendError},
-};
+use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 
 use crate::events::{
     BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent,
@@ -36,7 +33,7 @@ pub enum AuthorizeError {
     #[error(transparent)]
     Event(#[from] ClientMfaServerError),
     #[error("gateway event channel error: {0}")]
-    Gateway(Box<tokio::sync::broadcast::error::SendError<GatewayCommand>>),
+    Gateway(Box<SendError<GatewayCommand>>),
 }
 
 pub enum SessionDisconnectReason {
@@ -49,14 +46,14 @@ pub enum SessionDisconnectReason {
 /// The two outbound channels the MFA engine and the posture path push to.
 #[derive(Clone)]
 pub struct EventChannels {
-    pub gateway_tx: Sender<GatewayCommand>,
+    pub gateway_tx: UnboundedSender<GatewayCommand>,
     pub bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl EventChannels {
     #[must_use]
     pub fn new(
-        gateway_tx: Sender<GatewayCommand>,
+        gateway_tx: UnboundedSender<GatewayCommand>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {

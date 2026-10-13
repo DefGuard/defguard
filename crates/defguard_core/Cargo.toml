@@ -94,7 +94,8 @@ webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
 ammonia = "4.1"
 regex = "1.10"
-uaparser = "0.6"
+serde-saphyr = "1.3"
+ua-parser = "0.2"
 async-stream = "0.3"
 
 [features]
@@ -116,7 +117,7 @@ defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
-hyper-util = "0.1"
+hyper-util.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",

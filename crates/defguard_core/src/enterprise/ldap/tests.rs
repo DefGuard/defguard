@@ -1,9 +1,9 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use defguard_common::{
     db::{
         models::{
-            Device, DeviceType, WireguardNetwork,
+            Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             group::Permission,
             settings::{LdapSyncStatus, initialize_current_settings},
@@ -14,10 +14,7 @@ use defguard_common::{
     testing::smtp::configure_working_smtp,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::sync::{
-    broadcast::{Receiver, Sender, channel},
-    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use super::{
     model::{
@@ -84,7 +81,7 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
     settings.smtp.sender = Some("noreply@example.com".into());
     settings.ldap_url = Some("ldap://localhost".into());
     settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
-    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     settings.ldap_username_attr = Some("uid".into());
     settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
     settings.ldap_user_obj_class = Some("inetOrgPerson".into());
@@ -96,8 +93,11 @@ fn configure_smtp_and_ldap(settings: &mut Settings) {
 }
 
 /// Bind both halves: a dropped receiver makes `Sender::send` fail and swallow events.
-fn wg_test_channel() -> (Sender<GatewayCommand>, Receiver<GatewayCommand>) {
-    channel(256)
+fn wg_test_channel() -> (
+    UnboundedSender<GatewayCommand>,
+    UnboundedReceiver<GatewayCommand>,
+) {
+    unbounded_channel()
 }
 
 fn ldap_test_channel() -> (
@@ -115,7 +115,7 @@ fn drain_ldap_sync_events(rx: &mut UnboundedReceiver<LdapSyncEventType>) -> Vec<
     events
 }
 
-fn drain_gateway_commands(rx: &mut Receiver<GatewayCommand>) -> Vec<GatewayCommand> {
+fn drain_gateway_commands(rx: &mut UnboundedReceiver<GatewayCommand>) -> Vec<GatewayCommand> {
     let mut events = Vec::new();
     while let Ok(event) = rx.try_recv() {
         events.push(event);
@@ -204,7 +204,7 @@ async fn defguard_sync_snapshot(
 async fn assert_incremental_sync_converges(
     ldap_conn: &mut super::LDAPConnection,
     pool: &PgPool,
-    wg_tx: &Sender<GatewayCommand>,
+    wg_tx: &UnboundedSender<GatewayCommand>,
 ) {
     let before = defguard_sync_snapshot(pool).await;
     ldap_conn.test_client_mut().clear_events();
@@ -868,8 +868,8 @@ async fn test_user_in_ldap_sync_groups() {
 
 #[test]
 fn test_compute_user_sync_changes_empty_lists() {
-    let mut ldap_users: Vec<User> = Vec::new();
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut ldap_users = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -879,10 +879,10 @@ fn test_compute_user_sync_changes_empty_lists() {
     );
 
     // No users in either system, should result in no changes
-    assert!(changes.delete_defguard.is_empty());
-    assert!(changes.add_defguard.is_empty());
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[test]
@@ -897,7 +897,7 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -907,11 +907,11 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     // When LDAP is authoritative, users in LDAP but not Defguard should be added to Defguard
-    assert!(changes.delete_defguard.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
     assert_eq!(changes.add_defguard.len(), 1);
     assert_eq!(changes.add_defguard[0].username, "test_user");
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[sqlx::test]
@@ -930,7 +930,7 @@ fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnect
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = Vec::new();
+    let mut ldap_users = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -964,7 +964,7 @@ fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = Vec::new();
+    let mut ldap_users = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -994,7 +994,7 @@ fn test_defguard_authority_delete_from_ldap() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = Vec::new();
+    let mut defguard_users = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,

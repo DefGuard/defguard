@@ -512,7 +512,7 @@ pub enum DesktopClientMfaEvent {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum GatewayConnectionEvent {
     Connected {
         gateway_id: Id,
@@ -524,7 +524,7 @@ pub enum GatewayConnectionEvent {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ProxyConnectionEvent {
     Connected { proxy_id: Id, proxy_name: String },
     Disconnected { proxy_id: Id, proxy_name: String },

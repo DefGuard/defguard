@@ -1,7 +1,10 @@
 use chrono::{Duration, Utc};
-use defguard_common::db::{
-    Id,
-    models::{oauth2client::OAuth2Client, settings::OpenIdUsernameHandling},
+use defguard_common::{
+    db::{
+        Id,
+        models::{oauth2client::OAuth2Client, settings::OpenIdUsernameHandling},
+    },
+    secret::SecretStringWrapper,
 };
 use defguard_core::{
     enterprise::{
@@ -708,21 +711,21 @@ async fn test_modify_openid_provider_without_secrets_keeps_them(
         provider
             .google_service_account_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(SecretStringWrapper::expose_secret),
         Some(GOOGLE_KEY)
     );
     assert_eq!(
         provider
             .okta_private_jwk
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(SecretStringWrapper::expose_secret),
         Some(OKTA_JWK)
     );
     assert_eq!(
         provider
             .jumpcloud_api_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(SecretStringWrapper::expose_secret),
         Some(JUMPCLOUD_KEY)
     );
 }
@@ -765,7 +768,7 @@ async fn test_modify_openid_provider_with_new_secret_replaces_it(
         provider
             .jumpcloud_api_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(SecretStringWrapper::expose_secret),
         Some(JUMPCLOUD_KEY)
     );
 }

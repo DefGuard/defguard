@@ -18,6 +18,7 @@ use defguard_core::{
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::mpsc;
 
 use super::{
     PaginatedApiResponse,
@@ -48,20 +49,20 @@ async fn setup(options: PgConnectOptions) -> (TestClient, ClientState) {
     (client, state)
 }
 
-fn drain_gateway_events(gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>) {
+fn drain_gateway_events(gateway_rx: &mut mpsc::UnboundedReceiver<GatewayCommand>) {
     while gateway_rx.try_recv().is_ok() {}
 }
 
 fn expect_network_modified_peers(
-    gateway_rx: &mut tokio::sync::broadcast::Receiver<GatewayCommand>,
+    gateway_rx: &mut mpsc::UnboundedReceiver<GatewayCommand>,
     location_id: Id,
     expected_pubkeys: &[&str],
 ) {
     let event = gateway_rx.try_recv().unwrap();
-    let GatewayCommand::NetworkModified(id, _, peers, _) = event else {
+    let GatewayCommand::NetworkModified(location, peers, _) = event else {
         panic!("expected NetworkModified, got {event:?}");
     };
-    assert_eq!(id, location_id);
+    assert_eq!(location.id, location_id);
     let actual_pubkeys = peers
         .iter()
         .map(|peer| peer.pubkey.as_str())
