@@ -672,7 +672,10 @@ mod tests {
             certs_after.proxy_http_cert_key_pem,
             certs_before.proxy_http_cert_key_pem
         );
-        assert!(drain_broadcasts(&mut proxy_control_rx).await.is_empty());
+        assert_eq!(
+            drain_broadcasts(&mut proxy_control_rx).await,
+            [] as [(String, String); 0]
+        );
     }
 
     #[sqlx::test]

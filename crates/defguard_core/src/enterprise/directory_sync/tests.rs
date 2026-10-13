@@ -1017,13 +1017,13 @@ mod test {
 
         // no users in Defguard before sync
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         do_test_directory_sync(&pool, &gateway_tx).await;
 
         // no users in Defguard after sync
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         // No events
         assert!(gateway_rx.try_recv().is_err());
@@ -1051,7 +1051,7 @@ mod test {
 
         // no users in Defguard before sync
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         do_test_directory_sync(&pool, &gateway_tx).await;
 
@@ -1085,7 +1085,7 @@ mod test {
 
         // no users in Defguard before sync
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         let (ldap_tx, _ldap_rx) = ldap_test_channel();
         let (dirsync_tx, _dirsync_rx) = dirsync_test_channel();
@@ -1133,7 +1133,7 @@ mod test {
 
         // no users were imported
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         // No events
         assert!(gateway_rx.try_recv().is_err());
@@ -1200,7 +1200,7 @@ mod test {
 
         // no users in Defguard before sync
         let defguard_users = User::all(&pool).await.unwrap();
-        assert!(defguard_users.is_empty());
+        assert_eq!(defguard_users, [] as [User<Id>; 0]);
 
         // only allow one of the directory users to be imported
         let allowed_emails = HashSet::from(["testuser@email.com".to_owned()]);

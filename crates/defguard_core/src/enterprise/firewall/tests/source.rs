@@ -83,7 +83,7 @@ fn test_process_source_addrs_v4() {
 
     // Test with empty input
     let empty_addrs = get_source_addrs(Vec::new(), Vec::new(), IpVersion::Ipv4);
-    assert!(empty_addrs.is_empty());
+    assert_eq!(empty_addrs, [] as [IpAddress; 0]);
 
     // Test with only IPv6 addresses - should return empty result for IPv4
     let ipv6_only = get_source_addrs(
@@ -91,7 +91,7 @@ fn test_process_source_addrs_v4() {
         vec![IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2))],
         IpVersion::Ipv4,
     );
-    assert!(ipv6_only.is_empty());
+    assert_eq!(ipv6_only, [] as [IpAddress; 0]);
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn test_process_source_addrs_v6() {
 
     // Test with empty input
     let empty_addrs = get_source_addrs(Vec::new(), Vec::new(), IpVersion::Ipv6);
-    assert!(empty_addrs.is_empty());
+    assert_eq!(empty_addrs, [] as [IpAddress; 0]);
 
     // Test with only IPv4 addresses - should return empty result for IPv6
     let ipv4_only = get_source_addrs(
@@ -136,5 +136,5 @@ fn test_process_source_addrs_v6() {
         vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2))],
         IpVersion::Ipv6,
     );
-    assert!(ipv4_only.is_empty());
+    assert_eq!(ipv4_only, [] as [IpAddress; 0]);
 }

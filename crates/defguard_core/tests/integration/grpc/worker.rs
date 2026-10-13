@@ -1,5 +1,8 @@
 use claims::assert_matches;
-use defguard_common::db::models::{AuthenticationKey, AuthenticationKeyType, User, YubiKey};
+use defguard_common::db::{
+    Id,
+    models::{AuthenticationKey, AuthenticationKeyType, User, YubiKey},
+};
 use defguard_core::db::AppEvent;
 use defguard_proto::worker::{JobStatus, Worker, worker_service_client::WorkerServiceClient};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -310,7 +313,7 @@ async fn set_job_done_failure_stores_status_without_keys_or_event(
         AuthenticationKey::find_by_user_id(&pool, user.id, None)
             .await
             .expect("auth key query should succeed"),
-        [] as [defguard_common::db::models::AuthenticationKey<i64>; 0]
+        [] as [AuthenticationKey<Id>; 0]
     );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }
@@ -366,7 +369,7 @@ async fn set_job_done_unknown_job_is_ignored(_: PgPoolOptions, options: PgConnec
         AuthenticationKey::find_by_user_id(&pool, user.id, None)
             .await
             .expect("auth key query should succeed"),
-        [] as [defguard_common::db::models::AuthenticationKey<i64>; 0]
+        [] as [AuthenticationKey<Id>; 0]
     );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }

@@ -493,6 +493,10 @@ impl ManagerTestContext {
         self.control.set_retry_delay(retry_delay);
     }
 
+    pub(crate) fn has_event_sender(&self, gateway_id: Id) -> bool {
+        self.control.has_event_sender(gateway_id)
+    }
+
     pub(crate) fn set_disconnect_notification_delay(&self, delay: Duration) {
         self.control.set_disconnect_notification_delay(delay);
     }

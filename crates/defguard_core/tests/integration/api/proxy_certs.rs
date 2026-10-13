@@ -310,7 +310,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_pem.is_none());
     assert_eq!(
         capture.drain_broadcast_certs().await,
-        [] as [(std::string::String, std::string::String); 0]
+        [] as [(String, String); 0]
     );
 
     seed_ca(&pool).await;

@@ -44,6 +44,11 @@ fn test_needs_restart_detects_connection_relevant_field_changes() {
     no_restart.core_client_cert_expiry = Some(Utc::now().naive_utc());
     assert!(!needs_restart(&base, &no_restart));
 
+    // location_id change - restart required.
+    let mut changed = base.clone();
+    changed.location_id = 2;
+    assert!(needs_restart(&base, &changed));
+
     // address change - restart required.
     let mut changed = base.clone();
     changed.address = "10.0.0.1".to_owned();

@@ -119,6 +119,7 @@ struct GatewayManagerTestSupport {
     listener_ready_notify: Arc<Notify>,
     retry_delay_override: Arc<Mutex<Option<Duration>>>,
     disconnect_notification_delay_override: Arc<Mutex<Option<Duration>>>,
+    event_senders: manager::EventSenders,
 }
 
 #[cfg(test)]
@@ -128,6 +129,13 @@ impl GatewayManagerTestSupport {
             .lock()
             .expect("Failed to lock GatewayManager test socket registry")
             .insert(gateway_url, socket_path);
+    }
+
+    fn has_event_sender(&self, gateway_id: Id) -> bool {
+        self.event_senders
+            .lock()
+            .expect("Failed to lock GatewayManager::event_senders")
+            .contains_key(&gateway_id)
     }
 
     fn socket_path_for(&self, gateway: &Gateway<Id>) -> Option<PathBuf> {
@@ -282,15 +290,14 @@ impl GatewayManagerTestSupport {
     }
 }
 
-/// Returns true if the change from `old` to `new` requires the gateway handler to be
-/// restarted - i.e. if any field that directly affects the gRPC connection or TLS identity
-/// has changed.
+/// Returns true if the gateway handler must be restarted: its location, address, port,
+/// enabled flag or client certificate has changed.
 ///
-/// Fields that do NOT trigger a restart (version, timestamps, audit fields, cert expiry)
-/// are intentionally excluded so that the handler-internal `gateway.save()` call, which
-/// bumps those fields, does not cause an infinite restart loop.
+/// Other fields are ignored, because the handler itself updates them via `gateway.save()`,
+/// and restarting on those would loop forever.
 fn needs_restart(old: &Gateway<Id>, new: &Gateway<Id>) -> bool {
-    old.address != new.address
+    old.location_id != new.location_id
+        || old.address != new.address
         || old.port != new.port
         || old.enabled != new.enabled
         || old.core_client_cert_der != new.core_client_cert_der

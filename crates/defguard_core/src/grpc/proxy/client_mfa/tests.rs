@@ -713,7 +713,7 @@ async fn test_posture_check_failure_revokes_active_session(
         }
         super::PostureCheckOutcome::Rejected { failed_checks } => failed_checks,
     };
-    assert!(!rejected_checks.is_empty());
+    assert_ne!(rejected_checks, [] as [std::string::String; 0]);
 
     let event = event_rx
         .try_recv()
