@@ -329,7 +329,7 @@ mod tests {
     #[test]
     fn test_vpn_client_session_debug_redacts_preshared_key() {
         let mut session = VpnClientSession::new(1, 2, 3, None, true);
-        session.preshared_key = Some(SecretStringWrapper::from("vpn-session-secret".to_owned()));
+        session.preshared_key = Some(SecretStringWrapper::from("vpn-session-secret"));
 
         let debug = format!("{session:?}");
         assert!(!debug.contains("vpn-session-secret"));

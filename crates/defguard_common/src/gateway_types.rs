@@ -123,9 +123,7 @@ mod tests {
         let peer = WireguardPeer {
             pubkey: String::new(),
             allowed_ips: Vec::new(),
-            preshared_key: Some(SecretStringWrapper::from(
-                "wireguard-peer-secret".to_owned(),
-            )),
+            preshared_key: Some(SecretStringWrapper::from("wireguard-peer-secret")),
             keepalive_interval: None,
         };
 

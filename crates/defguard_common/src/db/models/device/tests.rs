@@ -1493,9 +1493,7 @@ fn test_device_network_info_debug_redacts_preshared_key_and_skips_serialization(
     let network_info = DeviceNetworkInfo {
         network_id: 1,
         device_wireguard_ips: Vec::new(),
-        preshared_key: Some(SecretStringWrapper::from(
-            "device-network-secret".to_owned(),
-        )),
+        preshared_key: Some(SecretStringWrapper::from("device-network-secret")),
         is_authorized: true,
     };
 
