@@ -289,6 +289,7 @@ jobs:
   alert-load-test-failure:
     needs: load-tests
     # if: ${{ failure() && github.ref == 'refs/heads/dev' }}
+    if: failure()
     permissions:
       contents: read
       actions: read
