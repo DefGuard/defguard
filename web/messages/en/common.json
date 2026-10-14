@@ -95,6 +95,6 @@
   "controls_configure": "Configure",
   "limit_reached_upgrade_current_plan": "Upgrade your current plan.",
   "limit_reached_title": "You've reached the plan limit.",
-  "limit_reached_description": "To add more users and increase your limits, please upgrade to the Business plan or higher.",
+  "limit_reached_description": "To increase your limits and add more users, please upgrade your plan.",
   "limit_reached_compare_plans": "To compare all available plans and choose the one that fits your needs, click the button below."
 }
