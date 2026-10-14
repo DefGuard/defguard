@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { m } from '../../../../../paraglide/messages';
 import { AppText } from '../../../../defguard-ui/components/AppText/AppText';
 import { Divider } from '../../../../defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../defguard-ui/components/SizedBox/SizedBox';
@@ -44,25 +45,21 @@ export const LimitReachedModal = () => {
 const ModalContent = () => {
   return (
     <>
-      <AppText
-        font={TextStyle.TBodySm400}
-        color={ThemeVariable.FgMuted}
-      >{`Upgrade your current plan.`}</AppText>
+      <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+        {m.limit_reached_upgrade_current_plan()}
+      </AppText>
       <SizedBox height={ThemeSpacing.Xs} />
-      <AppText
-        font={TextStyle.TTitleH4}
-        color={ThemeVariable.FgDefault}
-      >{`You've reached the plan limit.`}</AppText>
+      <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgDefault}>
+        {m.limit_reached_title()}
+      </AppText>
       <Divider spacing={ThemeSpacing.Xl} />
-      <AppText
-        font={TextStyle.TBodyPrimary500}
-        color={ThemeVariable.FgFaded}
-      >{`To add more users and increase your limits, please upgrade to the Business plan or higher.`}</AppText>
+      <AppText font={TextStyle.TBodyPrimary500} color={ThemeVariable.FgFaded}>
+        {m.limit_reached_description()}
+      </AppText>
       <SizedBox height={ThemeSpacing.Lg} />
-      <AppText
-        font={TextStyle.TBodyXs400}
-        color={ThemeVariable.FgMuted}
-      >{`To compare all available plans and choose the one that fits your needs, click the button below.`}</AppText>
+      <AppText font={TextStyle.TBodyXs400} color={ThemeVariable.FgMuted}>
+        {m.limit_reached_compare_plans()}
+      </AppText>
       <LicenseModalControls modalName={modalNameKey} />
     </>
   );
