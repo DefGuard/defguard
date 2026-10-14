@@ -1,7 +1,7 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Reorder } from 'motion/react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import {
   type MfaFlowMethodValue,
@@ -40,6 +40,7 @@ const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
 
 export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationProps) => {
   const stepsTrackRef = useRef<HTMLUListElement>(null);
+  const [isReordering, setReordering] = useState(false);
   const { data: methodData } = useQuery(getMfaMethodAvailabilityQueryOptions);
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const methodAvailability = methodData?.methodAvailability;
@@ -164,6 +165,8 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
             step={step}
             stepNumber={index + 1}
             dragConstraints={stepsTrackRef}
+            isReordering={isReordering}
+            onReorderingChange={setReordering}
             methodGroups={buildMethodGroups(
               methods.filter((method) => !step.methods.includes(method)),
             )}
