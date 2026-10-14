@@ -742,8 +742,8 @@ impl MfaFlow<Id> {
     ///
     /// Ordered first-match over `location_mfa_flow.position`: the first assignment whose group set
     /// intersects the user's groups wins, otherwise the assignment flagged `is_default` wins.
-    /// Because the default is mandatory and carries an empty group set, a location that has a
-    /// policy always resolves, so "user matches nothing" is unrepresentable.
+    /// On an MFA-enabled location the default is mandatory and carries an empty group set, so every
+    /// user resolves to a flow.
     ///
     /// `None` is therefore not a resolution failure but an absence of policy, and callers must
     /// **fail closed** on it rather than treat it as "no MFA required". It occurs in exactly two
@@ -751,9 +751,9 @@ impl MfaFlow<Id> {
     ///
     /// 1. The location has no assignments at all. This is legitimate and transient: a location can
     ///    be `mfa_enabled` before its policy has been built.
-    /// 2. The location has assignments but none is flagged default. This can happen when the
-    ///    default flow is deleted from an MFA-disabled location: its assignment is removed while
-    ///    group-scoped overrides remain. Re-enabling MFA requires assigning a new default.
+    /// 2. The location has assignments but none is flagged default. This happens after the default
+    ///    flow of an MFA-disabled location is deleted: the cascade removes its assignment and the
+    ///    group overrides remain. Re-enabling MFA requires a new default.
     pub async fn resolve_for_user(
         executor: &mut PgConnection,
         location_id: Id,

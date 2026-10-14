@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 
 use super::*;
 use crate::db::{
@@ -959,7 +960,6 @@ async fn test_check_deletable_flow_is_default(_: PgPoolOptions, options: PgConne
     .unwrap();
     tx.commit().await.unwrap();
 
-    // flow2 is not the only assignment and not default, so it can be deleted.
     assert!(
         MfaFlow::check_deletable(&mut pool.acquire().await.unwrap(), flow2.id)
             .await
@@ -1018,7 +1018,7 @@ async fn test_delete_and_assign_do_not_race(_: PgPoolOptions, options: PgConnect
         result
     });
 
-    let blocked = tokio::time::timeout(std::time::Duration::from_millis(500), &mut assign).await;
+    let blocked = timeout(Duration::from_millis(500), &mut assign).await;
     assert!(
         blocked.is_err(),
         "the assignment must block until the delete transaction finishes"
@@ -1111,7 +1111,7 @@ async fn test_delete_default_waits_for_mfa_enable(_: PgPoolOptions, options: PgC
         MfaFlow::check_deletable(&mut tx, flow_id).await
     });
 
-    let blocked = tokio::time::timeout(std::time::Duration::from_millis(500), &mut delete).await;
+    let blocked = timeout(Duration::from_millis(500), &mut delete).await;
     assert!(
         blocked.is_err(),
         "the delete check must block until the enabling update finishes"
