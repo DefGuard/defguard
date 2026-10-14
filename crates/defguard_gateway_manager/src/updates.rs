@@ -7,6 +7,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
     gateway_types::{FirewallConfig, WireguardPeer},
+    secret::SecretStringWrapper,
 };
 use defguard_proto::{
     enterprise::firewall::FirewallConfig as ProtoFirewallConfig,
@@ -79,7 +80,7 @@ impl<'a> GatewayUpdatesHandler<'a> {
         peer_pubkey: String,
         allowed_ips: Vec<String>,
         is_authorized: bool,
-        preshared_key: Option<String>,
+        preshared_key: Option<SecretStringWrapper>,
     ) -> Option<Peer> {
         if !self.session_authorization_required {
             return Some(Peer {
@@ -111,7 +112,7 @@ impl<'a> GatewayUpdatesHandler<'a> {
         Some(Peer {
             pubkey: peer_pubkey,
             allowed_ips,
-            preshared_key: Some(preshared_key),
+            preshared_key: Some(preshared_key.expose_secret().to_owned()),
             keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
         })
     }

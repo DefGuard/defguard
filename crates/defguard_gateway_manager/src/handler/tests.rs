@@ -11,23 +11,24 @@ use defguard_common::{
         Id,
         models::{
             Device, DeviceType, User,
-            device::WireguardNetworkDevice,
+            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
             gateway::Gateway,
             vpn_client_session::VpnClientSession,
             wireguard::{ServiceLocationMode, WireguardNetwork},
         },
         setup_pool,
     },
+    gateway_event::GatewayCommand,
     gateway_types::WireguardPeer,
+    secret::SecretStringWrapper,
 };
 use defguard_proto::gateway::{Configuration, PeerStats, core_response};
 use prost_types::Timestamp;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::{mpsc::unbounded_channel, watch};
 
-use crate::updates::GatewayUpdatesHandler;
-
 use super::{GatewayHandler, try_protos_into_stats_message};
+use crate::updates::GatewayUpdatesHandler;
 
 fn test_network(mfa_enabled: bool) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
@@ -156,7 +157,7 @@ fn gen_config_maps_network_fields() {
         vec![WireguardPeer {
             pubkey: "peer-public-key".to_owned(),
             allowed_ips: vec!["10.10.0.2/32".to_owned()],
-            preshared_key: Some("peer-preshared-key".to_owned()),
+            preshared_key: Some("peer-preshared-key".to_owned().into()),
             keepalive_interval: Some(25),
         }],
         Some(NativeFirewallConfig {
@@ -212,6 +213,32 @@ fn test_handler<'a>(mfa_enabled: bool) -> GatewayUpdatesHandler<'a> {
     let (tx, _rx) = unbounded_channel();
 
     GatewayUpdatesHandler::new(network, "gateway", None, tx)
+}
+
+#[test]
+fn test_device_modified_debug_redacts_network_preshared_key() {
+    let device = Device::new(
+        "test-device".to_owned(),
+        "test-pubkey".to_owned(),
+        1,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .with_id(1);
+    let command = GatewayCommand::DeviceModified(DeviceInfo {
+        device,
+        network_info: vec![DeviceNetworkInfo {
+            network_id: 1,
+            device_wireguard_ips: Vec::new(),
+            preshared_key: Some(SecretStringWrapper::from("device-modified-secret")),
+            is_authorized: true,
+        }],
+    });
+
+    let debug = format!("{command:?}");
+    assert!(!debug.contains("device-modified-secret"));
+    assert!(debug.contains("preshared_key: Some("));
 }
 
 #[test]

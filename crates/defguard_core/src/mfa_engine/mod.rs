@@ -12,19 +12,23 @@ use std::{
     time::{Duration, Instant},
 };
 
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, ThrottleScope, User, WireguardNetwork,
-        device::WireguardNetworkDevice,
-        mfa_flow::MfaFlow,
-        vpn_client_mfa_session::{
-            EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext, StepOutcome,
-            StepsSnapshot, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession, VpnMfaFlowKind,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, ThrottleScope, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            mfa_flow::MfaFlow,
+            vpn_client_mfa_session::{
+                EphemeralState, MFA_FAILED_ATTEMPT_CAP, MfaAttribution, MfaSessionContext,
+                StepOutcome, StepsSnapshot, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
+                VpnMfaFlowKind,
+            },
+            vpn_client_session::VpnClientMfaMethod,
         },
-        vpn_client_session::VpnClientMfaMethod,
+        wireguard_key::WireguardKey,
     },
-    wireguard_key::WireguardKey,
+    secret::SecretStringWrapper,
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::sync::mpsc::UnboundedSender;
@@ -406,6 +410,7 @@ impl MfaEngine {
             .map(|flow| flow.title);
 
         let key = WireguardKey::generate();
+        let preshared_key = SecretStringWrapper::from(key.public());
 
         let vpn_client_session = create_new_session(
             &self.channels,
@@ -414,7 +419,7 @@ impl MfaEngine {
             &ctx.user,
             &ctx.device,
             true,
-            key.public(),
+            preshared_key.clone(),
         )
         .await
         .map_err(|err| {
@@ -430,7 +435,7 @@ impl MfaEngine {
         );
 
         let gateway_network_info =
-            build_authorized_gateway_network_info(network_device, key.public());
+            build_authorized_gateway_network_info(network_device, preshared_key.clone());
 
         let gateway_command = GatewayCommand::VpnSessionAuthorized(
             ctx.location.id,
@@ -467,9 +472,7 @@ impl MfaEngine {
         })?;
 
         Ok(CompletedFlow {
-            outcome: FinishOutcome::Completed {
-                preshared_key: key.public(),
-            },
+            outcome: FinishOutcome::Completed { preshared_key },
             gateway_command,
             event,
         })

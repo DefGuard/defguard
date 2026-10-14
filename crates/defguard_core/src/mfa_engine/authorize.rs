@@ -9,6 +9,7 @@ use defguard_common::{
         },
     },
     gateway_event::GatewayCommand,
+    secret::SecretStringWrapper,
 };
 use sqlx::PgConnection;
 use thiserror::Error;
@@ -69,7 +70,7 @@ impl EventChannels {
 #[must_use]
 pub fn build_authorized_gateway_network_info(
     network_device: WireguardNetworkDevice,
-    preshared_key: String,
+    preshared_key: SecretStringWrapper,
 ) -> DeviceNetworkInfo {
     DeviceNetworkInfo::from_authorized_vpn_session(
         network_device.wireguard_network_id,
@@ -87,7 +88,7 @@ pub async fn create_new_session(
     user: &User<Id>,
     device: &Device<Id>,
     is_mfa_session: bool,
-    preshared_key: String,
+    preshared_key: SecretStringWrapper,
 ) -> Result<VpnClientSession<Id>, AuthorizeError> {
     debug!("Creating new VPN session for device {device} of user {user} in location {location}.");
 

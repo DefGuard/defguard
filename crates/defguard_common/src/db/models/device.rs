@@ -26,6 +26,7 @@ use crate::{
             wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
         },
     },
+    secret::SecretStringWrapper,
 };
 
 #[derive(Serialize)]
@@ -161,7 +162,7 @@ pub struct DeviceNetworkInfo {
     pub network_id: Id,
     pub device_wireguard_ips: Vec<IpAddr>,
     #[serde(skip_serializing)]
-    pub preshared_key: Option<String>,
+    pub preshared_key: Option<SecretStringWrapper>,
     pub is_authorized: bool,
 }
 
@@ -170,7 +171,7 @@ impl DeviceNetworkInfo {
     pub fn from_authorized_vpn_session<I>(
         network_id: Id,
         device_wireguard_ips: I,
-        preshared_key: String,
+        preshared_key: SecretStringWrapper,
     ) -> Self
     where
         I: Into<Vec<IpAddr>>,
@@ -197,7 +198,7 @@ impl DeviceInfo {
                 CASE \
                     WHEN NOT n.mfa_enabled THEN NULL::text \
                     ELSE active_session.preshared_key \
-                END \"preshared_key?\", \
+                END \"preshared_key?: _\", \
                 CASE \
                     WHEN NOT n.mfa_enabled THEN TRUE \
                     ELSE active_session.preshared_key IS NOT NULL \

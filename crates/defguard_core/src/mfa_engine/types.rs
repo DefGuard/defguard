@@ -3,6 +3,8 @@
 //! These are proto-free: the conversions to and from the proto messages live in the gRPC handler
 //! (`grpc::proxy::client_mfa`), so the engine can be exercised without a transport.
 
+use defguard_common::secret::SecretStringWrapper;
+
 /// Internal result of creating a session and its first attempt.
 #[derive(Debug)]
 pub(crate) struct StartedSession {
@@ -56,7 +58,7 @@ pub(crate) enum VerificationProof {
 #[derive(Debug, PartialEq)]
 pub enum LegacyFinishOutcome {
     /// The single legacy step completed and a preshared key was minted.
-    Completed { preshared_key: String },
+    Completed { preshared_key: SecretStringWrapper },
     /// Still waiting for external confirmation (OIDC or mobile auth) to be completed.
     AwaitingExternal,
 }
@@ -67,7 +69,7 @@ pub enum FinishOutcome {
     /// The step just submitted advanced the flow to `next_step` (0-indexed).
     Advanced { next_step: u32 },
     /// The final step completed and a preshared key was minted.
-    Completed { preshared_key: String },
+    Completed { preshared_key: SecretStringWrapper },
     /// Still waiting for external confirmation (OIDC or mobile auth) to be completed.
     AwaitingExternal,
 }

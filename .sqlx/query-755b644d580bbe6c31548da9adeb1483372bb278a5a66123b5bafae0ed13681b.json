@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT ON (device_id) id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, is_mfa_session, state \"state: VpnClientSessionState\", preshared_key FROM vpn_client_session WHERE location_id = $1 AND state IN ('new', 'connected') ORDER BY device_id, created_at DESC, id DESC",
+  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"is_mfa_session\",\"state\" \"state: _\",\"preshared_key\" \"preshared_key?: _\" FROM \"vpn_client_session\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -93,7 +93,7 @@
       },
       {
         "ordinal": 8,
-        "name": "state: VpnClientSessionState",
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "vpn_client_session_state",
@@ -115,7 +115,7 @@
       },
       {
         "ordinal": 9,
-        "name": "preshared_key",
+        "name": "preshared_key?: _",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -143,5 +143,5 @@
       true
     ]
   },
-  "hash": "4867c8cb98ca3d648f72ed61f7e2910ca5998e2ca24d8f15c85e989331b9dd3b"
+  "hash": "755b644d580bbe6c31548da9adeb1483372bb278a5a66123b5bafae0ed13681b"
 }

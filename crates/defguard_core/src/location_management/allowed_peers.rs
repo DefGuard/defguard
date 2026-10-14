@@ -100,7 +100,7 @@ pub async fn get_location_allowed_peers(
         .map(|row| WireguardPeer {
             pubkey: row.pubkey,
             allowed_ips: row.allowed_ips,
-            preshared_key: Some(row.preshared_key),
+            preshared_key: Some(row.preshared_key.into()),
             keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
         })
         .collect())
@@ -442,7 +442,7 @@ mod test {
 
         let mut new_session =
             VpnClientSession::new(network.id, user.id, new_device.id, None, false);
-        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.preshared_key = Some("new-session-psk".to_owned().into());
         new_session.save(&mut *conn).await.unwrap();
 
         let mut connected_session = VpnClientSession::new(
@@ -452,7 +452,7 @@ mod test {
             Some(Utc::now().naive_utc()),
             false,
         );
-        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.preshared_key = Some("connected-session-psk".to_owned().into());
         connected_session.save(&mut *conn).await.unwrap();
 
         let peers = get_location_allowed_peers(&network, &mut conn)
@@ -463,7 +463,12 @@ mod test {
         assert_eq!(
             peers
                 .iter()
-                .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
+                .map(|peer| {
+                    (
+                        peer.pubkey.as_str(),
+                        peer.preshared_key.as_ref().map(|key| key.expose_secret()),
+                    )
+                })
                 .collect::<Vec<_>>(),
             vec![
                 ("pubkey-new", Some("new-session-psk")),

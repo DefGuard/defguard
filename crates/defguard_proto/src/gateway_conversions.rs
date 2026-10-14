@@ -23,7 +23,7 @@ impl From<WireguardPeer> for Peer {
         Self {
             pubkey: p.pubkey,
             allowed_ips: p.allowed_ips,
-            preshared_key: p.preshared_key,
+            preshared_key: p.preshared_key.map(|key| key.expose_secret().to_owned()),
             keepalive_interval: p.keepalive_interval,
         }
     }

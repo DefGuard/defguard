@@ -134,7 +134,10 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
             assert_eq!(authorized_device.id, device.id);
             assert_eq!(network_info.network_id, location.id);
             assert_eq!(
-                network_info.preshared_key.as_deref(),
+                network_info
+                    .preshared_key
+                    .as_ref()
+                    .map(|key| key.expose_secret()),
                 Some(preshared_key.as_str())
             );
             assert!(network_info.is_authorized);
@@ -148,7 +151,10 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
             .expect("failed to fetch active sessions");
     assert_eq!(active_sessions.len(), 1);
     assert_eq!(
-        active_sessions[0].preshared_key.as_deref(),
+        active_sessions[0]
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
         Some(preshared_key.as_str())
     );
 }
@@ -175,7 +181,7 @@ async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
         Some(Utc::now().naive_utc()),
         false,
     );
-    old_session.preshared_key = Some("old-posture-psk".to_owned());
+    old_session.preshared_key = Some("old-posture-psk".to_owned().into());
     old_session.state = VpnClientSessionState::Connected;
     let old_session = old_session
         .save(&pool)
@@ -376,7 +382,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         Some(Utc::now().naive_utc()),
         false,
     );
-    victim_session.preshared_key = Some("victim-psk".to_owned());
+    victim_session.preshared_key = Some("victim-psk".to_owned().into());
     victim_session.state = VpnClientSessionState::Connected;
     let victim_session = victim_session
         .save(&pool)
@@ -409,7 +415,10 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         .expect("victim session should still exist");
     assert_eq!(victim_session.state, VpnClientSessionState::Connected);
     assert_eq!(
-        victim_session.preshared_key.as_deref(),
+        victim_session
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
         Some("victim-psk"),
         "the victim's preshared key must not have been rotated"
     );
@@ -679,7 +688,7 @@ async fn test_posture_check_failure_revokes_active_session(
         Some(Utc::now().naive_utc()),
         false,
     );
-    active_session.preshared_key = Some("active-posture-psk".to_owned());
+    active_session.preshared_key = Some("active-posture-psk".to_owned().into());
     active_session.state = VpnClientSessionState::Connected;
     let active_session = active_session
         .save(&pool)
@@ -830,7 +839,7 @@ async fn test_mfa_start_posture_failure_revokes_active_session(
         Some(Utc::now().naive_utc()),
         true,
     );
-    active_session.preshared_key = Some("active-mfa-psk".to_owned());
+    active_session.preshared_key = Some("active-mfa-psk".to_owned().into());
     let active_session = active_session
         .save(&pool)
         .await
@@ -1049,7 +1058,7 @@ async fn test_replacing_connected_mfa_session_emits_session_superseded_event(
         &user,
         &device,
         true,
-        REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+        REPLACEMENT_MFA_PRESHARED_KEY.to_owned().into(),
     )
     .await
     .expect("should replace connected MFA session");
@@ -1120,7 +1129,7 @@ async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disco
         &user,
         &device,
         true,
-        REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
+        REPLACEMENT_MFA_PRESHARED_KEY.to_owned().into(),
     )
     .await
     .expect("should replace new MFA session");
@@ -1230,7 +1239,7 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
         Some(Utc::now().naive_utc()),
         true,
     );
-    previous_session.preshared_key = Some("old-psk".to_owned());
+    previous_session.preshared_key = Some("old-psk".to_owned().into());
     previous_session.state = VpnClientSessionState::Connected;
     let previous_session = previous_session
         .save(&pool)
@@ -1252,7 +1261,7 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
         &user,
         &device,
         true,
-        NEW_MFA_PRESHARED_KEY.to_owned(),
+        NEW_MFA_PRESHARED_KEY.to_owned().into(),
     )
     .await
     .expect("failed to create replacement MFA session");
@@ -1271,7 +1280,10 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
     assert_eq!(active_sessions.len(), 1);
     assert_eq!(active_sessions[0].id, new_session.id);
     assert_eq!(
-        active_sessions[0].preshared_key.as_deref(),
+        active_sessions[0]
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
         Some(NEW_MFA_PRESHARED_KEY)
     );
 
@@ -2094,7 +2106,10 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     assert_eq!(sessions.len(), 1);
     assert_eq!(
         Some(remote_preshared_key.as_str()),
-        sessions[0].preshared_key.as_deref()
+        sessions[0]
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret())
     );
 }
 

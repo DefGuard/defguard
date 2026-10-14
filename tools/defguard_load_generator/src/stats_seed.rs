@@ -219,6 +219,7 @@ async fn ensure_gateway(
         .map_err(Into::into)
 }
 
+#[allow(clippy::type_complexity)]
 async fn insert_batch(
     transaction: &mut Transaction<'_, Postgres>,
     batch: &[(
