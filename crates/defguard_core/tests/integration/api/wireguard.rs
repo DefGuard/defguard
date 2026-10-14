@@ -34,22 +34,12 @@ use tokio::sync::mpsc;
 use super::common::{
     authenticate_admin,
     client::{TestClient, TestResponse},
-    fetch_user_details, make_network, make_test_client, setup_pool, update_location_mfa_flows,
-    update_location_posture_checks,
+    create_mfa_flow, fetch_user_details, make_network, make_test_client, setup_pool,
+    update_location_mfa_flows, update_location_posture_checks,
 };
 
 const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
 const MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 120;
-
-async fn create_mfa_flow(client: &TestClient, title: &str, steps: Value) -> Id {
-    let response = client
-        .post("/api/v1/mfa-flow")
-        .json(&json!({"title": title, "steps": steps}))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    response.json::<Value>().await["id"].as_i64().unwrap()
-}
 
 async fn create_network_with_mfa_flows(
     client: &TestClient,

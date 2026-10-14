@@ -34,6 +34,7 @@ import type {
 import { SelectMultiple } from '../../shared/components/SelectMultiple/SelectMultiple';
 import { externalLink, MAX_MTU, MIN_MTU } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { FieldError } from '../../shared/defguard-ui/components/FieldError/FieldError';
 import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
@@ -416,6 +417,8 @@ const EditLocationForm = ({
   const savedMfaFlows = useMemo(() => toMfaFlowAssignments(mfaFlows), [mfaFlows]);
   const [pendingMfaFlows, setPendingMfaFlows] =
     useState<MfaFlowAssignment[]>(savedMfaFlows);
+  const [openMfaDefaultPicker, setOpenMfaDefaultPicker] = useState(false);
+  const [mfaFlowError, setMfaFlowError] = useState<string>();
   const [pendingGroupMtus, setPendingGroupMtus] = useState<GroupClientMtu[]>(
     location.group_client_mtus,
   );
@@ -594,6 +597,11 @@ const EditLocationForm = ({
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      if (value.mfa_enabled && !editedMfaFlows.some((flow) => flow.is_default)) {
+        setMfaFlowError(m.add_location_mfa_flow_required());
+        return;
+      }
+
       const deviceCount = Array.isArray(devices) ? devices.length : 0;
       const network_size = smallestNetworkCapacity(value.address);
       if (deviceCount > network_size) {
@@ -971,7 +979,11 @@ const EditLocationForm = ({
                   {(field) => (
                     <Toggle
                       active={field.state.value}
-                      onClick={() => field.handleChange(!field.state.value)}
+                      onClick={() => {
+                        setOpenMfaDefaultPicker(!field.state.value);
+                        setMfaFlowError(undefined);
+                        field.handleChange(!field.state.value);
+                      }}
                       label={m.add_location_mfa_toggle_label()}
                       disabled={isServiceLocation}
                     />
@@ -987,8 +999,16 @@ const EditLocationForm = ({
                           flows={mfaFlowCatalog}
                           groupOptions={mfaGroupOptions}
                           canUseEnterprise={canUseMfaGroupOverrides}
-                          onChange={setPendingMfaFlows}
+                          onChange={(assignments) => {
+                            setPendingMfaFlows(assignments);
+                            setMfaFlowError(undefined);
+                          }}
+                          openDefaultPicker={openMfaDefaultPicker}
+                          onDefaultPickerDismissed={() =>
+                            form.setFieldValue('mfa_enabled', false)
+                          }
                         />
+                        <FieldError error={mfaFlowError} />
                       </>
                     ) : null
                   }

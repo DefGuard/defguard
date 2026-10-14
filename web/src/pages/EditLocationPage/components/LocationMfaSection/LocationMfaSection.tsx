@@ -2,7 +2,7 @@ import './style.scss';
 
 import { Link } from '@tanstack/react-router';
 import { Reorder } from 'motion/react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import type {
   MfaFlowAssignment,
@@ -39,6 +39,10 @@ type Props = {
   groupOptions: SelectionOption<number>[];
   canUseEnterprise: boolean;
   onChange: (assignments: MfaFlowAssignment[]) => void;
+  /** Opens the default flow picker on mount when the location has no default. */
+  openDefaultPicker?: boolean;
+  /** Called when the default flow picker closes while the location still has no default. */
+  onDefaultPickerDismissed?: () => void;
 };
 
 /** An override editor without an `index` creates a new assignment. */
@@ -50,10 +54,15 @@ export const LocationMfaSection = ({
   groupOptions,
   canUseEnterprise,
   onChange,
+  openDefaultPicker,
+  onDefaultPickerDismissed,
 }: Props) => {
   const [editor, setEditor] = useState<OpenEditor>();
   const [modalOpen, setModalOpen] = useState(false);
   const overridesTrackRef = useRef<HTMLUListElement>(null);
+  // The modal calls `onSubmit` and then `onClose` in one handler, before the new assignments
+  // reach this component, so a choice made in the picker is tracked here.
+  const defaultPickedRef = useRef(false);
 
   const openEditor = (next: OpenEditor) => {
     setEditor(next);
@@ -67,6 +76,30 @@ export const LocationMfaSection = ({
   );
 
   const { defaultAssignment, overrides } = splitAssignments(assignments);
+
+  const closeEditor = () => {
+    const dismissedWithoutDefault =
+      editor?.kind === 'default' &&
+      !isPresent(defaultAssignment) &&
+      !defaultPickedRef.current;
+    defaultPickedRef.current = false;
+    setModalOpen(false);
+    if (dismissedWithoutDefault) {
+      onDefaultPickerDismissed?.();
+    }
+  };
+
+  // Opened from an effect because the modal must mount closed: ModalFoundation never fires
+  // `afterClose` for a modal that was open on its first render. Keyed on `hasFlows` so the picker
+  // also opens when the catalog goes from empty to non-empty while MFA is on.
+  const hasFlows = flows.length > 0;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run when flows become available
+  useEffect(() => {
+    if (openDefaultPicker && hasFlows && !isPresent(defaultAssignment)) {
+      openEditor({ kind: 'default' });
+    }
+  }, [hasFlows]);
+
   const overridesLocked = !canUseEnterprise;
   const hasUnavailableFlow = assignments.some((assignment) =>
     isPresent(flowsById.get(assignment.flow_id)?.unavailable_reason),
@@ -111,6 +144,7 @@ export const LocationMfaSection = ({
     if (editor === undefined) return;
     switch (editor.kind) {
       case 'default':
+        defaultPickedRef.current = true;
         onChange(setDefaultFlow(assignments, flowId));
         break;
       case 'override':
@@ -121,105 +155,105 @@ export const LocationMfaSection = ({
 
   return (
     <>
-      <div className="location-mfa-assignments">
-        <Reorder.Group
-          ref={overridesTrackRef}
-          axis="y"
-          values={overrides}
-          onReorder={(next) => onChange(reorderOverrides(assignments, next))}
-          className="overrides-track"
-        >
-          {overrides.map((override, index) => (
-            <MfaFlowOverrideRow
-              key={overrideKey(override)}
-              override={override}
-              position={index + 1}
-              title={flowsById.get(override.flow_id)?.title ?? ''}
-              steps={flowsById.get(override.flow_id)?.steps ?? []}
-              chips={override.group_ids.map((id) => groupNameById.get(id) ?? String(id))}
-              unavailableText={mfaFlowUnavailableText(
-                flowsById.get(override.flow_id)?.unavailable_reason ?? null,
+      {isPresent(defaultAssignment) && (
+        <>
+          <div className="location-mfa-assignments">
+            <Reorder.Group
+              ref={overridesTrackRef}
+              axis="y"
+              values={overrides}
+              onReorder={(next) => onChange(reorderOverrides(assignments, next))}
+              className="overrides-track"
+            >
+              {overrides.map((override, index) => (
+                <MfaFlowOverrideRow
+                  key={overrideKey(override)}
+                  override={override}
+                  position={index + 1}
+                  title={flowsById.get(override.flow_id)?.title ?? ''}
+                  steps={flowsById.get(override.flow_id)?.steps ?? []}
+                  chips={override.group_ids.map(
+                    (id) => groupNameById.get(id) ?? String(id),
+                  )}
+                  unavailableText={mfaFlowUnavailableText(
+                    flowsById.get(override.flow_id)?.unavailable_reason ?? null,
+                  )}
+                  dragConstraints={overridesTrackRef}
+                  onEdit={() => openEditor({ kind: 'override', index })}
+                  onRemove={() => onChange(removeOverride(assignments, index))}
+                />
+              ))}
+            </Reorder.Group>
+            <div className="assignment-row default-flow">
+              {overrides.length > 0 && (
+                <span className="marker fallback" aria-hidden="true">
+                  →
+                </span>
               )}
-              dragConstraints={overridesTrackRef}
-              onEdit={() => openEditor({ kind: 'override', index })}
-              onRemove={() => onChange(removeOverride(assignments, index))}
-            />
-          ))}
-        </Reorder.Group>
-        {isPresent(defaultAssignment) && (
-          <div className="assignment-row default-flow">
-            {overrides.length > 0 && (
-              <span className="marker fallback" aria-hidden="true">
-                →
-              </span>
-            )}
-            <div className="default-flow-content">
-              <MfaFlowAssignmentCard
-                title={flowsById.get(defaultAssignment.flow_id)?.title ?? ''}
-                steps={flowsById.get(defaultAssignment.flow_id)?.steps ?? []}
-                chips={[
-                  overrides.length > 0
-                    ? m.location_mfa_default_chip_everyone_else()
-                    : m.location_mfa_default_chip_all_groups(),
-                ]}
-                unavailableText={mfaFlowUnavailableText(
-                  flowsById.get(defaultAssignment.flow_id)?.unavailable_reason ?? null,
-                )}
-                leading={
-                  <Icon
-                    icon={IconKind.Groups}
-                    size={20}
-                    staticColor={ThemeVariable.FgAction}
-                  />
-                }
-                editLabel={m.location_mfa_default_flow_edit()}
-                onEdit={() => openEditor({ kind: 'default' })}
-              />
-              {hasUnavailableFlow && (
-                <div className="location-mfa-error">
-                  <div className="icon-track">
+              <div className="default-flow-content">
+                <MfaFlowAssignmentCard
+                  title={flowsById.get(defaultAssignment.flow_id)?.title ?? ''}
+                  steps={flowsById.get(defaultAssignment.flow_id)?.steps ?? []}
+                  chips={[
+                    overrides.length > 0
+                      ? m.location_mfa_default_chip_everyone_else()
+                      : m.location_mfa_default_chip_all_groups(),
+                  ]}
+                  unavailableText={mfaFlowUnavailableText(
+                    flowsById.get(defaultAssignment.flow_id)?.unavailable_reason ?? null,
+                  )}
+                  leading={
                     <Icon
-                      icon={IconKind.WarningFilled}
+                      icon={IconKind.Groups}
                       size={20}
-                      staticColor={ThemeVariable.FgCritical}
+                      staticColor={ThemeVariable.FgAction}
                     />
+                  }
+                  editLabel={m.location_mfa_default_flow_edit()}
+                  onEdit={() => openEditor({ kind: 'default' })}
+                />
+                {hasUnavailableFlow && (
+                  <div className="location-mfa-error">
+                    <div className="icon-track">
+                      <Icon
+                        icon={IconKind.WarningFilled}
+                        size={20}
+                        staticColor={ThemeVariable.FgCritical}
+                      />
+                    </div>
+                    <p>{m.location_mfa_flows_unavailable_error()}</p>
                   </div>
-                  <p>{m.location_mfa_flows_unavailable_error()}</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        )}
-        {!isPresent(defaultAssignment) && (
+          <Divider spacing={ThemeSpacing.Xl} />
+          <div className="location-mfa-overrides-header">
+            <p className="title">{m.location_mfa_overrides_title()}</p>
+            {overridesLocked && (
+              <Badge
+                {...enterpriseBadgeProps}
+                text={m.license_enterprise_feature_badge()}
+              />
+            )}
+          </div>
+          <p className="location-mfa-overrides-description">
+            {m.location_mfa_overrides_description()}
+          </p>
           <Button
             variant="outlined"
-            text={m.location_mfa_default_flow_modal_title()}
-            onClick={() => openEditor({ kind: 'default' })}
+            text={m.location_mfa_overrides_add()}
+            disabled={overridesLocked || allFlowsAssigned}
+            onClick={() => openEditor({ kind: 'override' })}
           />
-        )}
-      </div>
-      <Divider spacing={ThemeSpacing.Xl} />
-      <div className="location-mfa-overrides-header">
-        <p className="title">{m.location_mfa_overrides_title()}</p>
-        {overridesLocked && (
-          <Badge {...enterpriseBadgeProps} text={m.license_enterprise_feature_badge()} />
-        )}
-      </div>
-      <p className="location-mfa-overrides-description">
-        {m.location_mfa_overrides_description()}
-      </p>
-      <Button
-        variant="outlined"
-        text={m.location_mfa_overrides_add()}
-        disabled={overridesLocked || !isPresent(defaultAssignment) || allFlowsAssigned}
-        onClick={() => openEditor({ kind: 'override' })}
-      />
+        </>
+      )}
       <MfaFlowAssignmentModal
         isOpen={modalOpen}
         target={editorTarget}
         flows={editorFlows}
         groupOptions={editor?.kind === 'override' ? groupOptions : undefined}
-        onClose={() => setModalOpen(false)}
+        onClose={closeEditor}
         afterClose={() => setEditor(undefined)}
         onSubmit={handleSubmit}
       />

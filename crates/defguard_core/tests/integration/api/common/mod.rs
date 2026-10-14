@@ -195,6 +195,28 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     make_network(client, "network2").await;
 }
 
+pub(crate) async fn create_mfa_flow(client: &TestClient, title: &str, steps: Value) -> Id {
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({"title": title, "steps": steps}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    response.json::<Value>().await["id"].as_i64().unwrap()
+}
+
+pub(crate) async fn admin_group_id(client: &TestClient) -> Id {
+    let response = client.get("/api/v1/group-info").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    response
+        .json::<Value>()
+        .await
+        .as_array()
+        .and_then(|groups| groups.first())
+        .and_then(|group| group["id"].as_i64())
+        .expect("admin group exists")
+}
+
 /// Save a complete MFA assignment list through the location update endpoint.
 pub(crate) async fn update_location_mfa_flows(
     client: &TestClient,
