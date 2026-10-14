@@ -16,8 +16,8 @@ use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, configure_smtp, make_network, make_test_client, set_enterprise_license,
-    update_location_mfa_flows,
+    admin_group_id, authenticate_admin, configure_smtp, create_mfa_flow, make_network,
+    make_test_client, set_enterprise_license, update_location_mfa_flows,
 };
 
 /// Single-step flow without OIDC - should succeed without any license.
@@ -261,15 +261,7 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
         resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
-    // Get the admin group ID via group-info endpoint
-    let groups_resp = client.get("/api/v1/group-info").send().await;
-    assert_eq!(groups_resp.status(), StatusCode::OK);
-    let groups = groups_resp.json::<Value>().await;
-    let admin_group_id = groups
-        .as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|g| g["id"].as_i64())
-        .expect("admin group exists");
+    let admin_group_id = admin_group_id(&client).await;
 
     // Create a location
     let network_resp = make_network(&client, "enterprise-test").await;
@@ -1046,49 +1038,16 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
     authenticate_admin(&mut client).await;
     let saved = get_cached_license().clone();
 
-    let flow1_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Default Flow", "steps": [{"methods": ["totp"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-    let flow2_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Scoped Flow", "steps": [{"methods": ["biometric"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-
-    let groups_resp = client.get("/api/v1/group-info").send().await;
-    let groups = groups_resp.json::<Value>().await;
-    let admin_group_id = groups
-        .as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|g| g["id"].as_i64())
-        .expect("admin group exists");
+    let flow1_id = create_mfa_flow(&client, "Default Flow", json!([{"methods": ["totp"]}])).await;
+    let flow2_id =
+        create_mfa_flow(&client, "Scoped Flow", json!([{"methods": ["biometric"]}])).await;
+    let admin_group_id = admin_group_id(&client).await;
 
     let network_resp = make_network(&client, "delete-default").await;
     let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // flow1 is the default, flow2 is group-scoped; group scoping needs Enterprise.
     set_enterprise_license();
-    let resp = update_location_mfa_flows(
-        &client,
-        location_id,
-        json!([
-            {"flow_id": flow1_id, "is_default": true, "group_ids": []},
-            {"flow_id": flow2_id, "is_default": false, "group_ids": [admin_group_id]},
-        ]),
-    )
-    .await;
-    assert_eq!(resp.status(), StatusCode::OK);
-
     let mut body = network_body("delete-default", true, flow1_id);
     body["mfa_flows"] = json!([
         {"flow_id": flow1_id, "is_default": true, "group_ids": []},
@@ -1146,32 +1105,15 @@ async fn test_mfa_flow_delete_disabled_default_with_override(
     authenticate_admin(&mut client).await;
     let saved = get_cached_license().clone();
 
-    let default_flow_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Disabled Default", "steps": [{"methods": ["totp"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-    let override_flow_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Disabled Override", "steps": [{"methods": ["biometric"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-
-    let groups_resp = client.get("/api/v1/group-info").send().await;
-    let groups = groups_resp.json::<Value>().await;
-    let admin_group_id = groups
-        .as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|g| g["id"].as_i64())
-        .expect("admin group exists");
+    let default_flow_id =
+        create_mfa_flow(&client, "Disabled Default", json!([{"methods": ["totp"]}])).await;
+    let override_flow_id = create_mfa_flow(
+        &client,
+        "Disabled Override",
+        json!([{"methods": ["biometric"]}]),
+    )
+    .await;
+    let admin_group_id = admin_group_id(&client).await;
 
     let network_resp = make_network(&client, "delete-disabled-default").await;
     let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
@@ -1209,21 +1151,10 @@ async fn test_mfa_flow_delete_disabled_default_with_override(
         Some(admin_group_id)
     );
 
-    let stored_override = &remaining[0];
-    let stored_flow_id = stored_override["id"].as_i64().unwrap();
-    let stored_is_default = stored_override["is_default"].as_bool().unwrap();
-    let group_ids = stored_override["groups"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|group| group["id"].as_i64().unwrap())
-        .collect::<Vec<_>>();
-    let mut body = network_body("delete-disabled-default", true, stored_flow_id);
-    body["mfa_flows"] = json!([{
-        "flow_id": stored_flow_id,
-        "is_default": stored_is_default,
-        "group_ids": group_ids
-    }]);
+    let mut body = network_body("delete-disabled-default", true, override_flow_id);
+    body["mfa_flows"] = json!([
+        {"flow_id": override_flow_id, "is_default": false, "group_ids": [admin_group_id]},
+    ]);
     let resp = client
         .put(format!("/api/v1/network/{location_id}"))
         .json(&body)
