@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4xl);
+  min-width: 200px;
 
   &-section {
     display: flex;
@@ -12,6 +13,10 @@
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
+
+      .icon {
+        flex-shrink: 0;
+      }
     }
 
     .title {
@@ -94,6 +99,7 @@
         height: 32px;
         border-radius: 100px;
         background: var(--bg-action-muted);
+        flex-shrink: 0;
 
         .icon {
           flex-shrink: 0;
@@ -105,9 +111,17 @@
         align-items: center;
         gap: var(--spacing-xs);
         font: var(--t-body-sm-400);
+        min-width: 0;
 
         span {
           color: var(--fg-action);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .icon {
+          flex-shrink: 0;
         }
       }
     }
