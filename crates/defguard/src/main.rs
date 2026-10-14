@@ -102,7 +102,7 @@ async fn main() -> Result<(), anyhow::Error> {
     initialize_current_settings(&pool).await?;
 
     debug!("Checking enterprise license status");
-    match License::load_or_renew(&pool).await {
+    match License::load_and_try_renew(&pool).await {
         Ok(license) => {
             set_cached_license(license);
         }

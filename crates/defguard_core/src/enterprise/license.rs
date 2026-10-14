@@ -393,37 +393,35 @@ impl License {
 
     /// Try to load the license from the database, if the license requires a renewal, try to renew
     /// it. If the renewal fails, it will return the old license for the renewal service to renew it
-    /// later.
-    pub async fn load_or_renew(pool: &PgPool) -> Result<Option<Self>, LicenseError> {
+    /// later. A license past its maximum overdue time is returned as is, so settings show it as
+    /// expired.
+    pub async fn load_and_try_renew(pool: &PgPool) -> Result<Option<Self>, LicenseError> {
         match Self::load()? {
-            Some(license) => {
-                if license.requires_renewal() {
-                    if license.is_max_overdue() {
-                        Err(LicenseError::LicenseExpired)
-                    } else {
-                        info!("License requires renewal, trying to renew it...");
-                        match renew_license().await {
-                            Ok(new_key) => {
-                                let new_license = Self::from_base64(&new_key)?;
-                                save_license_key(pool, &new_key).await?;
-                                info!(
-                                    "Successfully renewed and loaded the license, new license key \
-                                    saved to the database"
-                                );
-                                Ok(Some(new_license))
-                            }
-                            Err(err) => {
-                                error!("Failed to renew the license: {err}");
-                                Ok(Some(license))
-                            }
-                        }
-                    }
-                } else {
-                    info!("Successfully loaded the license from the database.");
-                    Ok(Some(license))
-                }
-            }
+            Some(license) => license.renew_if_required(pool).await.map(Some),
             None => Ok(None),
+        }
+    }
+
+    async fn renew_if_required(self, pool: &PgPool) -> Result<Self, LicenseError> {
+        if !self.requires_renewal() || self.is_max_overdue() {
+            info!("Successfully loaded the license from the database.");
+            return Ok(self);
+        }
+        info!("License requires renewal, trying to renew it...");
+        match renew_license().await {
+            Ok(new_key) => {
+                let new_license = Self::from_base64(&new_key)?;
+                save_license_key(pool, &new_key).await?;
+                info!(
+                    "Successfully renewed and loaded the license, new license key saved to the \
+                    database"
+                );
+                Ok(new_license)
+            }
+            Err(err) => {
+                error!("Failed to renew the license: {err}");
+                Ok(self)
+            }
         }
     }
 
