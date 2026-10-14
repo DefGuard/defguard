@@ -56,6 +56,9 @@ jobs:
   alert-e2e-failure:
     needs: trigger-e2e
     if: failure()
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/alert-e2e-failure.yml
     secrets:
       ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}

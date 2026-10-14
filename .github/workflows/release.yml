@@ -604,6 +604,9 @@ jobs:
       - scan-source
       - assemble
     if: failure() && !inputs.draft
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/alert-e2e-failure.yml
     with:
       source: rehearsal
