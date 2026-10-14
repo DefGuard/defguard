@@ -89,14 +89,17 @@ export const LocationMfaSection = ({
     }
   };
 
-  // The modal must mount closed and open afterwards: ModalFoundation never fires `afterClose`
-  // for a modal that was open on its first render.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  // Opened from an effect because the modal must mount closed: ModalFoundation never fires
+  // `afterClose` for a modal that was open on its first render. Keyed on `hasFlows` so the picker
+  // also opens when the catalog goes from empty to non-empty while MFA is on.
+  const hasFlows = flows.length > 0;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run when flows become available
   useEffect(() => {
-    if (openDefaultPicker && flows.length > 0 && !isPresent(defaultAssignment)) {
+    if (openDefaultPicker && hasFlows && !isPresent(defaultAssignment)) {
       openEditor({ kind: 'default' });
     }
-  }, []);
+  }, [hasFlows]);
+
   const overridesLocked = !canUseEnterprise;
   const hasUnavailableFlow = assignments.some((assignment) =>
     isPresent(flowsById.get(assignment.flow_id)?.unavailable_reason),
