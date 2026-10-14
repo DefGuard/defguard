@@ -17,7 +17,7 @@ use tokio::task::JoinError;
 use crate::{
     client_info::platform_header,
     config::{ConfigPollingArgs, DatabaseArgs},
-    runner::LoadLoopConfig,
+    runner::{LoadLoopConfig, ensure_success_rate},
 };
 
 const POLLING_PATH: &str = "/api/v1/poll";
@@ -47,7 +47,6 @@ struct RequestResult {
 #[derive(Default)]
 struct LoadTestMetrics {
     scheduled_requests: u64,
-    started_requests: u64,
     completed_requests: u64,
     successful_requests: u64,
     http_errors: u64,
@@ -82,6 +81,7 @@ struct SharedLoadTestState {
     duration: Option<Duration>,
     max_in_flight: usize,
     requests_per_second: NonZeroU64,
+    min_success_percent: u8,
 }
 
 /// Polling load test with one request per scheduled task.
@@ -92,6 +92,7 @@ pub struct ConfigPollingLoadTest {
     requests_per_second: NonZeroU64,
     duration: Option<Duration>,
     max_in_flight: usize,
+    min_success_percent: u8,
 }
 
 impl ConfigPollingLoadTest {
@@ -104,6 +105,7 @@ impl ConfigPollingLoadTest {
             requests_per_second: args.requests_per_second,
             duration: args.duration,
             max_in_flight: args.max_in_flight,
+            min_success_percent: args.min_success_percent,
         }
     }
 
@@ -140,6 +142,7 @@ impl ConfigPollingLoadTest {
             duration: self.duration,
             max_in_flight: self.max_in_flight,
             requests_per_second: self.requests_per_second,
+            min_success_percent: self.min_success_percent,
         })
     }
 }
@@ -235,10 +238,21 @@ async fn run_load_loop(state: SharedLoadTestState) -> anyhow::Result<()> {
     .await?;
 
     metrics.scheduled_requests = stats.scheduled;
-    metrics.started_requests = stats.scheduled;
     metrics.dropped_requests = stats.dropped;
     metrics.peak_in_flight = stats.peak_in_flight;
-    report_final_results(&metrics, &state, stats.load_duration);
+    report_final_results(&metrics, &state, stats.load_duration, stats.total_duration);
+    fail_on_overload(stats.dropped)?;
+    ensure_success_rate(
+        metrics.successful_requests,
+        stats.completed,
+        state.min_success_percent,
+    )
+}
+
+fn fail_on_overload(dropped: u64) -> anyhow::Result<()> {
+    if dropped > 0 {
+        bail!("load generator overload: {dropped} requests dropped at max_in_flight");
+    }
     Ok(())
 }
 
@@ -273,21 +287,41 @@ fn handle_completed_task(result: Result<RequestResult, JoinError>, metrics: &mut
     }
 }
 
+fn request_rate(count: u64, duration: Duration) -> f64 {
+    if duration.is_zero() {
+        return 0.0;
+    }
+    count as f64 / duration.as_secs_f64()
+}
+
+fn polling_rates(
+    metrics: &LoadTestMetrics,
+    load_duration: Duration,
+    total_duration: Duration,
+) -> (f64, f64) {
+    (
+        request_rate(metrics.scheduled_requests, load_duration),
+        request_rate(metrics.successful_requests, total_duration),
+    )
+}
+
 fn report_final_results(
     metrics: &LoadTestMetrics,
     state: &SharedLoadTestState,
     load_duration: Duration,
+    total_duration: Duration,
 ) {
     let elapsed = state.started_at.elapsed();
-    let actual_rps =
-        metrics.started_requests as f64 / load_duration.as_secs_f64().max(f64::EPSILON);
+    let (scheduled_rps, successful_rps) = polling_rates(metrics, load_duration, total_duration);
     tracing::info!(
         elapsed = ?elapsed,
         load_duration = ?load_duration,
+        total_duration = ?total_duration,
         target_rps = state.requests_per_second.get(),
-        actual_rps,
+        min_success_percent = state.min_success_percent,
+        scheduled_rps,
+        successful_rps,
         scheduled = metrics.scheduled_requests,
-        started = metrics.started_requests,
         completed = metrics.completed_requests,
         successful = metrics.successful_requests,
         http_errors = metrics.http_errors,

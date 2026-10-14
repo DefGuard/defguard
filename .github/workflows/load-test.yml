@@ -1,0 +1,141 @@
+name: Load test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      polling_network_id:
+        description: WireGuard network ID with seeded polling devices
+        required: true
+        type: number
+        default: 1
+      polling_rps:
+        description: Target polling requests per second (1-10000)
+        required: true
+        default: 500
+        type: number
+      mfa_network_id:
+        description: MFA-enabled WireGuard network ID with seeded TOTP devices
+        required: true
+        type: number
+        default: 2
+      mfa_rps:
+        description: Target MFA flows per second (1-10000; two HTTP requests per flow)
+        required: true
+        default: 500
+        type: number
+      mfa_posture_network_id:
+        description: MFA-enabled WireGuard network ID with seeded TOTP devices and posture checks
+        required: true
+        type: number
+        default: 3
+      mfa_posture_rps:
+        description: Target MFA with posture checks flows per second (1-10000)
+        required: true
+        default: 450
+        type: number
+      duration_seconds:
+        description: Load generation time in seconds (30-900)
+        required: true
+        default: 60
+        type: number
+      max_in_flight:
+        description: Maximum concurrent requests (1-4096)
+        required: true
+        default: 1024
+        type: number
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+concurrency:
+  group: defguard-load-tests
+  cancel-in-progress: false
+
+jobs:
+  load-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: LOAD-TESTING
+    env:
+      AWS_REGION: ${{ vars.LOAD_TEST_AWS_REGION || 'eu-west-3' }}
+      AWS_ROLE_ARN: ${{ secrets.LOAD_TEST_AWS_ROLE_ARN }}
+      GENERATOR_INSTANCE_ID: ${{ secrets.LOAD_TEST_GENERATOR_INSTANCE_ID }}
+      CORE_INSTANCE_ID: ${{ secrets.LOAD_TEST_CORE_INSTANCE_ID }}
+      EDGE_INSTANCE_ID: ${{ secrets.LOAD_TEST_EDGE_INSTANCE_ID }}
+      PROXY_URL: ${{ vars.LOAD_TEST_PROXY_URL }}
+      POLLING_NETWORK_ID: ${{ inputs.polling_network_id || 1 }}
+      MFA_NETWORK_ID: ${{ inputs.mfa_network_id || 2 }}
+      MFA_POSTURE_NETWORK_ID: ${{ inputs.mfa_posture_network_id || 3 }}
+      POLLING_RPS: ${{ inputs.polling_rps || 500 }}
+      MFA_RPS: ${{ inputs.mfa_rps || 500 }}
+      MFA_POSTURE_RPS: ${{ inputs.mfa_posture_rps || 450 }}
+      DURATION_SECONDS: ${{ inputs.duration_seconds || 60 }}
+      MAX_IN_FLIGHT: ${{ inputs.max_in_flight || 1024 }}
+
+    steps:
+      - name: Validate parameter bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          if (( POLLING_RPS < 1 || POLLING_RPS > 10000 )); then echo '::error::polling_rps must be 1-10000'; exit 1; fi
+          if (( MFA_RPS < 1 || MFA_RPS > 10000 )); then echo '::error::mfa_rps must be 1-10000'; exit 1; fi
+          if (( MFA_POSTURE_RPS < 1 || MFA_POSTURE_RPS > 10000 )); then echo '::error::mfa_posture_rps must be 1-10000'; exit 1; fi
+          if (( DURATION_SECONDS < 30 || DURATION_SECONDS > 900 )); then echo '::error::duration_seconds must be 30-900'; exit 1; fi
+          if (( MAX_IN_FLIGHT < 1 || MAX_IN_FLIGHT > 4096 )); then echo '::error::max_in_flight must be 1-4096'; exit 1; fi
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: load-test-${{ github.run_id }}
+
+      - name: Update Edge and Core images
+        shell: bash
+        run: |
+          set -euo pipefail
+          for service in edge core; do
+            case "$service" in
+              edge) instance_id=$EDGE_INSTANCE_ID; compose=/opt/defguard-edge/docker-compose.yaml ;;
+              core) instance_id=$CORE_INSTANCE_ID; compose=/opt/defguard-core/docker-compose.yaml ;;
+            esac
+            parameters=$(jq -nc --arg c "$compose" --arg s "$service" '{commands: ["set -e", "docker compose -f \($c) pull \($s)", "docker compose -f \($c) up -d --no-deps \($s)"], executionTimeout: ["600"]}')
+            command_id=$(aws ssm send-command --instance-ids "$instance_id" --document-name AWS-RunShellScript --parameters "$parameters" --timeout-seconds 60 --query 'Command.CommandId' --output text)
+            echo "Updating $service through SSM command $command_id"
+            aws ssm wait command-executed --command-id "$command_id" --instance-id "$instance_id"
+            echo "$service update finished with SSM status Success"
+          done
+
+      - name: Run polling load test
+        shell: bash
+        run: bash .github/scripts/run-load-test.sh polling "$POLLING_NETWORK_ID" "$POLLING_RPS"
+
+      - name: Run TOTP MFA load test
+        shell: bash
+        run: bash .github/scripts/run-load-test.sh mfa "$MFA_NETWORK_ID" "$MFA_RPS"
+
+      - name: Run MFA with posture checks load test
+        shell: bash
+        run: bash .github/scripts/run-load-test.sh mfa_posture "$MFA_POSTURE_NETWORK_ID" "$MFA_POSTURE_RPS"
+
+  alert-load-test-failure:
+    needs: load-tests
+    if: failure()
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/alert-e2e-failure.yml
+    with:
+      source: load-test
+      extra_labels: load-test
+      workflow: load-test.yml
+      failure_summary: load test failed
+    secrets:
+      ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
