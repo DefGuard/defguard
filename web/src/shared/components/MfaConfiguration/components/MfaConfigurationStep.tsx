@@ -14,6 +14,8 @@ export const MfaConfigurationStep = ({
   step,
   stepNumber,
   dragConstraints,
+  isReordering,
+  onReorderingChange,
   methodGroups,
   methodLabels,
   onDeleteStep,
@@ -38,6 +40,9 @@ export const MfaConfigurationStep = ({
       dragConstraints={dragConstraints}
       dragElastic={false}
       layout="position"
+      transition={isReordering ? undefined : { layout: { duration: 0 } }}
+      onDragStart={() => onReorderingChange(true)}
+      onDragTransitionEnd={() => onReorderingChange(false)}
       className="mfa-step-card"
       data-testid={`step-${step.id}`}
     >
