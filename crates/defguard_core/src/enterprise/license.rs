@@ -395,7 +395,7 @@ impl License {
     /// it. If the renewal fails, it will return the old license for the renewal service to renew it
     /// later. A license past its maximum overdue time is returned as is, so settings show it as
     /// expired.
-    pub async fn load_or_renew(pool: &PgPool) -> Result<Option<Self>, LicenseError> {
+    pub async fn load_and_try_renew(pool: &PgPool) -> Result<Option<Self>, LicenseError> {
         match Self::load()? {
             Some(license) => license.renew_if_required(pool).await.map(Some),
             None => Ok(None),
