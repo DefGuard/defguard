@@ -678,10 +678,26 @@ impl MfaFlow<Id> {
     /// sole default in the window between checking and deleting, leaving that location with no
     /// MFA policy. The `FOR UPDATE` below takes the flow-identity lock that
     /// `assign_to_location` contends on with `FOR SHARE`.
+    ///
+    /// The assigned locations are share-locked first, so a location update that is enabling MFA
+    /// finishes before `mfa_enabled` is read. Locations are locked before the flow, the same
+    /// order as a location update followed by `assign_to_location`, so the two cannot deadlock.
     pub async fn check_deletable(
         conn: &mut PgConnection,
         flow_id: Id,
     ) -> Result<(), MfaFlowDeleteError> {
+        query_scalar!(
+            "SELECT wn.id \
+             FROM wireguard_network wn \
+             JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+             WHERE lmf.flow_id = $1 \
+             ORDER BY wn.id \
+             FOR SHARE OF wn",
+            flow_id
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+
         query_scalar!("SELECT id FROM mfa_flow WHERE id = $1 FOR UPDATE", flow_id)
             .fetch_optional(&mut *conn)
             .await?;
