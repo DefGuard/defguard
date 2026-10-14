@@ -43,6 +43,7 @@ export const renderMfaFlowSelectionItem: SelectionSectionCustomRender<
         steps.length > 0 && (
           <MfaFlowStepsTooltip
             steps={steps}
+            placement="top"
             methodAvailability={option.meta?.methodAvailability}
             unavailableReason={option.meta?.unavailableReason}
           >
