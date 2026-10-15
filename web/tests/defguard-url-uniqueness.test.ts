@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
+import { formSchema } from '../src/pages/settings/SettingsInstancePage/SettingsInstancePage';
 import { ensureUrlScheme } from '../src/shared/utils/defguardUrl';
-import { createDistinctUrlRefinement } from '../src/shared/utils/defguardUrlValidation';
+import {
+  canonicalizeUrl,
+  createDistinctUrlRefinement,
+} from '../src/shared/utils/defguardUrlValidation';
 
 const createUrlSettingsSchema = (getOtherUrl: () => string | null) => {
   return z
@@ -13,6 +17,44 @@ const createUrlSettingsSchema = (getOtherUrl: () => string | null) => {
       createDistinctUrlRefinement(getOtherUrl, 'defguard_url', 'URLs must differ'),
     );
 };
+
+describe('Settings instance URL validation', () => {
+  const values = {
+    defguard_url: 'https://core.example/',
+    instance_name: 'Example instance',
+    public_proxy_url: 'https://core.example',
+    authentication_period_days: 7,
+    enable_stats_purge: true,
+    stats_purge_frequency_hours: 24,
+    stats_purge_threshold_days: 30,
+    password_reset_token_timeout_hours: 24,
+    password_reset_session_timeout_minutes: 10,
+  };
+
+  it.each([
+    ['root trailing slash', 'https://core.example/', 'https://core.example'],
+    ['explicit default port', 'https://core.example:443', 'https://core.example'],
+  ])('canonicalizes %s', (_description, first, second) => {
+    expect(canonicalizeUrl(first)).toBe(canonicalizeUrl(second));
+  });
+
+  it('rejects equivalent defguard and proxy URLs in the settings schema', () => {
+    const result = formSchema.safeParse(values);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some((issue) => issue.path[0] === 'public_proxy_url'),
+      ).toBe(true);
+    }
+  });
+
+  it('accepts distinct URLs in the settings schema', () => {
+    expect(
+      formSchema.safeParse({ ...values, public_proxy_url: 'https://proxy.example' })
+        .success,
+    ).toBe(true);
+  });
+});
 
 describe('URL settings validation', () => {
   it('accepts different URLs and rejects equal addresses on the edited field', () => {

@@ -28,6 +28,7 @@ import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
+import { canonicalizeUrl } from '../../../shared/utils/defguardUrlValidation';
 import {
   createNumericSelectOptions,
   withNumericFallbackOption,
@@ -73,7 +74,7 @@ export const SettingsInstancePage = () => {
   );
 };
 
-const formSchema = z
+export const formSchema = z
   .object({
     defguard_url: z
       .string({
@@ -107,7 +108,7 @@ const formSchema = z
       .min(1),
   })
   .superRefine(({ defguard_url, public_proxy_url }, context) => {
-    if (defguard_url === public_proxy_url) {
+    if (canonicalizeUrl(defguard_url) === canonicalizeUrl(public_proxy_url)) {
       context.addIssue({
         code: 'custom',
         path: ['public_proxy_url'],

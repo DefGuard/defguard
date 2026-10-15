@@ -6,6 +6,14 @@ type UrlValue = Record<string, unknown> & {
   ssl_type: string;
 };
 
+export const canonicalizeUrl = (url: string) => {
+  try {
+    return new URL(url).toString();
+  } catch {
+    return url;
+  }
+};
+
 export const createDistinctUrlRefinement = (
   getOtherUrl: () => string | null | undefined,
   field: string,
@@ -19,15 +27,7 @@ export const createDistinctUrlRefinement = (
       value[field] as string,
       value.ssl_type as InternalSslType | ExternalSslType,
     );
-    const normalizeUrl = (url: string) => {
-      try {
-        return new URL(url).toString();
-      } catch {
-        return url;
-      }
-    };
-
-    if (normalizeUrl(correctedUrl) === normalizeUrl(otherUrl)) {
+    if (canonicalizeUrl(correctedUrl) === canonicalizeUrl(otherUrl)) {
       ctx.addIssue({ code: 'custom', path: [field], message });
     }
   };
