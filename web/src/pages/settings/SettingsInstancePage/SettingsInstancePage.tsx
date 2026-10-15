@@ -28,6 +28,7 @@ import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
+import { canonicalizeUrl } from '../../../shared/utils/defguardUrlValidation';
 import {
   createNumericSelectOptions,
   withNumericFallbackOption,
@@ -73,35 +74,48 @@ export const SettingsInstancePage = () => {
   );
 };
 
-const formSchema = z.object({
-  defguard_url: z
-    .string({
-      error: m.settings_instance_error_defguard_url_required(),
-    })
-    .min(1, m.settings_instance_error_defguard_url_required())
-    .url(m.settings_instance_error_invalid_url())
-    .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host()),
-  instance_name: z
-    .string(m.form_error_required())
-    .trim()
-    .min(1, m.form_error_required())
-    .min(
-      3,
-      m.form_error_min_len({
-        length: 3,
-      }),
-    )
-    .max(64, m.form_error_max_len({ length: 64 })),
-  public_proxy_url: z
-    .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
-    .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
-  authentication_period_days: z.number().min(1, m.form_error_invalid()),
-  enable_stats_purge: z.boolean(),
-  stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
-  stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
-  password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
-  password_reset_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
-});
+export const formSchema = z
+  .object({
+    defguard_url: z
+      .string({
+        error: m.settings_instance_error_defguard_url_required(),
+      })
+      .min(1, m.settings_instance_error_defguard_url_required())
+      .url(m.settings_instance_error_invalid_url())
+      .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host()),
+    instance_name: z
+      .string(m.form_error_required())
+      .trim()
+      .min(1, m.form_error_required())
+      .min(
+        3,
+        m.form_error_min_len({
+          length: 3,
+        }),
+      )
+      .max(64, m.form_error_max_len({ length: 64 })),
+    public_proxy_url: z
+      .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
+      .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
+    authentication_period_days: z.number().min(1, m.form_error_invalid()),
+    enable_stats_purge: z.boolean(),
+    stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
+    stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
+    password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+    password_reset_session_timeout_minutes: z
+      .number(m.form_error_required())
+      .int()
+      .min(1),
+  })
+  .superRefine(({ defguard_url, public_proxy_url }, context) => {
+    if (canonicalizeUrl(defguard_url) === canonicalizeUrl(public_proxy_url)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['public_proxy_url'],
+        message: m.settings_instance_error_urls_must_differ(),
+      });
+    }
+  });
 
 type FormFields = z.infer<typeof formSchema>;
 

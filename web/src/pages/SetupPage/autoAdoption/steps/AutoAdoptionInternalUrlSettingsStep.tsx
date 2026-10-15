@@ -17,10 +17,11 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import {
-  correctUrlProtocol,
   ensureUrlScheme,
+  getCorrectedUrl,
   isValidDefguardUrl,
 } from '../../../../shared/utils/defguardUrl';
+import { createDistinctUrlRefinement } from '../../../../shared/utils/defguardUrlValidation';
 import { AutoAdoptionSetupStep, type InternalSslType } from '../types';
 import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 import './style.scss';
@@ -30,22 +31,30 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
   const storedUrl = useAutoAdoptionSetupWizardStore((s) => s.defguard_url);
   const storedSslType = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_type);
 
-  const formSchema = z.object({
-    defguard_url: z
-      .string({
-        error: m.initial_setup_general_config_error_defguard_url_required(),
-      })
-      .overwrite(ensureUrlScheme)
-      .min(1, m.initial_setup_general_config_error_defguard_url_required())
-      .url(m.initial_setup_general_config_error_invalid_url())
-      .refine(
-        isValidDefguardUrl,
-        m.initial_setup_general_config_error_defguard_url_invalid_host(),
+  const formSchema = z
+    .object({
+      defguard_url: z
+        .string({
+          error: m.initial_setup_general_config_error_defguard_url_required(),
+        })
+        .overwrite(ensureUrlScheme)
+        .min(1, m.initial_setup_general_config_error_defguard_url_required())
+        .url(m.initial_setup_general_config_error_invalid_url())
+        .refine(
+          isValidDefguardUrl,
+          m.initial_setup_general_config_error_defguard_url_invalid_host(),
+        ),
+      ssl_type: z.custom<InternalSslType>(),
+      cert_pem_file: z.custom<File | null>().nullable(),
+      key_pem_file: z.custom<File | null>().nullable(),
+    })
+    .superRefine(
+      createDistinctUrlRefinement(
+        () => useAutoAdoptionSetupWizardStore.getState().public_proxy_url,
+        'defguard_url',
+        m.initial_setup_general_config_error_urls_must_differ(),
       ),
-    ssl_type: z.custom<InternalSslType>(),
-    cert_pem_file: z.custom<File | null>().nullable(),
-    key_pem_file: z.custom<File | null>().nullable(),
-  });
+    );
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.setAutoAdoptionInternalUrlSettings,
@@ -89,7 +98,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
         );
         return;
       }
-      const correctedUrl = correctUrlProtocol(value.defguard_url, value.ssl_type);
+      const correctedUrl = getCorrectedUrl(value.defguard_url, value.ssl_type);
       useAutoAdoptionSetupWizardStore.setState({
         defguard_url: correctedUrl,
       });

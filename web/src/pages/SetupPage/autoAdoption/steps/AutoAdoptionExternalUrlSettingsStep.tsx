@@ -16,10 +16,8 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import {
-  correctUrlProtocol,
-  ensureUrlScheme,
-} from '../../../../shared/utils/defguardUrl';
+import { ensureUrlScheme, getCorrectedUrl } from '../../../../shared/utils/defguardUrl';
+import { createDistinctUrlRefinement } from '../../../../shared/utils/defguardUrlValidation';
 import { AutoAdoptionSetupStep, type ExternalSslType } from '../types';
 import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 import './style.scss';
@@ -29,18 +27,26 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
   const storedProxyUrl = useAutoAdoptionSetupWizardStore((s) => s.public_proxy_url);
   const storedSslType = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_type);
 
-  const formSchema = z.object({
-    public_proxy_url: z
-      .string({
-        error: m.initial_setup_general_config_error_public_proxy_url_required(),
-      })
-      .overwrite(ensureUrlScheme)
-      .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
-      .url(m.initial_setup_general_config_error_public_url_invalid()),
-    ssl_type: z.custom<ExternalSslType>(),
-    cert_pem_file: z.custom<File | null>().nullable(),
-    key_pem_file: z.custom<File | null>().nullable(),
-  });
+  const formSchema = z
+    .object({
+      public_proxy_url: z
+        .string({
+          error: m.initial_setup_general_config_error_public_proxy_url_required(),
+        })
+        .overwrite(ensureUrlScheme)
+        .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
+        .url(m.initial_setup_general_config_error_public_url_invalid()),
+      ssl_type: z.custom<ExternalSslType>(),
+      cert_pem_file: z.custom<File | null>().nullable(),
+      key_pem_file: z.custom<File | null>().nullable(),
+    })
+    .superRefine(
+      createDistinctUrlRefinement(
+        () => useAutoAdoptionSetupWizardStore.getState().defguard_url,
+        'public_proxy_url',
+        m.initial_setup_general_config_error_urls_must_differ(),
+      ),
+    );
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.initial_setup.setAutoAdoptionExternalUrlSettings,
@@ -84,7 +90,7 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
         );
         return;
       }
-      const correctedUrl = correctUrlProtocol(value.public_proxy_url, value.ssl_type);
+      const correctedUrl = getCorrectedUrl(value.public_proxy_url, value.ssl_type);
       useAutoAdoptionSetupWizardStore.setState({
         public_proxy_url: correctedUrl,
       });

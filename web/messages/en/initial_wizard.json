@@ -259,5 +259,6 @@
   "initial_setup_wizard_welcome_docs_description": "Before installation, we recommend reading our documentation to understand the system architecture and core components.",
   "initial_setup_wizard_welcome_docs_alt": "Documentation",
   "initial_setup_wizard_welcome_docs_link": "Read documentation",
-  "initial_setup_wizard_footer_support_text": "For help, contact our support team at"
+  "initial_setup_wizard_footer_support_text": "For help, contact our support team at",
+  "initial_setup_general_config_error_urls_must_differ": "Defguard URL and Public Edge component URL must be different."
 }
