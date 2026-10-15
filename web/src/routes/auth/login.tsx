@@ -4,6 +4,7 @@ import { LoginMainPage } from '../../pages/auth/LoginMain/LoginMainPage';
 
 const searchSchema = z.object({
   authError: z.string().optional(),
+  authErrorDetail: z.string().optional(),
 });
 
 export const Route = createFileRoute('/auth/login')({
