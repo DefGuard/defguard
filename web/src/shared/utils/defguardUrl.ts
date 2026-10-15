@@ -41,6 +41,13 @@ export const correctUrlProtocol = (
   }
 };
 
+export const getCorrectedUrl = (
+  url: string,
+  sslType: InternalSslType | ExternalSslType,
+): string => {
+  return correctUrlProtocol(ensureUrlScheme(url), sslType);
+};
+
 export const isValidDefguardUrl = (value: string): boolean => {
   try {
     const url = new URL(value);
