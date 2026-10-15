@@ -17,7 +17,10 @@ use sqlx::PgPool;
 use thiserror::Error;
 
 use super::types::VerificationProof;
-use crate::mail::templates::{TemplateError, mfa_code_mail};
+use crate::{
+    fido2::auth_flags::AuthFlags,
+    mail::templates::{TemplateError, mfa_code_mail},
+};
 
 /// Outcome of proof verification.
 #[derive(Debug, PartialEq)]
@@ -353,19 +356,25 @@ async fn verify_registered_fido2_assertion(
     credential_id: Option<&[u8]>,
 ) -> Result<bool, VerifyError> {
     let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
-    for passkey in &passkeys {
-        if credential_id.is_some_and(|credential_id| passkey.cred_id().as_ref() != credential_id) {
-            continue;
-        }
-        let Some(public_key) = to_ctap_public_key(passkey) else {
-            continue;
-        };
-        if verify_assertion(rp_id, &public_key, challenge.as_bytes(), assertion) {
-            return Ok(true);
-        }
+    let signed = passkeys.iter().any(|passkey| {
+        credential_id.is_none_or(|credential_id| passkey.cred_id().as_ref() == credential_id)
+            && to_ctap_public_key(passkey).is_some_and(|public_key| {
+                verify_assertion(rp_id, &public_key, challenge.as_bytes(), assertion)
+            })
+    });
+    if !signed {
+        return Ok(false);
     }
 
-    Ok(false)
+    // The flags are covered by the signature, so they are only trusted once it verified.
+    let verified =
+        AuthFlags::parse(&assertion.auth_data).is_some_and(AuthFlags::present_and_verified);
+    if !verified {
+        warn!(
+            "Rejecting FIDO2 assertion for user {user_id}: user presence or verification missing"
+        );
+    }
+    Ok(verified)
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.

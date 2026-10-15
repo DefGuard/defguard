@@ -138,8 +138,27 @@
   padding-left: calc(20px + var(--spacing-sm));
   min-height: 36px;
 
+  .info {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+    min-width: 0;
+  }
+
+  .title {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-sm);
+    align-items: center;
+  }
+
   .name {
     font: var(--t-body-sm-400);
     color: var(--fg-default);
+  }
+
+  .details {
+    font: var(--t-body-xs-400);
+    color: var(--fg-muted);
   }
 }

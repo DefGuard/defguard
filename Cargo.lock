@@ -1770,6 +1770,7 @@ dependencies = [
  "webauthn-rs-proto",
  "wiremock",
  "x25519-dalek 3.0.0",
+ "x509-parser 0.18.1",
 ]
 
 [[package]]

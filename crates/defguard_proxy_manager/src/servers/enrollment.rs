@@ -31,7 +31,9 @@ use defguard_core::{
     },
     grpc::{
         GatewayCommand, InstanceInfo,
-        client_version::{ClientFeature, should_omit_location_for_device},
+        client_version::{
+            ClientFeature, client_registration_source, should_omit_location_for_device,
+        },
         utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
     },
     handlers::user::check_password_strength,
@@ -1217,8 +1219,9 @@ impl EnrollmentServer {
                 let attestation = request.fido2_attestation.as_deref().ok_or_else(|| {
                     Status::invalid_argument("Missing FIDO2 attestation".to_owned())
                 })?;
+                let source = client_registration_source(info.as_ref());
                 let key = token
-                    .finish_fido2_setup(&self.pool, user.id, name, attestation)
+                    .finish_fido2_setup(&self.pool, user.id, name, attestation, source)
                     .await?;
                 (
                     MFAMethod::Webauthn,

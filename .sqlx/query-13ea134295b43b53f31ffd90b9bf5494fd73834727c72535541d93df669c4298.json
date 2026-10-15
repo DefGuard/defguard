@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id!\", name, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\" FROM webauthn WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "authenticator_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "authenticator_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "authenticator_kind: AuthenticatorKind",
+        "type_info": {
+          "Custom": {
+            "name": "webauthn_authenticator_kind",
+            "kind": {
+              "Enum": [
+                "hardware",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "authenticator_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "registration_source: RegistrationSource",
+        "type_info": {
+          "Custom": {
+            "name": "webauthn_registration_source",
+            "kind": {
+              "Enum": [
+                "core",
+                "desktop",
+                "mobile"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registration_source"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "13ea134295b43b53f31ffd90b9bf5494fd73834727c72535541d93df669c4298"
+}

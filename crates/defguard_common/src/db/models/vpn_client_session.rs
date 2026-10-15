@@ -320,7 +320,11 @@ mod tests {
     use crate::{
         db::{
             Id, NoId,
-            models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
+            models::{
+                Device, DeviceType, User,
+                biometric_auth::BiometricAuth,
+                webauthn::{AuthenticatorKind, RegistrationSource, WebAuthn},
+            },
             setup_pool,
         },
         secret::SecretStringWrapper,
@@ -487,6 +491,9 @@ mod tests {
             user_id: user.id,
             name: "security-key".to_owned(),
             passkey: Vec::new(),
+            authenticator_name: None,
+            authenticator_kind: AuthenticatorKind::Unknown,
+            registration_source: RegistrationSource::Core,
         }
         .save(&pool)
         .await
