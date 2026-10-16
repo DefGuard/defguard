@@ -334,18 +334,18 @@ async fn verify_vpn_fido2_step(
     let failed = Verdict::Failed {
         message: "FIDO2 challenge failed",
     };
-    if !verify_registered_fido2_assertion(
+    let Some(flags) = verify_registered_fido2_assertion(
         &passkeys,
         ctx.user.id,
         &rp_id,
         &challenge.challenge,
         &assertion,
         Some(credential_id.as_slice()),
-    ) {
+    ) else {
         return Ok(failed);
-    }
+    };
     // Registration rejects backup eligible keys, the same rule holds at VPN connect.
-    if AuthFlags::parse(&assertion.auth_data).is_some_and(|flags| flags.backup_eligible) {
+    if flags.backup_eligible {
         warn!(
             "Rejecting FIDO2 assertion for user {}: credential is backup eligible",
             ctx.user.id
@@ -355,6 +355,8 @@ async fn verify_vpn_fido2_step(
     Ok(Verdict::Proved)
 }
 
+/// Returns the assertion's flags when a registered key signed it with user presence and
+/// verification.
 fn verify_registered_fido2_assertion(
     passkeys: &[Passkey],
     user_id: Id,
@@ -362,7 +364,7 @@ fn verify_registered_fido2_assertion(
     challenge: &str,
     assertion: &Assertion,
     credential_id: Option<&[u8]>,
-) -> bool {
+) -> Option<AuthFlags> {
     let signed = passkeys.iter().any(|passkey| {
         credential_id.is_none_or(|credential_id| passkey.cred_id().as_ref() == credential_id)
             && to_ctap_public_key(passkey).is_some_and(|public_key| {
@@ -370,18 +372,17 @@ fn verify_registered_fido2_assertion(
             })
     });
     if !signed {
-        return false;
+        return None;
     }
 
     // The flags are covered by the signature, so they are only trusted once it verified.
-    let verified =
-        AuthFlags::parse(&assertion.auth_data).is_some_and(AuthFlags::present_and_verified);
-    if !verified {
+    let flags = AuthFlags::parse(&assertion.auth_data).filter(|flags| flags.present_and_verified());
+    if flags.is_none() {
         warn!(
             "Rejecting FIDO2 assertion for user {user_id}: user presence or verification missing"
         );
     }
-    verified
+    flags
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.
@@ -431,7 +432,8 @@ pub async fn verify_mfa_config_fido2_assertion(
         challenge,
         &assertion,
         credential_id,
-    ))
+    )
+    .is_some())
 }
 
 /// Verify a signed MobileApprove challenge.

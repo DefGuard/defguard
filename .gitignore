@@ -1,6 +1,5 @@
 target/
 defguard.db*
-defguard.log
 .volumes*
 node_modules/
 .DS_Store

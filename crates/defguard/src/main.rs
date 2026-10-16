@@ -2,7 +2,7 @@ use std::{
     collections::HashSet,
     fs::{self, OpenOptions, read_to_string},
     io::Write,
-    path::Path,
+    path::{Path, absolute},
     sync::{Arc, Mutex, RwLock},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -51,6 +51,7 @@ use defguard_setup::{
     auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
     setup_server::run_setup_web_server,
 };
+use defguard_version::tracing::{VersionFilteredFields, VersionSuffixFormat};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -61,13 +62,30 @@ use tokio::{
     },
 };
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{fmt::format::Format, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
 
 /// With rotation, logs go to daily `<path>.<date>` files and `path` is a symlink to the current one.
 fn log_file_writer(path: &str, rotation: bool) -> anyhow::Result<Box<dyn Write + Send>> {
+    let path_ref = Path::new(path);
+    let Some(file_name) = path_ref.file_name().and_then(|name| name.to_str()) else {
+        bail!("Invalid log file path {path}");
+    };
+    // The appender points the symlink at `directory.join(file)`, which resolves relative to the
+    // symlink itself, so a relative directory would leave the symlink dangling.
+    let directory = match path_ref.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => absolute(parent),
+        _ => absolute("."),
+    }
+    .with_context(|| format!("Failed to resolve log file directory of {path}"))?;
+    fs::create_dir_all(&directory).with_context(|| {
+        format!(
+            "Failed to create log file directory {}",
+            directory.display()
+        )
+    })?;
     let is_symlink = fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink());
 
     if !rotation {
@@ -82,15 +100,6 @@ fn log_file_writer(path: &str, rotation: bool) -> anyhow::Result<Box<dyn Write +
             .with_context(|| format!("Failed to open log file {path}"))?;
         return Ok(Box::new(file));
     }
-
-    let path_ref = Path::new(path);
-    let Some(file_name) = path_ref.file_name().and_then(|name| name.to_str()) else {
-        bail!("Invalid log file path {path}");
-    };
-    let directory = match path_ref.parent() {
-        Some(parent) if !parent.as_os_str().is_empty() => parent,
-        _ => Path::new("."),
-    };
 
     // The appender deletes whatever is at the symlink path, so keep a log left by a run without
     // rotation.
@@ -125,15 +134,22 @@ async fn main() -> Result<(), anyhow::Error> {
         config.log_level
     );
 
+    let version = defguard_version::Version::parse(VERSION)?;
     // The guard flushes buffered log lines on drop, so it must live until main returns.
     let (file_layer, _log_file_guard) = match &config.log_file {
         Some(path) => {
             let (writer, guard) =
                 tracing_appender::non_blocking(log_file_writer(path, config.log_file_rotation)?);
+            let event_format = VersionSuffixFormat::new(
+                defguard_version::Version::new(version.major, version.minor, version.patch),
+                Format::default().with_ansi(false),
+            );
             (
                 Some(
                     tracing_subscriber::fmt::layer()
                         .with_ansi(false)
+                        .event_format(event_format)
+                        .fmt_fields(VersionFilteredFields)
                         .with_writer(writer),
                 ),
                 Some(guard),
@@ -143,13 +159,9 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
-    defguard_version::tracing::with_version_formatters(
-        &defguard_version::Version::parse(VERSION)?,
-        &log_filter,
-        subscriber,
-    )
-    .with(file_layer)
-    .init();
+    defguard_version::tracing::with_version_formatters(&version, &log_filter, subscriber)
+        .with(file_layer)
+        .init();
 
     info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");
@@ -479,5 +491,28 @@ async fn main() -> Result<(), anyhow::Error> {
             gateway_tx
         ) => bail!("VPN client session manager returned early: {res:?}"),
         _ = ctrl_c() => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs, io::Write, process};
+
+    use super::log_file_writer;
+
+    #[test]
+    fn rotated_log_symlink_resolves_for_relative_path() {
+        let root = env::temp_dir().join(format!("defguard-log-file-{}", process::id()));
+        fs::create_dir_all(&root).expect("create temp dir");
+        env::set_current_dir(&root).expect("enter temp dir");
+
+        let mut writer = log_file_writer("logs/defguard.log", true).expect("open log file");
+        writer.write_all(b"first line\n").expect("write log line");
+        writer.flush().expect("flush log file");
+        drop(writer);
+        let logged = fs::read_to_string("logs/defguard.log");
+        fs::remove_dir_all(&root).expect("remove temp dir");
+
+        assert_eq!(logged.expect("read through symlink"), "first line\n");
     }
 }

@@ -9,11 +9,9 @@ use serde::Deserialize;
 use thiserror::Error;
 use webauthn_rs::prelude::{
     AttestationCaList, AttestationCaListBuilder, AttestationMetadata, AttestedPasskey,
-    ParsedAttestationData, RegisterPublicKeyCredential, Uuid,
+    ParsedAttestationData, Uuid,
 };
 use x509_parser::{der_parser::der::parse_der_bitstring, parse_x509_certificate};
-
-use super::auth_flags::AuthFlags;
 
 /// Filtered from the FIDO Metadata Service (MDS3) blob: certified, hardware protected roaming
 /// authenticators with full basic or AttCA attestation.
@@ -50,12 +48,8 @@ pub enum TrustedListError {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum HardwareKeyError {
-    #[error("authenticator data is missing or malformed")]
-    MalformedAuthData,
-    #[error("user presence or user verification was not performed")]
-    UserNotVerified,
-    #[error("credential is backup eligible and may be synced off the device")]
-    BackupEligible,
+    #[error("attestation certificate is malformed")]
+    MalformedCertificate,
     #[error("attestation does not identify an authenticator model")]
     MissingAaguid,
     #[error("attestation certificate does not list a removable transport")]
@@ -159,20 +153,9 @@ pub fn trust_test_authenticator(
     Ok(())
 }
 
-/// Checks applied on top of webauthn-rs, which has already verified the attestation chain.
-pub fn verify_hardware_key(
-    credential: &RegisterPublicKeyCredential,
-    passkey: &AttestedPasskey,
-) -> Result<HardwareKey, HardwareKeyError> {
-    let flags =
-        AuthFlags::from_registration(credential).ok_or(HardwareKeyError::MalformedAuthData)?;
-    if !flags.present_and_verified() {
-        return Err(HardwareKeyError::UserNotVerified);
-    }
-    if flags.backup_eligible {
-        return Err(HardwareKeyError::BackupEligible);
-    }
-
+/// Checks applied on top of webauthn-rs, which has already verified the attestation chain,
+/// user verification and that the credential is not backup eligible.
+pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, HardwareKeyError> {
     let attestation = passkey.attestation();
     let aaguid = match &attestation.metadata {
         AttestationMetadata::Packed { aaguid } | AttestationMetadata::Tpm { aaguid, .. } => *aaguid,
@@ -188,7 +171,7 @@ pub fn verify_hardware_key(
     if let Some(leaf) = chain.first() {
         let der = leaf
             .to_der()
-            .map_err(|_| HardwareKeyError::MalformedAuthData)?;
+            .map_err(|_| HardwareKeyError::MalformedCertificate)?;
         if certificate_denies_roaming(&der) {
             return Err(HardwareKeyError::NotRoaming);
         }

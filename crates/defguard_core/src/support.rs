@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{self, SeekFrom},
+    path::{Path, PathBuf},
 };
 
 use defguard_common::{
@@ -18,7 +19,7 @@ use serde::Serialize;
 use serde_json::{Value, json, value::to_value};
 use sqlx::PgConnection;
 use tokio::{
-    fs::File,
+    fs::{self, File},
     io::{AsyncReadExt, AsyncSeekExt},
 };
 
@@ -111,22 +112,68 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     }))
 }
 
-/// The first partial line is dropped when the file is longer than the limit.
+/// The first partial line is dropped when the logs are longer than the limit.
 pub(crate) async fn read_log_tail(path: &str) -> io::Result<String> {
-    let mut file = File::open(path).await?;
-    let start = file
-        .metadata()
-        .await?
-        .len()
-        .saturating_sub(LOG_TAIL_MAX_BYTES);
-    file.seek(SeekFrom::Start(start)).await?;
-    let mut bytes = Vec::new();
-    file.take(LOG_TAIL_MAX_BYTES)
-        .read_to_end(&mut bytes)
-        .await?;
-    if start > 0
-        && let Some(first_newline) = bytes.iter().position(|&byte| byte == b'\n')
-    {
+    let files = log_files_newest_first(Path::new(path)).await?;
+    read_files_tail(&files, LOG_TAIL_MAX_BYTES).await
+}
+
+/// A rotation symlink stands for every dated file next to it, a plain file only for itself.
+async fn log_files_newest_first(path: &Path) -> io::Result<Vec<PathBuf>> {
+    if !fs::symlink_metadata(path).await?.file_type().is_symlink() {
+        return Ok(vec![path.to_path_buf()]);
+    }
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return Ok(vec![path.to_path_buf()]);
+    };
+    let prefix = format!("{file_name}.");
+    let directory = match path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => Path::new("."),
+    };
+
+    let mut files = Vec::new();
+    let mut entries = fs::read_dir(directory).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        let is_rotated_log = entry
+            .file_name()
+            .to_str()
+            .is_some_and(|name| name.starts_with(&prefix) && !name.ends_with(".bak"));
+        if is_rotated_log && entry.file_type().await?.is_file() {
+            files.push(entry.path());
+        }
+    }
+    if files.is_empty() {
+        files.push(path.to_path_buf());
+    }
+    // Rotated file names end with the date, so the newest sorts last.
+    files.sort_unstable_by(|left, right| right.cmp(left));
+    Ok(files)
+}
+
+async fn read_files_tail(newest_first: &[PathBuf], max_bytes: u64) -> io::Result<String> {
+    let mut chunks = Vec::new();
+    let mut remaining = max_bytes;
+    let mut truncated = false;
+    for path in newest_first {
+        if remaining == 0 {
+            break;
+        }
+        let mut file = File::open(path).await?;
+        let start = file.metadata().await?.len().saturating_sub(remaining);
+        file.seek(SeekFrom::Start(start)).await?;
+        let mut bytes = Vec::new();
+        file.take(remaining).read_to_end(&mut bytes).await?;
+        remaining = remaining.saturating_sub(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
+        chunks.push(bytes);
+        if start > 0 {
+            truncated = true;
+            break;
+        }
+    }
+
+    let mut bytes: Vec<u8> = chunks.into_iter().rev().flatten().collect();
+    if truncated && let Some(first_newline) = bytes.iter().position(|&byte| byte == b'\n') {
         bytes.drain(..=first_newline);
     }
     Ok(String::from_utf8_lossy(&bytes).into_owned())
@@ -152,7 +199,7 @@ mod tests {
     use serde_json::Value;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use super::{LOG_TAIL_MAX_BYTES, dump_config, read_log_tail};
+    use super::{LOG_TAIL_MAX_BYTES, dump_config, read_files_tail, read_log_tail};
 
     // Sentinel secrets. None of these may ever show up in the support dump.
     const SMTP_PASSWORD: &str = "sentinel-smtp-password";
@@ -349,5 +396,42 @@ mod tests {
     #[tokio::test]
     async fn test_read_log_tail_returns_small_file_unchanged() {
         assert_eq!(read_tail_of("first\nsecond\n").await, "first\nsecond\n");
+    }
+
+    fn temp_log_dir(files: &[(&str, &str)]) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("defguard-log-dir-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&dir).expect("create log dir");
+        for (name, contents) in files {
+            fs::write(dir.join(name), contents).expect("write log file");
+        }
+        dir
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_read_log_tail_joins_rotated_files() {
+        let dir = temp_log_dir(&[
+            ("defguard.log.2026-10-15", "older\n"),
+            ("defguard.log.2026-10-16", "newer\n"),
+            ("defguard.log.1760000000.bak", "backup\n"),
+        ]);
+        std::os::unix::fs::symlink(
+            dir.join("defguard.log.2026-10-16"),
+            dir.join("defguard.log"),
+        )
+        .expect("create log symlink");
+
+        let tail = read_log_tail(dir.join("defguard.log").to_str().expect("utf-8 path")).await;
+        fs::remove_dir_all(&dir).expect("remove log dir");
+        assert_eq!(tail.expect("read log tail"), "older\nnewer\n");
+    }
+
+    #[tokio::test]
+    async fn test_read_files_tail_drops_partial_line_of_oldest_file() {
+        let dir = temp_log_dir(&[("older", "aaa\nbbb\n"), ("newer", "ccc\n")]);
+
+        let tail = read_files_tail(&[dir.join("newer"), dir.join("older")], 10).await;
+        fs::remove_dir_all(&dir).expect("remove log dir");
+        assert_eq!(tail.expect("read log tail"), "bbb\nccc\n");
     }
 }

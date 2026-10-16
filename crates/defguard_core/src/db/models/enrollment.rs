@@ -462,7 +462,7 @@ impl Token {
                 }
                 _ => TokenError::WebauthnRegistration(err.to_string()),
             })?;
-        let hardware_key = verify_hardware_key(&rpkc, &attested)
+        let hardware_key = verify_hardware_key(&attested)
             .map_err(|err| TokenError::UntrustedAuthenticator(err.to_string()))?;
         info!(
             "Security key attested as {} ({})",
