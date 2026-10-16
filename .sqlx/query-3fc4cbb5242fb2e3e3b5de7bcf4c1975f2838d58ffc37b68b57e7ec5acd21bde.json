@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"webhook\" SET \"url\" = $2,\"description\" = $3,\"token\" = $4,\"enabled\" = $5,\"on_user_created\" = $6,\"on_user_deleted\" = $7,\"on_user_modified\" = $8,\"on_hwkey_provision\" = $9 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3fc4cbb5242fb2e3e3b5de7bcf4c1975f2838d58ffc37b68b57e7ec5acd21bde"
+}

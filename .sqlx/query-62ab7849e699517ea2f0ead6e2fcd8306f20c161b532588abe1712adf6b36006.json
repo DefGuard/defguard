@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"rule_id\",\"group_id\",\"allow\" FROM \"aclrulegroup\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclrulegroup",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclrulegroup",
+            "name": "rule_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "group_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "aclrulegroup",
+            "name": "group_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "allow",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "aclrulegroup",
+            "name": "allow"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "62ab7849e699517ea2f0ead6e2fcd8306f20c161b532588abe1712adf6b36006"
+}

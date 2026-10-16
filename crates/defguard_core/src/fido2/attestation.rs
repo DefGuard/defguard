@@ -1,9 +1,8 @@
 //! Hardware authenticators trusted to register FIDO2 keys from the desktop client.
 
-use std::{
-    collections::BTreeMap,
-    sync::{LazyLock, PoisonError, RwLock},
-};
+#[cfg(any(test, feature = "test-support"))]
+use std::sync::{PoisonError, RwLock};
+use std::{borrow::Cow, collections::BTreeMap, sync::LazyLock};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use serde::Deserialize;
@@ -96,27 +95,43 @@ fn parse_catalog(json: &str) -> Result<AttestationCaList, TrustedListError> {
     Ok(builder.build())
 }
 
-static TRUSTED_AUTHENTICATORS: LazyLock<RwLock<AttestationCaList>> = LazyLock::new(|| {
-    RwLock::new(
-        parse_catalog(TRUSTED_AUTHENTICATORS_JSON)
-            .expect("bundled trusted authenticator list must parse"),
-    )
+static TRUSTED_AUTHENTICATORS: LazyLock<AttestationCaList> = LazyLock::new(|| {
+    parse_catalog(TRUSTED_AUTHENTICATORS_JSON)
+        .expect("bundled trusted authenticator list must parse")
 });
+
+#[cfg(all(feature = "test-support", not(debug_assertions)))]
+compile_error!("test-support can inject trusted attestation CAs and must not reach release builds");
+
+#[cfg(any(test, feature = "test-support"))]
+static TEST_AUTHENTICATORS: LazyLock<RwLock<AttestationCaList>> =
+    LazyLock::new(|| RwLock::new(AttestationCaListBuilder::new().build()));
+
+#[cfg(not(any(test, feature = "test-support")))]
+fn trusted_cas() -> Cow<'static, AttestationCaList> {
+    Cow::Borrowed(&TRUSTED_AUTHENTICATORS)
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn trusted_cas() -> Cow<'static, AttestationCaList> {
+    let mut cas = TRUSTED_AUTHENTICATORS.clone();
+    cas.union(
+        &TEST_AUTHENTICATORS
+            .read()
+            .unwrap_or_else(PoisonError::into_inner),
+    );
+    Cow::Owned(cas)
+}
 
 /// Every root is scoped to its own AAGUIDs, never blanket allowed.
 #[must_use]
 pub fn trusted_attestation_cas() -> AttestationCaList {
-    TRUSTED_AUTHENTICATORS
-        .read()
-        .unwrap_or_else(PoisonError::into_inner)
-        .clone()
+    trusted_cas().into_owned()
 }
 
 #[must_use]
 pub fn authenticator_description(aaguid: &Uuid) -> Option<String> {
-    TRUSTED_AUTHENTICATORS
-        .read()
-        .unwrap_or_else(PoisonError::into_inner)
+    trusted_cas()
         .cas()
         .values()
         .find_map(|ca| ca.aaguids().get(aaguid))
@@ -124,6 +139,7 @@ pub fn authenticator_description(aaguid: &Uuid) -> Option<String> {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[doc(hidden)]
 pub fn trust_test_authenticator(
     ca_der: &[u8],
     aaguid: Uuid,
@@ -136,7 +152,7 @@ pub fn trust_test_authenticator(
             aaguid,
             message: err.to_string(),
         })?;
-    TRUSTED_AUTHENTICATORS
+    TEST_AUTHENTICATORS
         .write()
         .unwrap_or_else(PoisonError::into_inner)
         .union(&builder.build());
@@ -188,7 +204,7 @@ pub fn verify_hardware_key(
 /// transport counts against the key.
 fn certificate_denies_roaming(der: &[u8]) -> bool {
     let Ok((_, certificate)) = parse_x509_certificate(der) else {
-        return false;
+        return true;
     };
     let Some(extension) = certificate
         .extensions()
@@ -208,6 +224,8 @@ fn certificate_denies_roaming(der: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use rcgen::{CertificateParams, CustomExtension, KeyPair};
+
     use super::*;
 
     #[test]
@@ -225,5 +243,44 @@ mod tests {
             Some("YubiKey 5 Series with NFC")
         );
         assert_eq!(authenticator_description(&Uuid::nil()), None);
+    }
+
+    fn certificate_der(transports: Option<&[u8]>) -> Vec<u8> {
+        let mut params = CertificateParams::new(Vec::new()).expect("certificate params");
+        if let Some(transports) = transports {
+            params.custom_extensions = vec![CustomExtension::from_oid_content(
+                &[1, 3, 6, 1, 4, 1, 45724, 2, 1, 1],
+                transports.to_vec(),
+            )];
+        }
+        let key_pair = KeyPair::generate().expect("key pair");
+        params
+            .self_signed(&key_pair)
+            .expect("self signed certificate")
+            .der()
+            .to_vec()
+    }
+
+    #[test]
+    fn roaming_check_reads_transports_extension() {
+        const USB_ONLY: &[u8] = &[0x03, 0x02, 0x05, 0x20];
+        const NFC_ONLY: &[u8] = &[0x03, 0x02, 0x04, 0x10];
+        const INTERNAL_ONLY: &[u8] = &[0x03, 0x02, 0x03, 0x08];
+        const NOT_A_BITSTRING: &[u8] = &[0x05, 0x00];
+
+        assert!(!certificate_denies_roaming(&certificate_der(None)));
+        assert!(!certificate_denies_roaming(&certificate_der(Some(
+            USB_ONLY
+        ))));
+        assert!(!certificate_denies_roaming(&certificate_der(Some(
+            NFC_ONLY
+        ))));
+        assert!(certificate_denies_roaming(&certificate_der(Some(
+            INTERNAL_ONLY
+        ))));
+        assert!(certificate_denies_roaming(&certificate_der(Some(
+            NOT_A_BITSTRING
+        ))));
+        assert!(certificate_denies_roaming(b"not a certificate"));
     }
 }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mfa_setup_state FROM token WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mfa_setup_state",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "mfa_setup_state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "7b2573c1b126396c1aea907056edc502508dd81174e962db5f3152583b3eaa88"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM aclrulenetwork WHERE rule_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "03e970cdeb33be0365e43d199363bc45f21d73238fda0f2aa2e880d6595103c4"
+}

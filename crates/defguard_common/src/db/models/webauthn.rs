@@ -95,12 +95,21 @@ impl WebAuthn<Id> {
         query_scalar!("SELECT passkey FROM webauthn WHERE user_id = $1", user_id)
             .fetch_all(pool)
             .await
-            .map(|bin_keys| {
-                bin_keys
-                    .iter()
-                    .map(|bin| serde_cbor::from_slice(bin).expect("Can't deserialize Passkey"))
-                    .collect()
-            })
+            .map(|bin_keys| deserialize_passkeys(&bin_keys))
+    }
+
+    /// Fetch the user's passkeys that passed hardware attestation at registration.
+    pub async fn hardware_passkeys_for_user(
+        pool: &PgPool,
+        user_id: Id,
+    ) -> sqlx::Result<Vec<Passkey>> {
+        query_scalar!(
+            "SELECT passkey FROM webauthn WHERE user_id = $1 AND authenticator_kind = 'hardware'",
+            user_id
+        )
+        .fetch_all(pool)
+        .await
+        .map(|bin_keys| deserialize_passkeys(&bin_keys))
     }
 
     /// Check whether a user has at least one security key registered.
@@ -110,6 +119,21 @@ impl WebAuthn<Id> {
     {
         query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1)",
+            user_id
+        )
+        .fetch_one(executor)
+        .await
+        .map(Option::unwrap_or_default)
+    }
+
+    /// Check whether a user has at least one security key that passed hardware attestation.
+    pub async fn hardware_exists_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM webauthn \
+            WHERE user_id = $1 AND authenticator_kind = 'hardware')",
             user_id
         )
         .fetch_one(executor)
@@ -141,6 +165,13 @@ impl WebAuthn<Id> {
             .await?;
         Ok(())
     }
+}
+
+fn deserialize_passkeys(bin_keys: &[Vec<u8>]) -> Vec<Passkey> {
+    bin_keys
+        .iter()
+        .map(|bin| serde_cbor::from_slice(bin).expect("Can't deserialize Passkey"))
+        .collect()
 }
 
 /// Convert a `PassKey` into a form that `ctap-hid-fido2`'s verifier expects.

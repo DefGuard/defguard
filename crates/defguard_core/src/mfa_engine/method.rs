@@ -15,6 +15,7 @@ use defguard_common::db::{
 };
 use sqlx::PgPool;
 use thiserror::Error;
+use webauthn_rs::prelude::Passkey;
 
 use super::types::VerificationProof;
 use crate::{
@@ -329,33 +330,39 @@ async fn verify_vpn_fido2_step(
         auth_data: authenticator_data.clone(),
         ..Default::default()
     };
-    if verify_registered_fido2_assertion(
-        pool,
+    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, ctx.user.id).await?;
+    let failed = Verdict::Failed {
+        message: "FIDO2 challenge failed",
+    };
+    if !verify_registered_fido2_assertion(
+        &passkeys,
         ctx.user.id,
         &rp_id,
         &challenge.challenge,
         &assertion,
         Some(credential_id.as_slice()),
-    )
-    .await?
-    {
-        Ok(Verdict::Proved)
-    } else {
-        Ok(Verdict::Failed {
-            message: "FIDO2 challenge failed",
-        })
+    ) {
+        return Ok(failed);
     }
+    // Registration rejects backup eligible keys, the same rule holds at VPN connect.
+    if AuthFlags::parse(&assertion.auth_data).is_some_and(|flags| flags.backup_eligible) {
+        warn!(
+            "Rejecting FIDO2 assertion for user {}: credential is backup eligible",
+            ctx.user.id
+        );
+        return Ok(failed);
+    }
+    Ok(Verdict::Proved)
 }
 
-async fn verify_registered_fido2_assertion(
-    pool: &PgPool,
+fn verify_registered_fido2_assertion(
+    passkeys: &[Passkey],
     user_id: Id,
     rp_id: &str,
     challenge: &str,
     assertion: &Assertion,
     credential_id: Option<&[u8]>,
-) -> Result<bool, VerifyError> {
-    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
+) -> bool {
     let signed = passkeys.iter().any(|passkey| {
         credential_id.is_none_or(|credential_id| passkey.cred_id().as_ref() == credential_id)
             && to_ctap_public_key(passkey).is_some_and(|public_key| {
@@ -363,7 +370,7 @@ async fn verify_registered_fido2_assertion(
             })
     });
     if !signed {
-        return Ok(false);
+        return false;
     }
 
     // The flags are covered by the signature, so they are only trusted once it verified.
@@ -374,7 +381,7 @@ async fn verify_registered_fido2_assertion(
             "Rejecting FIDO2 assertion for user {user_id}: user presence or verification missing"
         );
     }
-    Ok(verified)
+    verified
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.
@@ -416,8 +423,15 @@ pub async fn verify_mfa_config_fido2_assertion(
         auth_data: auth_data.to_vec(),
         ..Default::default()
     };
-    verify_registered_fido2_assertion(pool, user_id, &rp_id, challenge, &assertion, credential_id)
-        .await
+    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
+    Ok(verify_registered_fido2_assertion(
+        &passkeys,
+        user_id,
+        &rp_id,
+        challenge,
+        &assertion,
+        credential_id,
+    ))
 }
 
 /// Verify a signed MobileApprove challenge.
@@ -458,7 +472,7 @@ pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
     }
 }
 
-/// Empty unless `method` is FIDO2.
+/// Empty unless the method is FIDO2. VPN connect offers only hardware-attested keys.
 pub async fn offered_credential_ids(
     pool: &PgPool,
     ctx: &MfaSessionContext,
@@ -467,14 +481,19 @@ pub async fn offered_credential_ids(
     if method != VpnClientMfaMethod::Fido2 {
         return Ok(Vec::new());
     }
-    fido2_credential_ids(pool, ctx.user.id).await
+    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, ctx.user.id).await?;
+    Ok(encode_credential_ids(&passkeys))
 }
 
 /// Every security key credential the user has registered, base64url as webauthn-rs serializes them.
 pub async fn fido2_credential_ids(pool: &PgPool, user_id: Id) -> Result<Vec<String>, sqlx::Error> {
-    Ok(WebAuthn::passkeys_for_user(pool, user_id)
-        .await?
+    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
+    Ok(encode_credential_ids(&passkeys))
+}
+
+fn encode_credential_ids(passkeys: &[Passkey]) -> Vec<String> {
+    passkeys
         .iter()
         .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
-        .collect())
+        .collect()
 }

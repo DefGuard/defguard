@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"api_token\" SET \"user_id\" = $2,\"created_at\" = $3,\"name\" = $4,\"token_hash\" = $5 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ca574efcc6bdee6b91f0896cbdf2d92b6410bfcf1067ee9362d4d2679bb78750"
+}

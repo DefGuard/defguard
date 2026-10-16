@@ -1211,8 +1211,8 @@ impl EnrollmentServer {
                 (MFAMethod::OneTimePassword, ApiEventType::MfaTotpEnabled)
             }
             MfaMethod::Fido2 => {
-                // No code to verify: the attestation is the proof. Like the REST WebAuthn
-                // finish, the key is saved on the pool rather than in `transaction`.
+                // The attestation is the proof. Like the REST WebAuthn finish, the key is saved
+                // on the pool rather than in the transaction.
                 let name = request.name.clone().ok_or_else(|| {
                     Status::invalid_argument("Missing security key name".to_owned())
                 })?;

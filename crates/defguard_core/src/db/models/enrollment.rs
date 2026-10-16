@@ -398,7 +398,7 @@ impl Token {
         Ok(true)
     }
 
-    /// Like the REST `webauthn_init`, but stores the ceremony state on the token and requires
+    /// Like the REST WebAuthn init, but stores the ceremony state on the token and requires
     /// attestation by a trusted hardware authenticator.
     pub async fn start_fido2_setup(
         &mut self,
@@ -437,8 +437,12 @@ impl Token {
             .build_webauthn()
             .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
         let passkey_reg = self.get_passkey_registration().ok_or_else(|| {
-            TokenError::WebauthnRegistration("Passkey registration session not found".into())
+            TokenError::WebauthnRegistration(
+                "FIDO2 setup session not found or expired, restart the setup".into(),
+            )
         })?;
+        // The challenge is single use, a failed attempt must restart the ceremony.
+        self.clear_mfa_setup_state(pool).await?;
         let rpkc: RegisterPublicKeyCredential =
             serde_json::from_str(attestation_json).map_err(|_| {
                 TokenError::WebauthnRegistration("Failed to parse registration attestation".into())
@@ -478,7 +482,6 @@ impl Token {
             .save(pool)
             .await
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        self.clear_mfa_setup_state(pool).await?;
         Ok(webauthn_key)
     }
 

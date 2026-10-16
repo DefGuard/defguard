@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT passkey FROM webauthn WHERE user_id = $1 AND authenticator_kind = 'hardware'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "passkey",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "passkey"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "981b981bb11634652247df1c088018a3cdc73748a2b629544252a3361301ca57"
+}

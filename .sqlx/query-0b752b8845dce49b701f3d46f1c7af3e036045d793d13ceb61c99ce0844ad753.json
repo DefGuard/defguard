@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT template, section, language_tag, text, enabled FROM mail_context WHERE template = $1 AND language_tag = $2 AND enabled",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "template",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "template"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "section",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "section"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "language_tag",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "language_tag"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "mail_context",
+            "name": "enabled"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0b752b8845dce49b701f3d46f1c7af3e036045d793d13ceb61c99ce0844ad753"
+}

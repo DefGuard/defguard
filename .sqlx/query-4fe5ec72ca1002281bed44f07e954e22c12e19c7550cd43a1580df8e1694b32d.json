@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclrulegroup\" SET \"rule_id\" = $2,\"group_id\" = $3,\"allow\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fe5ec72ca1002281bed44f07e954e22c12e19c7550cd43a1580df8e1694b32d"
+}

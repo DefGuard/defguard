@@ -8,7 +8,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     error::WebError,
     server_config,
-    support::dump_config,
+    support::{dump_config, read_log_tail},
 };
 
 /// Get instance configuration for support purposes
@@ -72,7 +72,7 @@ pub(crate) async fn configuration(
 pub(crate) async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = server_config().log_file {
-        match tokio::fs::read_to_string(log_file).await {
+        match read_log_tail(log_file).await {
             Ok(logs) => {
                 info!("User {} dumped app logs", session.user.username);
                 Ok(logs)

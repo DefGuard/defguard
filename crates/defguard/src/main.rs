@@ -77,20 +77,25 @@ async fn main() -> Result<(), anyhow::Error> {
         config.log_level
     );
 
-    let file_layer = match &config.log_file {
+    // The guard flushes buffered log lines on drop, so it must live until main returns.
+    let (file_layer, _log_file_guard) = match &config.log_file {
         Some(path) => {
             let file = OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(path)
                 .with_context(|| format!("Failed to open log file {path}"))?;
-            Some(
-                tracing_subscriber::fmt::layer()
-                    .with_ansi(false)
-                    .with_writer(Mutex::new(file)),
+            let (writer, guard) = tracing_appender::non_blocking(file);
+            (
+                Some(
+                    tracing_subscriber::fmt::layer()
+                        .with_ansi(false)
+                        .with_writer(writer),
+                ),
+                Some(guard),
             )
         }
-        None => None,
+        None => (None, None),
     };
 
     let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);

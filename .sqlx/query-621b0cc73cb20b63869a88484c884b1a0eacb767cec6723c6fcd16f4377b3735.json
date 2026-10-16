@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM user_directory_identity WHERE user_id = $1 AND provider_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "621b0cc73cb20b63869a88484c884b1a0eacb767cec6723c6fcd16f4377b3735"
+}

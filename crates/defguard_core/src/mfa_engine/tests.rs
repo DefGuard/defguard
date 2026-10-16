@@ -24,7 +24,7 @@ use defguard_common::{
                 VpnClientMfaSession, VpnMfaFlowKind, hash_token,
             },
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
-            webauthn::{AuthenticatorInfo, RegistrationSource},
+            webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
             wireguard::ServiceLocationMode,
         },
         setup_pool,
@@ -1377,6 +1377,7 @@ async fn register_test_fido2_passkey(
     pool: &PgPool,
     user_id: Id,
     username: &str,
+    kind: AuthenticatorKind,
 ) -> (SigningKey, Vec<u8>) {
     let settings = Settings::get_current_settings();
     let webauthn = settings
@@ -1408,7 +1409,11 @@ async fn register_test_fido2_passkey(
         user_id,
         "registered test key".to_owned(),
         &passkey,
-        AuthenticatorInfo::unattested(RegistrationSource::Desktop),
+        AuthenticatorInfo {
+            name: None,
+            kind,
+            source: RegistrationSource::Desktop,
+        },
     )
     .expect("failed to serialize passkey")
     .save(pool)
@@ -1546,7 +1551,8 @@ async fn test_finish_step_unknown_nonempty_fido2_credential_id_stays_counted_to_
         .expect("failed to init settings");
     let user = create_user(&pool).await;
     let (_signing_key, registered_credential_id) =
-        register_test_fido2_passkey(&pool, user.id, &user.username).await;
+        register_test_fido2_passkey(&pool, user.id, &user.username, AuthenticatorKind::Hardware)
+            .await;
     let mut unknown_credential_id = registered_credential_id;
     unknown_credential_id.push(0);
     let (engine, mut event_rx, _gateway_rx, token, attempt_id) =
@@ -1642,7 +1648,8 @@ async fn test_finish_step_completes_with_valid_fido2_assertion(
         .expect("failed to init settings");
     let user = create_user(&pool).await;
     let (signing_key, credential_id) =
-        register_test_fido2_passkey(&pool, user.id, &user.username).await;
+        register_test_fido2_passkey(&pool, user.id, &user.username, AuthenticatorKind::Hardware)
+            .await;
     let (engine, _event_rx, _gateway_rx, token, attempt_id) =
         start_fido2_test_attempt(&pool, user.id).await;
     let challenge = fido2_attempt_challenge(&pool, &token).await;
@@ -1673,9 +1680,9 @@ async fn test_finish_step_completes_with_valid_fido2_assertion(
     );
 }
 
-#[sqlx::test]
-async fn test_finish_step_rejects_fido2_assertion_without_user_verification(
-    _: PgPoolOptions,
+async fn assert_fido2_assertion_rejected(
+    kind: AuthenticatorKind,
+    flags: u8,
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
@@ -1684,7 +1691,7 @@ async fn test_finish_step_rejects_fido2_assertion_without_user_verification(
         .expect("failed to init settings");
     let user = create_user(&pool).await;
     let (signing_key, credential_id) =
-        register_test_fido2_passkey(&pool, user.id, &user.username).await;
+        register_test_fido2_passkey(&pool, user.id, &user.username, kind).await;
     let (engine, _event_rx, _gateway_rx, token, attempt_id) =
         start_fido2_test_attempt(&pool, user.id).await;
     let challenge = fido2_attempt_challenge(&pool, &token).await;
@@ -1699,13 +1706,13 @@ async fn test_finish_step_rejects_fido2_assertion_without_user_verification(
                         &signing_key,
                         &challenge,
                         credential_id,
-                        0x01,
+                        flags,
                     ))),
                 },
                 test_ip(),
             )
             .await
-            .expect_err("an assertion without user verification must fail"),
+            .expect_err("the FIDO2 assertion must be rejected"),
     );
     assert_eq!(status.code(), Code::Unauthenticated);
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
@@ -1713,6 +1720,30 @@ async fn test_finish_step_rejects_fido2_assertion_without_user_verification(
         .expect("session lookup should succeed")
         .expect("verification failure must preserve the session");
     assert_eq!(session.failed_attempts, 1);
+}
+
+#[sqlx::test]
+async fn test_finish_step_rejects_fido2_assertion_without_user_verification(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_fido2_assertion_rejected(AuthenticatorKind::Hardware, 0x01, options).await;
+}
+
+#[sqlx::test]
+async fn test_finish_step_rejects_fido2_assertion_from_unattested_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_fido2_assertion_rejected(AuthenticatorKind::Unknown, 0x05, options).await;
+}
+
+#[sqlx::test]
+async fn test_finish_step_rejects_backup_eligible_fido2_assertion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_fido2_assertion_rejected(AuthenticatorKind::Hardware, 0x0d, options).await;
 }
 
 #[sqlx::test]

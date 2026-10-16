@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device_posture_os_rule WHERE posture_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bdf4150556feb49e22d55a6f8a1ff5b4ae7eff210aaec7479d7f13a66cd7db2b"
+}

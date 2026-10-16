@@ -145,8 +145,8 @@ async fn register_signing_key(pool: &PgPool, user_id: Id) -> (SigningKey, Vec<u8
 
 const USER_PRESENT_AND_VERIFIED: u8 = 0x05;
 
-/// Signs `challenge` the way a security key does for `ctap_hid_fido2`'s verifier, returning the
-/// raw signature and the authenticator data.
+/// Signs the challenge like a security key does for the ctap_hid_fido2 verifier.
+/// Returns the raw signature and the authenticator data.
 fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> (Vec<u8>, Vec<u8>) {
     sign_challenge_with_flags(signing_key, challenge, USER_PRESENT_AND_VERIFIED)
 }

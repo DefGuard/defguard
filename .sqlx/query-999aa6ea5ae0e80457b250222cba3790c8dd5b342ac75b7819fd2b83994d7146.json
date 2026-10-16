@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"device_posture\" (\"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "999aa6ea5ae0e80457b250222cba3790c8dd5b342ac75b7819fd2b83994d7146"
+}

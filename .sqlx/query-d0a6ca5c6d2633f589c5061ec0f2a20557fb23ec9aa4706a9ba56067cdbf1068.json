@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE aclrulealias SET alias_id = $1 WHERE alias_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d0a6ca5c6d2633f589c5061ec0f2a20557fb23ec9aa4706a9ba56067cdbf1068"
+}

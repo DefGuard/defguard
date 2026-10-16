@@ -282,6 +282,13 @@ async fn assert_registration_rejected(
             .expect("query webauthn"),
         "an untrusted authenticator must not be saved"
     );
+    let token = Token::find_by_id(&context.pool, &session_token)
+        .await
+        .expect("token exists");
+    assert!(
+        token.mfa_setup_state.is_none(),
+        "a rejected attestation must consume the setup challenge"
+    );
 
     context.finish().await.expect_server_finished().await;
 }

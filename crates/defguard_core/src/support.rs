@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    io::{self, SeekFrom},
+};
 
 use defguard_common::{
     VERSION,
@@ -13,8 +17,14 @@ use defguard_common::{
 use serde::Serialize;
 use serde_json::{Value, json, value::to_value};
 use sqlx::PgConnection;
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, AsyncSeekExt},
+};
 
 use crate::server_config;
+
+const LOG_TAIL_MAX_BYTES: u64 = 10 * 1024 * 1024;
 
 /// Unwraps the result returning a JSON representation of value or error
 fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Result<Value, serde_json::Error> {
@@ -101,9 +111,33 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     }))
 }
 
+/// The first partial line is dropped when the file is longer than the limit.
+pub(crate) async fn read_log_tail(path: &str) -> io::Result<String> {
+    let mut file = File::open(path).await?;
+    let start = file
+        .metadata()
+        .await?
+        .len()
+        .saturating_sub(LOG_TAIL_MAX_BYTES);
+    file.seek(SeekFrom::Start(start)).await?;
+    let mut bytes = Vec::new();
+    file.take(LOG_TAIL_MAX_BYTES)
+        .read_to_end(&mut bytes)
+        .await?;
+    if start > 0
+        && let Some(first_newline) = bytes.iter().position(|&byte| byte == b'\n')
+    {
+        bytes.drain(..=first_newline);
+    }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::{
+        fs,
+        net::{IpAddr, Ipv4Addr},
+    };
 
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
@@ -118,7 +152,7 @@ mod tests {
     use serde_json::Value;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use super::dump_config;
+    use super::{LOG_TAIL_MAX_BYTES, dump_config, read_log_tail};
 
     // Sentinel secrets. None of these may ever show up in the support dump.
     const SMTP_PASSWORD: &str = "sentinel-smtp-password";
@@ -285,5 +319,35 @@ mod tests {
 
         // Catch sensitive fields added in the future, even without a sentinel value.
         assert_sensitive_keys_empty(&dump, "dump");
+    }
+
+    async fn read_tail_of(contents: &str) -> String {
+        let path =
+            std::env::temp_dir().join(format!("defguard-log-tail-{}.log", uuid::Uuid::new_v4()));
+        fs::write(&path, contents).expect("write log file");
+        let tail = read_log_tail(path.to_str().expect("utf-8 path")).await;
+        fs::remove_file(&path).expect("remove log file");
+        tail.expect("read log tail")
+    }
+
+    #[tokio::test]
+    async fn test_read_log_tail_returns_whole_lines_within_limit() {
+        let line = format!("{}\n", "x".repeat(1023));
+        let line_count = usize::try_from(LOG_TAIL_MAX_BYTES / 1024).unwrap() + 3;
+        let contents = line.repeat(line_count) + "last line\n";
+
+        let tail = read_tail_of(&contents).await;
+        assert!(u64::try_from(tail.len()).unwrap() <= LOG_TAIL_MAX_BYTES);
+        assert!(
+            tail.lines()
+                .take_while(|line| *line != "last line")
+                .all(|line| line.len() == 1023)
+        );
+        assert!(tail.ends_with("last line\n"));
+    }
+
+    #[tokio::test]
+    async fn test_read_log_tail_returns_small_file_unchanged() {
+        assert_eq!(read_tail_of("first\nsecond\n").await, "first\nsecond\n");
     }
 }

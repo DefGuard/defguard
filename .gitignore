@@ -1,5 +1,6 @@
 target/
 defguard.db*
+defguard.log
 .volumes*
 node_modules/
 .DS_Store
@@ -18,3 +19,4 @@ result/
 .env
 .zellij_layout.kdl
 docker-compose-dev.yaml
+*.log
