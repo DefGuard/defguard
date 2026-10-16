@@ -2870,8 +2870,8 @@ async fn test_auth_mfa_session_with_oidc_rejects_non_oidc_method(
         )
         .await
         .expect_err("a non-OIDC session must be rejected");
-    assert_eq!(status.code(), Code::InvalidArgument);
-    assert_eq!(status.message(), "invalid MFA method");
+    assert_eq!(status.status_code, Code::InvalidArgument as i32);
+    assert_eq!(status.message, "invalid MFA method");
 
     // The mismatched session is deleted.
     assert!(
@@ -2941,8 +2941,8 @@ async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_
         )
         .await
         .expect_err("state without an attempt id must be rejected");
-    assert_eq!(status.code(), Code::InvalidArgument);
-    assert_eq!(status.message(), "invalid state data");
+    assert_eq!(status.status_code, Code::InvalidArgument as i32);
+    assert_eq!(status.message, "invalid state data");
 
     let malformed_status = server
         .auth_mfa_session_with_oidc(
@@ -2955,8 +2955,8 @@ async fn test_auth_mfa_session_with_oidc_rejects_invalid_state_without_mutating_
         )
         .await
         .expect_err("malformed state must be rejected");
-    assert_eq!(malformed_status.code(), Code::InvalidArgument);
-    assert_eq!(malformed_status.message(), "invalid state data");
+    assert_eq!(malformed_status.status_code, Code::InvalidArgument as i32);
+    assert_eq!(malformed_status.message, "invalid state data");
 
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &token)
         .await
