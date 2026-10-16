@@ -51,7 +51,7 @@ use defguard_setup::{
     auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
     setup_server::run_setup_web_server,
 };
-use defguard_version::tracing::{VersionFilteredFields, VersionSuffixFormat};
+use defguard_version::tracing::version_fmt_layer;
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -62,7 +62,7 @@ use tokio::{
     },
 };
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::{fmt::format::Format, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -140,18 +140,8 @@ async fn main() -> Result<(), anyhow::Error> {
         Some(path) => {
             let (writer, guard) =
                 tracing_appender::non_blocking(log_file_writer(path, config.log_file_rotation)?);
-            let event_format = VersionSuffixFormat::new(
-                defguard_version::Version::new(version.major, version.minor, version.patch),
-                Format::default().with_ansi(false),
-            );
             (
-                Some(
-                    tracing_subscriber::fmt::layer()
-                        .with_ansi(false)
-                        .event_format(event_format)
-                        .fmt_fields(VersionFilteredFields)
-                        .with_writer(writer),
-                ),
+                Some(version_fmt_layer(&version, false, writer)),
                 Some(guard),
             )
         }
