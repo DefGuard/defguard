@@ -53,6 +53,8 @@ use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
+use super::mfa_setup::RecoveryCodes;
+
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
     gateway_tx: UnboundedSender<GatewayCommand>,
@@ -1232,7 +1234,7 @@ impl EnrollmentServer {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
-        // New enrollments get fresh recovery codes; existing users keep their current ones.
+        // New enrollments get fresh recovery codes, existing users keep their current ones.
         let recovery_codes = super::mfa_setup::finalize_mfa_factor(
             &self.pool,
             &self.event_tx,
@@ -1241,7 +1243,11 @@ impl EnrollmentServer {
             mfa_method,
             event,
             info,
-            is_enrollment,
+            if is_enrollment {
+                RecoveryCodes::Fresh
+            } else {
+                RecoveryCodes::KeepOrIssue
+            },
         )
         .await?;
         info!(

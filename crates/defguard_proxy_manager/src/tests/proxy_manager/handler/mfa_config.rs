@@ -1,20 +1,23 @@
 use defguard_common::{
     db::{
         Id,
-        models::{MFAMethod, Session, SessionState, User},
+        models::{MFAMethod, Session, SessionState, User, WebAuthn, webauthn::AuthenticatorKind},
     },
     testing::smtp::configure_working_smtp,
 };
 use defguard_core::events::ApiEventType;
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 
 use super::support::{
     assert_error_response, complete_proxy_handshake, create_polling_token, create_user_with_device,
     generate_totp_code, register_webauthn_key, send_code_mfa_setup_finish,
     send_code_mfa_setup_start, send_mfa_config_authorize, send_mfa_config_end,
-    send_mfa_config_send_code, send_mfa_config_start, setup_user_totp_mfa,
-    totp_code_from_base32_secret,
+    send_mfa_config_fido2_challenge, send_mfa_config_send_code, send_mfa_config_start,
+    setup_user_totp_mfa, totp_code_from_base32_secret,
 };
 use crate::tests::common::HandlerTestContext;
 
@@ -221,7 +224,7 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
 
     let (mut user, device) = create_user_with_device(&context.pool).await;
     // The security key is the user's only factor; its registration issued recovery codes.
-    register_webauthn_key(&context.pool, user.id).await;
+    register_webauthn_key(&context.pool, user.id, AuthenticatorKind::Hardware).await;
     let issued = user
         .get_recovery_codes(&context.pool)
         .await
@@ -259,6 +262,164 @@ async fn test_fido2_only_user_is_not_treated_as_no_factor(
     assert!(
         !user.email_mfa_enabled,
         "the email factor must not be enabled"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Gives the user a software passkey as their only factor, with MFA enabled as web
+/// registration leaves it.
+async fn setup_software_passkey_user(pool: &PgPool, user: &mut User<Id>) {
+    register_webauthn_key(pool, user.id, AuthenticatorKind::Unknown).await;
+    user.verify_mfa_state(pool).await.expect("verify_mfa_state");
+    assert!(user.mfa_enabled, "a passkey must enable MFA");
+}
+
+/// Runs the email fallback for `user` to completion and returns the issued recovery codes.
+async fn authorize_with_email_fallback(
+    context: &mut HandlerTestContext,
+    user_id: Id,
+    polling_token: &str,
+    pubkey: &str,
+) -> Vec<String> {
+    let start_response = send_mfa_config_start(context, polling_token, pubkey).await;
+    let Some(core_response::Payload::MfaConfigStart(session)) = &start_response.payload else {
+        panic!("expected MfaConfigStartResponse")
+    };
+    assert_eq!(session.available_methods, [] as [i32; 0]);
+    assert!(
+        session.email_fallback,
+        "a software passkey cannot authorize, so the fallback applies"
+    );
+    let session_token = session.session_token.clone();
+
+    let challenge = send_mfa_config_fido2_challenge(context, &session_token).await;
+    assert_eq!(
+        assert_error_response(&challenge),
+        tonic::Code::PermissionDenied
+    );
+
+    let sent = send_mfa_config_send_code(context, &session_token).await;
+    assert!(
+        matches!(
+            sent.payload,
+            Some(core_response::Payload::MfaConfigSendCode(_))
+        ),
+        "the fallback must send an email code"
+    );
+    // Reload because mfa_config_start rotated the email secret.
+    let user = User::find_by_id(&context.pool, user_id)
+        .await
+        .expect("find user")
+        .expect("user exists");
+    let code = user
+        .generate_email_mfa_code()
+        .expect("generate_email_mfa_code");
+    let authorized =
+        send_mfa_config_authorize(context, &session_token, MfaMethod::Email, &code).await;
+    match &authorized.payload {
+        Some(core_response::Payload::MfaConfigAuthorize(response)) => {
+            response.recovery_codes.clone()
+        }
+        _ => panic!("expected MfaConfigAuthorizeResponse"),
+    }
+}
+
+/// A software passkey is MFA the client cannot use, so the fallback keeps the user's codes.
+#[sqlx::test]
+async fn test_software_passkey_user_fallback_keeps_recovery_codes(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _smtp = configure_working_smtp(&context.pool).await;
+
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_software_passkey_user(&context.pool, &mut user).await;
+    let stored = user
+        .get_recovery_codes(&context.pool)
+        .await
+        .expect("get_recovery_codes")
+        .expect("codes issued on first factor");
+    let polling_token = create_polling_token(&context.pool, device.id).await;
+
+    let issued = authorize_with_email_fallback(
+        &mut context,
+        user.id,
+        &polling_token,
+        &device.wireguard_pubkey,
+    )
+    .await;
+    assert!(
+        issued.is_empty(),
+        "the fallback must not issue codes to a user who already has MFA"
+    );
+
+    let user = User::find_by_id(&context.pool, user.id)
+        .await
+        .expect("find user")
+        .expect("user exists");
+    assert_eq!(
+        user.recovery_codes, stored,
+        "the fallback must keep the stored recovery codes"
+    );
+    assert!(
+        user.email_mfa_enabled,
+        "the fallback must enable the email factor"
+    );
+    assert_eq!(
+        user.mfa_method,
+        MFAMethod::Webauthn,
+        "the default MFA method must not change"
+    );
+    assert!(
+        WebAuthn::exists_for_user(&context.pool, user.id)
+            .await
+            .expect("exists_for_user"),
+        "the passkey must stay registered"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// The fallback must not issue codes to a passkey user even after they used all of theirs.
+#[sqlx::test]
+async fn test_software_passkey_user_fallback_issues_no_codes_when_used_up(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _smtp = configure_working_smtp(&context.pool).await;
+
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_software_passkey_user(&context.pool, &mut user).await;
+    user.clear_recovery_codes(&context.pool)
+        .await
+        .expect("clear_recovery_codes");
+    let polling_token = create_polling_token(&context.pool, device.id).await;
+
+    let issued = authorize_with_email_fallback(
+        &mut context,
+        user.id,
+        &polling_token,
+        &device.wireguard_pubkey,
+    )
+    .await;
+    assert!(issued.is_empty(), "the fallback must not issue codes");
+
+    let user = User::find_by_id(&context.pool, user.id)
+        .await
+        .expect("find user")
+        .expect("user exists");
+    assert!(
+        user.recovery_codes.is_empty(),
+        "the fallback must not store new codes"
+    );
+    assert!(
+        user.email_mfa_enabled,
+        "the fallback must enable the email factor"
     );
 
     context.finish().await.expect_server_finished().await;

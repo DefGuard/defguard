@@ -15,9 +15,19 @@ use sqlx::{PgPool, Postgres, Transaction};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
+/// How enabling a factor treats the user's recovery codes.
+pub(super) enum RecoveryCodes {
+    /// Replace any stored codes with new ones.
+    Fresh,
+    /// Keep stored codes, issuing new ones only when none are left.
+    KeepOrIssue,
+    /// Leave stored codes untouched, even when none are left.
+    Keep,
+}
+
 /// Called after the caller has run the factor-specific enable inside `transaction`: logs out
 /// other sessions, commits, flips `mfa_enabled`, sends the confirmation email and emits `event`.
-/// Returns the recovery codes to show the client, empty unless `fresh_recovery_codes` is set.
+/// Returns the recovery codes to show the client, empty unless new codes were issued.
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn finalize_mfa_factor(
     pool: &PgPool,
@@ -27,7 +37,7 @@ pub(super) async fn finalize_mfa_factor(
     mfa_method: MFAMethod,
     event: ApiEventType,
     device_info: Option<DeviceInfo>,
-    fresh_recovery_codes: bool,
+    recovery_codes: RecoveryCodes,
 ) -> Result<Vec<String>, Status> {
     // Enabling MFA invalidates all existing sessions in the same transaction.
     user.logout_all_sessions(&mut *transaction)
@@ -36,7 +46,7 @@ pub(super) async fn finalize_mfa_factor(
             error!("Failed to log out user sessions: {err}");
             Status::internal("Failed to log out user sessions".to_owned())
         })?;
-    if fresh_recovery_codes {
+    if matches!(recovery_codes, RecoveryCodes::Fresh) {
         user.clear_recovery_codes(&mut *transaction)
             .await
             .map_err(|err| {
@@ -44,12 +54,15 @@ pub(super) async fn finalize_mfa_factor(
                 Status::internal("Failed to clear recovery codes".to_owned())
             })?;
     }
-    // Existing recovery codes were already shown, so return an empty list.
-    let recovery_codes = user
-        .get_recovery_codes(&mut *transaction)
-        .await
-        .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
-        .unwrap_or_default();
+    let recovery_codes = match recovery_codes {
+        RecoveryCodes::Keep => Vec::new(),
+        // Existing recovery codes were already shown, so return an empty list.
+        RecoveryCodes::Fresh | RecoveryCodes::KeepOrIssue => user
+            .get_recovery_codes(&mut *transaction)
+            .await
+            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
+            .unwrap_or_default(),
+    };
     transaction.commit().await.map_err(|err| {
         error!("Failed to commit database transaction: {err}");
         Status::internal("Failed to commit database transaction".to_owned())
