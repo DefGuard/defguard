@@ -31,7 +31,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
-    // TODO: restore file logging, seems to have vanished during the switch to tracing
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 

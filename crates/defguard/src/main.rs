@@ -1,10 +1,10 @@
 use std::{
     collections::HashSet,
-    fs::read_to_string,
+    fs::{OpenOptions, read_to_string},
     sync::{Arc, Mutex, RwLock},
 };
 
-use anyhow::bail;
+use anyhow::{Context, bail};
 use bytes::Bytes;
 use defguard_common::{
     CARGO_VERSION, VERSION,
@@ -77,12 +77,29 @@ async fn main() -> Result<(), anyhow::Error> {
         config.log_level
     );
 
+    let file_layer = match &config.log_file {
+        Some(path) => {
+            let file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .with_context(|| format!("Failed to open log file {path}"))?;
+            Some(
+                tracing_subscriber::fmt::layer()
+                    .with_ansi(false)
+                    .with_writer(Mutex::new(file)),
+            )
+        }
+        None => None,
+    };
+
     let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
         &log_filter,
         subscriber,
     )
+    .with(file_layer)
     .init();
 
     info!("Starting ... version v{VERSION}");
