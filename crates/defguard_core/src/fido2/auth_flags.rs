@@ -1,9 +1,16 @@
+// SHA-256 of the RP ID, https://www.w3.org/TR/webauthn-3/#authdata-rpidhash
 const RP_ID_HASH_LEN: usize = 32;
+// 32-bit big-endian counter, https://www.w3.org/TR/webauthn-3/#authdata-signcount
 const SIGN_COUNT_LEN: usize = 4;
+// rpIdHash, 1 flags byte and signCount give the 37 byte minimum
+// https://www.w3.org/TR/webauthn-3/#sctn-authenticator-data
 const MIN_AUTH_DATA_LEN: usize = RP_ID_HASH_LEN + 1 + SIGN_COUNT_LEN;
 
+// bit 0, https://www.w3.org/TR/webauthn-3/#authdata-flags-up
 const USER_PRESENT: u8 = 0x01;
+// bit 2, https://www.w3.org/TR/webauthn-3/#authdata-flags-uv
 const USER_VERIFIED: u8 = 0x04;
+// bit 3, https://www.w3.org/TR/webauthn-3/#authdata-flags-be
 const BACKUP_ELIGIBLE: u8 = 0x08;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
