@@ -4,13 +4,14 @@ use axum::{Extension, Json};
 use defguard_common::db::models::{ActiveWizard, Wizard, migration_wizard::MigrationWizardState};
 use defguard_core::{
     auth::AdminRole,
+    enterprise::ldap,
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::{PgPool, query_as};
 use tokio::sync::oneshot;
 use tracing::info;
 
@@ -21,7 +22,21 @@ use crate::handlers::auto_wizard::{
 
 pub async fn get_migration_state(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let migration_state = MigrationWizardState::get(&pool).await?.unwrap_or_default();
-    Ok(ApiResponse::new(json!(migration_state), StatusCode::OK))
+    let (ldap_migration_required,): (bool,) = query_as(
+        "SELECT EXISTS(SELECT 1 FROM \"user\" WHERE from_ldap AND POSITION(chr(92) IN ldap_rdn) > 0)",
+    )
+    .fetch_one(&pool)
+    .await?;
+    let mut response = json!(migration_state);
+    response["ldap_migration_required"] = json!(ldap_migration_required);
+    Ok(ApiResponse::new(response, StatusCode::OK))
+}
+
+pub async fn repair_ldap_migration(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+    let counts = ldap::migration::repair(&pool)
+        .await
+        .map_err(|error| WebError::BadRequest(error.to_string()))?;
+    Ok(ApiResponse::new(json!(counts), StatusCode::OK))
 }
 
 pub async fn update_migration_state(
