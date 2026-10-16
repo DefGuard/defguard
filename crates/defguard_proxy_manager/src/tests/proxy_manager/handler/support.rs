@@ -683,15 +683,18 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
 }
 
 /// Make the FIDO2 factor read as configured for `user_id`. The `passkey` blob is a
-/// placeholder: the paths exercised here only check `WebAuthn::exists_for_user`.
+/// placeholder: the paths exercised here only check `WebAuthn::hardware_exists_for_user`.
 pub(crate) async fn register_webauthn_key(pool: &PgPool, user_id: Id) {
-    sqlx::query("INSERT INTO webauthn (user_id, name, passkey) VALUES ($1, $2, $3)")
-        .bind(user_id)
-        .bind("test key")
-        .bind(vec![0_u8])
-        .execute(pool)
-        .await
-        .expect("insert webauthn key");
+    sqlx::query(
+        "INSERT INTO webauthn (user_id, name, passkey, authenticator_kind) \
+        VALUES ($1, $2, $3, 'hardware')",
+    )
+    .bind(user_id)
+    .bind("test key")
+    .bind(vec![0_u8])
+    .execute(pool)
+    .await
+    .expect("insert webauthn key");
 }
 
 /// Generate a valid 6-digit TOTP code for `user` using the current timestamp.

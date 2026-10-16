@@ -65,7 +65,10 @@ use crate::{
     mfa_engine::{
         error::StartError,
         legacy::{FinishError, LegacyProof},
-        method::{InitiateError, Verdict, VerifyError, check_mobile_approval, verify},
+        method::{
+            InitiateError, Verdict, VerifyError, check_mobile_approval, verify,
+            verify_mfa_config_fido2_assertion,
+        },
         multi_step::{
             Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError,
             StepFinishError, StepProof,
@@ -1744,6 +1747,73 @@ async fn test_finish_step_rejects_backup_eligible_fido2_assertion(
     options: PgConnectOptions,
 ) {
     assert_fido2_assertion_rejected(AuthenticatorKind::Hardware, 0x0d, options).await;
+}
+
+async fn verify_test_mfa_config_fido2_assertion(
+    kind: AuthenticatorKind,
+    flags: u8,
+    options: PgConnectOptions,
+) -> bool {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let user = create_user(&pool).await;
+    let (signing_key, credential_id) =
+        register_test_fido2_passkey(&pool, user.id, &user.username, kind).await;
+    let challenge = "mfa-config-challenge";
+    let assertion = signed_fido2_assertion(&signing_key, challenge, credential_id, flags);
+
+    verify_mfa_config_fido2_assertion(
+        &pool,
+        user.id,
+        challenge,
+        Some(&assertion.signature),
+        Some(&assertion.authenticator_data),
+        Some(&assertion.credential_id),
+    )
+    .await
+    .expect("FIDO2 verification should not error")
+}
+
+#[sqlx::test]
+async fn test_mfa_config_accepts_hardware_fido2_assertion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert!(
+        verify_test_mfa_config_fido2_assertion(AuthenticatorKind::Hardware, 0x05, options).await
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_config_rejects_fido2_assertion_without_user_verification(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert!(
+        !verify_test_mfa_config_fido2_assertion(AuthenticatorKind::Hardware, 0x01, options).await
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_config_rejects_fido2_assertion_from_unattested_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert!(
+        !verify_test_mfa_config_fido2_assertion(AuthenticatorKind::Unknown, 0x05, options).await
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_config_rejects_backup_eligible_fido2_assertion(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert!(
+        !verify_test_mfa_config_fido2_assertion(AuthenticatorKind::Hardware, 0x0d, options).await
+    );
 }
 
 #[sqlx::test]

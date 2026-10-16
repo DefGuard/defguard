@@ -13,7 +13,7 @@ use defguard_common::{
         models::{
             User, WebAuthn,
             settings::{Settings, update_current_settings},
-            webauthn::{AuthenticatorInfo, RegistrationSource},
+            webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
         },
     },
     testing::smtp::configure_working_smtp,
@@ -97,7 +97,7 @@ async fn assert_setup_allowed(context: &mut HandlerTestContext, session_token: &
     );
 }
 
-/// Registers a security key whose private key the test holds.
+/// Registers a hardware-attested security key whose private key the test holds.
 ///
 /// A `SoftPasskey` registration yields a well-formed `Passkey`, whose public key is then
 /// swapped for an Ed25519 key the test can sign with.
@@ -134,7 +134,11 @@ async fn register_signing_key(pool: &PgPool, user_id: Id) -> (SigningKey, Vec<u8
         user_id,
         "test key".to_owned(),
         &passkey,
-        AuthenticatorInfo::unattested(RegistrationSource::Desktop),
+        AuthenticatorInfo {
+            name: None,
+            kind: AuthenticatorKind::Hardware,
+            source: RegistrationSource::Desktop,
+        },
     )
     .expect("new webauthn key")
     .save(pool)

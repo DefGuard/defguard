@@ -15,7 +15,6 @@ use defguard_common::db::{
 };
 use sqlx::PgPool;
 use thiserror::Error;
-use webauthn_rs::prelude::Passkey;
 
 use super::types::VerificationProof;
 use crate::{
@@ -330,41 +329,35 @@ async fn verify_vpn_fido2_step(
         auth_data: authenticator_data.clone(),
         ..Default::default()
     };
-    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, ctx.user.id).await?;
-    let failed = Verdict::Failed {
-        message: "FIDO2 challenge failed",
-    };
-    let Some(flags) = verify_registered_fido2_assertion(
-        &passkeys,
+    let verified = verify_client_fido2_assertion(
+        pool,
         ctx.user.id,
         &rp_id,
         &challenge.challenge,
         &assertion,
         Some(credential_id.as_slice()),
-    ) else {
-        return Ok(failed);
-    };
-    // Registration rejects backup eligible keys, the same rule holds at VPN connect.
-    if flags.backup_eligible {
-        warn!(
-            "Rejecting FIDO2 assertion for user {}: credential is backup eligible",
-            ctx.user.id
-        );
-        return Ok(failed);
+    )
+    .await?;
+    if verified {
+        Ok(Verdict::Proved)
+    } else {
+        Ok(Verdict::Failed {
+            message: "FIDO2 challenge failed",
+        })
     }
-    Ok(Verdict::Proved)
 }
 
-/// Returns the assertion's flags when a registered key signed it with user presence and
-/// verification.
-fn verify_registered_fido2_assertion(
-    passkeys: &[Passkey],
+/// Whether one of the user's hardware-attested keys signed the assertion with user presence
+/// and verification, and the key is not backup eligible.
+async fn verify_client_fido2_assertion(
+    pool: &PgPool,
     user_id: Id,
     rp_id: &str,
     challenge: &str,
     assertion: &Assertion,
     credential_id: Option<&[u8]>,
-) -> Option<AuthFlags> {
+) -> Result<bool, VerifyError> {
+    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, user_id).await?;
     let signed = passkeys.iter().any(|passkey| {
         credential_id.is_none_or(|credential_id| passkey.cred_id().as_ref() == credential_id)
             && to_ctap_public_key(passkey).is_some_and(|public_key| {
@@ -372,22 +365,29 @@ fn verify_registered_fido2_assertion(
             })
     });
     if !signed {
-        return None;
+        return Ok(false);
     }
 
     // The flags are covered by the signature, so they are only trusted once it verified.
-    let flags = AuthFlags::parse(&assertion.auth_data).filter(|flags| flags.present_and_verified());
-    if flags.is_none() {
+    let Some(flags) =
+        AuthFlags::parse(&assertion.auth_data).filter(|flags| flags.present_and_verified())
+    else {
         warn!(
             "Rejecting FIDO2 assertion for user {user_id}: user presence or verification missing"
         );
+        return Ok(false);
+    };
+    // Registration rejects backup eligible keys, the same rule holds for every client assertion.
+    if flags.backup_eligible {
+        warn!("Rejecting FIDO2 assertion for user {user_id}: credential is backup eligible");
+        return Ok(false);
     }
-    flags
+    Ok(true)
 }
 
 /// Verify a FIDO2 assertion used to authorize MFA configuration.
 ///
-/// Returns `Ok(false)` when no registered key verifies the assertion.
+/// Returns `Ok(false)` unless a hardware-attested, non backup eligible key verifies the assertion.
 pub async fn verify_mfa_config_fido2_assertion(
     pool: &PgPool,
     user_id: Id,
@@ -424,16 +424,7 @@ pub async fn verify_mfa_config_fido2_assertion(
         auth_data: auth_data.to_vec(),
         ..Default::default()
     };
-    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
-    Ok(verify_registered_fido2_assertion(
-        &passkeys,
-        user_id,
-        &rp_id,
-        challenge,
-        &assertion,
-        credential_id,
-    )
-    .is_some())
+    verify_client_fido2_assertion(pool, user_id, &rp_id, challenge, &assertion, credential_id).await
 }
 
 /// Verify a signed MobileApprove challenge.
@@ -474,7 +465,7 @@ pub fn check_mobile_approval(ephemeral: &EphemeralState) -> Verdict {
     }
 }
 
-/// Empty unless the method is FIDO2. VPN connect offers only hardware-attested keys.
+/// Empty unless the method is FIDO2.
 pub async fn offered_credential_ids(
     pool: &PgPool,
     ctx: &MfaSessionContext,
@@ -483,19 +474,15 @@ pub async fn offered_credential_ids(
     if method != VpnClientMfaMethod::Fido2 {
         return Ok(Vec::new());
     }
-    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, ctx.user.id).await?;
-    Ok(encode_credential_ids(&passkeys))
+    fido2_credential_ids(pool, ctx.user.id).await
 }
 
-/// Every security key credential the user has registered, base64url as webauthn-rs serializes them.
+/// The user's hardware-attested security key credentials, base64url as webauthn-rs serializes
+/// them. Only these keys are accepted from the client.
 pub async fn fido2_credential_ids(pool: &PgPool, user_id: Id) -> Result<Vec<String>, sqlx::Error> {
-    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
-    Ok(encode_credential_ids(&passkeys))
-}
-
-fn encode_credential_ids(passkeys: &[Passkey]) -> Vec<String> {
-    passkeys
+    Ok(WebAuthn::hardware_passkeys_for_user(pool, user_id)
+        .await?
         .iter()
         .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
-        .collect()
+        .collect())
 }

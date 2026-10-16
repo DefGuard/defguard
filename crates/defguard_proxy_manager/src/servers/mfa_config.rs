@@ -2,7 +2,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, MFAMethod, Settings, User, WebAuthn, biometric_auth::BiometricChallenge,
+            Device, MFAMethod, Settings, User, biometric_auth::BiometricChallenge,
             polling_token::PollingToken, vpn_client_session::VpnClientMfaMethod,
         },
     },
@@ -80,21 +80,16 @@ async fn is_configured(
     smtp_configured: bool,
     oidc_available: bool,
 ) -> Result<bool, Status> {
-    // VPN connect counts only hardware-attested keys, MFA configuration accepts any key.
-    let configured = if method == VpnClientMfaMethod::Fido2 {
-        WebAuthn::exists_for_user(pool, user.id).await
-    } else {
-        method
-            .is_configured(pool, user, Some(device_id), smtp_configured, oidc_available)
-            .await
-    };
-    configured.map_err(|err| {
-        error!(
-            "MFA config: failed to read {method:?} state for user {}: {err}",
-            user.username
-        );
-        Status::internal("unexpected error")
-    })
+    method
+        .is_configured(pool, user, Some(device_id), smtp_configured, oidc_available)
+        .await
+        .map_err(|err| {
+            error!(
+                "MFA config: failed to read {method:?} state for user {}: {err}",
+                user.username
+            );
+            Status::internal("unexpected error")
+        })
 }
 
 async fn is_mfa_config_token(pool: &PgPool, token: &str) -> Result<bool, Status> {
