@@ -1,7 +1,10 @@
 use std::{
     collections::HashSet,
-    fs::{OpenOptions, read_to_string},
+    fs::{self, OpenOptions, read_to_string},
+    io::Write,
+    path::Path,
     sync::{Arc, Mutex, RwLock},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, bail};
@@ -57,10 +60,55 @@ use tokio::{
         mpsc::{channel, unbounded_channel},
     },
 };
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
+
+/// With rotation, logs go to daily `<path>.<date>` files and `path` is a symlink to the current one.
+fn log_file_writer(path: &str, rotation: bool) -> anyhow::Result<Box<dyn Write + Send>> {
+    let is_symlink = fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink());
+
+    if !rotation {
+        if is_symlink {
+            fs::remove_file(path)
+                .with_context(|| format!("Failed to remove log file symlink {path}"))?;
+        }
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .with_context(|| format!("Failed to open log file {path}"))?;
+        return Ok(Box::new(file));
+    }
+
+    let path_ref = Path::new(path);
+    let Some(file_name) = path_ref.file_name().and_then(|name| name.to_str()) else {
+        bail!("Invalid log file path {path}");
+    };
+    let directory = match path_ref.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => Path::new("."),
+    };
+
+    // The appender deletes whatever is at the symlink path, so keep a log left by a run without
+    // rotation.
+    if !is_symlink && path_ref.exists() {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let backup = format!("{path}.{timestamp}.bak");
+        fs::rename(path, &backup)
+            .with_context(|| format!("Failed to move log file {path} to {backup}"))?;
+    }
+
+    let appender = RollingFileAppender::builder()
+        .rotation(Rotation::DAILY)
+        .filename_prefix(file_name)
+        .latest_symlink(file_name)
+        .build(directory)
+        .with_context(|| format!("Failed to open log file {path}"))?;
+    Ok(Box::new(appender))
+}
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -80,12 +128,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // The guard flushes buffered log lines on drop, so it must live until main returns.
     let (file_layer, _log_file_guard) = match &config.log_file {
         Some(path) => {
-            let file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)
-                .with_context(|| format!("Failed to open log file {path}"))?;
-            let (writer, guard) = tracing_appender::non_blocking(file);
+            let (writer, guard) =
+                tracing_appender::non_blocking(log_file_writer(path, config.log_file_rotation)?);
             (
                 Some(
                     tracing_subscriber::fmt::layer()

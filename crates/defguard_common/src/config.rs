@@ -1,6 +1,6 @@
 use std::{net::IpAddr, sync::OnceLock};
 
-use clap::{Args, Parser, Subcommand, value_parser};
+use clap::{ArgAction, Args, Parser, Subcommand, value_parser};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
 use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
@@ -33,6 +33,15 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
+
+    /// Rotate the log file daily. Only used when `log_file` is set.
+    #[arg(
+        long,
+        env = "DEFGUARD_LOG_FILE_ROTATION",
+        default_value_t = true,
+        action = ArgAction::Set
+    )]
+    pub log_file_rotation: bool,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
@@ -343,6 +352,7 @@ impl DefGuardConfig {
         let config = Self {
             log_level: "info".to_owned(),
             log_file: None,
+            log_file_rotation: true,
             secret_key: None,
             database_host: "localhost".to_owned(),
             database_port: 5432,

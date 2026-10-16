@@ -20,3 +20,4 @@ result/
 .zellij_layout.kdl
 docker-compose-dev.yaml
 *.log
+*.log.*
