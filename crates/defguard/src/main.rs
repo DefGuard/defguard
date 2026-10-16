@@ -496,14 +496,25 @@ async fn main() -> Result<(), anyhow::Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, fs, io::Write, process};
+    use std::{env, fs, io::Write, path::PathBuf, process};
 
     use super::log_file_writer;
 
+    struct RestoreCwd(PathBuf);
+
+    impl Drop for RestoreCwd {
+        fn drop(&mut self) {
+            let _ = env::set_current_dir(&self.0);
+        }
+    }
+
+    // Changes the process-wide cwd, so under plain `cargo test` it must not run alongside other
+    // tests that use relative paths.
     #[test]
     fn rotated_log_symlink_resolves_for_relative_path() {
         let root = env::temp_dir().join(format!("defguard-log-file-{}", process::id()));
         fs::create_dir_all(&root).expect("create temp dir");
+        let cwd = RestoreCwd(env::current_dir().expect("read cwd"));
         env::set_current_dir(&root).expect("enter temp dir");
 
         let mut writer = log_file_writer("logs/defguard.log", true).expect("open log file");
@@ -511,6 +522,7 @@ mod tests {
         writer.flush().expect("flush log file");
         drop(writer);
         let logged = fs::read_to_string("logs/defguard.log");
+        drop(cwd);
         fs::remove_dir_all(&root).expect("remove temp dir");
 
         assert_eq!(logged.expect("read through symlink"), "first line\n");
