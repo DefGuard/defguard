@@ -15,7 +15,10 @@ use axum_extra::{
 use defguard_common::{
     db::{
         Id,
-        models::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, WebAuthn},
+        models::{
+            MFAInfo, MFAMethod, Session, SessionState, Settings, User, WebAuthn,
+            webauthn::{AuthenticatorInfo, RegistrationSource},
+        },
     },
     types::user_info::UserInfo,
 };
@@ -591,9 +594,14 @@ pub async fn webauthn_finish(
         .await?
         .ok_or(WebError::WebauthnRegistration("User not found".into()))?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?
-        .save(&appstate.pool)
-        .await?;
+    let webauthn = WebAuthn::new(
+        session.session.user_id,
+        webauth_reg.name,
+        &passkey,
+        AuthenticatorInfo::unattested(RegistrationSource::Core),
+    )?
+    .save(&appstate.pool)
+    .await?;
     if user.mfa_method == MFAMethod::None {
         let mut conn = appstate.pool.begin().await?;
         mfa_configured_mail(

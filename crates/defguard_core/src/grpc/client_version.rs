@@ -1,5 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_common::db::models::wireguard::LocationMfaMode;
+use defguard_common::db::models::{webauthn::RegistrationSource, wireguard::LocationMfaMode};
 use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
@@ -49,6 +49,22 @@ pub(crate) fn parse_client_version_platform(
     });
 
     (version, platform)
+}
+
+/// The web UI never reaches Core through the proxy, so every caller here is a client app.
+#[must_use]
+pub fn client_registration_source(info: Option<&DeviceInfo>) -> RegistrationSource {
+    let (_, platform) = parse_client_version_platform(info);
+    let is_mobile = platform.is_some_and(|platform| {
+        ["android", "ios"]
+            .iter()
+            .any(|family| platform.os_family.eq_ignore_ascii_case(family))
+    });
+    if is_mobile {
+        RegistrationSource::Mobile
+    } else {
+        RegistrationSource::Desktop
+    }
 }
 
 /// Features whose availability depends on client version and platform metadata.
@@ -205,6 +221,35 @@ mod tests {
             platform,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn test_client_registration_source() {
+        let platform = |os_family: &str| {
+            create_device_info(
+                Some("2.2.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    ..Default::default()
+                }),
+            )
+        };
+        assert_eq!(
+            client_registration_source(Some(&platform("android"))),
+            RegistrationSource::Mobile
+        );
+        assert_eq!(
+            client_registration_source(Some(&platform("iOS"))),
+            RegistrationSource::Mobile
+        );
+        assert_eq!(
+            client_registration_source(Some(&platform("windows"))),
+            RegistrationSource::Desktop
+        );
+        assert_eq!(
+            client_registration_source(None),
+            RegistrationSource::Desktop
+        );
     }
 
     #[test]

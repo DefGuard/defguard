@@ -1,6 +1,5 @@
 //! Integration tests for configuring a FIDO2 factor through the gRPC Configure-MFA flow.
-//! The ceremony is driven with a `SoftPasskey`, like the REST WebAuthn test in
-//! `defguard_core/tests/integration/api/auth.rs`.
+//! The ceremony is driven with a software token whose attestation CA each test trusts on its own.
 
 use defguard_common::db::{
     Id,
@@ -8,13 +7,22 @@ use defguard_common::db::{
         WebAuthn,
         settings::{Settings, update_current_settings},
         user::User,
+        webauthn::{AuthenticatorKind, RegistrationSource},
     },
 };
-use defguard_core::{db::models::enrollment::Token, events::ApiEventType};
+use defguard_core::{
+    db::models::enrollment::Token, events::ApiEventType,
+    fido2::attestation::trust_test_authenticator,
+};
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use webauthn_authenticator_rs::{WebauthnAuthenticator, prelude::Url, softpasskey::SoftPasskey};
-use webauthn_rs::prelude::CreationChallengeResponse;
+use webauthn_authenticator_rs::{
+    AuthenticatorBackend, WebauthnAuthenticator,
+    prelude::Url,
+    softpasskey::SoftPasskey,
+    softtoken::{AAGUID, SoftToken},
+};
+use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use super::support::{
     assert_error_response, complete_proxy_handshake, create_polling_token, create_user_with_device,
@@ -34,6 +42,29 @@ async fn set_webauthn_origin(context: &HandlerTestContext) -> Url {
         .await
         .expect("failed to set defguard_url for WebAuthn test");
     Url::parse(TEST_DEFGUARD_URL).expect("valid origin url")
+}
+
+const SOFT_TOKEN_DESCRIPTION: &str = "Test soft token";
+
+fn soft_token(trusted: bool) -> SoftToken {
+    let (token, ca) = SoftToken::new(true).expect("software token");
+    if trusted {
+        let ca_der = ca.to_der().expect("soft token CA encodes");
+        trust_test_authenticator(&ca_der, AAGUID, SOFT_TOKEN_DESCRIPTION)
+            .expect("trust soft token CA");
+    }
+    token
+}
+
+fn register(
+    authenticator: impl AuthenticatorBackend,
+    origin: Url,
+    ccr: CreationChallengeResponse,
+) -> String {
+    let rpkc: RegisterPublicKeyCredential = WebauthnAuthenticator::new(authenticator)
+        .do_registration(origin, ccr)
+        .expect("software authenticator registration");
+    serde_json::to_string(&rpkc).expect("serialize attestation")
 }
 
 /// Authorize a session with TOTP, returning the token gating factor setup and its user id.
@@ -94,6 +125,8 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
 
     let (session_token, user_id) = authorized_session(&mut context).await;
 
+    // Trusted before the ceremony starts, which snapshots the CA list into its state.
+    let authenticator = soft_token(true);
     let ccr = fido2_setup_start(&mut context, &session_token).await;
     let token = Token::find_by_id(&context.pool, &session_token)
         .await
@@ -103,12 +136,7 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         "the in-progress passkey registration must be stored on the token"
     );
 
-    // Drive the authenticator and finish the ceremony.
-    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let rpkc = authenticator
-        .do_registration(origin, ccr)
-        .expect("software authenticator registration");
-    let attestation = serde_json::to_string(&rpkc).expect("serialize attestation");
+    let attestation = register(authenticator, origin, ccr);
 
     let finish = send_code_mfa_setup_finish_fido2(
         &mut context,
@@ -117,6 +145,9 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         Some(&attestation),
     )
     .await;
+    if let Some(core_response::Payload::CoreError(err)) = &finish.payload {
+        panic!("FIDO2 setup must finish successfully, got: {}", err.message);
+    }
     assert!(
         matches!(
             finish.payload,
@@ -125,12 +156,20 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         "FIDO2 setup must finish successfully"
     );
 
-    assert!(
-        WebAuthn::exists_for_user(&context.pool, user_id)
-            .await
-            .expect("query webauthn"),
+    let keys = WebAuthn::all_for_user(&context.pool, user_id)
+        .await
+        .expect("query webauthn");
+    assert_eq!(
+        keys.len(),
+        1,
         "a security key must be registered for the user"
     );
+    assert_eq!(keys[0].authenticator_kind, AuthenticatorKind::Hardware);
+    assert_eq!(
+        keys[0].authenticator_name.as_deref(),
+        Some(SOFT_TOKEN_DESCRIPTION)
+    );
+    assert_eq!(keys[0].registration_source, RegistrationSource::Desktop);
     let user = User::find_by_id(&context.pool, user_id)
         .await
         .expect("find user")
@@ -192,12 +231,9 @@ async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options:
     let origin = set_webauthn_origin(&context).await;
 
     let (session_token, _user_id) = authorized_session(&mut context).await;
+    let authenticator = soft_token(true);
     let ccr = fido2_setup_start(&mut context, &session_token).await;
-    let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
-    let rpkc = authenticator
-        .do_registration(origin, ccr)
-        .expect("software authenticator registration");
-    let attestation = serde_json::to_string(&rpkc).expect("serialize attestation");
+    let attestation = register(authenticator, origin, ccr);
 
     let response =
         send_code_mfa_setup_finish_fido2(&mut context, &session_token, None, Some(&attestation))
@@ -215,4 +251,57 @@ async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options:
     );
 
     context.finish().await.expect_server_finished().await;
+}
+
+async fn assert_registration_rejected(
+    authenticator: impl AuthenticatorBackend,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let origin = set_webauthn_origin(&context).await;
+
+    let (session_token, user_id) = authorized_session(&mut context).await;
+    let ccr = fido2_setup_start(&mut context, &session_token).await;
+    let attestation = register(authenticator, origin, ccr);
+
+    let response = send_code_mfa_setup_finish_fido2(
+        &mut context,
+        &session_token,
+        Some("my key"),
+        Some(&attestation),
+    )
+    .await;
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::InvalidArgument
+    );
+    assert!(
+        !WebAuthn::exists_for_user(&context.pool, user_id)
+            .await
+            .expect("query webauthn"),
+        "an untrusted authenticator must not be saved"
+    );
+    let token = Token::find_by_id(&context.pool, &session_token)
+        .await
+        .expect("token exists");
+    assert!(
+        token.mfa_setup_state.is_none(),
+        "a rejected attestation must consume the setup challenge"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_fido2_self_attested_key_is_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    assert_registration_rejected(SoftPasskey::new(true), options).await;
+}
+
+#[sqlx::test]
+async fn test_fido2_untrusted_attestation_ca_is_rejected(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_registration_rejected(soft_token(false), options).await;
 }

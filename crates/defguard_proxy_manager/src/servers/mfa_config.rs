@@ -38,7 +38,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
-use super::mfa_setup::finalize_mfa_factor;
+use super::mfa_setup::{RecoveryCodes, finalize_mfa_factor};
 
 /// An unauthorized MFA configuration session and its user's current factor state.
 struct MfaConfigSession {
@@ -52,6 +52,7 @@ struct MfaConfigSession {
 
 impl MfaConfigSession {
     /// With no method able to authorize, an email code is the fallback authorization method.
+    /// A software passkey cannot authorize, so its user may still get the fallback.
     fn email_fallback(&self) -> bool {
         !self.totp_configured
             && !self.email_configured
@@ -466,9 +467,9 @@ impl MfaConfigServer {
     /// Authorizes an MFA configuration session with a TOTP or email code, a FIDO2 assertion
     /// or a completed OIDC authentication.
     ///
-    /// Authorization turns the token into a setup session. In the no-factor email fallback
-    /// a valid code also enables the email factor and returns recovery codes. For OIDC the
-    /// client polls this until the Edge callback has completed the attempt.
+    /// Authorization turns the token into a setup session. In the email fallback a valid code
+    /// also enables the email factor, returning recovery codes only to a user without MFA.
+    /// For OIDC the client polls this until the Edge callback has completed the attempt.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_authorize(
         &self,
@@ -586,9 +587,15 @@ impl MfaConfigServer {
             Err(err) => return Err(err.into()),
         };
 
-        // In the fallback the verified code also enables email MFA; otherwise authorization
+        // In the fallback the verified code also enables email MFA, otherwise authorization
         // only opens the setup session and configuring a factor is a separate step.
         let recovery_codes = if email_fallback {
+            // A software passkey is MFA the client cannot use, so its user keeps the codes.
+            let recovery_codes = if user.mfa_enabled {
+                RecoveryCodes::Keep
+            } else {
+                RecoveryCodes::Fresh
+            };
             user.enable_email_mfa(&mut *transaction)
                 .await
                 .map_err(|err| {
@@ -603,8 +610,7 @@ impl MfaConfigServer {
                 MFAMethod::Email,
                 ApiEventType::MfaEmailEnabled,
                 device_info,
-                // Email is the user's first factor here, so issue fresh recovery codes.
-                true,
+                recovery_codes,
             )
             .await?
         } else {

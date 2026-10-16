@@ -31,7 +31,9 @@ use defguard_core::{
     },
     grpc::{
         GatewayCommand, InstanceInfo,
-        client_version::{ClientFeature, should_omit_location_for_device},
+        client_version::{
+            ClientFeature, client_registration_source, should_omit_location_for_device,
+        },
         utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
     },
     handlers::user::check_password_strength,
@@ -50,6 +52,8 @@ use defguard_proto::client_types::{
 use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
+
+use super::mfa_setup::RecoveryCodes;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
@@ -1209,16 +1213,17 @@ impl EnrollmentServer {
                 (MFAMethod::OneTimePassword, ApiEventType::MfaTotpEnabled)
             }
             MfaMethod::Fido2 => {
-                // No code to verify: the attestation is the proof. Like the REST WebAuthn
-                // finish, the key is saved on the pool rather than in `transaction`.
+                // The attestation is the proof. Like the REST WebAuthn finish, the key is saved
+                // on the pool rather than in the transaction.
                 let name = request.name.clone().ok_or_else(|| {
                     Status::invalid_argument("Missing security key name".to_owned())
                 })?;
                 let attestation = request.fido2_attestation.as_deref().ok_or_else(|| {
                     Status::invalid_argument("Missing FIDO2 attestation".to_owned())
                 })?;
+                let source = client_registration_source(info.as_ref());
                 let key = token
-                    .finish_fido2_setup(&self.pool, user.id, name, attestation)
+                    .finish_fido2_setup(&self.pool, user.id, name, attestation, source)
                     .await?;
                 (
                     MFAMethod::Webauthn,
@@ -1229,7 +1234,7 @@ impl EnrollmentServer {
                 return Err(Status::invalid_argument("Method not supported"));
             }
         };
-        // New enrollments get fresh recovery codes; existing users keep their current ones.
+        // New enrollments get fresh recovery codes, existing users keep their current ones.
         let recovery_codes = super::mfa_setup::finalize_mfa_factor(
             &self.pool,
             &self.event_tx,
@@ -1238,7 +1243,11 @@ impl EnrollmentServer {
             mfa_method,
             event,
             info,
-            is_enrollment,
+            if is_enrollment {
+                RecoveryCodes::Fresh
+            } else {
+                RecoveryCodes::KeepOrIssue
+            },
         )
         .await?;
         info!(

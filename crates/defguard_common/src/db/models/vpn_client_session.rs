@@ -72,7 +72,8 @@ impl VpnClientMfaMethod {
     ///
     /// Per-user setup reads `User::totp_enabled` (TOTP), `User::email_mfa_enabled` (email),
     /// `User::openid_sub` (OIDC), and the `biometric_auth` table - keyed on the device for
-    /// biometric and on any of the user's devices for mobile-approve.
+    /// biometric and on any of the user's devices for mobile-approve. FIDO2 counts only keys
+    /// that passed hardware attestation at registration.
     /// `device_id` may be absent during initial enrollment, before the device is created.
     ///
     /// OIDC requires `openid_sub` because MFA re-verifies an existing link rather than creating
@@ -101,7 +102,7 @@ impl VpnClientMfaMethod {
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
-            Self::Fido2 => WebAuthn::exists_for_user(executor, user.id).await?,
+            Self::Fido2 => WebAuthn::hardware_exists_for_user(executor, user.id).await?,
         };
         Ok(configured)
     }
@@ -320,7 +321,11 @@ mod tests {
     use crate::{
         db::{
             Id, NoId,
-            models::{Device, DeviceType, User, biometric_auth::BiometricAuth, webauthn::WebAuthn},
+            models::{
+                Device, DeviceType, User,
+                biometric_auth::BiometricAuth,
+                webauthn::{AuthenticatorKind, RegistrationSource, WebAuthn},
+            },
             setup_pool,
         },
         secret::SecretStringWrapper,
@@ -480,17 +485,31 @@ mod tests {
                 .unwrap()
         );
 
-        // FIDO2: the user has a registered security key -> configured. The passkey blob is never
+        // FIDO2: only a hardware-attested security key counts. The passkey blob is never
         // deserialized by the predicate, which only asks whether a key row exists.
-        WebAuthn {
+        let security_key = |authenticator_kind| WebAuthn {
             id: NoId,
             user_id: user.id,
             name: "security-key".to_owned(),
             passkey: Vec::new(),
-        }
-        .save(&pool)
-        .await
-        .expect("failed to save security key");
+            authenticator_name: None,
+            authenticator_kind,
+            registration_source: RegistrationSource::Core,
+        };
+        security_key(AuthenticatorKind::Unknown)
+            .save(&pool)
+            .await
+            .expect("failed to save security key");
+        assert!(
+            !VpnClientMfaMethod::Fido2
+                .is_configured(&pool, &user, Some(device.id), false, false)
+                .await
+                .unwrap()
+        );
+        security_key(AuthenticatorKind::Hardware)
+            .save(&pool)
+            .await
+            .expect("failed to save security key");
         assert!(
             VpnClientMfaMethod::Fido2
                 .is_configured(&pool, &user, Some(device.id), false, false)

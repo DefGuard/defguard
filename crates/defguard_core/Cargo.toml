@@ -92,6 +92,7 @@ webauthn-authenticator-rs.workspace = true
 webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
+x509-parser.workspace = true
 ammonia = "4.1"
 regex = "1.10"
 serde-saphyr = "1.3"
@@ -106,6 +107,8 @@ default = ["openapi"]
 # `/api-docs`. Disabling it drops the `utoipa` dependencies and the routes above;
 # every other endpoint keeps working.
 openapi = ["dep:utoipa", "dep:utoipa-swagger-ui", "defguard_common/openapi"]
+# Lets other crates' tests trust a software authenticator's attestation CA.
+test-support = []
 
 [[example]]
 name = "openapi"
@@ -118,6 +121,7 @@ claims.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
 hyper-util.workspace = true
+rcgen.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",
