@@ -41,6 +41,15 @@ export interface MigrationWizardApiState {
   proxy_url: MigrationWizardProxyUrl | null;
 }
 
+export interface MigrationWizardStateResponse extends MigrationWizardApiState {
+  ldap_migration_required: boolean;
+}
+
+export interface LdapMigrationRepairResponse {
+  found: number;
+  migrated: number;
+}
+
 export interface SessionInfo {
   authorized: boolean;
   is_admin: boolean;

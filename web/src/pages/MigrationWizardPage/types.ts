@@ -1,6 +1,7 @@
 export const MigrationWizardStep = {
   Welcome: 'welcome',
   General: 'general',
+  LdapMigration: 'ldapMigration',
   InternalUrlSettings: 'internalUrlSettings',
   InternalUrlSslConfig: 'internalUrlSslConfig',
   ExternalUrlSettings: 'externalUrlSettings',

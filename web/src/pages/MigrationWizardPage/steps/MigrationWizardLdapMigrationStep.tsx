@@ -1,0 +1,130 @@
+import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
+import { useEffect, useRef, useState } from 'react';
+import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import type { ApiError } from '../../../shared/api/types';
+import { Controls } from '../../../shared/components/Controls/Controls';
+import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
+import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
+
+export const MigrationWizardLdapMigrationStep = () => {
+  const startedRef = useRef(false);
+  const [disableSync, setDisableSync] = useState(false);
+  const repair = useMutation({ mutationFn: api.migration.state.repairLdap });
+  const disable = useMutation({
+    mutationFn: () => api.settings.patchSettings({ ldap_sync_enabled: false }),
+    onSuccess: () => useMigrationWizardStore.getState().next(),
+  });
+  const isPending = repair.isPending || disable.isPending;
+  const disableError = disable.isError
+    ? ((disable.error as AxiosError<ApiError>).response?.data?.msg ??
+      m.migration_wizard_ldap_disable_sync_error())
+    : null;
+  const errorMessage =
+    (repair.error as AxiosError<ApiError> | null)?.response?.data?.msg ??
+    m.migration_wizard_ldap_repair_error_fallback();
+  const logValue = repair.isError
+    ? errorMessage
+    : repair.data
+      ? m.migration_wizard_ldap_repair_log({
+          found: repair.data.data.found,
+          migrated: repair.data.data.migrated,
+        })
+      : '';
+  const statusTitle = repair.isSuccess
+    ? m.migration_wizard_ldap_status_success()
+    : repair.isError
+      ? m.migration_wizard_ldap_status_error()
+      : m.migration_wizard_ldap_status_running();
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    repair.mutate();
+  }, [repair.mutate]);
+
+  return (
+    <WizardCard>
+      <LoadingStep
+        title={statusTitle}
+        loading={repair.isPending}
+        success={repair.isSuccess}
+        error={repair.isError}
+      >
+        {repair.isError && (
+          <>
+            <CodeCard
+              title={m.migration_wizard_ldap_error_log_title()}
+              value={logValue}
+              copy
+              download
+            />
+            <SizedBox height={ThemeSpacing.Xl} />
+            <Button
+              text={m.migration_wizard_ldap_retry()}
+              onClick={() => {
+                disable.reset();
+                setDisableSync(false);
+                repair.mutate();
+              }}
+              disabled={isPending}
+            />
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Checkbox
+              active={disableSync}
+              disabled={isPending}
+              onClick={() => setDisableSync((active) => !active)}
+              text={m.migration_wizard_ldap_disable_sync_label()}
+              helperBlock={
+                <Helper icon="info-outlined">
+                  {m.migration_wizard_ldap_disable_sync_helper()}
+                </Helper>
+              }
+            />
+          </>
+        )}
+      </LoadingStep>
+      {repair.isSuccess && (
+        <>
+          <CodeCard
+            title={m.migration_wizard_ldap_success_log_title()}
+            value={logValue}
+            copy
+            download
+          />
+          <SizedBox height={ThemeSpacing.Xl} />
+        </>
+      )}
+      {disableError && <p role="alert">{disableError}</p>}
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <Controls>
+        <Button
+          variant="outlined"
+          text={m.controls_back()}
+          onClick={() => useMigrationWizardStore.getState().back()}
+          disabled={isPending}
+        />
+        <div className="right">
+          <Button
+            text={m.controls_continue()}
+            onClick={() => {
+              if (repair.isSuccess) useMigrationWizardStore.getState().next();
+              else if (disableSync && !isPending) disable.mutate();
+            }}
+            loading={disable.isPending}
+            disabled={repair.isPending || (!repair.isSuccess && !disableSync)}
+          />
+        </div>
+      </Controls>
+    </WizardCard>
+  );
+};
