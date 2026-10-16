@@ -10,7 +10,7 @@ use defguard_common::{
 };
 use defguard_proto::{
     client_types::MfaMethod,
-    proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo},
+    proxy::{ClientMfaOidcAuthenticateRequest, CoreError, CoreErrorCode, DeviceInfo},
 };
 use openidconnect::{AuthorizationCode, Nonce};
 use tonic::Status;
@@ -32,11 +32,13 @@ impl ClientMfaServer {
         &self,
         request: ClientMfaOidcAuthenticateRequest,
         info: Option<DeviceInfo>,
-    ) -> Result<(), Status> {
+    ) -> Result<(), CoreError> {
         debug!("Received OIDC MFA authentication request");
         if !is_business_license_active() {
             error!("OIDC MFA method requires enterprise feature to be enabled");
-            return Err(Status::invalid_argument("OIDC MFA method is not supported"));
+            return Err(CoreError::invalid_argument(
+                "OIDC MFA method is not supported",
+            ));
         }
 
         let state_data = extract_state_data(&request.state).ok_or_else(|| {
@@ -62,7 +64,8 @@ impl ClientMfaServer {
             })?
         else {
             debug!("Client login session not found");
-            return Err(Status::invalid_argument("login session not found"));
+            return Err(CoreError::invalid_argument("login session not found")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         };
 
         // Fetch the related objects for event context.
@@ -76,13 +79,14 @@ impl ClientMfaServer {
         })?
         else {
             error!("MFA session references a missing location, device, or user");
-            return Err(Status::internal("unexpected error"));
+            return Err(CoreError::internal("unexpected error"));
         };
 
         // The attempt recorded at start holds the selected method and step attempt id.
         let Some(ephemeral) = session.ephemeral_state.as_ref() else {
             debug!("No MFA attempt in progress");
-            return Err(Status::invalid_argument("no MFA attempt in progress"));
+            return Err(CoreError::invalid_argument("no MFA attempt in progress")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         };
 
         // Bind the callback to the attempt it was issued for before any branch below can mutate
@@ -91,7 +95,8 @@ impl ClientMfaServer {
         // carrying a stale id could tear down the attempt that replaced it.
         if ephemeral.step_attempt_id != attempt_id {
             debug!("OIDC MFA callback arrived for a superseded attempt");
-            return Err(Status::invalid_argument("stale OIDC MFA attempt"));
+            return Err(CoreError::invalid_argument("stale OIDC MFA attempt")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         }
 
         let method: MfaMethod = ephemeral.selected_method.into();
@@ -99,13 +104,16 @@ impl ClientMfaServer {
 
         if openid_auth_completed {
             debug!("Client login session already completed");
-            return Err(Status::invalid_argument("login session already completed"));
+            return Err(
+                CoreError::invalid_argument("login session already completed")
+                    .with_code(CoreErrorCode::MfaSessionExpired),
+            );
         }
 
         if method != MfaMethod::Oidc {
             debug!("Invalid MFA method for OIDC authentication: {method:?}");
             self.delete_mfa_session(session).await?;
-            return Err(Status::invalid_argument("invalid MFA method"));
+            return Err(CoreError::invalid_argument("invalid MFA method"));
         }
 
         let (ip, user_agent) = parse_client_ip_agent(&info).map_err(|err| {
@@ -140,7 +148,7 @@ impl ClientMfaServer {
                         },
                     )),
                 })?;
-                return Err(status);
+                return Err(status.into());
             }
         };
 
@@ -179,7 +187,8 @@ impl ClientMfaServer {
                             )),
                         },
                     )?;
-                    return Err(Status::unauthenticated("unauthorized"));
+                    return Err(CoreError::unauthenticated("unauthorized")
+                        .with_code(CoreErrorCode::OidcAccountMismatch));
                 }
                 info!(
                     "OIDC MFA authentication completed successfully for user: {}",
@@ -200,7 +209,8 @@ impl ClientMfaServer {
                         },
                     )),
                 })?;
-                return Err(Status::unauthenticated("unauthorized"));
+                return Err(CoreError::unauthenticated("unauthorized")
+                    .with_code(CoreErrorCode::OidcVerificationFailed));
             }
         }
 
@@ -219,7 +229,8 @@ impl ClientMfaServer {
             })?;
         if !marked {
             debug!("OIDC MFA callback arrived for a superseded or absent attempt");
-            return Err(Status::invalid_argument("stale OIDC MFA attempt"));
+            return Err(CoreError::invalid_argument("stale OIDC MFA attempt")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         }
 
         Ok(())

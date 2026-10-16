@@ -24,7 +24,8 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{AuthFlowType, AuthInfoRequest, MfaConfigStartResponse, MfaMethod},
     proxy::{
-        ClientMfaOidcAuthenticateRequest, CoreRequest, CoreResponse, core_request, core_response,
+        ClientMfaOidcAuthenticateRequest, CoreErrorCode, CoreRequest, CoreResponse, core_request,
+        core_response,
     },
 };
 use ed25519_dalek::{Signer, SigningKey};
@@ -41,7 +42,7 @@ use webauthn_authenticator_rs::{WebauthnAuthenticator, softpasskey::SoftPasskey}
 use webauthn_rs::prelude::{Passkey, Uuid};
 
 use super::support::{
-    assert_error_response, assert_error_response_details, clear_test_license,
+    assert_error_response, assert_error_response_full, clear_test_license,
     complete_proxy_handshake, create_oidc_provider, create_polling_token, create_user,
     create_user_with_device, link_user_oidc_identity, make_device_info, make_oidc_code,
     send_code_mfa_setup_start, send_mfa_config_authorize, send_mfa_config_authorize_fido2,
@@ -553,9 +554,10 @@ async fn test_oidc_rejects_stale_attempt(_: PgPoolOptions, options: PgConnectOpt
     assert_ne!(stale, current, "each AuthInfo must start a new attempt");
 
     let callback = send_oidc_callback(&mut context, &stale, &user.email).await;
-    let (code, message) = assert_error_response_details(&callback);
+    let (code, message, error_code) = assert_error_response_full(&callback);
     assert_eq!(code, Code::InvalidArgument);
     assert_eq!(message, "stale OIDC MFA attempt");
+    assert_eq!(error_code, CoreErrorCode::MfaSessionExpired);
 
     let pending =
         send_mfa_config_authorize(&mut context, &session_token, MfaMethod::Oidc, "").await;
@@ -591,9 +593,10 @@ async fn test_oidc_foreign_identity_ends_session(_: PgPoolOptions, options: PgCo
 
     let state = oidc_auth_info_state(&mut context, &session_token).await;
     let callback = send_oidc_callback(&mut context, &state, &other.email).await;
-    let (code, message) = assert_error_response_details(&callback);
+    let (code, message, error_code) = assert_error_response_full(&callback);
     assert_eq!(code, Code::Unauthenticated);
     assert_eq!(message, "unauthorized");
+    assert_eq!(error_code, CoreErrorCode::OidcAccountMismatch);
 
     assert!(
         Token::find_by_id(&context.pool, &session_token)

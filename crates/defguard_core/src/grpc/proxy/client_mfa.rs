@@ -217,6 +217,12 @@ impl From<ClientMfaServerError> for Status {
     }
 }
 
+impl From<ClientMfaServerError> for proxy::CoreError {
+    fn from(value: ClientMfaServerError) -> Self {
+        Status::from(value).into()
+    }
+}
+
 impl From<AuthorizeError> for Status {
     fn from(err: AuthorizeError) -> Self {
         match err {

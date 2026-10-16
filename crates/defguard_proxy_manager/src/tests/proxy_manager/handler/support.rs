@@ -44,7 +44,7 @@ use defguard_proto::{
         MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
     },
     proxy::{
-        ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
+        ClientMfaTokenValidationRequest, CoreErrorCode, CoreRequest, CoreResponse, DeviceInfo,
         PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
         core_request, core_response,
     },
@@ -106,10 +106,19 @@ pub(crate) fn assert_error_response(response: &CoreResponse) -> Code {
 /// tonic status code and message. Use when the status code alone cannot tell two
 /// rejections apart.
 pub(crate) fn assert_error_response_details(response: &CoreResponse) -> (Code, &str) {
+    let (code, message, _) = assert_error_response_full(response);
+    (code, message)
+}
+
+/// Assert that a `CoreResponse` carries a `CoreError` payload and return the
+/// tonic status code, message, and machine-readable error code.
+pub(crate) fn assert_error_response_full(response: &CoreResponse) -> (Code, &str, CoreErrorCode) {
     match &response.payload {
-        Some(core_response::Payload::CoreError(err)) => {
-            (Code::from_i32(err.status_code), err.message.as_str())
-        }
+        Some(core_response::Payload::CoreError(err)) => (
+            Code::from_i32(err.status_code),
+            err.message.as_str(),
+            err.code(),
+        ),
         other => panic!(
             "expected CoreError response, got: {:?}",
             other.as_ref().map(discriminant)

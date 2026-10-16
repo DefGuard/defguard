@@ -88,7 +88,7 @@ use defguard_common::{
     },
     gateway_types::{FirewallConfig, WireguardPeer},
 };
-use proxy::CoreError;
+use proxy::{CoreError, CoreErrorCode};
 use serde::Serialize;
 use tonic::Status;
 
@@ -157,16 +157,33 @@ impl From<Status> for CoreError {
         Self {
             status_code: status.code().into(),
             message: status.message().into(),
+            ..Default::default()
         }
     }
 }
 
 impl CoreError {
+    pub fn unauthenticated(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::Unauthenticated.into(),
+            message: message.into(),
+            ..Default::default()
+        }
+    }
+
+    /// Attaches the reason the proxy uses to pick a user-facing message.
+    #[must_use]
+    pub fn with_code(mut self, code: CoreErrorCode) -> Self {
+        self.set_code(code);
+        self
+    }
+
     /// An `invalid_argument` error carrying a caller-facing message.
     pub fn invalid_argument(message: impl Into<String>) -> Self {
         Self {
             status_code: tonic::Code::InvalidArgument.into(),
             message: message.into(),
+            ..Default::default()
         }
     }
 
@@ -175,6 +192,7 @@ impl CoreError {
         Self {
             status_code: tonic::Code::Internal.into(),
             message: message.into(),
+            ..Default::default()
         }
     }
 
@@ -183,6 +201,7 @@ impl CoreError {
         Self {
             status_code: tonic::Code::NotFound.into(),
             message: message.into(),
+            ..Default::default()
         }
     }
 
@@ -191,6 +210,7 @@ impl CoreError {
         Self {
             status_code: tonic::Code::FailedPrecondition.into(),
             message: message.into(),
+            ..Default::default()
         }
     }
 }
