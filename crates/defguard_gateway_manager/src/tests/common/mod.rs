@@ -89,6 +89,7 @@ struct MockGatewayService {
 struct MockGatewayState {
     outbound_tx: UnboundedSender<CoreResponse>,
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
+    bidi_error: Mutex<Option<Status>>,
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
     connection_count: AtomicU16,
     connection_notify: Notify,
@@ -120,6 +121,13 @@ impl MockGatewayState {
             .ok_or_else(|| Status::failed_precondition("mock gateway already connected"))
     }
 
+    fn take_bidi_error(&self) -> Option<Status> {
+        self.bidi_error
+            .lock()
+            .expect("failed to lock mock bidi error")
+            .take()
+    }
+
     fn note_purge(&self) {
         self.purge_count.fetch_add(1, Ordering::Relaxed);
         self.purge_notify.notify_waiters();
@@ -145,6 +153,10 @@ impl gateway_server::Gateway for MockGatewayService {
         &self,
         request: Request<Streaming<CoreResponse>>,
     ) -> Result<Response<Self::BidiStream>, Status> {
+        if let Some(status) = self.state.take_bidi_error() {
+            return Err(status);
+        }
+
         let inbound_rx = self.state.take_inbound_rx()?;
         self.state.notify_connected();
 
@@ -204,6 +216,7 @@ impl MockGatewayHarness {
         let state = Arc::new(MockGatewayState {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
+            bidi_error: Mutex::new(None),
             connected_tx: Mutex::new(Some(connected_tx)),
             connection_count: AtomicU16::new(0),
             connection_notify: Notify::new(),
@@ -312,6 +325,14 @@ impl MockGatewayHarness {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
             payload: Some(core_request::Payload::PeerStats(peer_stats)),
         });
+    }
+
+    pub(crate) fn reject_next_bidi_with(&self, status: Status) {
+        *self
+            .state
+            .bidi_error
+            .lock()
+            .expect("failed to lock mock bidi error") = Some(status);
     }
 
     pub(crate) fn send_stream_error(&self, status: Status) {
