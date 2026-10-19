@@ -20,8 +20,6 @@ pub(super) enum RecoveryCodesPolicy {
     Fresh,
     /// Keep stored codes, issuing new ones only when none are left.
     KeepOrIssue,
-    /// Leave stored codes untouched, even when none are left.
-    Keep,
 }
 
 /// Called after the caller has run the factor-specific enable inside `transaction`: logs out
@@ -53,15 +51,12 @@ pub(super) async fn finalize_mfa_factor(
                 Status::internal("Failed to clear recovery codes".to_owned())
             })?;
     }
-    let recovery_codes = match recovery_codes_policy {
-        RecoveryCodesPolicy::Keep => Vec::new(),
-        // Existing recovery codes were already shown, so return an empty list.
-        RecoveryCodesPolicy::Fresh | RecoveryCodesPolicy::KeepOrIssue => user
-            .get_recovery_codes(&mut *transaction)
-            .await
-            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
-            .unwrap_or_default(),
-    };
+    // Existing recovery codes were already shown, so return an empty list.
+    let recovery_codes = user
+        .get_recovery_codes(&mut *transaction)
+        .await
+        .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
+        .unwrap_or_default();
     transaction.commit().await.map_err(|err| {
         error!("Failed to commit database transaction: {err}");
         Status::internal("Failed to commit database transaction".to_owned())

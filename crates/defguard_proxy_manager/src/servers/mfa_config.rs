@@ -51,10 +51,11 @@ struct MfaConfigSession {
 }
 
 impl MfaConfigSession {
-    /// With no method able to authorize, an email code is the fallback authorization method.
-    /// A software passkey cannot authorize, so its user may still get the fallback.
+    /// With no MFA at all, an email code is the fallback authorization method.
+    /// MFA the client cannot use, like a software passkey, blocks it since email would bypass it.
     fn email_fallback(&self) -> bool {
-        !self.totp_configured
+        !self.user.mfa_enabled
+            && !self.totp_configured
             && !self.email_configured
             && !self.fido2_configured
             && !self.oidc_configured
@@ -248,7 +249,8 @@ impl MfaConfigServer {
     /// The returned token remains unused until the user proves an existing factor.
     /// The client requests an email code with `mfa_config_send_code` and a FIDO2 challenge with
     /// `mfa_config_fido2_challenge`; OIDC runs through Edge's OpenID MFA page.
-    /// When no method can authorize, an email code is the only authorization method.
+    /// A user without MFA authorizes with an email code instead. A user whose MFA cannot
+    /// authorize here gets no session, signalled by no methods and no email fallback.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_start(
         &self,
@@ -313,6 +315,19 @@ impl MfaConfigServer {
             {
                 available_methods.push(MfaMethod::from(method) as i32);
             }
+        }
+
+        if available_methods.is_empty() && user.mfa_enabled {
+            info!(
+                "User {} has MFA that cannot authorize MFA configuration from device {}",
+                user.username, device.name
+            );
+            return Ok(MfaConfigStartResponse {
+                session_token: String::new(),
+                available_methods,
+                email_fallback: false,
+                deadline_timestamp: 0,
+            });
         }
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
@@ -468,7 +483,7 @@ impl MfaConfigServer {
     /// or a completed OIDC authentication.
     ///
     /// Authorization turns the token into a setup session. In the email fallback a valid code
-    /// also enables the email factor, returning recovery codes only to a user without MFA.
+    /// also enables the email factor and returns fresh recovery codes.
     /// For OIDC the client polls this until the Edge callback has completed the attempt.
     #[instrument(skip_all)]
     pub(crate) async fn mfa_config_authorize(
@@ -590,12 +605,6 @@ impl MfaConfigServer {
         // In the fallback the verified code also enables email MFA, otherwise authorization
         // only opens the setup session and configuring a factor is a separate step.
         let recovery_codes = if email_fallback {
-            // A software passkey is MFA the client cannot use, so its user keeps the codes.
-            let recovery_codes_policy = if user.mfa_enabled {
-                RecoveryCodesPolicy::Keep
-            } else {
-                RecoveryCodesPolicy::Fresh
-            };
             user.enable_email_mfa(&mut *transaction)
                 .await
                 .map_err(|err| {
@@ -610,7 +619,7 @@ impl MfaConfigServer {
                 MFAMethod::Email,
                 ApiEventType::MfaEmailEnabled,
                 device_info,
-                recovery_codes_policy,
+                RecoveryCodesPolicy::Fresh,
             )
             .await?
         } else {
