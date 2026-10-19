@@ -90,7 +90,7 @@ use defguard_common::{
 };
 use proxy::{CoreError, CoreErrorCode};
 use serde::Serialize;
-use tonic::Status;
+use tonic::{Code, Status};
 
 use crate::gateway::Configuration;
 
@@ -165,7 +165,7 @@ impl From<Status> for CoreError {
 impl CoreError {
     pub fn unauthenticated(message: impl Into<String>) -> Self {
         Self {
-            status_code: tonic::Code::Unauthenticated.into(),
+            status_code: Code::Unauthenticated.into(),
             message: message.into(),
             ..Default::default()
         }
