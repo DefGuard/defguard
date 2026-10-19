@@ -143,7 +143,12 @@ describe('migration wizard LDAP UI', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     pendingRepair.resolve(apiResponse({ found: 3, migrated: 2 }));
-    expect(await screen.findByText(/Accounts found: 3/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'User migration completed. Found: 3. Successfully migrated: 2.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Activity log')).toBeInTheDocument();
     expect(
       screen.getByText('LDAP user migration successfully completed.'),
     ).toBeInTheDocument();
@@ -166,7 +171,11 @@ describe('migration wizard LDAP UI', () => {
       screen.getByText('An error occurred during the LDAP migration.'),
     ).toBeInTheDocument();
     fireEvent.click(retryButton);
-    expect(await screen.findByText(/Accounts found: 1/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'User migration completed. Found: 1. Successfully migrated: 1.',
+      ),
+    ).toBeInTheDocument();
     expect(apiMocks.repairLdap).toHaveBeenCalledTimes(2);
   });
 
@@ -179,9 +188,7 @@ describe('migration wizard LDAP UI', () => {
     useMigrationWizardStore.setState({ current_step: MigrationWizardStep.LdapMigration });
     renderWithClient(<MigrationWizardLdapMigrationStep />);
     await screen.findByText('An error occurred during the LDAP migration.');
-    fireEvent.click(
-      screen.getByRole('button', { name: /Disable LDAP synchronization and continue/ }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Disable LDAP and continue/ }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(apiMocks.patchSettings).toHaveBeenCalledTimes(1));
