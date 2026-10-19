@@ -16,7 +16,8 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { correctUrlProtocol, ensureUrlScheme } from '../../../shared/utils/defguardUrl';
+import { ensureUrlScheme, getCorrectedUrl } from '../../../shared/utils/defguardUrl';
+import { createDistinctUrlRefinement } from '../../../shared/utils/defguardUrlValidation';
 import type { ExternalSslType } from '../../SetupPage/autoAdoption/types';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 import '../../SetupPage/autoAdoption/steps/style.scss';
@@ -25,18 +26,26 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
   const storedProxyUrl = useMigrationWizardStore((s) => s.public_proxy_url);
   const storedSslType = useMigrationWizardStore((s) => s.external_ssl_type);
 
-  const formSchema = z.object({
-    public_proxy_url: z
-      .string({
-        error: m.initial_setup_general_config_error_public_proxy_url_required(),
-      })
-      .overwrite(ensureUrlScheme)
-      .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
-      .url(m.initial_setup_general_config_error_public_proxy_url_invalid()),
-    ssl_type: z.custom<ExternalSslType>(),
-    cert_pem_file: z.custom<File | null>().nullable(),
-    key_pem_file: z.custom<File | null>().nullable(),
-  });
+  const formSchema = z
+    .object({
+      public_proxy_url: z
+        .string({
+          error: m.initial_setup_general_config_error_public_proxy_url_required(),
+        })
+        .overwrite(ensureUrlScheme)
+        .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
+        .url(m.initial_setup_general_config_error_public_proxy_url_invalid()),
+      ssl_type: z.custom<ExternalSslType>(),
+      cert_pem_file: z.custom<File | null>().nullable(),
+      key_pem_file: z.custom<File | null>().nullable(),
+    })
+    .superRefine(
+      createDistinctUrlRefinement(
+        () => useMigrationWizardStore.getState().defguard_url,
+        'public_proxy_url',
+        m.initial_setup_general_config_error_urls_must_differ(),
+      ),
+    );
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.migration.setExternalUrlSettings,
@@ -80,7 +89,7 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
         );
         return;
       }
-      const correctedUrl = correctUrlProtocol(value.public_proxy_url, value.ssl_type);
+      const correctedUrl = getCorrectedUrl(value.public_proxy_url, value.ssl_type);
       useMigrationWizardStore.setState({
         public_proxy_url: correctedUrl,
       });

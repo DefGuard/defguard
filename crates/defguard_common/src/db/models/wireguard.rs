@@ -1568,7 +1568,7 @@ impl WireguardNetwork<Id> {
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, \
             disconnected_at, is_mfa_session, \
-            state \"state: VpnClientSessionState\", preshared_key \
+            state \"state: VpnClientSessionState\", preshared_key \"preshared_key?: _\" \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
             self.id,

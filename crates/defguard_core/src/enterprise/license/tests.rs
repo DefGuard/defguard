@@ -407,3 +407,25 @@ async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOption
     ));
     assert!(proxy_control_rx.try_recv().is_err());
 }
+
+// Even an expired license is loaded into the memory.
+#[sqlx::test]
+async fn test_subscription_license_past_max_overdue_stays_loaded(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let license = License::new(
+        "test".to_owned(),
+        true,
+        Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+        None,
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+        Vec::new(),
+    );
+
+    let license = license.renew_if_required(&pool).await.unwrap();
+    assert!(license.is_max_overdue());
+}

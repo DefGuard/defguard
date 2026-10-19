@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wn.name FROM location_mfa_flow lmf JOIN wireguard_network wn ON wn.id = lmf.location_id WHERE lmf.flow_id = $1 AND lmf.is_default = true AND wn.mfa_enabled = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "76ea8aa4cc59adfce2063c5a741b784ee2c54b8a9bf601580c2d235dbf5955b8"
+}

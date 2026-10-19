@@ -150,6 +150,39 @@ const PageContent = () => {
       {(supportType === 'Basic' || supportType === 'Direct') && (
         <>
           <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="light-bulb">
+            <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+              {m.support_page_portal_title()}
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+              {m.support_page_portal_desc_before()}
+              <a
+                href={externalLink.defguard.supportPortalGuide}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {m.support_page_portal_desc_link()}
+              </a>
+              {m.support_page_portal_desc_after()}
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <ButtonsGroup>
+              <Button
+                variant="outlined"
+                text={m.support_page_portal_btn()}
+                iconRight="open-in-new-window"
+                onClick={() =>
+                  window.open(
+                    externalLink.defguard.supportPortal,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              />
+            </ButtonsGroup>
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
           <MarkedSection icon="mail">
             <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
               {m.support_page_email_title()}
@@ -171,18 +204,6 @@ const PageContent = () => {
               description={m.support_page_assistance_desc()}
             />
             <ButtonsGroup>
-              <Button
-                variant="outlined"
-                text={m.support_page_assistance_btn_ticket()}
-                iconRight="open-in-new-window"
-                onClick={() =>
-                  window.open(
-                    externalLink.defguard.openTicket + licenseInfo?.customer_id,
-                    '_blank',
-                    'noopener,noreferrer',
-                  )
-                }
-              />
               <Button
                 variant="outlined"
                 text={m.support_page_assistance_btn_call()}

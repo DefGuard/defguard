@@ -164,7 +164,7 @@ export const MfaFormPage = ({ flow }: Props) => {
               to="/mfa-flow/$id/edit"
               params={{ id: `${flow.id}` }}
             >
-              {m.mfa_flow_breadcrumb_edit()}
+              {m.mfa_flow_edit_title()}
             </Link>
           ) : (
             <Link key="create-mfa-flow" to="/mfa/add-flow">
@@ -175,7 +175,7 @@ export const MfaFormPage = ({ flow }: Props) => {
         onBack={() => navigate({ to: '/mfa' })}
         headerProps={{
           icon: 'activity-notes',
-          title: isEdit ? m.mfa_flow_form_title_edit() : m.mfa_flow_create(),
+          title: isEdit ? m.mfa_flow_edit_title() : m.mfa_flow_create(),
           subtitle: m.mfa_flow_form_subtitle(),
         }}
       >

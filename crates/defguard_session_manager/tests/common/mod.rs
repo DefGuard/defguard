@@ -262,7 +262,7 @@ pub(crate) async fn authorize_device_in_location(
         Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
         true,
     );
-    session.preshared_key = Some(preshared_key.to_owned());
+    session.preshared_key = Some(preshared_key.to_owned().into());
     session.state = VpnClientSessionState::Connected;
     session
         .save(pool)
@@ -324,7 +324,7 @@ pub(crate) async fn create_session(
         connected_at,
         is_mfa_session,
     );
-    session.preshared_key = preshared_key.map(str::to_owned);
+    session.preshared_key = preshared_key.map(|key| key.to_owned().into());
     session
         .save(pool)
         .await

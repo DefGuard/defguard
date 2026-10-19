@@ -22,11 +22,32 @@ pub(crate) struct LoadLoopConfig {
 #[derive(Default)]
 pub(crate) struct LoadLoopStats {
     pub load_duration: Duration,
+    pub total_duration: Duration,
     pub scheduled: u64,
     pub completed: u64,
     pub dropped: u64,
     pub unavailable: u64,
     pub peak_in_flight: usize,
+}
+
+pub(crate) fn ensure_success_rate(
+    successful: u64,
+    completed: u64,
+    min_success_percent: u8,
+) -> anyhow::Result<()> {
+    if completed == 0
+        || u128::from(successful) * 100 < u128::from(completed) * u128::from(min_success_percent)
+    {
+        let actual = if completed == 0 {
+            0.0
+        } else {
+            successful as f64 * 100.0 / completed as f64
+        };
+        bail!(
+            "success rate {actual:.2}% ({successful}/{completed}) is below the {min_success_percent}% minimum"
+        );
+    }
+    Ok(())
 }
 
 /// Selects actors while optionally preventing overlap.
@@ -170,5 +191,6 @@ where
     }
 
     stats.load_duration = load_duration;
+    stats.total_duration = started_at.elapsed();
     Ok(stats)
 }

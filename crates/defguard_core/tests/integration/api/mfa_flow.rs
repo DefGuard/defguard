@@ -16,8 +16,8 @@ use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-    authenticate_admin, configure_smtp, make_network, make_test_client, set_enterprise_license,
-    update_location_mfa_flows,
+    admin_group_id, authenticate_admin, configure_smtp, create_mfa_flow, make_network,
+    make_test_client, set_enterprise_license, update_location_mfa_flows,
 };
 
 /// Single-step flow without OIDC - should succeed without any license.
@@ -261,15 +261,7 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
         resp.json::<Value>().await["id"].as_i64().unwrap()
     };
 
-    // Get the admin group ID via group-info endpoint
-    let groups_resp = client.get("/api/v1/group-info").send().await;
-    assert_eq!(groups_resp.status(), StatusCode::OK);
-    let groups = groups_resp.json::<Value>().await;
-    let admin_group_id = groups
-        .as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|g| g["id"].as_i64())
-        .expect("admin group exists");
+    let admin_group_id = admin_group_id(&client).await;
 
     // Create a location
     let network_resp = make_network(&client, "enterprise-test").await;
@@ -1046,47 +1038,26 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
     authenticate_admin(&mut client).await;
     let saved = get_cached_license().clone();
 
-    let flow1_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Default Flow", "steps": [{"methods": ["totp"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-    let flow2_id = {
-        let resp = client
-            .post("/api/v1/mfa-flow")
-            .json(&json!({"title": "Scoped Flow", "steps": [{"methods": ["biometric"]}]}))
-            .send()
-            .await;
-        assert_eq!(resp.status(), StatusCode::CREATED);
-        resp.json::<Value>().await["id"].as_i64().unwrap()
-    };
-
-    let groups_resp = client.get("/api/v1/group-info").send().await;
-    let groups = groups_resp.json::<Value>().await;
-    let admin_group_id = groups
-        .as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|g| g["id"].as_i64())
-        .expect("admin group exists");
+    let flow1_id = create_mfa_flow(&client, "Default Flow", json!([{"methods": ["totp"]}])).await;
+    let flow2_id =
+        create_mfa_flow(&client, "Scoped Flow", json!([{"methods": ["biometric"]}])).await;
+    let admin_group_id = admin_group_id(&client).await;
 
     let network_resp = make_network(&client, "delete-default").await;
     let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
 
     // flow1 is the default, flow2 is group-scoped; group scoping needs Enterprise.
     set_enterprise_license();
-    let resp = update_location_mfa_flows(
-        &client,
-        location_id,
-        json!([
-            {"flow_id": flow1_id, "is_default": true, "group_ids": []},
-            {"flow_id": flow2_id, "is_default": false, "group_ids": [admin_group_id]},
-        ]),
-    )
-    .await;
+    let mut body = network_body("delete-default", true, flow1_id);
+    body["mfa_flows"] = json!([
+        {"flow_id": flow1_id, "is_default": true, "group_ids": []},
+        {"flow_id": flow2_id, "is_default": false, "group_ids": [admin_group_id]},
+    ]);
+    let resp = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&body)
+        .send()
+        .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let _ = client.drain_all_events();
@@ -1118,6 +1089,82 @@ async fn test_mfa_flow_delete_flow_is_default(_: PgPoolOptions, options: PgConne
         &events[0].0,
         ApiEventType::MfaFlowDeleted { snapshot } if snapshot.flow.id == flow2_id
     );
+
+    set_cached_license(saved);
+}
+
+/// Deleting the default of an MFA-disabled location preserves its group override, but MFA cannot
+/// be re-enabled until a new default flow is assigned.
+#[sqlx::test]
+async fn test_mfa_flow_delete_disabled_default_with_override(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    let saved = get_cached_license().clone();
+
+    let default_flow_id =
+        create_mfa_flow(&client, "Disabled Default", json!([{"methods": ["totp"]}])).await;
+    let override_flow_id = create_mfa_flow(
+        &client,
+        "Disabled Override",
+        json!([{"methods": ["biometric"]}]),
+    )
+    .await;
+    let admin_group_id = admin_group_id(&client).await;
+
+    let network_resp = make_network(&client, "delete-disabled-default").await;
+    let location_id = network_resp.json::<Value>().await["id"].as_i64().unwrap();
+    set_enterprise_license();
+
+    let resp = update_location_mfa_flows(
+        &client,
+        location_id,
+        json!([
+            {"flow_id": default_flow_id, "is_default": true, "group_ids": []},
+            {"flow_id": override_flow_id, "is_default": false, "group_ids": [admin_group_id]},
+        ]),
+    )
+    .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let resp = client
+        .delete(format!("/api/v1/mfa-flow/{default_flow_id}"))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let resp = client
+        .get(format!("/api/v1/location/{location_id}/mfa-flows"))
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let remaining = resp.json::<Value>().await;
+    assert_eq!(remaining.as_array().unwrap().len(), 1);
+    assert_eq!(remaining[0]["id"].as_i64(), Some(override_flow_id));
+    assert_eq!(remaining[0]["is_default"].as_bool(), Some(false));
+    assert_eq!(remaining[0]["groups"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        remaining[0]["groups"][0]["id"].as_i64(),
+        Some(admin_group_id)
+    );
+
+    let mut body = network_body("delete-disabled-default", true, override_flow_id);
+    body["mfa_flows"] = json!([
+        {"flow_id": override_flow_id, "is_default": false, "group_ids": [admin_group_id]},
+    ]);
+    let resp = client
+        .put(format!("/api/v1/network/{location_id}"))
+        .json(&body)
+        .send()
+        .await;
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    let body = resp.json::<Value>().await;
+    assert_eq!(body["error"], "validation_failed");
+    assert_eq!(body["fields"][0]["field"], "mfa_enabled");
+    assert_eq!(body["fields"][0]["code"], "no_flows_assigned");
 
     set_cached_license(saved);
 }

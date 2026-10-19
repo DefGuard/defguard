@@ -140,11 +140,12 @@ pub fn no_flows_assigned_response() -> ApiResponse {
 
 /// Validate enabling MFA on an already-persisted location.
 ///
-/// Used by the auto-adoption wizard after it creates a location. The normal location create and
-/// update handlers validate assignments inside their transactions. Returns a structured `400`
-/// response (not a `WebError`) when no MFA flow or no default assignment exists.
-pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
-    executor: E,
+/// When called on the transaction that saved `mfa_enabled`, after the save, the saved row stays
+/// locked until commit, so a concurrent `MfaFlow::check_deletable` cannot remove the default in
+/// between. Returns a structured `400` response (not a `WebError`) when no MFA flow or no
+/// default assignment exists.
+pub async fn validate_mfa_flows_exist(
+    conn: &mut PgConnection,
     mfa_enabled: bool,
     location_id: Option<Id>,
 ) -> Result<Option<ApiResponse>, WebError> {
@@ -152,13 +153,13 @@ pub async fn validate_mfa_flows_exist<'e, E: sqlx::PgExecutor<'e> + Copy>(
         return Ok(None);
     }
 
-    if !MfaFlow::any_exist(executor).await? {
+    if !MfaFlow::any_exist(&mut *conn).await? {
         error!("Unable to enable MFA for location: no MFA flows are configured");
         return Ok(Some(no_flows_exist_response()));
     }
 
     let has_default = match location_id {
-        Some(id) => MfaFlow::has_default_assignment(executor, id).await?,
+        Some(id) => MfaFlow::has_default_assignment(&mut *conn, id).await?,
         None => false,
     };
     if !has_default {
@@ -687,7 +688,7 @@ pub(crate) async fn modify_network(
             return assignment_error_response(&data.mfa_flows, error);
         }
     } else if let Some(response) =
-        validate_mfa_flows_exist(&appstate.pool, data.mfa_enabled, Some(network.id)).await?
+        validate_mfa_flows_exist(&mut transaction, data.mfa_enabled, Some(network.id)).await?
     {
         return Ok(response);
     }

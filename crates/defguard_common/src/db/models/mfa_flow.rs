@@ -669,8 +669,8 @@ impl MfaFlow<Id> {
     /// Checks whether a flow can be deleted, returning an error naming the
     /// affected locations if it cannot.
     ///
-    /// [`MfaFlowDeleteError::LocationRequiresFlow`] is scoped to MFA-enabled locations: a flow
-    /// that is the only assignment for an MFA-disabled location can be deleted.
+    /// Both [`MfaFlowDeleteError::LocationRequiresFlow`] and
+    /// [`MfaFlowDeleteError::FlowIsDefault`] apply only to MFA-enabled locations.
     ///
     /// Must be called on the same connection as the subsequent DELETE, and inside its
     /// transaction: the checks below and the delete have to be atomic with respect to
@@ -678,10 +678,26 @@ impl MfaFlow<Id> {
     /// sole default in the window between checking and deleting, leaving that location with no
     /// MFA policy. The `FOR UPDATE` below takes the flow-identity lock that
     /// `assign_to_location` contends on with `FOR SHARE`.
+    ///
+    /// The assigned locations are share-locked first, so a location update that is enabling MFA
+    /// finishes before `mfa_enabled` is read. Locations are locked before the flow, the same
+    /// order as a location update followed by `assign_to_location`, so the two cannot deadlock.
     pub async fn check_deletable(
         conn: &mut PgConnection,
         flow_id: Id,
     ) -> Result<(), MfaFlowDeleteError> {
+        query_scalar!(
+            "SELECT wn.id \
+             FROM wireguard_network wn \
+             JOIN location_mfa_flow lmf ON lmf.location_id = wn.id \
+             WHERE lmf.flow_id = $1 \
+             ORDER BY wn.id \
+             FOR SHARE OF wn",
+            flow_id
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+
         query_scalar!("SELECT id FROM mfa_flow WHERE id = $1 FOR UPDATE", flow_id)
             .fetch_optional(&mut *conn)
             .await?;
@@ -704,12 +720,12 @@ impl MfaFlow<Id> {
             return Err(MfaFlowDeleteError::LocationRequiresFlow(orphaned));
         }
 
-        // Flow is the designated default for any location?
+        // Flow is the designated default for any MFA-enabled location?
         let defaults: Vec<String> = query_scalar!(
             "SELECT wn.name \
              FROM location_mfa_flow lmf \
              JOIN wireguard_network wn ON wn.id = lmf.location_id \
-             WHERE lmf.flow_id = $1 AND lmf.is_default = true",
+             WHERE lmf.flow_id = $1 AND lmf.is_default = true AND wn.mfa_enabled = true",
             flow_id
         )
         .fetch_all(&mut *conn)
@@ -726,8 +742,8 @@ impl MfaFlow<Id> {
     ///
     /// Ordered first-match over `location_mfa_flow.position`: the first assignment whose group set
     /// intersects the user's groups wins, otherwise the assignment flagged `is_default` wins.
-    /// Because the default is mandatory and carries an empty group set, a location that has a
-    /// policy always resolves, so "user matches nothing" is unrepresentable.
+    /// On an MFA-enabled location the default is mandatory and carries an empty group set, so every
+    /// user resolves to a flow.
     ///
     /// `None` is therefore not a resolution failure but an absence of policy, and callers must
     /// **fail closed** on it rather than treat it as "no MFA required". It occurs in exactly two
@@ -735,9 +751,9 @@ impl MfaFlow<Id> {
     ///
     /// 1. The location has no assignments at all. This is legitimate and transient: a location can
     ///    be `mfa_enabled` before its policy has been built.
-    /// 2. The location has assignments but none is flagged default. The API makes this
-    ///    unreachable, since [`Self::assign_to_location`] rejects it and [`Self::check_deletable`]
-    ///    refuses to remove a default, so this arm only guards data predating those rules.
+    /// 2. The location has assignments but none is flagged default. This happens after the default
+    ///    flow of an MFA-disabled location is deleted: the cascade removes its assignment and the
+    ///    group overrides remain. Re-enabling MFA requires a new default.
     pub async fn resolve_for_user(
         executor: &mut PgConnection,
         location_id: Id,

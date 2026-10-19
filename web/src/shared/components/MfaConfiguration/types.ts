@@ -19,6 +19,8 @@ export type MfaConfigurationStepProps = {
   step: MfaConfigurationStepData;
   stepNumber: number;
   dragConstraints: RefObject<HTMLUListElement | null>;
+  isReordering: boolean;
+  onReorderingChange: (value: boolean) => void;
   methodGroups: MfaConfigurationMethodGroup[];
   methodLabels: Record<MfaFlowMethodValue, string>;
   onDeleteStep: (id: MfaConfigurationStepData['id']) => void;

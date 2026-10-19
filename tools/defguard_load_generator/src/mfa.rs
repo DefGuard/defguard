@@ -16,7 +16,7 @@ use totp_lite::{Sha1, totp_custom};
 use crate::{
     client_info::platform_header,
     config::{ClientMfaArgs, DatabaseArgs},
-    runner::{LoadLoopConfig, run_load_loop},
+    runner::{LoadLoopConfig, LoadLoopStats, ensure_success_rate, run_load_loop},
 };
 
 const START_PATH: &str = "/api/v1/client-mfa/start";
@@ -123,6 +123,13 @@ impl Metrics {
     }
 }
 
+fn request_rate(count: u64, duration: Duration) -> f64 {
+    if duration.is_zero() {
+        return 0.0;
+    }
+    count as f64 / duration.as_secs_f64()
+}
+
 pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     let actors = load_actors(&args.database, args.network_id).await?;
     if actors.is_empty() {
@@ -134,6 +141,7 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     let location_id = args.network_id;
     let with_posture_checks = args.with_posture_checks;
     let mut metrics = Metrics::default();
+    let started_at = Instant::now();
     let stats = run_load_loop(
         actors,
         LoadLoopConfig {
@@ -156,6 +164,13 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
     .await?;
 
     tracing::info!(
+        elapsed = ?started_at.elapsed(),
+        load_duration = ?stats.load_duration,
+        total_duration = ?stats.total_duration,
+        target_rps = args.requests_per_second.get(),
+        min_success_percent = args.min_success_percent,
+        scheduled_rps = request_rate(stats.scheduled, stats.load_duration),
+        successful_rps = request_rate(metrics.successful, stats.total_duration),
         scheduled = stats.scheduled,
         completed = stats.completed,
         successful = metrics.successful,
@@ -168,6 +183,22 @@ pub async fn run(args: ClientMfaArgs) -> anyhow::Result<()> {
         peak_in_flight = stats.peak_in_flight,
         "client MFA load test complete"
     );
+    fail_on_overload(&stats)?;
+    ensure_success_rate(
+        metrics.successful,
+        stats.completed,
+        args.min_success_percent,
+    )
+}
+
+fn fail_on_overload(stats: &LoadLoopStats) -> anyhow::Result<()> {
+    if stats.dropped > 0 || stats.unavailable > 0 {
+        anyhow::bail!(
+            "load generator overload: {} MFA flows dropped at max_in_flight, {} skipped because all actors were busy",
+            stats.dropped,
+            stats.unavailable
+        );
+    }
     Ok(())
 }
 

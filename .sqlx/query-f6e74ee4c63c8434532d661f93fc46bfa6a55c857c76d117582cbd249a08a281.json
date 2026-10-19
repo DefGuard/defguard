@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"is_mfa_session\",\"state\" \"state: _\",\"preshared_key\" FROM \"vpn_client_session\" WHERE id = $1",
+  "query": "SELECT id, \"location_id\",\"user_id\",\"device_id\",\"created_at\",\"connected_at\",\"disconnected_at\",\"is_mfa_session\",\"state\" \"state: _\",\"preshared_key\" \"preshared_key?: _\" FROM \"vpn_client_session\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -115,7 +115,7 @@
       },
       {
         "ordinal": 9,
-        "name": "preshared_key",
+        "name": "preshared_key?: _",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -127,6 +127,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -143,5 +144,5 @@
       true
     ]
   },
-  "hash": "4d4d06efa0450ebebc951926843b0f17a712079bb4c7e7e5c5a0dab016f935be"
+  "hash": "f6e74ee4c63c8434532d661f93fc46bfa6a55c857c76d117582cbd249a08a281"
 }

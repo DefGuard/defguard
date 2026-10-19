@@ -28,7 +28,7 @@
   "license_support_type_direct_enterprise": "Direct Enterprise",
   "license_open_source_message": "You are using the Open Source version, which has limited features. We offer a free Business license with no time limits.",
   "license_see_other_plans": "See other plans",
-  "license_approaching_limits": "You're approaching the limits of your current plan. To increase your limits, please upgrade to a higher-tier plan.",
+  "license_approaching_limits": "You have reached your license limits. To increase your limits, please upgrade to a higher-tier plan.",
   "license_capacity_reached": "You've reached your plan's maximum capacity. Upgrade today to avoid interruptions and gain more flexibility.",
   "contact_sales": "Contact sales",
   "controls_connect": "Connect",
@@ -92,5 +92,9 @@
   "misc_recommended": "Recommended",
   "footer_copyright": "Copyright © {year} Defguard Sp. z o.o.",
   "error_unknown": "An unknown error occurred",
-  "controls_configure": "Configure"
+  "controls_configure": "Configure",
+  "limit_reached_upgrade_current_plan": "Upgrade your current plan.",
+  "limit_reached_title": "You've reached the plan limit.",
+  "limit_reached_description": "To increase your limits and add more users, please upgrade your plan.",
+  "limit_reached_compare_plans": "To compare all available plans and choose the one that fits your needs, click the button below."
 }

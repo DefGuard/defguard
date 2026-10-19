@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import { activityLogEventDisplay } from '../../../shared/api/activity-log-types';
+import { getActivityLogEventLabel } from '../../../shared/api/activity-log-types';
 import type { ActivityLogEvent } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
@@ -161,7 +161,7 @@ export const LogDetailsDrawer = ({ selectedRow, onClose }: Props) => {
         <>
           <div className="body">
             <div className="block event">
-              <p className="name">{activityLogEventDisplay[selectedRow.event]}</p>
+              <p className="name">{getActivityLogEventLabel(selectedRow.event)}</p>
               {isPresent(selectedRow.description) && (
                 <p className="description">{selectedRow.description}</p>
               )}
