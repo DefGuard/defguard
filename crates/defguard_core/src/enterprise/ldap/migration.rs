@@ -20,12 +20,14 @@ pub struct LdapRepairCounts {
     pub migrated: u64,
 }
 
+/// Rebuilds the legacy value and path split at the first unescaped comma.
 fn repaired_dn(
     ldap_rdn: &str,
     ldap_user_path: Option<&str>,
 ) -> Result<(String, String), LdapError> {
     let path =
         ldap_user_path.ok_or_else(|| LdapError::InvalidDN("missing LDAP user path".into()))?;
+    // reconstruct the full DN from the stored legacy value and path before decoding
     let full_dn = format!("{ldap_rdn},{path}");
     let separator = find_unescaped_separator(&full_dn, b',')
         .ok_or_else(|| LdapError::InvalidDN(full_dn.clone()))?;
