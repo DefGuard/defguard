@@ -102,12 +102,14 @@ static TEST_AUTHENTICATORS: LazyLock<RwLock<AttestationCaList>> =
     LazyLock::new(|| RwLock::new(AttestationCaListBuilder::new().build()));
 
 #[cfg(not(any(test, feature = "test-support")))]
-fn trusted_cas() -> Cow<'static, AttestationCaList> {
+#[must_use]
+pub fn trusted_attestation_cas() -> Cow<'static, AttestationCaList> {
     Cow::Borrowed(&TRUSTED_AUTHENTICATORS)
 }
 
 #[cfg(any(test, feature = "test-support"))]
-fn trusted_cas() -> Cow<'static, AttestationCaList> {
+#[must_use]
+pub fn trusted_attestation_cas() -> Cow<'static, AttestationCaList> {
     let mut cas = TRUSTED_AUTHENTICATORS.clone();
     cas.union(
         &TEST_AUTHENTICATORS
@@ -117,15 +119,9 @@ fn trusted_cas() -> Cow<'static, AttestationCaList> {
     Cow::Owned(cas)
 }
 
-/// Every root is scoped to its own AAGUIDs, never blanket allowed.
-#[must_use]
-pub fn trusted_attestation_cas() -> AttestationCaList {
-    trusted_cas().into_owned()
-}
-
 #[must_use]
 pub fn authenticator_description(aaguid: &Uuid) -> Option<String> {
-    trusted_cas()
+    trusted_attestation_cas()
         .cas()
         .values()
         .find_map(|ca| ca.aaguids().get(aaguid))
@@ -212,14 +208,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bundled_list_parses() {
+    fn test_bundled_list_parses() {
         let cas = parse_catalog(TRUSTED_AUTHENTICATORS_JSON).expect("bundled list parses");
         assert!(!cas.is_empty());
         assert!(cas.cas().values().all(|ca| !ca.blanket_allow()));
     }
 
     #[test]
-    fn describes_bundled_models() {
+    fn test_describes_bundled_models() {
         let yubikey_5_nfc = Uuid::parse_str("fa2b99dc-9e39-4257-8f92-4a30d23c4118").unwrap();
         assert_eq!(
             authenticator_description(&yubikey_5_nfc).as_deref(),
@@ -245,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn roaming_check_reads_transports_extension() {
+    fn test_roaming_check_reads_transports_extension() {
         const USB_ONLY: &[u8] = &[0x03, 0x02, 0x05, 0x20];
         const NFC_ONLY: &[u8] = &[0x03, 0x02, 0x04, 0x10];
         const INTERNAL_ONLY: &[u8] = &[0x03, 0x02, 0x03, 0x08];

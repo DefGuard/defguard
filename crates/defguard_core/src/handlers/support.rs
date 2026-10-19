@@ -7,8 +7,9 @@ use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
     error::WebError,
+    log_file::read_log_tail,
     server_config,
-    support::{dump_config, read_log_tail},
+    support::dump_config,
 };
 
 /// Get instance configuration for support purposes

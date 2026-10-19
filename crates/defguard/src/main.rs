@@ -1,13 +1,10 @@
 use std::{
     collections::HashSet,
-    fs::{self, OpenOptions, read_to_string},
-    io::Write,
-    path::{Path, absolute},
+    fs::read_to_string,
     sync::{Arc, Mutex, RwLock},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{Context, bail};
+use anyhow::bail;
 use bytes::Bytes;
 use defguard_common::{
     CARGO_VERSION, VERSION,
@@ -38,7 +35,9 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent},
     gateway_config,
     grpc::{WorkerState, run_grpc_server},
-    init_dev_env, init_vpn_location, run_web_server, set_admin_group,
+    init_dev_env, init_vpn_location,
+    log_file::open_log_writer,
+    run_web_server, set_admin_group,
     setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
@@ -61,63 +60,10 @@ use tokio::{
         mpsc::{channel, unbounded_channel},
     },
 };
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
-
-/// With rotation, logs go to daily `<path>.<date>` files and `path` is a symlink to the current one.
-fn log_file_writer(path: &str, rotation: bool) -> anyhow::Result<Box<dyn Write + Send>> {
-    let path_ref = Path::new(path);
-    let Some(file_name) = path_ref.file_name().and_then(|name| name.to_str()) else {
-        bail!("Invalid log file path {path}");
-    };
-    // The appender points the symlink at `directory.join(file)`, which resolves relative to the
-    // symlink itself, so a relative directory would leave the symlink dangling.
-    let directory = match path_ref.parent() {
-        Some(parent) if !parent.as_os_str().is_empty() => absolute(parent),
-        _ => absolute("."),
-    }
-    .with_context(|| format!("Failed to resolve log file directory of {path}"))?;
-    fs::create_dir_all(&directory).with_context(|| {
-        format!(
-            "Failed to create log file directory {}",
-            directory.display()
-        )
-    })?;
-    let is_symlink = fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink());
-
-    if !rotation {
-        if is_symlink {
-            fs::remove_file(path)
-                .with_context(|| format!("Failed to remove log file symlink {path}"))?;
-        }
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)
-            .with_context(|| format!("Failed to open log file {path}"))?;
-        return Ok(Box::new(file));
-    }
-
-    // The appender deletes whatever is at the symlink path, so keep a log left by a run without
-    // rotation.
-    if !is_symlink && path_ref.exists() {
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-        let backup = format!("{path}.{timestamp}.bak");
-        fs::rename(path, &backup)
-            .with_context(|| format!("Failed to move log file {path} to {backup}"))?;
-    }
-
-    let appender = RollingFileAppender::builder()
-        .rotation(Rotation::DAILY)
-        .filename_prefix(file_name)
-        .latest_symlink(file_name)
-        .build(directory)
-        .with_context(|| format!("Failed to open log file {path}"))?;
-    Ok(Box::new(appender))
-}
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -138,8 +84,11 @@ async fn main() -> Result<(), anyhow::Error> {
     // The guard flushes buffered log lines on drop, so it must live until main returns.
     let (file_layer, _log_file_guard) = match &config.log_file {
         Some(path) => {
-            let (writer, guard) =
-                tracing_appender::non_blocking(log_file_writer(path, config.log_file_rotation)?);
+            let (writer, guard) = tracing_appender::non_blocking(open_log_writer(
+                path,
+                config.log_file_rotation,
+                config.log_file_max_files,
+            )?);
             (
                 Some(version_fmt_layer(&version, false, writer)),
                 Some(guard),
@@ -481,40 +430,5 @@ async fn main() -> Result<(), anyhow::Error> {
             gateway_tx
         ) => bail!("VPN client session manager returned early: {res:?}"),
         _ = ctrl_c() => Ok(()),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env, fs, io::Write, path::PathBuf, process};
-
-    use super::log_file_writer;
-
-    struct RestoreCwd(PathBuf);
-
-    impl Drop for RestoreCwd {
-        fn drop(&mut self) {
-            let _ = env::set_current_dir(&self.0);
-        }
-    }
-
-    // Changes the process-wide cwd, so under plain `cargo test` it must not run alongside other
-    // tests that use relative paths.
-    #[test]
-    fn rotated_log_symlink_resolves_for_relative_path() {
-        let root = env::temp_dir().join(format!("defguard-log-file-{}", process::id()));
-        fs::create_dir_all(&root).expect("create temp dir");
-        let cwd = RestoreCwd(env::current_dir().expect("read cwd"));
-        env::set_current_dir(&root).expect("enter temp dir");
-
-        let mut writer = log_file_writer("logs/defguard.log", true).expect("open log file");
-        writer.write_all(b"first line\n").expect("write log line");
-        writer.flush().expect("flush log file");
-        drop(writer);
-        let logged = fs::read_to_string("logs/defguard.log");
-        drop(cwd);
-        fs::remove_dir_all(&root).expect("remove temp dir");
-
-        assert_eq!(logged.expect("read through symlink"), "first line\n");
     }
 }

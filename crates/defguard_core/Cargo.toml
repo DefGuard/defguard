@@ -82,6 +82,7 @@ totp-lite.workspace = true
 tower-http.workspace = true
 tower_governor.workspace = true
 tracing.workspace = true
+tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
 # openapi
@@ -98,6 +99,9 @@ regex = "1.10"
 serde-saphyr = "1.3"
 ua-parser = "0.2"
 async-stream = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31", features = ["fs"] }
 
 [features]
 default = ["openapi"]

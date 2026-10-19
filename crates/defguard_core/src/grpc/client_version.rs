@@ -6,6 +6,14 @@ use semver::Version;
 
 use crate::enterprise::is_business_license_active;
 
+const MOBILE_OS_FAMILIES: [&str; 2] = ["android", "ios"];
+
+fn is_mobile(platform: &ClientPlatformInfo) -> bool {
+    MOBILE_OS_FAMILIES
+        .iter()
+        .any(|family| platform.os_family.eq_ignore_ascii_case(family))
+}
+
 /// Extracts the semantic client version and decoded platform metadata from proxy device info.
 ///
 /// Invalid or missing fields are logged and returned as `None` so feature checks can fail closed
@@ -55,12 +63,7 @@ pub(crate) fn parse_client_version_platform(
 #[must_use]
 pub fn client_registration_source(info: Option<&DeviceInfo>) -> RegistrationSource {
     let (_, platform) = parse_client_version_platform(info);
-    let is_mobile = platform.is_some_and(|platform| {
-        ["android", "ios"]
-            .iter()
-            .any(|family| platform.os_family.eq_ignore_ascii_case(family))
-    });
-    if is_mobile {
+    if platform.as_ref().is_some_and(is_mobile) {
         RegistrationSource::Mobile
     } else {
         RegistrationSource::Desktop
@@ -134,24 +137,20 @@ impl ClientFeature {
                     os_type: Some("linux"),
                 },
             ],
-            Self::PostureChecks => vec![
-                // We do not keep mobile client and desktop client versions in sync.
-                ClientFeatureRule {
+            // We do not keep mobile client and desktop client versions in sync.
+            Self::PostureChecks => MOBILE_OS_FAMILIES
+                .into_iter()
+                .map(|family| ClientFeatureRule {
                     min_version: Version::new(1, 7, 0),
-                    os_family: Some("android"),
+                    os_family: Some(family),
                     os_type: None,
-                },
-                ClientFeatureRule {
-                    min_version: Version::new(1, 7, 0),
-                    os_family: Some("ios"),
-                    os_type: None,
-                },
-                ClientFeatureRule {
+                })
+                .chain([ClientFeatureRule {
                     min_version: Version::new(2, 1, 0),
                     os_family: None,
                     os_type: None,
-                },
-            ],
+                }])
+                .collect(),
             Self::MultiStepMfa => vec![ClientFeatureRule {
                 min_version: Version::new(2, 2, 0),
                 os_family: None,

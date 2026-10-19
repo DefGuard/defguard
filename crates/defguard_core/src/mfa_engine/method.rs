@@ -10,7 +10,7 @@ use defguard_common::db::{
         user::UserError,
         vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
         vpn_client_session::VpnClientMfaMethod,
-        webauthn::to_ctap_public_key,
+        webauthn::{AuthenticatorKind, to_ctap_public_key},
     },
 };
 use sqlx::PgPool;
@@ -329,7 +329,7 @@ async fn verify_vpn_fido2_step(
         auth_data: authenticator_data.clone(),
         ..Default::default()
     };
-    let verified = verify_client_fido2_assertion(
+    if verify_client_fido2_assertion(
         pool,
         ctx.user.id,
         &rp_id,
@@ -337,8 +337,8 @@ async fn verify_vpn_fido2_step(
         &assertion,
         Some(credential_id.as_slice()),
     )
-    .await?;
-    if verified {
+    .await?
+    {
         Ok(Verdict::Proved)
     } else {
         Ok(Verdict::Failed {
@@ -357,7 +357,8 @@ async fn verify_client_fido2_assertion(
     assertion: &Assertion,
     credential_id: Option<&[u8]>,
 ) -> Result<bool, VerifyError> {
-    let passkeys = WebAuthn::hardware_passkeys_for_user(pool, user_id).await?;
+    let passkeys =
+        WebAuthn::passkeys_for_user(pool, user_id, Some(AuthenticatorKind::Hardware)).await?;
     let signed = passkeys.iter().any(|passkey| {
         credential_id.is_none_or(|credential_id| passkey.cred_id().as_ref() == credential_id)
             && to_ctap_public_key(passkey).is_some_and(|public_key| {
@@ -480,9 +481,11 @@ pub async fn offered_credential_ids(
 /// The user's hardware-attested security key credentials, base64url as webauthn-rs serializes
 /// them. Only these keys are accepted from the client.
 pub async fn fido2_credential_ids(pool: &PgPool, user_id: Id) -> Result<Vec<String>, sqlx::Error> {
-    Ok(WebAuthn::hardware_passkeys_for_user(pool, user_id)
-        .await?
-        .iter()
-        .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
-        .collect())
+    Ok(
+        WebAuthn::passkeys_for_user(pool, user_id, Some(AuthenticatorKind::Hardware))
+            .await?
+            .iter()
+            .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
+            .collect(),
+    )
 }

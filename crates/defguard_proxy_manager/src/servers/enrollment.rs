@@ -53,7 +53,7 @@ use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
-use super::mfa_setup::RecoveryCodes;
+use super::mfa_setup::RecoveryCodesPolicy;
 
 pub(crate) struct EnrollmentServer {
     pool: PgPool,
@@ -1244,9 +1244,9 @@ impl EnrollmentServer {
             event,
             info,
             if is_enrollment {
-                RecoveryCodes::Fresh
+                RecoveryCodesPolicy::Fresh
             } else {
-                RecoveryCodes::KeepOrIssue
+                RecoveryCodesPolicy::KeepOrIssue
             },
         )
         .await?;

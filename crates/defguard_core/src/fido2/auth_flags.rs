@@ -51,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_flags() {
+    fn test_parses_flags() {
         let flags = AuthFlags::parse(&auth_data(0x1d)).unwrap();
         assert_eq!(
             flags,
@@ -65,7 +65,7 @@ mod tests {
     }
 
     #[test]
-    fn requires_both_presence_and_verification() {
+    fn test_requires_both_presence_and_verification() {
         assert!(
             !AuthFlags::parse(&auth_data(0x01))
                 .unwrap()
@@ -84,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_truncated_auth_data() {
+    fn test_rejects_truncated_auth_data() {
         assert_eq!(AuthFlags::parse(&[0; MIN_AUTH_DATA_LEN - 1]), None);
     }
 }

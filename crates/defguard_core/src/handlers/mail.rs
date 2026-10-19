@@ -16,12 +16,13 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    log_file::read_log_tail,
     mail::{
         Attachment,
         templates::{self, SUPPORT_EMAIL_ADDRESS},
     },
     server_config,
-    support::{dump_config, read_log_tail},
+    support::dump_config,
 };
 
 #[derive(Clone, Deserialize)]

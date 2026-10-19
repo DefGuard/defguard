@@ -221,6 +221,7 @@ pub mod handlers;
 pub mod headers;
 pub mod letsencrypt;
 pub mod location_management;
+pub mod log_file;
 pub mod mail;
 pub mod mfa_engine;
 pub mod setup_logs;

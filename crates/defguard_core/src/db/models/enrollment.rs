@@ -405,7 +405,7 @@ impl Token {
         pool: &PgPool,
         user: &User<Id>,
     ) -> Result<String, TokenError> {
-        let passkeys = WebAuthn::passkeys_for_user(pool, user.id).await?;
+        let passkeys = WebAuthn::passkeys_for_user(pool, user.id, None).await?;
         let webauthn = Settings::get_current_settings()
             .build_webauthn()
             .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
@@ -415,7 +415,7 @@ impl Token {
                 &user.username,
                 &user.username,
                 Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
-                trusted_attestation_cas(),
+                trusted_attestation_cas().into_owned(),
                 Some(AuthenticatorAttachment::CrossPlatform),
             )
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;

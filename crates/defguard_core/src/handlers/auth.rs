@@ -517,7 +517,7 @@ pub async fn webauthn_init(
         user.username
     );
     // passkeys to exclude
-    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, user.id).await?;
+    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, user.id, None).await?;
     let webauthn = appstate.webauthn()?;
     match webauthn.start_passkey_registration(
         Uuid::new_v4(),
@@ -655,7 +655,7 @@ pub async fn webauthn_start(
     SessionExtractor(mut session): SessionExtractor,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
+    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id, None).await?;
     let webauthn = appstate.webauthn()?;
 
     match webauthn.start_passkey_authentication(&passkeys) {

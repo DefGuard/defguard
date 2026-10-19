@@ -215,7 +215,7 @@ async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: 
     let code = assert_error_response(&response);
     assert_eq!(code, tonic::Code::InvalidArgument);
     assert!(
-        !WebAuthn::exists_for_user(&context.pool, user_id)
+        !WebAuthn::exists_for_user(&context.pool, user_id, None)
             .await
             .expect("query webauthn"),
         "no credential must be saved on failure"
@@ -277,7 +277,7 @@ async fn assert_registration_rejected(
         tonic::Code::InvalidArgument
     );
     assert!(
-        !WebAuthn::exists_for_user(&context.pool, user_id)
+        !WebAuthn::exists_for_user(&context.pool, user_id, None)
             .await
             .expect("query webauthn"),
         "an untrusted authenticator must not be saved"

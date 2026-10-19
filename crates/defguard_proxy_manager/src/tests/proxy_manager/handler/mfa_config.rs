@@ -374,7 +374,7 @@ async fn test_software_passkey_user_fallback_keeps_recovery_codes(
         "the default MFA method must not change"
     );
     assert!(
-        WebAuthn::exists_for_user(&context.pool, user.id)
+        WebAuthn::exists_for_user(&context.pool, user.id, None)
             .await
             .expect("exists_for_user"),
         "the passkey must stay registered"

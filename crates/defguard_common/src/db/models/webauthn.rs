@@ -90,51 +90,37 @@ impl<I> WebAuthn<I> {
 }
 
 impl WebAuthn<Id> {
-    /// Fetch all [`Passkey`]s for a given user.
-    pub async fn passkeys_for_user(pool: &PgPool, user_id: Id) -> sqlx::Result<Vec<Passkey>> {
-        query_scalar!("SELECT passkey FROM webauthn WHERE user_id = $1", user_id)
-            .fetch_all(pool)
-            .await
-            .map(|bin_keys| deserialize_passkeys(&bin_keys))
-    }
-
-    /// Fetch the user's passkeys that passed hardware attestation at registration.
-    pub async fn hardware_passkeys_for_user(
+    /// Fetch the user's passkeys, all of them when kind is None.
+    pub async fn passkeys_for_user(
         pool: &PgPool,
         user_id: Id,
+        kind: Option<AuthenticatorKind>,
     ) -> sqlx::Result<Vec<Passkey>> {
-        query_scalar!(
-            "SELECT passkey FROM webauthn WHERE user_id = $1 AND authenticator_kind = 'hardware'",
-            user_id
+        let bin_keys = query_scalar!(
+            "SELECT passkey FROM webauthn WHERE user_id = $1 \
+            AND ($2::webauthn_authenticator_kind IS NULL OR authenticator_kind = $2)",
+            user_id,
+            kind as Option<AuthenticatorKind>
         )
         .fetch_all(pool)
-        .await
-        .map(|bin_keys| deserialize_passkeys(&bin_keys))
+        .await?;
+        deserialize_passkeys(&bin_keys)
     }
 
-    /// Check whether a user has at least one security key registered.
-    pub async fn exists_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<bool>
+    /// Check whether a user has at least one security key, of any kind when kind is None.
+    pub async fn exists_for_user<'e, E>(
+        executor: E,
+        user_id: Id,
+        kind: Option<AuthenticatorKind>,
+    ) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
         query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1)",
-            user_id
-        )
-        .fetch_one(executor)
-        .await
-        .map(Option::unwrap_or_default)
-    }
-
-    /// Check whether a user has at least one security key that passed hardware attestation.
-    pub async fn hardware_exists_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<bool>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM webauthn \
-            WHERE user_id = $1 AND authenticator_kind = 'hardware')",
-            user_id
+            "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1 \
+            AND ($2::webauthn_authenticator_kind IS NULL OR authenticator_kind = $2))",
+            user_id,
+            kind as Option<AuthenticatorKind>
         )
         .fetch_one(executor)
         .await
@@ -167,10 +153,10 @@ impl WebAuthn<Id> {
     }
 }
 
-fn deserialize_passkeys(bin_keys: &[Vec<u8>]) -> Vec<Passkey> {
+fn deserialize_passkeys(bin_keys: &[Vec<u8>]) -> sqlx::Result<Vec<Passkey>> {
     bin_keys
         .iter()
-        .map(|bin| serde_cbor::from_slice(bin).expect("Can't deserialize Passkey"))
+        .map(|bin| serde_cbor::from_slice(bin).map_err(|err| sqlx::Error::Decode(Box::new(err))))
         .collect()
 }
 

@@ -1,6 +1,6 @@
 use std::{net::IpAddr, sync::OnceLock};
 
-use clap::{ArgAction, Args, Parser, Subcommand, value_parser};
+use clap::{Args, Parser, Subcommand, ValueEnum, value_parser};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
 use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
@@ -34,14 +34,18 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    /// Rotate the log file daily. Only used when `log_file` is set.
+    /// Only used when log_file is set.
     #[arg(
         long,
         env = "DEFGUARD_LOG_FILE_ROTATION",
-        default_value_t = true,
-        action = ArgAction::Set
+        value_enum,
+        default_value_t = LogFileRotation::Daily
     )]
-    pub log_file_rotation: bool,
+    pub log_file_rotation: LogFileRotation,
+
+    /// Rotated log files to keep, all of them when unset.
+    #[arg(long, env = "DEFGUARD_LOG_FILE_MAX_FILES")]
+    pub log_file_max_files: Option<usize>,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
@@ -214,6 +218,16 @@ pub struct DefGuardConfig {
     pub rate_limit_burst: u32,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum LogFileRotation {
+    Never,
+    Hourly,
+    #[default]
+    Daily,
+    Weekly,
+}
+
 #[derive(Clone, Debug, Subcommand)]
 pub enum Command {
     #[command(
@@ -352,7 +366,8 @@ impl DefGuardConfig {
         let config = Self {
             log_level: "info".to_owned(),
             log_file: None,
-            log_file_rotation: true,
+            log_file_rotation: LogFileRotation::Daily,
+            log_file_max_files: None,
             secret_key: None,
             database_host: "localhost".to_owned(),
             database_port: 5432,

@@ -38,7 +38,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
-use super::mfa_setup::{RecoveryCodes, finalize_mfa_factor};
+use super::mfa_setup::{RecoveryCodesPolicy, finalize_mfa_factor};
 
 /// An unauthorized MFA configuration session and its user's current factor state.
 struct MfaConfigSession {
@@ -591,10 +591,10 @@ impl MfaConfigServer {
         // only opens the setup session and configuring a factor is a separate step.
         let recovery_codes = if email_fallback {
             // A software passkey is MFA the client cannot use, so its user keeps the codes.
-            let recovery_codes = if user.mfa_enabled {
-                RecoveryCodes::Keep
+            let recovery_codes_policy = if user.mfa_enabled {
+                RecoveryCodesPolicy::Keep
             } else {
-                RecoveryCodes::Fresh
+                RecoveryCodesPolicy::Fresh
             };
             user.enable_email_mfa(&mut *transaction)
                 .await
@@ -610,7 +610,7 @@ impl MfaConfigServer {
                 MFAMethod::Email,
                 ApiEventType::MfaEmailEnabled,
                 device_info,
-                recovery_codes,
+                recovery_codes_policy,
             )
             .await?
         } else {

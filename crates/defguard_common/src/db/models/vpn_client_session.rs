@@ -9,8 +9,11 @@ use crate::{
     db::{
         Id, NoId,
         models::{
-            WireguardNetwork, biometric_auth::BiometricAuth, user::User,
-            vpn_session_stats::VpnSessionStats, webauthn::WebAuthn,
+            WireguardNetwork,
+            biometric_auth::BiometricAuth,
+            user::User,
+            vpn_session_stats::VpnSessionStats,
+            webauthn::{AuthenticatorKind, WebAuthn},
         },
     },
     secret::SecretStringWrapper,
@@ -102,7 +105,10 @@ impl VpnClientMfaMethod {
             Self::MobileApprove => !BiometricAuth::find_by_user_id(executor, user.id)
                 .await?
                 .is_empty(),
-            Self::Fido2 => WebAuthn::hardware_exists_for_user(executor, user.id).await?,
+            Self::Fido2 => {
+                WebAuthn::exists_for_user(executor, user.id, Some(AuthenticatorKind::Hardware))
+                    .await?
+            }
         };
         Ok(configured)
     }
