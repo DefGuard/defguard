@@ -1523,6 +1523,13 @@ export interface MfaFlowDetailResponse {
   updated_at: string;
 }
 
+export interface MfaFlowLocation {
+  id: number;
+  name: string;
+  is_default: boolean;
+  mfa_enabled: boolean;
+}
+
 export interface MfaFlowListItemResponse {
   id: number;
   title: string;
@@ -1531,6 +1538,7 @@ export interface MfaFlowListItemResponse {
   created_at: string;
   updated_at: string;
   unavailable_reason: MfaMethodAvailabilityReasonValue | null;
+  locations: MfaFlowLocation[];
 }
 
 export interface MfaFlowErrorField {

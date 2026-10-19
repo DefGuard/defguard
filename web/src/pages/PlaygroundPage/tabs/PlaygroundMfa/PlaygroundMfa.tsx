@@ -61,6 +61,7 @@ const mockFlow = (
   created_at: '',
   updated_at: '',
   unavailable_reason: unavailableReason,
+  locations: [],
 });
 
 const locationFlows: MfaFlowListItemResponse[] = [
