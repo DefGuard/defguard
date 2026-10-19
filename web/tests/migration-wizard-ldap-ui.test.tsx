@@ -155,13 +155,17 @@ describe('migration wizard LDAP UI', () => {
       .mockRejectedValueOnce({ response: { data: { msg: 'repair failed' } } })
       .mockResolvedValueOnce(apiResponse({ found: 1, migrated: 1 }));
     useMigrationWizardStore.setState({ current_step: MigrationWizardStep.LdapMigration });
-    renderWithClient(<MigrationWizardLdapMigrationStep />);
+    const { container } = renderWithClient(<MigrationWizardLdapMigrationStep />);
 
-    expect(await screen.findByText('repair failed')).toBeInTheDocument();
+    const errorLog = await screen.findByText('repair failed');
+    const retryButton = screen.getByRole('button', { name: 'Retry' });
+    expect(errorLog).toBeInTheDocument();
+    expect(container.querySelector('.loading-step')).toBeNull();
+    expect(errorLog.closest('.code-card')?.parentElement).toBe(retryButton.parentElement);
     expect(
       screen.getByText('An error occurred during the LDAP migration.'),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(retryButton);
     expect(await screen.findByText(/Accounts found: 1/)).toBeInTheDocument();
     expect(apiMocks.repairLdap).toHaveBeenCalledTimes(2);
   });

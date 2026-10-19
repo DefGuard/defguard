@@ -1,0 +1,14 @@
+.ldap-migration-step {
+  & > .status-heading {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-md);
+
+    & > p {
+      font: var(--t-body-sm-500);
+      color: var(--fg-default);
+    }
+  }
+}

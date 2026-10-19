@@ -1,3 +1,4 @@
+import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
@@ -5,15 +6,16 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { ApiError } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import { Icon, IconKind } from '../../../shared/defguard-ui/components/Icon';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/LoaderSpinner/LoaderSpinner';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 export const MigrationWizardLdapMigrationStep = () => {
@@ -54,14 +56,28 @@ export const MigrationWizardLdapMigrationStep = () => {
 
   return (
     <WizardCard>
-      <LoadingStep
-        title={statusTitle}
-        loading={repair.isPending}
-        success={repair.isSuccess}
-        error={repair.isError}
-      >
+      <div className="ldap-migration-step">
+        <div className="status-heading">
+          {repair.isPending && <LoaderSpinner size={20} variant="primary" />}
+          {repair.isSuccess && (
+            <Icon
+              icon={IconKind.CheckCircle}
+              staticColor={ThemeVariable.FgSuccess}
+              size={20}
+            />
+          )}
+          {repair.isError && (
+            <Icon
+              icon={IconKind.WarningFilled}
+              staticColor={ThemeVariable.FgCritical}
+              size={20}
+            />
+          )}
+          <p>{statusTitle}</p>
+        </div>
         {repair.isError && (
           <>
+            <SizedBox height={ThemeSpacing.Xl} />
             <CodeCard
               title={m.migration_wizard_ldap_error_log_title()}
               value={logValue}
@@ -78,7 +94,7 @@ export const MigrationWizardLdapMigrationStep = () => {
               }}
               disabled={isPending}
             />
-            <SizedBox height={ThemeSpacing.Lg} />
+            <SizedBox height={ThemeSpacing.Xl3} />
             <Checkbox
               active={disableSync}
               disabled={isPending}
@@ -92,9 +108,10 @@ export const MigrationWizardLdapMigrationStep = () => {
             />
           </>
         )}
-      </LoadingStep>
+      </div>
       {repair.isSuccess && (
         <>
+          <SizedBox height={ThemeSpacing.Xl} />
           <CodeCard
             title={m.migration_wizard_ldap_success_log_title()}
             value={logValue}
