@@ -109,11 +109,13 @@ export const formSchema = z
   })
   .superRefine(({ defguard_url, public_proxy_url }, context) => {
     if (canonicalizeUrl(defguard_url) === canonicalizeUrl(public_proxy_url)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['public_proxy_url'],
-        message: m.settings_instance_error_urls_must_differ(),
-      });
+      for (const path of ['defguard_url', 'public_proxy_url'] as const) {
+        context.addIssue({
+          code: 'custom',
+          path: [path],
+          message: m.settings_instance_error_urls_must_differ(),
+        });
+      }
     }
   });
 
