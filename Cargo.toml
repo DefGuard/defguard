@@ -91,7 +91,7 @@ rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
 rust-ini = "0.21"
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23.46", features = ["ring"] }
 rustls-pki-types = "1.15"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
@@ -142,6 +142,7 @@ tower = "0.5"
 tower_governor = "0.8"
 tower-http = { version = "0.7", features = ["fs", "trace", "timeout"] }
 tracing = "0.1"
+tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
 # openapi (see the `openapi` feature of defguard_common / defguard_core / defguard)

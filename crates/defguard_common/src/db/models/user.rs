@@ -22,6 +22,7 @@ use tracing::{debug, error, info, warn};
 use super::{
     device::{Device, DeviceType, UserDevice},
     group::Group,
+    webauthn::{AuthenticatorKind, RegistrationSource},
 };
 use crate::{
     db::{
@@ -77,6 +78,9 @@ impl fmt::Display for MFAMethod {
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,
+    pub authenticator_name: Option<String>,
+    pub authenticator_kind: AuthenticatorKind,
+    pub registration_source: RegistrationSource,
 }
 
 // User information ready to be sent as part of diagnostic data.
@@ -1040,7 +1044,10 @@ impl User<Id> {
     pub async fn security_keys(&self, pool: &PgPool) -> sqlx::Result<Vec<SecurityKey>> {
         query_as!(
             SecurityKey,
-            "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1",
+            "SELECT id \"id!\", name, authenticator_name, \
+            authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
+            registration_source \"registration_source: RegistrationSource\" \
+            FROM webauthn WHERE user_id = $1",
             self.id
         )
         .fetch_all(pool)

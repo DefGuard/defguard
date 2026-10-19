@@ -35,7 +35,9 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent},
     gateway_config,
     grpc::{WorkerState, run_grpc_server},
-    init_dev_env, init_vpn_location, run_web_server, set_admin_group,
+    init_dev_env, init_vpn_location,
+    log_file::open_log_writer,
+    run_web_server, set_admin_group,
     setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
@@ -48,6 +50,7 @@ use defguard_setup::{
     auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
     setup_server::run_setup_web_server,
 };
+use defguard_version::tracing::version_fmt_layer;
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::{
@@ -77,13 +80,27 @@ async fn main() -> Result<(), anyhow::Error> {
         config.log_level
     );
 
+    let version = defguard_version::Version::parse(VERSION)?;
+    // The guard flushes buffered log lines on drop, so it must live until main returns.
+    let (file_layer, _log_file_guard) = match &config.log_file {
+        Some(path) => {
+            let (writer, guard) = tracing_appender::non_blocking(open_log_writer(
+                path,
+                config.log_file_rotation,
+                config.log_file_max_files,
+            )?);
+            (
+                Some(version_fmt_layer(&version, false, writer)),
+                Some(guard),
+            )
+        }
+        None => (None, None),
+    };
+
     let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
-    defguard_version::tracing::with_version_formatters(
-        &defguard_version::Version::parse(VERSION)?,
-        &log_filter,
-        subscriber,
-    )
-    .init();
+    defguard_version::tracing::with_version_formatters(&version, &log_filter, subscriber)
+        .with(file_layer)
+        .init();
 
     info!("Starting ... version v{VERSION}");
     debug!("Using config: {config:?}");

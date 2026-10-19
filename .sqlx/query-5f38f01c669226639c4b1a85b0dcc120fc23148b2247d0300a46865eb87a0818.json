@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT passkey FROM webauthn WHERE user_id = $1 AND ($2::webauthn_authenticator_kind IS NULL OR authenticator_kind = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "passkey",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "passkey"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "webauthn_authenticator_kind",
+            "kind": {
+              "Enum": [
+                "hardware",
+                "unknown"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5f38f01c669226639c4b1a85b0dcc120fc23148b2247d0300a46865eb87a0818"
+}
