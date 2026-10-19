@@ -15,6 +15,7 @@ use defguard_common::{
         FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port,
         Protocol as GwProtocol, SnatBinding,
     },
+    secret::SecretStringWrapper,
 };
 use defguard_core::enterprise::db::models::device_posture::{
     DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
@@ -120,7 +121,7 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
         device_network_info
             .preshared_key
             .as_ref()
-            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
+            .map(SecretStringWrapper::expose_secret),
         Some(preshared_key)
     );
 

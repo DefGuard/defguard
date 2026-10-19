@@ -19,7 +19,7 @@ defguard_web_ui.workspace = true
 model_derive.workspace = true
 
 # mail (moved in-crate from the former defguard_mail crate)
-css-inline = "0.22"
+css-inline = "0.23"
 image = "0.25" # match with qrcode
 lettre.workspace = true
 mrml = "6.0"
@@ -27,7 +27,9 @@ pulldown-cmark.workspace = true
 qrcode = { version = "0.14", default-features = false, features = ["image"] }
 
 # external dependencies
+ammonia.workspace = true
 anyhow.workspace = true
+async-stream.workspace = true
 axum.workspace = true
 axum-client-ip.workspace = true
 axum-extra.workspace = true
@@ -52,6 +54,7 @@ pgp.workspace = true
 prost.workspace = true
 # match version used by sqlx
 rand.workspace = true
+regex.workspace = true
 reqwest.workspace = true
 rsa.workspace = true
 rust-ini.workspace = true
@@ -59,6 +62,7 @@ rustls.workspace = true
 secrecy.workspace = true
 semver.workspace = true
 serde.workspace = true
+serde-saphyr.workspace = true
 serde_cbor.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
@@ -85,6 +89,7 @@ tracing.workspace = true
 tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
+ua-parser.workspace = true
 # openapi
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
@@ -94,11 +99,6 @@ webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
 x509-parser.workspace = true
-ammonia = "4.2.4"
-regex = "1.10"
-serde-saphyr = "1.3"
-ua-parser = "0.2"
-async-stream = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["fs"] }

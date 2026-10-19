@@ -120,6 +120,7 @@ mod test {
             setup_pool,
         },
         gateway_types::WireguardPeer,
+        secret::SecretStringWrapper,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -471,7 +472,7 @@ mod test {
                         peer.pubkey.as_str(),
                         peer.preshared_key
                             .as_ref()
-                            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
+                            .map(SecretStringWrapper::expose_secret),
                     )
                 })
                 .collect::<Vec<_>>(),
