@@ -142,12 +142,19 @@ describe('migration wizard LDAP UI', () => {
       screen.getByText('Analyzing and migrating users. Please wait.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    pendingRepair.resolve(apiResponse({ found: 3, migrated: 2 }));
+    const backendLogs = [
+      'Starting LDAP user DN repair',
+      'Found 4 LDAP users',
+      'Repair committed: 3 migrated',
+    ];
+    pendingRepair.resolve(apiResponse({ found: 4, migrated: 3, logs: backendLogs }));
+    await screen.findByText('Activity log');
     expect(
-      await screen.findByText(
-        'User migration completed. Found: 3. Successfully migrated: 2.',
-      ),
-    ).toBeInTheDocument();
+      screen
+        .getByText('Activity log')
+        .closest('.code-card')
+        ?.querySelector('.card-content p')?.textContent,
+    ).toBe(backendLogs.join('\n'));
     expect(screen.getByText('Activity log')).toBeInTheDocument();
     expect(
       screen.getByText('LDAP user migration successfully completed.'),
@@ -156,13 +163,28 @@ describe('migration wizard LDAP UI', () => {
   });
 
   it('shows repair error, retries, and displays success', async () => {
+    const backendLogs = [
+      'Starting LDAP user DN repair',
+      'Found 1 LDAP user',
+      'LDAP repair failed: PoolClosed',
+    ];
     apiMocks.repairLdap
-      .mockRejectedValueOnce({ response: { data: { msg: 'repair failed' } } })
-      .mockResolvedValueOnce(apiResponse({ found: 1, migrated: 1 }));
+      .mockRejectedValueOnce({
+        response: {
+          data: { msg: 'database is currently unavailable', logs: backendLogs },
+        },
+      })
+      .mockResolvedValueOnce(
+        apiResponse({ found: 1, migrated: 1, logs: ['Retry repair committed'] }),
+      );
     useMigrationWizardStore.setState({ current_step: MigrationWizardStep.LdapMigration });
     const { container } = renderWithClient(<MigrationWizardLdapMigrationStep />);
 
-    const errorLog = await screen.findByText('repair failed');
+    await screen.findByText('Error log');
+    const errorCard = screen.getByText('Error log').closest('.code-card');
+    const errorLog = errorCard?.querySelector('.card-content p');
+    expect(errorLog?.textContent).toBe(backendLogs.join('\n'));
+    expect(errorLog?.textContent).not.toContain('database is currently unavailable');
     const retryButton = screen.getByRole('button', { name: 'Retry' });
     expect(errorLog).toBeInTheDocument();
     expect(container.querySelector('.loading-step')).toBeNull();
@@ -171,11 +193,7 @@ describe('migration wizard LDAP UI', () => {
       screen.getByText('An error occurred during the LDAP migration.'),
     ).toBeInTheDocument();
     fireEvent.click(retryButton);
-    expect(
-      await screen.findByText(
-        'User migration completed. Found: 1. Successfully migrated: 1.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Retry repair committed')).toBeInTheDocument();
     expect(apiMocks.repairLdap).toHaveBeenCalledTimes(2);
   });
 

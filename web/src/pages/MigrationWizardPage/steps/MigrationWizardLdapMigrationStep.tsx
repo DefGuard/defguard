@@ -31,17 +31,11 @@ export const MigrationWizardLdapMigrationStep = () => {
     ? ((disable.error as AxiosError<ApiError>).response?.data?.msg ??
       m.migration_wizard_ldap_disable_sync_error())
     : null;
-  const errorMessage =
-    (repair.error as AxiosError<ApiError> | null)?.response?.data?.msg ??
-    m.migration_wizard_ldap_repair_error_fallback();
   const logValue = repair.isError
-    ? errorMessage
-    : repair.data
-      ? m.migration_wizard_ldap_repair_log({
-          found: repair.data.data.found,
-          migrated: repair.data.data.migrated,
-        })
-      : '';
+    ? ((
+        repair.error as AxiosError<ApiError & { logs?: string[] }> | null
+      )?.response?.data?.logs?.join('\n') ?? '')
+    : (repair.data?.data.logs.join('\n') ?? '');
   const statusTitle = repair.isSuccess
     ? m.migration_wizard_ldap_status_success()
     : repair.isError

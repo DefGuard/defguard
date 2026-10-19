@@ -15,8 +15,6 @@
   "migration_wizard_ldap_status_running": "Analyzing and migrating users. Please wait.",
   "migration_wizard_ldap_status_success": "LDAP user migration successfully completed.",
   "migration_wizard_ldap_status_error": "An error occurred during the LDAP migration.",
-  "migration_wizard_ldap_repair_error_fallback": "LDAP account repair failed. Please try again.",
-  "migration_wizard_ldap_repair_log": "User migration completed. Found: {found}. Successfully migrated: {migrated}.",
   "migration_wizard_ldap_success_log_title": "Activity log",
   "migration_wizard_ldap_error_log_title": "Error log",
   "migration_wizard_ldap_disable_sync_label": "Disable LDAP and continue",

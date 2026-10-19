@@ -48,6 +48,7 @@ export interface MigrationWizardStateResponse extends MigrationWizardApiState {
 export interface LdapMigrationRepairResponse {
   found: number;
   migrated: number;
+  logs: string[];
 }
 
 export interface SessionInfo {
