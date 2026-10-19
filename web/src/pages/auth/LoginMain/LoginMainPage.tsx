@@ -13,12 +13,14 @@ import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../shared/api/api';
 import { getAuthErrorText } from '../../../shared/api/apiErrorMessages';
-import type { OpenIdAuthInfo } from '../../../shared/api/types';
+import type { OpenIdAuthInfo, OpenIdProviderKindValue } from '../../../shared/api/types';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { ExternalProviderButton } from '../../../shared/defguard-ui/components/ExternalProviderButton/ExternalProviderButton';
+import type { ExternalProviderButtonProps } from '../../../shared/defguard-ui/components/ExternalProviderButton/types';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
-import { OIDCButton } from '../../../shared/defguard-ui/components/SSOButton/OIDCButton';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { createZodIssue } from '../../../shared/defguard-ui/utils/zod';
+import { useTheme } from '../../../shared/hooks/theme/useTheme';
 import { useAuth } from '../../../shared/hooks/useAuth';
 
 const formSchema = z.object({
@@ -173,7 +175,20 @@ export const LoginMainPage = () => {
   );
 };
 
+const buttonProvider: Record<
+  OpenIdProviderKindValue,
+  ExternalProviderButtonProps['provider']
+> = {
+  Custom: 'custom',
+  Google: 'google',
+  JumpCloud: 'jumpcloud',
+  Microsoft: 'microsoft',
+  Okta: 'okta',
+  Zitadel: 'custom',
+};
+
 const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
+  const { theme } = useTheme();
   const text = useMemo(() => {
     if (data.button_display_name) {
       return m.login_main_sign_in_with({ provider: data.button_display_name });
@@ -183,7 +198,14 @@ const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
 
   return (
     <div id="external-login">
-      <OIDCButton url={data.url} text={text} />
+      <a href={data.url} target="_self" rel="noopener noreferrer">
+        <ExternalProviderButton
+          variant="default"
+          provider={buttonProvider[data.provider_kind]}
+          theme={theme}
+          text={text}
+        />
+      </a>
       <Divider text={m.misc_or()} spacing={ThemeSpacing.Xl2} />
     </div>
   );

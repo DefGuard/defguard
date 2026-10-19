@@ -1647,6 +1647,7 @@ export type AddAclRuleRequest = Omit<
 export interface OpenIdAuthInfo {
   url: string;
   button_display_name?: string | null;
+  provider_kind: OpenIdProviderKindValue;
 }
 
 export interface ActivityLogEvent {
