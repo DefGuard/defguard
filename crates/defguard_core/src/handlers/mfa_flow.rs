@@ -442,7 +442,7 @@ pub async fn list_mfa_flows(
     for step in MfaFlowStep::find_all(&appstate.pool).await? {
         steps_by_flow.entry(step.flow_id).or_default().push(step);
     }
-    let mut locations_by_flow = HashMap::new();
+    let mut locations_by_flow: HashMap<Id, Vec<MfaFlowLocation>> = HashMap::new();
     for location in MfaFlow::list_locations(&appstate.pool).await? {
         locations_by_flow
             .entry(location.flow_id)
