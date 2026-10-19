@@ -1,21 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import type { AxiosError } from 'axios';
 import z from 'zod';
 import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
 import api from '../../shared/api/api';
-import { type ApiError, WebErrorCode } from '../../shared/api/types';
+import { getAuthErrorFromException } from '../../shared/api/apiErrorMessages';
 import { useAuth } from '../../shared/hooks/useAuth';
-
-const getAuthErrorFromException = (e: unknown): WebErrorCode | undefined => {
-  const code = (e as AxiosError<ApiError>).response?.data?.code;
-  if (
-    code === WebErrorCode.UserGroupsNotSynced ||
-    code === WebErrorCode.LicenseLimitReached
-  ) {
-    return code;
-  }
-  return undefined;
-};
 
 const searchSchema = z.union([
   z.object({
@@ -39,7 +27,7 @@ export const Route = createFileRoute('/auth/callback')({
       throw redirect({
         to: '/auth/login',
         replace: true,
-        search: { authError: search.error_description ?? search.error },
+        search: { authErrorDetail: search.error_description ?? search.error },
       });
     }
     try {
@@ -57,7 +45,7 @@ export const Route = createFileRoute('/auth/callback')({
       throw redirect({
         to: '/auth/login',
         replace: true,
-        search: { authError: getAuthErrorFromException(e) },
+        search: getAuthErrorFromException(e),
       });
     }
   },
