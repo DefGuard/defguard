@@ -83,6 +83,20 @@ async fn test_gateway_manager_shutdown_closes_stream_with_updates_handler_runnin
     context.wait_for_updates_handler().await;
 
     context.request_shutdown().await;
+
+    let stopped_gateway = reload_gateway(&context.pool, gateway.id).await;
+    assert!(!stopped_gateway.is_connected());
+    let connected_at = stopped_gateway
+        .connected_at
+        .expect("connected_at should be set after handshake");
+    let disconnected_at = stopped_gateway
+        .disconnected_at
+        .expect("disconnected_at should be set after manager shutdown");
+    assert!(
+        disconnected_at > connected_at,
+        "disconnected_at must be later than connected_at after shutdown"
+    );
+
     mock_gateway.wait_for_core_stream_closed().await;
     context.finish().await;
 }

@@ -338,6 +338,14 @@ async fn test_manager_shutdown_closes_edge_stream(_: PgPoolOptions, options: PgC
     wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
 
     context.shutdown().await;
+
+    let stopped_proxy = reload_proxy(&context.pool, proxy.id).await;
+    assert!(!stopped_proxy.is_connected());
+    assert!(
+        stopped_proxy.disconnected_at.is_some(),
+        "disconnected_at should be set after manager shutdown"
+    );
+
     let stream_end = mock_proxy.wait_stream_end().await;
     assert!(
         stream_end.is_ok(),
@@ -348,6 +356,11 @@ async fn test_manager_shutdown_closes_edge_stream(_: PgPoolOptions, options: PgC
         mock_proxy.connection_count(),
         1,
         "manager shutdown should not reconnect the proxy"
+    );
+    assert_eq!(
+        mock_proxy.purge_count(),
+        0,
+        "manager shutdown must not purge the proxy"
     );
     context.finish().await;
 }

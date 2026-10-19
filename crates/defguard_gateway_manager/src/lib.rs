@@ -463,6 +463,7 @@ impl GatewayManager {
                     self.handlers.abort_all();
                     // Drain aborted handlers before returning so their state is dropped.
                     while self.handlers.join_next().await.is_some() {}
+                    Gateway::mark_all_disconnected(&self.pool).await?;
                     return Ok(());
                 }
             };

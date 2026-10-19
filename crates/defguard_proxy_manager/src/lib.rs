@@ -430,6 +430,7 @@ impl ProxyManager {
         if let Ok(mut senders) = handler_tx_map.write() {
             senders.clear();
         }
+        Proxy::mark_all_disconnected(&self.pool).await?;
 
         Ok(())
     }
