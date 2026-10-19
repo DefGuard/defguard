@@ -635,7 +635,7 @@ pub async fn user_from_claims(
     path = "/api/v1/openid/auth_info",
     tag = "OpenID",
     responses(
-        (status = 200, description = "Authorization URL of the external provider.", body = Object, example = json!({"url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=..."})),
+        (status = 200, description = "Authorization URL of the external provider.", body = Object, example = json!({"url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=...", "button_display_name": "Google", "provider_kind": "Google"})),
         (status = 403, description = "Requires an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "No external OpenID provider is configured.", body = ApiErrorResponse, example = json!({"msg": "OpenID provider not set"})),
         (status = 500, description = "Unable to build authorization URL.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -706,7 +706,7 @@ pub async fn get_auth_info(
     Ok((
         private_cookies,
         ApiResponse::new(
-            json!({"url": authorize_url, "button_display_name": provider.display_name}),
+            json!({"url": authorize_url, "button_display_name": provider.display_name, "provider_kind": provider.kind}),
             StatusCode::OK,
         ),
     ))
