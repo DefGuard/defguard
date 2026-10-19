@@ -327,6 +327,32 @@ async fn test_shutdown_control_message_disconnects_without_purge(
 }
 
 #[sqlx::test]
+async fn test_manager_shutdown_closes_edge_stream(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = ManagerTestContext::new(options).await;
+    let proxy = create_proxy(&context.pool).await;
+    let mut mock_proxy = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy, &mock_proxy);
+
+    context.start().await;
+    complete_manager_proxy_handshake(&mut mock_proxy).await;
+    wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
+
+    context.shutdown().await;
+    let stream_end = mock_proxy.wait_stream_end().await;
+    assert!(
+        stream_end.is_ok(),
+        "mock Edge observed a gRPC stream error instead of clean EOF: {stream_end:?}"
+    );
+
+    assert_eq!(
+        mock_proxy.connection_count(),
+        1,
+        "manager shutdown should not reconnect the proxy"
+    );
+    context.finish().await;
+}
+
+#[sqlx::test]
 async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
 

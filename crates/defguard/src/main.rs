@@ -369,7 +369,7 @@ async fn main() -> Result<(), anyhow::Error> {
     debug!("Gateway connection states reset");
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let proxy_manager_run = proxy_manager.run();
+    let proxy_manager_run = proxy_manager.run(shutdown_rx.clone());
     let gateway_manager_run = gateway_manager.run(shutdown_rx);
     tokio::pin!(proxy_manager_run);
     tokio::pin!(gateway_manager_run);
@@ -435,11 +435,22 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     shutdown_tx.send_replace(true);
-    // The manager performs cleanup; this timeout only bounds how long Core waits.
-    match timeout(MANAGER_SHUTDOWN_TIMEOUT, &mut gateway_manager_run).await {
-        Ok(Ok(())) => info!("GatewayManager stopped"),
-        Ok(Err(err)) => error!("GatewayManager shutdown failed: {err}"),
-        Err(_) => error!("Timed out waiting for GatewayManager shutdown"),
+    // Bound the combined wait; the managers perform their own cleanup.
+    match timeout(MANAGER_SHUTDOWN_TIMEOUT, async {
+        tokio::join!(&mut proxy_manager_run, &mut gateway_manager_run)
+    })
+    .await
+    {
+        Ok((Ok(()), Ok(()))) => info!("ProxyManager and GatewayManager stopped"),
+        Ok((proxy_result, gateway_result)) => {
+            if let Err(err) = proxy_result {
+                error!("ProxyManager shutdown failed: {err}");
+            }
+            if let Err(err) = gateway_result {
+                error!("GatewayManager shutdown failed: {err}");
+            }
+        }
+        Err(_) => error!("Timed out waiting for managers to shut down"),
     }
 
     Ok(())
