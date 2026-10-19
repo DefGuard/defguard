@@ -316,6 +316,7 @@ async fn test_retries_after_stream_close_with_single_handler_supervisor(
     let reconnect_socket_path = mock_gateway.socket_path();
 
     mock_gateway.close_stream();
+    mock_gateway.wait_for_core_stream_closed().await;
 
     let gateway_after_disconnect =
         wait_for_gateway_connection_state(&context.pool, gateway.id, false).await;

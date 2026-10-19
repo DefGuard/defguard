@@ -496,6 +496,10 @@ impl GatewayHandler {
         retry_on_connect_failure: bool,
         retry_delay: Duration,
     ) {
+        if let Some(handle) = self.updates_handler_handle.take() {
+            handle.abort();
+            let _ = handle.await;
+        }
         self.remove_client(clients);
         self.handle_disconnection_error().await;
 
