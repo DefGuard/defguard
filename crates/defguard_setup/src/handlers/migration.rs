@@ -20,6 +20,13 @@ use crate::handlers::auto_wizard::{
     apply_internal_url_settings,
 };
 
+#[derive(Serialize)]
+struct MigrationStateResponse {
+    #[serde(flatten)]
+    state: MigrationWizardState,
+    ldap_migration_required: bool,
+}
+
 pub async fn get_migration_state(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let migration_state = MigrationWizardState::get(&pool).await?.unwrap_or_default();
     let (ldap_migration_required,): (bool,) = query_as(
@@ -27,9 +34,31 @@ pub async fn get_migration_state(_: AdminRole, Extension(pool): Extension<PgPool
     )
     .fetch_one(&pool)
     .await?;
-    let mut response = json!(migration_state);
-    response["ldap_migration_required"] = json!(ldap_migration_required);
-    Ok(ApiResponse::new(response, StatusCode::OK))
+    let response = MigrationStateResponse {
+        state: migration_state,
+        ldap_migration_required,
+    };
+    Ok(ApiResponse::new(json!(response), StatusCode::OK))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MigrationStateResponse;
+    use defguard_common::db::models::migration_wizard::MigrationWizardState;
+    use serde_json::json;
+
+    #[test]
+    fn migration_state_response_flattens_state_fields() {
+        let response = MigrationStateResponse {
+            state: MigrationWizardState::default(),
+            ldap_migration_required: true,
+        };
+        let value = serde_json::to_value(response).expect("Failed to serialize response");
+
+        assert_eq!(value["ldap_migration_required"], json!(true));
+        assert!(value.get("state").is_none());
+        assert!(value.get("current_step").is_some());
+    }
 }
 
 pub async fn repair_ldap_migration(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
