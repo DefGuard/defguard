@@ -49,3 +49,31 @@ jobs:
     uses: ./.github/workflows/alert-e2e-failure.yml
     secrets:
       ALERT_TOKEN: ${{ secrets.ALERT_TOKEN }}
+
+  deploy-stable:
+    needs: build-current
+    if: github.event_name == 'push' && startsWith(github.ref_name, 'stable/2.')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: eu-central-1
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+      - name: Update stable instance
+        run: |
+          version=${GITHUB_REF_NAME#stable/}
+          name=defguard-stable-${version//./}
+          id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$name" Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ "$id" = "None" ]; then
+            echo "::notice::No running instance $name, skipping"
+            exit 0
+          fi
+          cmd=$(aws ssm send-command --instance-ids "$id" --document-name AWS-RunShellScript \
+            --parameters 'commands=["cd /home/admin/defguard && docker compose pull -q && docker compose up -d"]' \
+            --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$cmd" --instance-id "$id"
