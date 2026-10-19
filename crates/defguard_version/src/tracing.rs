@@ -75,7 +75,7 @@ use tracing_subscriber::{
     EnvFilter, Layer,
     field::RecordFields,
     fmt::{
-        FmtContext, FormatEvent, FormatFields,
+        FmtContext, FormatEvent, FormatFields, MakeWriter,
         format::{Format, Full, Writer},
         time::SystemTime,
     },
@@ -429,13 +429,22 @@ where
                 .unwrap_or_else(|_| format!("{log_level},h2=info").into()),
         )
         .with(VersionFieldLayer)
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_ansi(true)
-                .event_format(VersionSuffixFormat::new(
-                    crate::Version::new(own_version.major, own_version.minor, own_version.patch),
-                    Format::default().with_ansi(true),
-                ))
-                .fmt_fields(VersionFilteredFields),
-        )
+        .with(version_fmt_layer(own_version, true, std::io::stdout))
+}
+
+/// Builds the fmt layer used by [`with_version_formatters`], so that other outputs (e.g. a log
+/// file) produce the same format. Set `ansi` to `false` for outputs that are not terminals.
+pub fn version_fmt_layer<S, W>(own_version: &crate::Version, ansi: bool, writer: W) -> impl Layer<S>
+where
+    S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    W: for<'writer> MakeWriter<'writer> + Send + Sync + 'static,
+{
+    tracing_subscriber::fmt::layer()
+        .with_ansi(ansi)
+        .event_format(VersionSuffixFormat::new(
+            crate::Version::new(own_version.major, own_version.minor, own_version.patch),
+            Format::default().with_ansi(ansi),
+        ))
+        .fmt_fields(VersionFilteredFields)
+        .with_writer(writer)
 }

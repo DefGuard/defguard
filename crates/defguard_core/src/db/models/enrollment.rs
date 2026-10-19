@@ -5,7 +5,11 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WebAuthn, user::User},
+        models::{
+            Settings, WebAuthn,
+            user::User,
+            webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
+        },
     },
     random::gen_alphanumeric,
     types::UrlParseError,
@@ -15,9 +19,15 @@ use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, types::Uuid};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
-use webauthn_rs::prelude::{PasskeyRegistration, RegisterPublicKeyCredential};
+use webauthn_rs::prelude::{
+    AttestedPasskeyRegistration, AuthenticatorAttachment, Passkey, RegisterPublicKeyCredential,
+    WebauthnError,
+};
 
-use crate::mail::templates;
+use crate::{
+    fido2::attestation::{trusted_attestation_cas, verify_hardware_key},
+    mail::templates,
+};
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
@@ -61,6 +71,8 @@ pub enum TokenError {
     WebauthnConfig(String),
     #[error("WebAuthn registration error: {0}")]
     WebauthnRegistration(String),
+    #[error("Security key is not a trusted hardware authenticator: {0}")]
+    UntrustedAuthenticator(String),
 }
 
 impl From<TokenError> for Status {
@@ -84,6 +96,11 @@ impl From<TokenError> for Status {
             }
             TokenError::AlreadyActive => (Code::InvalidArgument, "already active"),
             TokenError::WebauthnRegistration(ref msg) => (Code::InvalidArgument, msg.as_str()),
+            TokenError::UntrustedAuthenticator(_) => (
+                Code::InvalidArgument,
+                "security key is not a trusted hardware authenticator, update the client or use \
+                a certified security key",
+            ),
             TokenError::TokenExpired => (Code::Unauthenticated, "token expired"),
         };
         Self::new(code, msg)
@@ -193,7 +210,7 @@ impl Token {
     pub async fn set_passkey_registration<'e, E>(
         &mut self,
         executor: E,
-        passkey_reg: &PasskeyRegistration,
+        passkey_reg: &AttestedPasskeyRegistration,
     ) -> Result<(), TokenError>
     where
         E: PgExecutor<'e>,
@@ -212,7 +229,7 @@ impl Token {
     }
 
     #[must_use]
-    pub fn get_passkey_registration(&self) -> Option<PasskeyRegistration> {
+    pub fn get_passkey_registration(&self) -> Option<AttestedPasskeyRegistration> {
         self.mfa_setup_state
             .as_ref()
             .and_then(|state| serde_cbor::from_slice(state).ok())
@@ -381,23 +398,25 @@ impl Token {
         Ok(true)
     }
 
-    /// Like the REST `webauthn_init`, but stores the ceremony state on the token.
-    /// Returns the `CreationChallengeResponse` as JSON for the client's authenticator.
+    /// Like the REST WebAuthn init, but stores the ceremony state on the token and requires
+    /// attestation by a trusted hardware authenticator.
     pub async fn start_fido2_setup(
         &mut self,
         pool: &PgPool,
         user: &User<Id>,
     ) -> Result<String, TokenError> {
-        let passkeys = WebAuthn::passkeys_for_user(pool, user.id).await?;
+        let passkeys = WebAuthn::passkeys_for_user(pool, user.id, None).await?;
         let webauthn = Settings::get_current_settings()
             .build_webauthn()
             .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
         let (ccr, passkey_reg) = webauthn
-            .start_passkey_registration(
+            .start_attested_passkey_registration(
                 Uuid::new_v4(),
                 &user.username,
                 &user.username,
                 Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
+                trusted_attestation_cas().into_owned(),
+                Some(AuthenticatorAttachment::CrossPlatform),
             )
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
         self.set_passkey_registration(pool, &passkey_reg).await?;
@@ -412,26 +431,57 @@ impl Token {
         user_id: Id,
         name: String,
         attestation_json: &str,
+        source: RegistrationSource,
     ) -> Result<WebAuthn<Id>, TokenError> {
         let webauthn = Settings::get_current_settings()
             .build_webauthn()
             .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
         let passkey_reg = self.get_passkey_registration().ok_or_else(|| {
-            TokenError::WebauthnRegistration("Passkey registration session not found".into())
+            TokenError::WebauthnRegistration(
+                "FIDO2 setup session not found or expired, restart the setup".into(),
+            )
         })?;
+        // The challenge is single use, a failed attempt must restart the ceremony.
+        self.clear_mfa_setup_state(pool).await?;
         let rpkc: RegisterPublicKeyCredential =
             serde_json::from_str(attestation_json).map_err(|_| {
                 TokenError::WebauthnRegistration("Failed to parse registration attestation".into())
             })?;
-        let passkey = webauthn
-            .finish_passkey_registration(&rpkc, &passkey_reg)
-            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        let webauthn_key = WebAuthn::new(user_id, name, &passkey)
+        let attested = webauthn
+            .finish_attested_passkey_registration(&rpkc, &passkey_reg)
+            .map_err(|err| match err {
+                WebauthnError::AttestationNotVerifiable
+                | WebauthnError::AttestationChainNotTrusted(_)
+                | WebauthnError::AttestationLeafCertMissing
+                | WebauthnError::AttestationUntrustedAaguid
+                | WebauthnError::AttestationNotSupported
+                | WebauthnError::AttestationFormatMissingAaguid
+                | WebauthnError::AttestationCertificateAAGUIDMismatch
+                | WebauthnError::CredentialMayNotBeHardwareBound => {
+                    TokenError::UntrustedAuthenticator(err.to_string())
+                }
+                _ => TokenError::WebauthnRegistration(err.to_string()),
+            })?;
+        let hardware_key = verify_hardware_key(&attested)
+            .map_err(|err| TokenError::UntrustedAuthenticator(err.to_string()))?;
+        info!(
+            "Security key attested as {} ({})",
+            hardware_key
+                .description
+                .as_deref()
+                .unwrap_or("unnamed model"),
+            hardware_key.aaguid
+        );
+        let authenticator = AuthenticatorInfo {
+            name: hardware_key.description,
+            kind: AuthenticatorKind::Hardware,
+            source,
+        };
+        let webauthn_key = WebAuthn::new(user_id, name, &Passkey::from(attested), authenticator)
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?
             .save(pool)
             .await
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        self.clear_mfa_setup_state(pool).await?;
         Ok(webauthn_key)
     }
 

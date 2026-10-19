@@ -355,9 +355,29 @@ export interface Device {
   networks: DeviceNetworkInfo[];
 }
 
+export const AuthenticatorKind = {
+  Hardware: 'hardware',
+  Unknown: 'unknown',
+} as const;
+
+export type AuthenticatorKindValue =
+  (typeof AuthenticatorKind)[keyof typeof AuthenticatorKind];
+
+export const RegistrationSource = {
+  Core: 'core',
+  Desktop: 'desktop',
+  Mobile: 'mobile',
+} as const;
+
+export type RegistrationSourceValue =
+  (typeof RegistrationSource)[keyof typeof RegistrationSource];
+
 export interface SecurityKey {
   id: number;
   name: string;
+  authenticator_name: string | null;
+  authenticator_kind: AuthenticatorKindValue;
+  registration_source: RegistrationSourceValue;
 }
 
 export type UserProfileResponse = {
