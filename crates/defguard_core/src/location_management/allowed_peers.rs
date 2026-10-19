@@ -469,7 +469,9 @@ mod test {
                 .map(|peer| {
                     (
                         peer.pubkey.as_str(),
-                        peer.preshared_key.as_ref().map(|key| key.expose_secret()),
+                        peer.preshared_key
+                            .as_ref()
+                            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
                     )
                 })
                 .collect::<Vec<_>>(),

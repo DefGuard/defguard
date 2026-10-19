@@ -120,7 +120,7 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
         device_network_info
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(preshared_key)
     );
 

@@ -341,7 +341,7 @@ async fn test_mfa_finish_succeeds_with_mobile_approve_signature(
         session
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         parked_key.as_deref()
     );
 
@@ -445,7 +445,7 @@ async fn test_legacy_mobile_approve_completes_with_fido2_on_location(
         session
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(parked_key.as_str())
     );
 

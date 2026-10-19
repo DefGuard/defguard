@@ -745,7 +745,7 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
         session
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(completed.preshared_key.as_str())
     );
     assert!(matches!(

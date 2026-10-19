@@ -2424,7 +2424,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     let FinishOutcome::Completed { preshared_key } = outcome else {
         panic!("expected a completed flow")
     };
-    assert!(!preshared_key.expose_secret().is_empty());
+    assert_ne!(preshared_key.expose_secret(), "");
 
     let sessions =
         VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)

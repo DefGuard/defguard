@@ -137,7 +137,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
                 network_info
                     .preshared_key
                     .as_ref()
-                    .map(|key| key.expose_secret()),
+                    .map(defguard_common::secret::SecretStringWrapper::expose_secret),
                 Some(preshared_key.as_str())
             );
             assert!(network_info.is_authorized);
@@ -154,7 +154,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
         active_sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(preshared_key.as_str())
     );
 }
@@ -418,7 +418,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         victim_session
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some("victim-psk"),
         "the victim's preshared key must not have been rotated"
     );
@@ -1283,7 +1283,7 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
         active_sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(NEW_MFA_PRESHARED_KEY)
     );
 
@@ -2109,7 +2109,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret())
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret)
     );
 }
 

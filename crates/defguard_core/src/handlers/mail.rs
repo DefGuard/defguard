@@ -193,7 +193,7 @@ pub async fn send_gateway_disconnected_email(
     pool: &PgPool,
 ) {
     debug!("Sending Gateway disconnected mail to all admin users");
-    let Ok(admin_emails) = get_admins_emails(&pool).await else {
+    let Ok(admin_emails) = get_admins_emails(pool).await else {
         error!("Failed to fetch admin emails");
         return;
     };
@@ -224,7 +224,7 @@ pub async fn send_gateway_reconnected_email(
     pool: &PgPool,
 ) {
     debug!("Sending Gateway reconnect mail to all admin users");
-    let Ok(admin_emails) = get_admins_emails(&pool).await else {
+    let Ok(admin_emails) = get_admins_emails(pool).await else {
         error!("Failed to fetch admin emails");
         return;
     };
