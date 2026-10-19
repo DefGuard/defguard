@@ -182,8 +182,9 @@ impl GatewayManager {
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
     pub async fn run(&mut self) -> Result<(), anyhow::Error> {
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
-        certs::refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
+
+        // These two variables will be dropped by the end of this method.
         let _refresh_certs_task = AbortTaskOnDrop::new(tokio::spawn(async move {
             loop {
                 certs::refresh_certs(&refresh_pool, &certs_tx).await;
@@ -202,6 +203,7 @@ impl GatewayManager {
                 }
             }))
         });
+
         // Stores the abort handle and a snapshot of the gateway at the time the handler was last
         // started. The snapshot is used by the Update arm to detect connection-relevant changes.
         let mut abort_handles = HashMap::new();
@@ -238,7 +240,7 @@ impl GatewayManager {
                                 Ok(None) => {
                                     warn!(
                                         "Received Insert notification for Gateway \
-                                            id={gateway_id} but it was not found in the database"
+                                        id={gateway_id} but it was not found in the database"
                                     );
                                     #[cfg(test)]
                                     self.note_gateway_notification_for_tests(gateway_id);
@@ -287,7 +289,8 @@ impl GatewayManager {
                                     }
                                 };
 
-                            // Only restart the handler when connection-relevant fields have actually changed
+                            // Only restart the handler when connection-relevant fields have
+                            // actually changed.
                             let should_restart = match abort_handles.get(&gateway_id) {
                                 Some((_, snapshot)) => snapshot.needs_restart(&gateway),
                                 // Gateway not currently handled - treat as needing a (re)start.
@@ -309,7 +312,7 @@ impl GatewayManager {
                                 {
                                     error!(
                                         "Failed to update disconnection time for Gateway \
-                                            id={gateway_id} after database change: {err}"
+                                        id={gateway_id} after database change: {err}"
                                     );
                                 }
 

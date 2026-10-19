@@ -327,24 +327,9 @@ impl GatewayHandler {
             #[cfg(test)]
             note_disconnect_notification_for_tests(test_support.as_ref(), gateway_id);
 
-            debug!("Sending Gateway disconnect email notification");
-            // TODO: return result instead of logging.
-            if let Err(err) =
-                send_gateway_disconnected_email(gateway.name, network.name, &url, &pool).await
-            {
-                error!("Failed to send Gateway disconnect notification: {err}");
-            } else {
-                info!("Sent email notification about Gateway being disconnected");
-            }
+            send_gateway_disconnected_email(gateway.name, network.name, &url, &pool).await;
         });
         self.pending_disconnect_notification = Some(handle);
-    }
-
-    /// Returns true if a disconnect email went out for this outage, and atomically clears the
-    /// flag so a later outage cannot inherit it.
-    fn take_disconnect_notification_sent(&self) -> bool {
-        self.disconnect_notification_sent
-            .swap(false, Ordering::SeqCst)
     }
 
     /// Send a Gateway reconnected notification, but only when a matching disconnect notification
@@ -352,7 +337,10 @@ impl GatewayHandler {
     fn maybe_send_reconnect_notification(&self, network_name: String) {
         // Consume the flag even when reconnect notifications are turned off, so that a later
         // outage cannot inherit it.
-        if !self.take_disconnect_notification_sent() {
+        if !self
+            .disconnect_notification_sent
+            .swap(false, Ordering::SeqCst)
+        {
             return;
         }
 
@@ -374,13 +362,7 @@ impl GatewayHandler {
                 Ok(Some(gateway)) => gateway.name,
                 _ => fallback_name,
             };
-            if let Err(err) =
-                send_gateway_reconnected_email(gateway_name, network_name, &url, &pool).await
-            {
-                error!("Failed to send Gateway reconnect notification: {err}");
-            } else {
-                info!("Sent email notification about Gateway being reconnected");
-            }
+            send_gateway_reconnected_email(&gateway_name, &network_name, &url, &pool).await;
         });
     }
 

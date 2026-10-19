@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
-use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
+use defguard_common::db::models::{gateway::Gateway, proxy::Proxy};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -185,72 +185,88 @@ pub enum MailError {
     Template(#[from] crate::mail::templates::TemplateError),
 }
 
+/// Send Gateway disconnect email to all admin users.
 pub async fn send_gateway_disconnected_email(
     gateway_name: String,
     network_name: String,
     gateway_adress: &str,
     pool: &PgPool,
-) -> Result<(), MailError> {
+) {
     debug!("Sending Gateway disconnected mail to all admin users");
-    let mut conn = pool.begin().await?;
-    let admin_users = User::find_admins(&mut *conn).await?;
-    for user in admin_users {
-        templates::gateway_disconnected_mail(
-            &user.email,
+    let Ok(admin_emails) = get_admins_emails(&pool).await else {
+        error!("Failed to fetch admin emails");
+        return;
+    };
+    let Ok(mut conn) = pool.acquire().await else {
+        error!("Failed to acquire database connection");
+        return;
+    };
+    for email in admin_emails {
+        if let Err(err) = templates::gateway_disconnected_mail(
+            &email,
             &mut conn,
             &gateway_name,
             gateway_adress,
             &network_name,
         )
-        .await?;
+        .await
+        {
+            error!("Failed to send Gateway disconnect notification to {email}: {err}");
+        }
     }
-
-    Ok(())
 }
 
+/// Send Gateway reconnect email to all admin users.
 pub async fn send_gateway_reconnected_email(
-    gateway_name: String,
-    network_name: String,
+    gateway_name: &str,
+    network_name: &str,
     gateway_adress: &str,
     pool: &PgPool,
-) -> Result<(), MailError> {
+) {
     debug!("Sending Gateway reconnect mail to all admin users");
-    let mut conn = pool.begin().await?;
-    let admin_users = User::find_admins(&mut *conn).await?;
-    for user in admin_users {
-        templates::gateway_reconnected_mail(
-            &user.email,
+    let Ok(admin_emails) = get_admins_emails(&pool).await else {
+        error!("Failed to fetch admin emails");
+        return;
+    };
+    let Ok(mut conn) = pool.acquire().await else {
+        error!("Failed to acquire database connection");
+        return;
+    };
+    for email in admin_emails {
+        if let Err(err) = templates::gateway_reconnected_mail(
+            &email,
             &mut conn,
-            &gateway_name,
+            gateway_name,
             gateway_adress,
-            &network_name,
+            network_name,
         )
-        .await?;
+        .await
+        {
+            error!("Failed to send Gateway reconnect notification to {email}: {err}");
+        }
     }
-
-    Ok(())
 }
 
-pub async fn get_admins_emails(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+async fn get_admins_emails(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
     debug!("Getting emails of active admins");
     query_scalar::<_, String>(
         "SELECT u.email \
-            FROM \"user\" u \
-            JOIN group_user gu oN gu.user_id = u.id JOIN \"group\" g ON gu.group_id = g.id \
-            WHERE g.is_admin AND u.is_active",
+        FROM \"user\" u \
+        JOIN group_user gu oN gu.user_id = u.id JOIN \"group\" g ON gu.group_id = g.id \
+        WHERE g.is_admin AND u.is_active",
     )
     .fetch_all(pool)
     .await
 }
 
-pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), MailError> {
+pub(crate) async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), MailError> {
     debug!("Sending blocked user import mail to all admin users");
     let admin_emails = get_admins_emails(pool).await?;
     let mut conn = pool.acquire().await?;
 
     for email in admin_emails {
         templates::user_import_blocked_mail(&email, &mut conn, Context::new()).await?;
-        debug!("Scheduled blocked user import mail to admin {}", email);
+        debug!("Scheduled blocked user import mail to admin {email}");
     }
 
     Ok(())

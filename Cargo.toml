@@ -145,8 +145,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
 # openapi (see the `openapi` feature of defguard_common / defguard_core / defguard)
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
+utoipa = { version = "6", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "10", features = ["axum", "vendored"] }
 uuid = { version = "1.24", features = ["v4"] }
 webauthn-authenticator-rs = "0.5"
 webauthn-rs = { version = "0.5", features = [
