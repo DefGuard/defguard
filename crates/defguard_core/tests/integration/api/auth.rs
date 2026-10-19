@@ -5,6 +5,7 @@ use defguard_common::{
     db::models::{
         MFAInfo, MFAMethod, User,
         user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+        webauthn::{AuthenticatorKind, RegistrationSource},
     },
     testing::smtp::{CapturedMail, MockSmtpServer},
 };
@@ -656,6 +657,10 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let user_info: UserDetails = response.json().await;
     assert_eq!(user_info.security_keys.len(), 1);
+    let key = &user_info.security_keys[0];
+    assert_eq!(key.authenticator_kind, AuthenticatorKind::Unknown);
+    assert_eq!(key.registration_source, RegistrationSource::Core);
+    assert_eq!(key.authenticator_name, None);
 
     // delete security key
     let response = client

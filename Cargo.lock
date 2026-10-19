@@ -1265,6 +1265,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98b0cc327b5bc766e7fda9c9260cc0fa81b43a8e240440422dff70788e3f9ef1"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1616,6 +1625,7 @@ dependencies = [
  "secrecy",
  "tokio",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber",
 ]
 
@@ -1713,6 +1723,7 @@ dependencies = [
  "md4",
  "model_derive",
  "mrml",
+ "nix",
  "openidconnect",
  "parse_link_header",
  "paste",
@@ -1721,6 +1732,7 @@ dependencies = [
  "pulldown-cmark",
  "qrcode",
  "rand 0.8.8",
+ "rcgen",
  "regex",
  "reqwest",
  "rsa",
@@ -1756,6 +1768,7 @@ dependencies = [
  "tower-http 0.7.1",
  "tower_governor",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber",
  "trait-variant",
  "ua-parser",
@@ -1767,6 +1780,7 @@ dependencies = [
  "webauthn-rs-proto",
  "wiremock",
  "x25519-dalek 3.0.0",
+ "x509-parser 0.18.1",
 ]
 
 [[package]]
@@ -6958,6 +6972,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "symlink"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
+
+[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7473,6 +7493,19 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-appender"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "050686193eb999b4bb3bc2acfa891a13da00f79734704c4b8b4ef1a10b368a3c"
+dependencies = [
+ "crossbeam-channel",
+ "symlink",
+ "thiserror 2.0.21",
+ "time",
+ "tracing-subscriber",
 ]
 
 [[package]]

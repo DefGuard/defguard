@@ -199,7 +199,9 @@ impl From<TokenError> for WebError {
             | TokenError::TokenUsed
             | TokenError::UserDisabled => Self::Authorization(err.to_string()),
             TokenError::AlreadyActive => Self::BadRequest(err.to_string()),
-            TokenError::WebauthnRegistration(_) => Self::BadRequest(err.to_string()),
+            TokenError::WebauthnRegistration(_) | TokenError::UntrustedAuthenticator(_) => {
+                Self::BadRequest(err.to_string())
+            }
             TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)

@@ -8,7 +8,6 @@ use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
 use thiserror::Error;
-use tokio::fs::read_to_string;
 
 use super::{ApiResponse, ApiResult};
 #[cfg(feature = "openapi")]
@@ -17,6 +16,7 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    log_file::read_log_tail,
     mail::{
         Attachment,
         templates::{self, SUPPORT_EMAIL_ADDRESS},
@@ -86,7 +86,7 @@ async fn read_logs() -> String {
         return "Log file not configured".to_owned();
     };
 
-    match read_to_string(path).await {
+    match read_log_tail(path).await {
         Ok(logs) => logs,
         Err(err) => {
             let msg = format!("Error dumping app logs: {err}");

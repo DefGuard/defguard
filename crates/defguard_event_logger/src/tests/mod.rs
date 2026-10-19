@@ -14,6 +14,7 @@ use defguard_common::db::{
         settings::set_settings,
         vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
+        webauthn::{AuthenticatorKind, RegistrationSource},
         wireguard::ServiceLocationMode,
     },
 };
@@ -432,6 +433,9 @@ fn api_event_cases() -> Vec<EventTestCase> {
         user_id: 1,
         name: "k".into(),
         passkey: Vec::new(),
+        authenticator_name: None,
+        authenticator_kind: AuthenticatorKind::Unknown,
+        registration_source: RegistrationSource::Core,
     };
     let posture = DevicePosture {
         id: 1,

@@ -82,6 +82,7 @@ totp-lite.workspace = true
 tower-http.workspace = true
 tower_governor.workspace = true
 tracing.workspace = true
+tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
 # openapi
@@ -92,11 +93,15 @@ webauthn-authenticator-rs.workspace = true
 webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
-ammonia = "4.1"
+x509-parser.workspace = true
+ammonia = "4.2.4"
 regex = "1.10"
 serde-saphyr = "1.3"
 ua-parser = "0.2"
 async-stream = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31", features = ["fs"] }
 
 [features]
 default = ["openapi"]
@@ -106,6 +111,8 @@ default = ["openapi"]
 # `/api-docs`. Disabling it drops the `utoipa` dependencies and the routes above;
 # every other endpoint keeps working.
 openapi = ["dep:utoipa", "dep:utoipa-swagger-ui", "defguard_common/openapi"]
+# Lets other crates' tests trust a software authenticator's attestation CA.
+test-support = []
 
 [[example]]
 name = "openapi"
@@ -118,6 +125,7 @@ claims.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
 hyper-util.workspace = true
+rcgen.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",

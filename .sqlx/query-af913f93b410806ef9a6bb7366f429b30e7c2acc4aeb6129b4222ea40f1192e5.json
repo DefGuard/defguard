@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM webauthn WHERE user_id = $1 AND ($2::webauthn_authenticator_kind IS NULL OR authenticator_kind = $2))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "webauthn_authenticator_kind",
+            "kind": {
+              "Enum": [
+                "hardware",
+                "unknown"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "af913f93b410806ef9a6bb7366f429b30e7c2acc4aeb6129b4222ea40f1192e5"
+}
