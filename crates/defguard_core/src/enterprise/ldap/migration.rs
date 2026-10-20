@@ -1,3 +1,8 @@
+//! Defguard v1.6 split LDAP DNs at the first comma, even when it was escaped, and stored
+//! RDN values without decoding their escapes. This could corrupt ldap_rdn and ldap_user_path.
+//! This offline repair rejoins the stored RDN value and path, then splits them at the first
+//! unescaped comma and decodes only the RDN value.
+
 use sqlx::{PgPool, query, query_as};
 use tracing::info;
 
