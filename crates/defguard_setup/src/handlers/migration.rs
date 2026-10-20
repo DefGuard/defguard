@@ -157,12 +157,10 @@ pub async fn migration_set_external_url_settings(
 
 #[cfg(test)]
 mod tests {
-    use super::{MigrationStateResponse, repair_ldap_migration};
+    use super::repair_ldap_migration;
     use axum::{Extension, body::to_bytes, response::IntoResponse};
-    use defguard_common::db::models::migration_wizard::MigrationWizardState;
     use defguard_core::{auth::AdminRole, setup_logs::CoreSetupLogLayer};
     use reqwest::StatusCode;
-    use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
     use tracing::instrument::WithSubscriber;
     use tracing_subscriber::prelude::*;
