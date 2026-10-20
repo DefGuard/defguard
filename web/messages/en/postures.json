@@ -9,7 +9,7 @@
   "posture_checks_wizard_step_operating_systems": "Operating systems",
   "posture_checks_wizard_step_operating_systems_description": "Define who can connect to your network.",
   "posture_checks_wizard_operating_systems_title": "Select allowed operating systems",
-  "posture_checks_wizard_operating_systems_subtitle": "Only systems that match the rules below will be allowed to connect. All other connection attempts will be automatically denied.",
+  "posture_checks_wizard_operating_systems_subtitle": "Only explicitly configured operating systems are allowed. For example, if you configure Windows and macOS, Linux, iOS, and Android devices will fail the posture check by default.",
   "posture_checks_wizard_operating_systems_windows_security_updates": "Check security updates",
   "posture_checks_wizard_operating_systems_windows_security_updates_description": "Require devices to have the latest security updates installed.",
   "posture_checks_wizard_operating_systems_windows_security_updates_section_title": "Windows security updates",
