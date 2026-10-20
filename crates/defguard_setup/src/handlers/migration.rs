@@ -166,7 +166,7 @@ mod tests {
     use tracing_subscriber::prelude::*;
 
     #[tokio::test]
-    async fn ldap_repair_failure_returns_separate_message_and_captured_logs() {
+    async fn test_ldap_repair_failure_returns_separate_message_and_captured_logs() {
         let pool = PgPoolOptions::new()
             .connect_lazy("postgres://localhost/defguard_test")
             .expect("Failed to create lazy pool");

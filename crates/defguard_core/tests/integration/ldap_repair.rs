@@ -21,7 +21,7 @@ async fn add_user(pool: &sqlx::PgPool, username: &str, ldap: bool, rdn: &str, pa
 }
 
 #[sqlx::test]
-async fn repair_migrates_both_legacy_dn_formats_and_is_idempotent(
+async fn test_repair_migrates_both_legacy_dn_formats_and_is_idempotent(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -135,7 +135,7 @@ async fn repair_migrates_both_legacy_dn_formats_and_is_idempotent(
 }
 
 #[sqlx::test]
-async fn repair_rolls_back_updates_when_a_later_candidate_fails(
+async fn test_repair_rolls_back_updates_when_a_later_candidate_fails(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {

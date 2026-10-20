@@ -108,7 +108,7 @@ mod tests {
     use super::repaired_dn;
 
     #[test]
-    fn repairs_legacy_split_at_escaped_comma() {
+    fn test_repairs_legacy_split_at_escaped_comma() {
         assert_eq!(
             repaired_dn(r"Doe\", Some(" John,ou=users,dc=example,dc=org")).unwrap(),
             ("Doe, John".into(), "ou=users,dc=example,dc=org".into())
@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn decodes_hex_commas_and_preserves_escaped_parent_path() {
+    fn test_decodes_hex_commas_and_preserves_escaped_parent_path() {
         let path = r"ou=People\,West,dc=example";
         for rdn in [r"Doe\2C John", r"Doe\2c John"] {
             assert_eq!(
@@ -127,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn preserves_plain_value_without_attribute_prefix() {
+    fn test_preserves_plain_value_without_attribute_prefix() {
         assert_eq!(
             repaired_dn("Jane", Some("ou=users,dc=example")).unwrap(),
             ("Jane".into(), "ou=users,dc=example".into())
@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_malformed_value_and_missing_path() {
+    fn test_rejects_malformed_value_and_missing_path() {
         assert!(repaired_dn(r"Doe\", Some(" John")).is_err());
         assert!(repaired_dn(r"Doe\FF", Some("ou=users,dc=example")).is_err());
         assert!(repaired_dn(r"Doe\2C John", None).is_err());
