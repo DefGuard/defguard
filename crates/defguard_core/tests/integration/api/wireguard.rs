@@ -1531,7 +1531,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/device").json(&device).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let devices: Vec<Device<Id>> = response.json().await;
-    assert_eq!(devices, [] as [defguard_common::db::models::Device<i64>; 0]);
+    assert_eq!(devices, [] as [Device<Id>; 0]);
 }
 
 #[sqlx::test]

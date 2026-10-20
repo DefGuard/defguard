@@ -193,6 +193,10 @@ async fn test_enabled_gateway_update_to_disabled_stops_handler(
         initial_connection_count,
         "disabling the gateway should not create a new gateway connection"
     );
+    assert!(
+        !context.has_event_sender(gateway.id),
+        "disabling the gateway should drop its event sender"
+    );
     mock_gateway.expect_server_finished().await;
 
     context.finish().await;
@@ -241,11 +245,20 @@ async fn test_delete_notification_purges_and_aborts_gateway_connection(
 
     context.start().await;
     complete_manager_handshake(&context, &gateway, &mut mock_gateway).await;
+    assert!(context.has_event_sender(gateway.id));
+    let initial_notification_count = context.gateway_notification_count(gateway.id);
 
     Gateway::delete_by_id(&context.pool, gateway.id)
         .await
         .expect("failed to delete test gateway");
 
+    context
+        .wait_for_gateway_notification_count(gateway.id, initial_notification_count + 1)
+        .await;
+    assert!(
+        !context.has_event_sender(gateway.id),
+        "deleting the gateway should drop its event sender"
+    );
     mock_gateway.wait_purged().await;
     mock_gateway.expect_server_finished().await;
 

@@ -932,7 +932,7 @@ async fn test_start_multi_step_valid_totp_email_plan_returns_token(
     let StartResult::Accepted(outcome) = result else {
         panic!("expected an accepted plan")
     };
-    assert!(!outcome.token.is_empty());
+    assert_ne!(outcome.token, "");
     assert!(outcome.superseded_token_hash.is_none());
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&pool, &outcome.token)
         .await
@@ -1216,7 +1216,7 @@ async fn test_step_start_oidc_survives_license_lapse(_: PgPoolOptions, options: 
         .step_start(start.token, VpnClientMfaMethod::Oidc)
         .await
         .expect("OIDC step must survive a license lapse");
-    assert!(!step.step_attempt_id.is_empty());
+    assert_ne!(step.step_attempt_id, "");
 }
 
 #[sqlx::test]
@@ -2087,7 +2087,7 @@ async fn test_step_start_mints_an_id(_: PgPoolOptions, options: PgConnectOptions
         .step_start(token, VpnClientMfaMethod::Email)
         .await
         .expect("step start should succeed");
-    assert!(!started.step_attempt_id.is_empty());
+    assert_ne!(started.step_attempt_id, "");
     assert!(started.challenge.is_none());
 }
 
@@ -2424,7 +2424,7 @@ async fn test_finish_advanced_then_completed(_: PgPoolOptions, options: PgConnec
     let FinishOutcome::Completed { preshared_key } = outcome else {
         panic!("expected a completed flow")
     };
-    assert!(!preshared_key.expose_secret().is_empty());
+    assert_ne!(preshared_key.expose_secret(), "");
 
     let sessions =
         VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)

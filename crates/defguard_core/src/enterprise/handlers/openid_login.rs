@@ -996,7 +996,7 @@ mod test {
         let decoded = BASE64_STANDARD.decode(token.secret());
         // not base64 encoded
         assert!(decoded.is_err());
-        assert!(!token.secret().is_empty());
+        assert_ne!(token.secret(), "");
 
         // with data
         let data = "somedata".to_owned();
@@ -1005,7 +1005,7 @@ mod test {
         assert!(decoded.is_ok());
         let decoded_str = String::from_utf8(decoded.unwrap()).unwrap();
         let (csrf, state_data) = decoded_str.split_once('.').unwrap();
-        assert!(!csrf.is_empty());
+        assert_ne!(csrf, "");
         assert_eq!(state_data, data);
 
         // valid

@@ -9,10 +9,9 @@ use std::{
     },
 };
 
-use defguard_common::{
-    db::{Id, models::gateway::Gateway},
-    messages::peer_stats_update::PeerStatsUpdate,
-};
+#[cfg(test)]
+use defguard_common::db::{Id, models::gateway::Gateway};
+use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
 use defguard_core::events::GatewayConnectionEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
@@ -119,6 +118,7 @@ struct GatewayManagerTestSupport {
     listener_ready_notify: Arc<Notify>,
     retry_delay_override: Arc<Mutex<Option<Duration>>>,
     disconnect_notification_delay_override: Arc<Mutex<Option<Duration>>>,
+    event_senders: manager::EventSenders,
 }
 
 #[cfg(test)]
@@ -128,6 +128,13 @@ impl GatewayManagerTestSupport {
             .lock()
             .expect("Failed to lock GatewayManager test socket registry")
             .insert(gateway_url, socket_path);
+    }
+
+    fn has_event_sender(&self, gateway_id: Id) -> bool {
+        self.event_senders
+            .lock()
+            .expect("Failed to lock GatewayManager::event_senders")
+            .contains_key(&gateway_id)
     }
 
     fn socket_path_for(&self, gateway: &Gateway<Id>) -> Option<PathBuf> {
@@ -280,21 +287,6 @@ impl GatewayManagerTestSupport {
             .expect("Failed to lock GatewayManager disconnect notification delay override")
             .unwrap_or(configured_delay)
     }
-}
-
-/// Returns true if the change from `old` to `new` requires the gateway handler to be
-/// restarted - i.e. if any field that directly affects the gRPC connection or TLS identity
-/// has changed.
-///
-/// Fields that do NOT trigger a restart (version, timestamps, audit fields, cert expiry)
-/// are intentionally excluded so that the handler-internal `gateway.save()` call, which
-/// bumps those fields, does not cause an infinite restart loop.
-fn needs_restart(old: &Gateway<Id>, new: &Gateway<Id>) -> bool {
-    old.address != new.address
-        || old.port != new.port
-        || old.enabled != new.enabled
-        || old.core_client_cert_der != new.core_client_cert_der
-        || old.core_client_cert_key_der != new.core_client_cert_key_der
 }
 
 /// Shared set of outbound channels that gateway instances use to forward events, notifications,

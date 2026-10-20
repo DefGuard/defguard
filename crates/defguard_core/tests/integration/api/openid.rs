@@ -115,10 +115,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
         .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
         .await
         .data;
-    assert_eq!(
-        openid_clients,
-        [] as [defguard_common::db::models::oauth2client::OAuth2Client<i64>; 0]
-    );
+    assert_eq!(openid_clients, [] as [OAuth2Client<Id>; 0]);
 }
 
 #[sqlx::test]

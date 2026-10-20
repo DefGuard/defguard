@@ -48,7 +48,7 @@ fn test_map_license_features() {
         vec![LicenseFeature::DevicePosture]
     );
 
-    assert!(map_license_features(&[]).is_empty());
+    assert_eq!(map_license_features(&[]), [] as [LicenseFeature; 0]);
 }
 
 // Real signed keys (verified against the embedded test public key) carrying additive
@@ -84,7 +84,7 @@ fn test_license_feature_flags() {
     let key = "CjYKIGIzZmY0ZWY2YWMxYjQwMDI5MTM4MmI4YzM2ODkzZmIyEAEYr4my0wYiBggZEEsYAjABOAIS0QGIzwQAAQgAORYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJqNR56GxSAAAAAAAQADm1hbnUyLDIuNSsxLjEyLDAsMwAKCRCohGwBApqEhHb1A/9b4goZRHbMpf1WDRpV/EflWs9I/X5IAbX+U2hyyNEkC1zS4CxdKUNaDKJftbOP4uTqb0zjbf1r51Lr00LwVTkJMypZfVvpW6uzwMuRwyxYeQRE/iBXLNoRsf2tLV5pwnUWBLQ6y33xf0fypDZQWi7C9gQ6lEkkTXgDq4BoOVZkgg==";
     let license = License::from_base64(key).unwrap();
     assert_eq!(license.tier, LicenseTier::Business);
-    assert!(license.features.is_empty());
+    assert_eq!(license.features, [] as [LicenseFeature; 0]);
     assert!(!license.has_feature(LicenseFeature::ServiceLocations));
 }
 
@@ -259,7 +259,7 @@ fn test_tier_included_features() {
         LicenseTier::Enterprise.included_features(),
         LicenseFeature::VARIANTS,
     );
-    assert!(LicenseTier::Business.included_features().is_empty());
+    assert_eq!(LicenseTier::Business.included_features(), []);
 }
 
 #[test]
