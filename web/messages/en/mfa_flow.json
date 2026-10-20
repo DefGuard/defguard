@@ -36,6 +36,7 @@
   "mfa_flow_method_email_code": "Email Verification Code",
   "mfa_flow_method_smtp_required": "Configure SMTP server in Settings (Notifications tab) to activate this MFA method",
   "mfa_flow_method_business_required": "Upgrade your plan to Business to use this MFA method",
+  "mfa_flow_method_enterprise_required": "Upgrade your plan to Enterprise to use this MFA method",
   "mfa_flow_additional_steps_business_required": "Upgrade your plan to Business to add more than one MFA step.",
   "mfa_flow_methods_available_in_plan": "Available in your plan",
   "mfa_flow_methods_available_in_higher_plans": "Available in higher plans",
@@ -50,6 +51,7 @@
   "mfa_flow_save_failed": "Failed to save MFA flow.",
   "mfa_flow_error_additional_flow_business_license": "A Business license is required to create more than one MFA flow.",
   "mfa_flow_error_business_license": "A Business license is required for multiple steps and external identity providers.",
+  "mfa_flow_error_enterprise_license": "An Enterprise license is required for FIDO2 security keys.",
   "mfa_flow_error_smtp_not_configured": "Configure SMTP before using email verification codes.",
   "mfa_flow_error_oidc_provider_missing": "Configure an OpenID provider before using external identity provider verification.",
   "mfa_flow_unavailable_warning": "MFA contains errors and may be partially or fully disabled."

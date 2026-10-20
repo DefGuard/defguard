@@ -14,6 +14,7 @@ pub mod posture;
 pub mod snat;
 mod utils;
 
+use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;
 use license::{License, get_cached_license};
 use limits::get_counts;
 use strum::VariantArray;
@@ -50,6 +51,25 @@ pub fn is_business_license_active() -> bool {
 #[must_use]
 pub fn is_oidc_mfa_available(openid_provider_present: bool) -> bool {
     is_business_license_active() && openid_provider_present
+}
+
+/// Returns whether the active license allows this client MFA method.
+#[must_use]
+pub fn is_mfa_method_licensed(method: VpnClientMfaMethod) -> bool {
+    match method {
+        VpnClientMfaMethod::Oidc => is_business_license_active(),
+        VpnClientMfaMethod::Fido2 => has_enterprise_access(None),
+        _ => true,
+    }
+}
+
+/// Returns the MFA methods a client can set up under the active license.
+#[must_use]
+pub fn licensed_mfa_setup_methods() -> Vec<VpnClientMfaMethod> {
+    VpnClientMfaMethod::CONFIG_SETUP
+        .into_iter()
+        .filter(|method| is_mfa_method_licensed(*method))
+        .collect()
 }
 
 /// Helper function to gate an enterprise feature.

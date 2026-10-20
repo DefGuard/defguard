@@ -1127,27 +1127,6 @@ mod tests {
                 .expect("failed to build instance info")
                 .into();
 
-        let capabilities = instance
-            .mfa_capabilities
-            .as_ref()
-            .expect("InstanceInfo should advertise MFA capabilities");
-        assert_eq!(
-            capabilities.setup_methods,
-            vec![
-                MfaMethod::Totp as i32,
-                MfaMethod::Email as i32,
-                MfaMethod::Fido2 as i32,
-            ]
-        );
-        assert_eq!(
-            capabilities.authorize_methods,
-            vec![
-                MfaMethod::Totp as i32,
-                MfaMethod::Email as i32,
-                MfaMethod::Fido2 as i32,
-                MfaMethod::Oidc as i32,
-            ]
-        );
         assert!(
             instance
                 .mfa_user_state
@@ -1157,8 +1136,10 @@ mod tests {
         );
     }
 
+    /// Without an Enterprise license, FIDO2 is left out of the setup methods, so the client shows
+    /// it as locked. FIDO2 still authorizes an MFA configuration session on every tier.
     #[sqlx::test]
-    async fn test_instance_info_advertises_mfa_capabilities(
+    async fn test_instance_info_offers_fido2_setup_only_with_enterprise_license(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1166,30 +1147,53 @@ mod tests {
         init_settings(&pool).await;
         let user = create_user(&pool).await;
         let settings = Settings::get_current_settings();
+        let saved_license = get_cached_license().clone();
 
-        let instance: defguard_proto::client_types::InstanceInfo =
-            InstanceInfo::build(&pool, &settings, &user, None, None)
-                .await
-                .expect("failed to build instance info")
-                .into();
+        let cases: [(Option<License>, &[MfaMethod]); 3] = [
+            (None, &[MfaMethod::Totp, MfaMethod::Email]),
+            (
+                Some(business_license()),
+                &[MfaMethod::Totp, MfaMethod::Email],
+            ),
+            (
+                Some(License {
+                    tier: LicenseTier::Enterprise,
+                    ..business_license()
+                }),
+                &[MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2],
+            ),
+        ];
+        for (license, expected_setup_methods) in cases {
+            set_cached_license(license);
+            let instance: defguard_proto::client_types::InstanceInfo =
+                InstanceInfo::build(&pool, &settings, &user, None, None)
+                    .await
+                    .expect("failed to build instance info")
+                    .into();
 
-        let capabilities = instance
-            .mfa_capabilities
-            .expect("InstanceInfo should contain MFA capabilities");
-        assert_eq!(
-            capabilities.setup_methods,
-            [MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2].map(|method| method as i32)
-        );
-        assert_eq!(
-            capabilities.authorize_methods,
-            [
-                MfaMethod::Totp,
-                MfaMethod::Email,
-                MfaMethod::Fido2,
-                MfaMethod::Oidc
-            ]
-            .map(|method| method as i32)
-        );
+            let capabilities = instance
+                .mfa_capabilities
+                .expect("InstanceInfo should contain MFA capabilities");
+            assert_eq!(
+                capabilities.setup_methods,
+                expected_setup_methods
+                    .iter()
+                    .map(|method| *method as i32)
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                capabilities.authorize_methods,
+                [
+                    MfaMethod::Totp,
+                    MfaMethod::Email,
+                    MfaMethod::Fido2,
+                    MfaMethod::Oidc
+                ]
+                .map(|method| method as i32)
+            );
+        }
+
+        set_cached_license(saved_license);
     }
 
     #[sqlx::test]

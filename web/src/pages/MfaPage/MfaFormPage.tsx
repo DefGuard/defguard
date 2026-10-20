@@ -35,6 +35,8 @@ const getSaveErrorMessage = (error: AxiosError<MfaFlowErrorResponse>): string =>
       return m.mfa_flow_error_additional_flow_business_license();
     case 'business_license_required':
       return m.mfa_flow_error_business_license();
+    case 'enterprise_license_required':
+      return m.mfa_flow_error_enterprise_license();
     case 'smtp_not_configured':
       return m.mfa_flow_error_smtp_not_configured();
     case 'oidc_provider_missing':
