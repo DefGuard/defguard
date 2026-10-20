@@ -544,7 +544,7 @@ async fn test_group_membership_with_multiple_members(_: PgPoolOptions, options: 
         .unwrap();
     assert_eq!(
         ldap_conn.get_user_groups(&dn1).await.unwrap(),
-        [] as [std::string::String; 0]
+        [] as [String; 0]
     );
     assert_eq!(
         ldap_conn.get_user_groups(&dn2).await.unwrap(),
@@ -558,7 +558,7 @@ async fn test_group_membership_with_multiple_members(_: PgPoolOptions, options: 
         .unwrap();
     assert_eq!(
         ldap_conn.get_user_groups(&dn2).await.unwrap(),
-        [] as [std::string::String; 0]
+        [] as [String; 0]
     );
 
     ldap_conn.delete_user(&user1).await.unwrap();

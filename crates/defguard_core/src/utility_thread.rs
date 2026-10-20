@@ -626,7 +626,10 @@ mod test {
         assert_eq!(peers[0].pubkey, "pubkey1");
 
         set_cached_license(None);
-        assert!(reconcile_peers(&pool, location.id).await.is_empty());
+        assert_eq!(
+            reconcile_peers(&pool, location.id).await,
+            [] as [WireguardPeer; 0]
+        );
 
         set_test_license(LicenseTier::Business);
         assert_eq!(reconcile_peers(&pool, location.id).await.len(), 1);
@@ -685,6 +688,9 @@ mod test {
         assert_eq!(peers[0].pubkey, "pubkey1");
 
         set_test_license(LicenseTier::Business);
-        assert!(reconcile_peers(&pool, location.id).await.is_empty());
+        assert_eq!(
+            reconcile_peers(&pool, location.id).await,
+            [] as [WireguardPeer; 0]
+        );
     }
 }

@@ -184,7 +184,7 @@ mod tests {
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             group::Group,
-            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow, MfaFlowStep},
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{GroupClientMtu, LocationMfaMode},
         },
@@ -349,7 +349,7 @@ mod tests {
         .expect("failed to build config with MFA disabled");
         assert!(!config.mfa_enabled);
         assert_eq!(config.location_mfa_mode, Some(LocationMfaMode::Disabled));
-        assert!(config.steps.is_empty());
+        assert_eq!(config.steps, [] as [MfaFlowStep<Id>; 0]);
     }
 
     #[sqlx::test]

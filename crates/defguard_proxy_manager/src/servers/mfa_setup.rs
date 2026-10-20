@@ -15,9 +15,16 @@ use sqlx::{PgPool, Postgres, Transaction};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
+pub(super) enum RecoveryCodesPolicy {
+    /// Replace any stored codes with new ones.
+    Fresh,
+    /// Keep stored codes, issuing new ones only when none are left.
+    KeepOrIssue,
+}
+
 /// Called after the caller has run the factor-specific enable inside `transaction`: logs out
 /// other sessions, commits, flips `mfa_enabled`, sends the confirmation email and emits `event`.
-/// Returns the recovery codes to show the client, empty unless `fresh_recovery_codes` is set.
+/// Returns the recovery codes to show the client, empty unless new codes were issued.
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn finalize_mfa_factor(
     pool: &PgPool,
@@ -27,7 +34,7 @@ pub(super) async fn finalize_mfa_factor(
     mfa_method: MFAMethod,
     event: ApiEventType,
     device_info: Option<DeviceInfo>,
-    fresh_recovery_codes: bool,
+    recovery_codes_policy: RecoveryCodesPolicy,
 ) -> Result<Vec<String>, Status> {
     // Enabling MFA invalidates all existing sessions in the same transaction.
     user.logout_all_sessions(&mut *transaction)
@@ -36,7 +43,7 @@ pub(super) async fn finalize_mfa_factor(
             error!("Failed to log out user sessions: {err}");
             Status::internal("Failed to log out user sessions".to_owned())
         })?;
-    if fresh_recovery_codes {
+    if matches!(recovery_codes_policy, RecoveryCodesPolicy::Fresh) {
         user.clear_recovery_codes(&mut *transaction)
             .await
             .map_err(|err| {

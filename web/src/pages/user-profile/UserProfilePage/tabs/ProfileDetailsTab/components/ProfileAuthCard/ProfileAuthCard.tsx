@@ -17,6 +17,8 @@ import { Link } from '@tanstack/react-router';
 import { cloneDeep } from 'lodash-es';
 import api from '../../../../../../../shared/api/api';
 import {
+  AuthenticatorKind,
+  RegistrationSource,
   type SecurityKey,
   UserMfaMethod,
   type UserMfaMethodValue,
@@ -409,9 +411,42 @@ const WebauthnRow = ({
     };
   }, [securityKey.id, securityKey.name, username]);
 
+  const isHardware = securityKey.authenticator_kind === AuthenticatorKind.Hardware;
+
+  const sourceText = useMemo(() => {
+    switch (securityKey.registration_source) {
+      case RegistrationSource.Core:
+        return m.profile_auth_card_passkey_source_core();
+      case RegistrationSource.Desktop:
+        return m.profile_auth_card_passkey_source_desktop();
+      case RegistrationSource.Mobile:
+        return m.profile_auth_card_passkey_source_mobile();
+    }
+  }, [securityKey.registration_source]);
+
+  const details = useMemo(
+    () => [securityKey.authenticator_name, sourceText].filter(isPresent).join(' · '),
+    [securityKey.authenticator_name, sourceText],
+  );
+
   return (
-    <div className="webauthn-row">
-      <p className="name">{securityKey.name}</p>
+    <div
+      className="webauthn-row"
+      data-kind={securityKey.authenticator_kind}
+      data-testid={`passkey-${securityKey.id}`}
+    >
+      <div className="info">
+        <div className="title">
+          <p className="name">{securityKey.name}</p>
+          {isHardware && (
+            <Badge variant="success" text={m.profile_auth_card_passkey_hardware()} />
+          )}
+          {!isHardware && (
+            <Badge variant="neutral" text={m.profile_auth_card_passkey_unverified()} />
+          )}
+        </div>
+        <p className="details">{details}</p>
+      </div>
       <div className="controls">
         <IconButtonMenu icon="menu" menuItems={[menuItems]} />
       </div>
