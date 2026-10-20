@@ -64,12 +64,6 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
     return groupOptions.filter((option) => !taken.has(option.id));
   }, [overrides, groupOptions, editing]);
 
-  const allGroupsAssigned =
-    groupOptions.length > 0 &&
-    groupOptions.every((option) =>
-      overrides.some((override) => override.group_ids.includes(option.id)),
-    );
-
   const handleSubmit = (value: GroupClientMtu) => {
     if (editing === 'new') {
       onChange([...overrides, value]);
@@ -125,6 +119,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
               : overrides[editing]
         }
         groupOptions={editorGroupOptions}
+        hasGroups={groupOptions.length > 0}
         onClose={() => setModalOpen(false)}
         afterClose={() => setEditing(undefined)}
         onSubmit={handleSubmit}
