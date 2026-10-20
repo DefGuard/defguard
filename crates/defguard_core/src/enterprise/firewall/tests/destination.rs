@@ -63,14 +63,14 @@ fn test_process_destination_addrs_v4() {
 
     // Test with empty input
     let empty_addrs = process_destination_addrs(&[], std::iter::empty::<RangeInclusive<IpAddr>>());
-    assert!(empty_addrs.0.is_empty());
+    assert_eq!(empty_addrs.0, [] as [IpAddress; 0]);
 
     // Test with only IPv6 addresses - should return empty result for IPv4
     let ipv6_only = process_destination_addrs(
         &["2001:db8::/64".parse().unwrap()],
         std::iter::empty::<RangeInclusive<IpAddr>>(),
     );
-    assert!(ipv6_only.0.is_empty());
+    assert_eq!(ipv6_only.0, [] as [IpAddress; 0]);
 }
 
 #[test]
@@ -114,14 +114,14 @@ fn test_process_destination_addrs_v6() {
 
     // Test with empty input
     let empty_addrs = process_destination_addrs(&[], std::iter::empty::<RangeInclusive<IpAddr>>());
-    assert!(empty_addrs.1.is_empty());
+    assert_eq!(empty_addrs.1, [] as [IpAddress; 0]);
 
     // Test with only IPv4 addresses - should return empty result for IPv6
     let ipv4_only = process_destination_addrs(
         &["192.168.1.0/24".parse().unwrap()],
         std::iter::empty::<RangeInclusive<IpAddr>>(),
     );
-    assert!(ipv4_only.1.is_empty());
+    assert_eq!(ipv4_only.1, [] as [IpAddress; 0]);
 }
 
 #[sqlx::test]
@@ -189,12 +189,12 @@ async fn test_any_address_overwrites_manual_destination(
     let allow_rule = &generated_firewall_rules[0];
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
-    assert!(allow_rule.destination_addrs.is_empty());
+    assert_eq!(allow_rule.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
-    assert!(deny_rule.destination_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule.destination_addrs, [] as [IpAddress; 0]);
 }
 
 #[sqlx::test]
@@ -280,12 +280,12 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     let allow_rule = &generated_firewall_rules[0];
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
-    assert!(allow_rule.destination_addrs.is_empty());
+    assert_eq!(allow_rule.destination_addrs, [] as [IpAddress; 0]);
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
-    assert!(deny_rule.destination_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
+    assert_eq!(deny_rule.destination_addrs, [] as [IpAddress; 0]);
 }
 
 #[sqlx::test]
@@ -376,7 +376,7 @@ async fn test_manual_destination_includes_component_alias_address_range(
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
 }
 
@@ -473,7 +473,7 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
 }
 
@@ -558,15 +558,24 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
-    assert!(allow_rule.destination_ports.is_empty());
+    assert_eq!(
+        allow_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
     assert_eq!(allow_rule.protocols, [GwProtocol::Tcp, GwProtocol::Udp]);
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
-    assert!(deny_rule.protocols.is_empty());
+    assert_eq!(
+        deny_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
+    assert_eq!(
+        deny_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 }
 
 #[sqlx::test]
@@ -654,14 +663,23 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert_eq!(allow_rule.destination_ports, expected_ports);
-    assert!(allow_rule.protocols.is_empty());
+    assert_eq!(
+        allow_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
-    assert!(deny_rule.protocols.is_empty());
+    assert_eq!(
+        deny_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
+    assert_eq!(
+        deny_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 }
 
 #[sqlx::test]
@@ -761,15 +779,24 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
     assert_eq!(allow_rule.verdict, FirewallPolicy::Allow);
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
-    assert!(allow_rule.destination_ports.is_empty());
+    assert_eq!(
+        allow_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
     assert_eq!(allow_rule.protocols, [GwProtocol::Tcp, GwProtocol::Udp]);
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
-    assert!(deny_rule.protocols.is_empty());
+    assert_eq!(
+        deny_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
+    assert_eq!(
+        deny_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 }
 
 #[sqlx::test]
@@ -866,12 +893,21 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
     assert_eq!(allow_rule.source_addrs, expected_source_addrs);
     assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
     assert_eq!(allow_rule.destination_ports, expected_ports);
-    assert!(allow_rule.protocols.is_empty());
+    assert_eq!(
+        allow_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, FirewallPolicy::Deny);
-    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.source_addrs, [] as [IpAddress; 0]);
     assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
-    assert!(deny_rule.destination_ports.is_empty());
-    assert!(deny_rule.protocols.is_empty());
+    assert_eq!(
+        deny_rule.destination_ports,
+        [] as [defguard_common::gateway_types::Port; 0]
+    );
+    assert_eq!(
+        deny_rule.protocols,
+        [] as [defguard_common::gateway_types::Protocol; 0]
+    );
 }

@@ -258,10 +258,10 @@ mod test {
         );
         assert_eq!(
             effective_features(&business),
-            vec![LicenseFeature::ServiceLocations]
+            [LicenseFeature::ServiceLocations]
         );
 
         let bare = make_license(LicenseTier::Business, Vec::new());
-        assert!(effective_features(&bare).is_empty());
+        assert_eq!(effective_features(&bare), [] as [LicenseFeature; 0]);
     }
 }

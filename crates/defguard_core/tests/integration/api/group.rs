@@ -119,7 +119,7 @@ async fn test_modify_group_members(_: PgPoolOptions, options: PgConnectOptions) 
     let response = client.get(format!("/api/v1/group/{id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert_eq!(group_info.members, [] as [std::string::String; 0]);
+    assert_eq!(group_info.members, [] as [String; 0]);
 }
 
 #[sqlx::test]

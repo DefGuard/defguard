@@ -1,10 +1,18 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_common::db::models::wireguard::LocationMfaMode;
+use defguard_common::db::models::{webauthn::RegistrationSource, wireguard::LocationMfaMode};
 use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
 
 use crate::enterprise::is_business_license_active;
+
+const MOBILE_OS_FAMILIES: [&str; 2] = ["android", "ios"];
+
+fn is_mobile(platform: &ClientPlatformInfo) -> bool {
+    MOBILE_OS_FAMILIES
+        .iter()
+        .any(|family| platform.os_family.eq_ignore_ascii_case(family))
+}
 
 /// Extracts the semantic client version and decoded platform metadata from proxy device info.
 ///
@@ -49,6 +57,17 @@ pub(crate) fn parse_client_version_platform(
     });
 
     (version, platform)
+}
+
+/// The web UI never reaches Core through the proxy, so every caller here is a client app.
+#[must_use]
+pub fn client_registration_source(info: Option<&DeviceInfo>) -> RegistrationSource {
+    let (_, platform) = parse_client_version_platform(info);
+    if platform.as_ref().is_some_and(is_mobile) {
+        RegistrationSource::Mobile
+    } else {
+        RegistrationSource::Desktop
+    }
 }
 
 /// Features whose availability depends on client version and platform metadata.
@@ -118,24 +137,20 @@ impl ClientFeature {
                     os_type: Some("linux"),
                 },
             ],
-            Self::PostureChecks => vec![
-                // We do not keep mobile client and desktop client versions in sync.
-                ClientFeatureRule {
+            // We do not keep mobile client and desktop client versions in sync.
+            Self::PostureChecks => MOBILE_OS_FAMILIES
+                .into_iter()
+                .map(|family| ClientFeatureRule {
                     min_version: Version::new(1, 7, 0),
-                    os_family: Some("android"),
+                    os_family: Some(family),
                     os_type: None,
-                },
-                ClientFeatureRule {
-                    min_version: Version::new(1, 7, 0),
-                    os_family: Some("ios"),
-                    os_type: None,
-                },
-                ClientFeatureRule {
+                })
+                .chain([ClientFeatureRule {
                     min_version: Version::new(2, 1, 0),
                     os_family: None,
                     os_type: None,
-                },
-            ],
+                }])
+                .collect(),
             Self::MultiStepMfa => vec![ClientFeatureRule {
                 min_version: Version::new(2, 2, 0),
                 os_family: None,
@@ -205,6 +220,35 @@ mod tests {
             platform,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn test_client_registration_source() {
+        let platform = |os_family: &str| {
+            create_device_info(
+                Some("2.2.0".to_owned()),
+                Some(ClientPlatformInfo {
+                    os_family: os_family.to_owned(),
+                    ..Default::default()
+                }),
+            )
+        };
+        assert_eq!(
+            client_registration_source(Some(&platform("android"))),
+            RegistrationSource::Mobile
+        );
+        assert_eq!(
+            client_registration_source(Some(&platform("iOS"))),
+            RegistrationSource::Mobile
+        );
+        assert_eq!(
+            client_registration_source(Some(&platform("windows"))),
+            RegistrationSource::Desktop
+        );
+        assert_eq!(
+            client_registration_source(None),
+            RegistrationSource::Desktop
+        );
     }
 
     #[test]
