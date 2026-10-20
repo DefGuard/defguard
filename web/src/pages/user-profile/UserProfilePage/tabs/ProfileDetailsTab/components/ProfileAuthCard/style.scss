@@ -3,18 +3,17 @@
     padding: var(--spacing-2xl) 0;
   }
 
-  .section {
-    .section-title {
-      font: var(--t-body-primary-500);
-      color: var(--fg-default);
-    }
+  .section-title {
+    font: var(--t-body-primary-500);
+    color: var(--fg-default);
+  }
 
-    .webauthn-keys {
+  .section {
+    .rows {
       display: flex;
       flex-flow: column;
-      column-gap: var(--spacing-sm);
-      padding-top: var(--spacing-md);
-      align-items: flex-start;
+      row-gap: var(--spacing-3xl);
+      align-items: stretch;
       justify-content: flex-start;
       flex: none;
     }
@@ -31,6 +30,31 @@
     & > .divider {
       padding: var(--spacing-lg) 0;
     }
+
+    &.password {
+      display: flex;
+      flex-flow: row nowrap;
+      column-gap: var(--spacing-md);
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .text-action {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    color: var(--fg-action);
+    font: var(--t-body-sm-400);
+    text-decoration: underline solid transparent;
+    cursor: pointer;
+
+    @include animate(text-decoration-color);
+
+    &:hover {
+      text-decoration-color: var(--fg-action);
+    }
   }
 
   .biometric-devices {
@@ -42,13 +66,6 @@
       & > p {
         padding-bottom: var(--spacing-2xl);
         margin-right: auto;
-      }
-
-      & > a {
-        font: var(--t-body-sm-400);
-        color: var(--fg-action);
-        text-decoration: none;
-        cursor: pointer;
       }
     }
 
@@ -66,113 +83,6 @@
       p {
         font: var(--t-body-sm-400);
       }
-    }
-  }
-}
-
-#profile-auth-card .factor-row {
-  display: flex;
-  flex-flow: row;
-  align-items: center;
-  justify-content: flex-start;
-
-  .row {
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: flex-start;
-
-    .fill {
-      width: calc(var(--spacing-md) + 20px);
-    }
-  }
-
-  .factor-name {
-    font: var(--t-body-sm-400);
-    color: var(--fg-default);
-    padding: 0 var(--spacing-md);
-  }
-
-  .availability {
-    font: var(--t-body-xs-400);
-    color: var(--fg-muted);
-    text-align: left;
-    user-select: none;
-    cursor: default;
-  }
-
-  & > .content-track {
-    display: flex;
-    flex-flow: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    row-gap: 6px;
-
-    .badges {
-      display: flex;
-      flex-flow: row;
-      flex: none;
-      align-items: center;
-      column-gap: var(--spacing-sm);
-    }
-  }
-
-  .controls {
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: flex-end;
-    flex: none;
-    margin-left: auto;
-  }
-}
-
-#profile-auth-card .webauthn-row {
-  width: 100%;
-  display: flex;
-  flex-flow: row nowrap;
-  column-gap: var(--spacing-lg);
-  align-items: center;
-  justify-content: space-between;
-  box-sizing: border-box;
-  padding-left: calc(20px + var(--spacing-sm));
-  min-height: 36px;
-
-  & > .info {
-    display: flex;
-    flex-flow: column nowrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-    row-gap: var(--spacing-xs);
-    min-width: 0;
-
-    & > .title {
-      display: flex;
-      flex-flow: row nowrap;
-      align-items: center;
-      justify-content: flex-start;
-      column-gap: var(--spacing-sm);
-      min-width: 0;
-      max-width: 100%;
-
-      & > .name {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font: var(--t-body-sm-400);
-        color: var(--fg-default);
-      }
-    }
-
-    & > .details {
-      min-width: 0;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font: var(--t-body-xs-400);
-      color: var(--fg-muted);
     }
   }
 }

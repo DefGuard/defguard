@@ -1,37 +1,38 @@
-import { Fragment, useMemo } from 'react';
+import './style.scss';
+import { type QueryKey, useMutation } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
-import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
+import api from '../../../../../../../shared/api/api';
+import {
+  UserMfaMethod,
+  type UserMfaMethodValue,
+} from '../../../../../../../shared/api/types';
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
-import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
-import type { IconKindValue } from '../../../../../../../shared/defguard-ui/components/Icon/icon-types';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type {
   MenuItemProps,
   MenuItemsGroup,
 } from '../../../../../../../shared/defguard-ui/components/Menu/types';
-import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
-import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
-import './style.scss';
-import { type QueryKey, useMutation } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
-import { cloneDeep } from 'lodash-es';
-import api from '../../../../../../../shared/api/api';
-import {
-  AuthenticatorKind,
-  RegistrationSource,
-  type SecurityKey,
-  UserMfaMethod,
-  type UserMfaMethodValue,
-} from '../../../../../../../shared/api/types';
-import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
+import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
-import { UserProfileTab } from '../../../types';
+import { BiometricDevices } from './components/BiometricDevices/BiometricDevices';
+import { FactorRow } from './components/FactorRow/FactorRow';
+import { WebauthnRow } from './components/WebauthnRow/WebauthnRow';
+
+const toMenuGroup = (items: MenuItemProps[]): MenuItemsGroup | null =>
+  items.length > 0 ? { items } : null;
+
+const makeDefaultItem = (onClick: () => void): MenuItemProps => ({
+  icon: 'check',
+  text: m.profile_auth_card_make_default(),
+  onClick,
+});
 
 export const ProfileAuthCard = () => {
   const securityKeys = useUserProfile((s) => s.security_keys);
@@ -39,33 +40,26 @@ export const ProfileAuthCard = () => {
   const authUsername = useAuth((s) => s.user?.username as string);
   const isCurrentUserAdmin = useAuth((s) => s.isAdmin);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
-  const devices = useUserProfile((s) => s.devices);
-  const biometricDevices = useMemo(
-    () => devices.filter((device) => device.biometry_enabled),
-    [devices],
-  );
+
+  const isSelf = user.username === authUsername;
+  const hasPasskeys = securityKeys.length > 0;
 
   const invalidateAfterMfaChange = useMemo(() => {
-    const res: QueryKey[] = [['session-info']];
-    if (user.username === authUsername) {
-      res.push(['me']);
-    }
-    res.push(['user', user.username]);
-    res.push(['activity-log']);
-    return {
-      invalidate: res,
-    };
-  }, [authUsername, user.username]);
+    const invalidate: QueryKey[] = [
+      ['session-info'],
+      ...(isSelf ? [['me']] : []),
+      ['user', user.username],
+      ['activity-log'],
+    ];
+    return { invalidate };
+  }, [isSelf, user.username]);
 
   const { mutate: mutateSetDefaultMfa } = useMutation({
-    mutationFn: (method: UserMfaMethodValue) => {
-      const data = cloneDeep(user);
-      data.mfa_method = method;
-      return api.user.editUser({
-        username: data.username,
-        body: data,
-      });
-    },
+    mutationFn: (method: UserMfaMethodValue) =>
+      api.user.editUser({
+        username: user.username,
+        body: { ...user, mfa_method: method },
+      }),
     meta: invalidateAfterMfaChange,
   });
 
@@ -73,9 +67,10 @@ export const ProfileAuthCard = () => {
     mutationFn: api.auth.mfa.enable,
     meta: invalidateAfterMfaChange,
   });
+
   const emailMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    if (!user.email_mfa_enabled && user.username === authUsername) {
+    if (!user.email_mfa_enabled && isSelf) {
       items.push({
         testId: 'enable-email',
         text: m.controls_enable(),
@@ -84,12 +79,8 @@ export const ProfileAuthCard = () => {
       });
     }
     if (user.email_mfa_enabled) {
-      if (user.username === authUsername && user.mfa_method !== UserMfaMethod.Email) {
-        items.push({
-          icon: 'check',
-          text: m.profile_auth_card_make_default(),
-          onClick: () => mutateSetDefaultMfa(UserMfaMethod.Email),
-        });
+      if (isSelf && user.mfa_method !== UserMfaMethod.Email) {
+        items.push(makeDefaultItem(() => mutateSetDefaultMfa(UserMfaMethod.Email)));
       }
       items.push({
         text: m.controls_disable(),
@@ -106,79 +97,69 @@ export const ProfileAuthCard = () => {
           }),
       });
     }
-    const res: MenuItemsGroup = {
-      items,
-    };
-    return items.length > 0 ? res : null;
+    return toMenuGroup(items);
   }, [
     user.email_mfa_enabled,
-    mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
-    authUsername,
+    isSelf,
+    mutateSetDefaultMfa,
     invalidateAfterMfaChange,
   ]);
 
-  const mfaMenuItems = useMemo(() => {
-    const hasConfiguredMfa =
-      user.email_mfa_enabled || user.totp_enabled || securityKeys.length > 0;
+  const mfaMenuItems = useMemo((): MenuItemsGroup[] | null => {
+    const hasConfiguredMfa = user.email_mfa_enabled || user.totp_enabled || hasPasskeys;
     if (!hasConfiguredMfa) return null;
-    const res: MenuItemsGroup[] = [];
-    /** user configured mfa but recovery keys modal was not confirmed
-     *  user needs to accept new recovery keys
-     */
-    if (hasConfiguredMfa && !user.mfa_enabled) {
-      res.push({
+    // factors exist but the recovery codes modal was never confirmed
+    if (!user.mfa_enabled) {
+      return [
+        {
+          items: [
+            {
+              text: m.controls_enable(),
+              icon: 'check-circle',
+              onClick: mutateEnableMfa,
+            },
+          ],
+        },
+      ];
+    }
+    return [
+      {
         items: [
           {
-            text: m.controls_enable(),
-            icon: 'check-circle',
-            onClick: mutateEnableMfa,
+            icon: 'disabled',
+            variant: 'danger',
+            text: m.profile_auth_card_2fa_controls_disable_all(),
+            onClick: () =>
+              openModal(ModalName.ConfirmAction, {
+                title: m.modal_disable_mfa_all_title(),
+                contentMd: m.modal_disable_mfa_all_content(),
+                actionPromise: () =>
+                  isSelf ? api.auth.mfa.disable() : api.user.disableMfa(user.username),
+                invalidateKeys: invalidateAfterMfaChange.invalidate,
+                submitProps: { text: m.controls_disable(), variant: 'critical' },
+                onSuccess: () => Snackbar.default(m.modal_disable_mfa_all_success()),
+                onError: () => Snackbar.error(m.modal_disable_mfa_all_error()),
+              }),
           },
         ],
-      });
-      return res;
-    }
-    // mfa is enabled and at least one SSO is configured
-    res.push({
-      items: [
-        {
-          icon: 'disabled',
-          variant: 'danger',
-          text: m.profile_auth_card_2fa_controls_disable_all(),
-          onClick: () =>
-            openModal(ModalName.ConfirmAction, {
-              title: m.modal_disable_mfa_all_title(),
-              contentMd: m.modal_disable_mfa_all_content(),
-              actionPromise: () => {
-                if (user.username === authUsername) {
-                  return api.auth.mfa.disable();
-                }
-                return api.user.disableMfa(user.username);
-              },
-              invalidateKeys: invalidateAfterMfaChange.invalidate,
-              submitProps: { text: m.controls_disable(), variant: 'critical' },
-              onSuccess: () => Snackbar.default(m.modal_disable_mfa_all_success()),
-              onError: () => Snackbar.error(m.modal_disable_mfa_all_error()),
-            }),
-        },
-      ],
-    });
-    return res;
+      },
+    ];
   }, [
-    securityKeys.length,
     user.email_mfa_enabled,
     user.mfa_enabled,
     user.totp_enabled,
     user.username,
-    authUsername,
+    hasPasskeys,
+    isSelf,
     mutateEnableMfa,
     invalidateAfterMfaChange,
   ]);
 
   const webauthnMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    if (user.username === authUsername) {
+    if (isSelf) {
       items.push({
         text: m.profile_auth_card_add_passkey(),
         icon: 'plus-circle',
@@ -186,13 +167,9 @@ export const ProfileAuthCard = () => {
         onClick: () => openModal(ModalName.WebauthnSetup),
       });
     }
-    if (securityKeys.length) {
-      if (user.username === authUsername && user.mfa_method !== UserMfaMethod.Webauthn) {
-        items.push({
-          icon: 'check',
-          text: m.profile_auth_card_make_default(),
-          onClick: () => mutateSetDefaultMfa(UserMfaMethod.Webauthn),
-        });
+    if (hasPasskeys) {
+      if (isSelf && user.mfa_method !== UserMfaMethod.Webauthn) {
+        items.push(makeDefaultItem(() => mutateSetDefaultMfa(UserMfaMethod.Webauthn)));
       }
       items.push({
         text: m.profile_auth_card_disable_passkeys(),
@@ -218,38 +195,32 @@ export const ProfileAuthCard = () => {
           }),
       });
     }
-    return items.length > 0 ? { items } : null;
+    return toMenuGroup(items);
   }, [
     securityKeys,
-    mutateSetDefaultMfa,
+    hasPasskeys,
     user.mfa_method,
     user.username,
-    authUsername,
+    isSelf,
+    mutateSetDefaultMfa,
     invalidateAfterMfaChange,
   ]);
 
   const totpMenuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
-    if (!user.totp_enabled && user.username === authUsername) {
+    if (!user.totp_enabled && isSelf) {
       items.push({
         icon: 'check-circle',
         testId: 'enable-totp',
         text: m.controls_enable(),
-        onClick: () => {
-          openModal('totpSetup');
-        },
+        onClick: () => openModal('totpSetup'),
       });
     }
     if (user.totp_enabled) {
-      if (
-        user.username === authUsername &&
-        user.mfa_method !== UserMfaMethod.OneTimePassword
-      ) {
-        items.push({
-          icon: 'check',
-          text: m.profile_auth_card_make_default(),
-          onClick: () => mutateSetDefaultMfa(UserMfaMethod.OneTimePassword),
-        });
+      if (isSelf && user.mfa_method !== UserMfaMethod.OneTimePassword) {
+        items.push(
+          makeDefaultItem(() => mutateSetDefaultMfa(UserMfaMethod.OneTimePassword)),
+        );
       }
       items.push({
         icon: 'minus-circle',
@@ -266,38 +237,35 @@ export const ProfileAuthCard = () => {
           }),
       });
     }
-
-    return items.length > 0 ? { items } : null;
+    return toMenuGroup(items);
   }, [
     user.totp_enabled,
-    mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
-    authUsername,
+    isSelf,
+    mutateSetDefaultMfa,
     invalidateAfterMfaChange,
   ]);
+
   return (
     <ProfileCard id="profile-auth-card">
-      <h2>{m.profile_auth_card_title()}</h2>
       {!user.password_management_disabled && (
         <>
-          <div className="section">
-            <div className="header">
-              <p className="section-title">{m.profile_auth_card_section_password()}</p>
-            </div>
-            <Button
-              variant="outlined"
-              iconLeft="lock-open"
-              text={m.profile_auth_card_password_change()}
-              testId="change-password"
-              onClick={() => {
-                // open admin form only if admin and is not editing self
+          <div className="section password">
+            <p className="section-title">{m.profile_auth_card_section_password()}</p>
+            <button
+              type="button"
+              className="text-action"
+              data-testid="change-password"
+              onClick={() =>
                 openModal('changePassword', {
                   user,
-                  adminForm: isCurrentUserAdmin && user.username !== authUsername,
-                });
-              }}
-            />
+                  adminForm: isCurrentUserAdmin && !isSelf,
+                })
+              }
+            >
+              {m.profile_auth_card_password_change()}
+            </button>
           </div>
           <Divider orientation="horizontal" />
         </>
@@ -309,218 +277,43 @@ export const ProfileAuthCard = () => {
             <IconButtonMenu icon="menu" menuItems={mfaMenuItems} />
           )}
         </div>
-        <FactorRow
-          isDefault={user.mfa_method === 'OneTimePassword'}
-          icon="one-time-password"
-          availability="both"
-          title={m.profile_auth_card_2fa_totp()}
-          enabled={user.totp_enabled}
-          menu={totpMenuItems}
-          testId="totp-row"
-        />
-        <Divider />
-        <FactorRow
-          icon="mail"
-          availability="both"
-          title={m.profile_auth_card_2fa_email()}
-          enabled={user.email_mfa_enabled}
-          isDefault={user.mfa_method === 'Email'}
-          menu={emailMenuItems}
-          testId="email-codes-row"
-          smtpDisabled={!smtpEnabled}
-        />
-        <Divider />
-        <FactorRow
-          icon="access-settings"
-          availability="sso"
-          title={m.profile_auth_card_2fa_passkeys()}
-          enabled={securityKeys.length > 0}
-          isDefault={user.mfa_method === 'Webauthn'}
-          menu={webauthnMenuItems}
-          testId="passkeys-row"
-        />
-        {securityKeys.length > 0 && (
-          <div className="webauthn-keys">
+        <div className="rows">
+          <FactorRow
+            icon="one-time-password"
+            title={m.profile_auth_card_2fa_totp()}
+            enabled={user.totp_enabled}
+            isDefault={user.mfa_method === UserMfaMethod.OneTimePassword}
+            menu={totpMenuItems}
+            testId="totp-row"
+          />
+          <FactorRow
+            icon="mail"
+            title={m.profile_auth_card_2fa_email()}
+            enabled={user.email_mfa_enabled}
+            isDefault={user.mfa_method === UserMfaMethod.Email}
+            menu={emailMenuItems}
+            testId="email-codes-row"
+            smtpDisabled={!smtpEnabled}
+          />
+        </div>
+      </div>
+      <Divider orientation="horizontal" />
+      <div className="section">
+        <div className="header" data-testid="passkeys-header">
+          <p className="section-title">{m.profile_auth_card_section_passkeys()}</p>
+          {isPresent(webauthnMenuItems) && (
+            <IconButtonMenu icon="menu" menuItems={[webauthnMenuItems]} />
+          )}
+        </div>
+        {hasPasskeys && (
+          <div className="rows">
             {securityKeys.map((key) => (
               <WebauthnRow securityKey={key} username={user.username} key={key.id} />
             ))}
           </div>
         )}
-        {biometricDevices.length > 0 && (
-          <>
-            <Divider spacing={ThemeSpacing.Xl} />
-            <div className="biometric-devices section">
-              <div className="top">
-                <p className="section-title">{m.profile_auth_card_biometric_title()}</p>
-                <Link
-                  from="/user/$username"
-                  to="/user/$username"
-                  search={{
-                    tab: UserProfileTab.Devices,
-                  }}
-                >
-                  {m.profile_auth_card_devices_link()}
-                </Link>
-              </div>
-              {biometricDevices.map((device, index) => (
-                <Fragment key={device.id}>
-                  <div className="device">
-                    <Icon icon="biometric" />
-                    <p>{device.name}</p>
-                  </div>
-                  {index !== biometricDevices.length - 1 && (
-                    <Divider spacing={ThemeSpacing.Lg} />
-                  )}
-                </Fragment>
-              ))}
-            </div>
-          </>
-        )}
       </div>
+      <BiometricDevices />
     </ProfileCard>
-  );
-};
-
-const WebauthnRow = ({
-  securityKey,
-  username,
-}: {
-  securityKey: SecurityKey;
-  username: string;
-}) => {
-  const menuItems = useMemo(() => {
-    const items: MenuItemProps[] = [];
-    items.push({
-      text: m.profile_auth_card_delete_passkey(),
-      icon: 'delete',
-      variant: 'danger',
-      onClick: () =>
-        openModal(ModalName.ConfirmAction, {
-          title: m.modal_delete_mfa_passkey_title(),
-          contentMd: m.modal_delete_mfa_passkey_content({ name: securityKey.name }),
-          actionPromise: () =>
-            api.auth.mfa.webauthn.deleteKey({ keyId: securityKey.id, username }),
-          invalidateKeys: [['user', username]],
-          submitProps: { text: m.controls_delete(), variant: 'critical' },
-          onSuccess: () => Snackbar.default(m.modal_delete_mfa_passkey_success()),
-          onError: () => Snackbar.error(m.modal_delete_mfa_passkey_error()),
-        }),
-    });
-    return {
-      items,
-    };
-  }, [securityKey.id, securityKey.name, username]);
-
-  const isHardware = securityKey.authenticator_kind === AuthenticatorKind.Hardware;
-
-  const sourceText = useMemo(() => {
-    switch (securityKey.registration_source) {
-      case RegistrationSource.Core:
-        return m.profile_auth_card_passkey_source_core();
-      case RegistrationSource.Desktop:
-        return m.profile_auth_card_passkey_source_desktop();
-      case RegistrationSource.Mobile:
-        return m.profile_auth_card_passkey_source_mobile();
-    }
-  }, [securityKey.registration_source]);
-
-  const details = useMemo(
-    () => [securityKey.authenticator_name, sourceText].filter(isPresent).join(' · '),
-    [securityKey.authenticator_name, sourceText],
-  );
-
-  return (
-    <div
-      className="webauthn-row"
-      data-kind={securityKey.authenticator_kind}
-      data-testid={`passkey-${securityKey.id}`}
-    >
-      <div className="info">
-        <div className="title">
-          <p className="name">{securityKey.name}</p>
-          {isHardware && (
-            <Badge variant="success" text={m.profile_auth_card_passkey_hardware()} />
-          )}
-          {!isHardware && (
-            <Badge variant="neutral" text={m.profile_auth_card_passkey_unverified()} />
-          )}
-        </div>
-        <p className="details">{details}</p>
-      </div>
-      <div className="controls">
-        <IconButtonMenu icon="menu" menuItems={[menuItems]} />
-      </div>
-    </div>
-  );
-};
-
-interface FactorRowProps {
-  icon: IconKindValue;
-  title: string;
-  enabled: boolean;
-  isDefault: boolean;
-  availability: 'sso' | 'both' | 'mfa';
-  menu?: MenuItemsGroup | null;
-  testId?: string;
-  smtpDisabled?: boolean;
-}
-
-const FactorRow = ({
-  enabled,
-  isDefault,
-  icon,
-  title,
-  menu,
-  testId,
-  availability,
-  smtpDisabled,
-}: FactorRowProps) => {
-  const menuItems = useMemo(() => (menu ? [menu] : undefined), [menu]);
-
-  const availabilityText = useMemo(() => {
-    switch (availability) {
-      case 'both':
-        return 'SSO/MFA';
-      case 'mfa':
-        return 'MFA';
-      case 'sso':
-        return 'SSO';
-    }
-  }, [availability]);
-  const showSmtpDisabledWarning = useMemo(
-    () => isPresent(smtpDisabled) && smtpDisabled,
-    [smtpDisabled],
-  );
-
-  return (
-    <div className="factor-row" data-testid={testId}>
-      <div className="content-track">
-        <div className="row info">
-          <Icon icon={icon} />
-          <p className="factor-name">{title}</p>
-          <div className="badges">
-            {showSmtpDisabledWarning && (
-              <Badge variant="critical" text={m.state_not_configured()} />
-            )}
-            {!enabled && !showSmtpDisabledWarning && (
-              <Badge variant="warning" text={m.state_disabled()} />
-            )}
-            {enabled && <Badge variant="success" text={m.state_enabled()} />}
-            {isDefault && <Badge variant="neutral" text={m.state_default()} />}
-          </div>
-        </div>
-        <div className="row availability">
-          <div className="fill"></div>
-          <p className="availability">
-            {showSmtpDisabledWarning ? m.state_smtp_not_configured() : availabilityText}
-          </p>
-        </div>
-      </div>
-      <div className="controls">
-        {isPresent(menuItems) && !showSmtpDisabledWarning && (
-          <IconButtonMenu icon="menu" menuItems={menuItems} />
-        )}
-      </div>
-    </div>
   );
 };
