@@ -60,6 +60,12 @@ async fn repair_migrates_both_legacy_dn_formats_and_is_idempotent(
     .await;
     let count = repair(&pool).await.unwrap();
     assert_eq!((count.found, count.migrated), (2, 2));
+    let completed: bool =
+        query_scalar("SELECT ldap_migration_completed FROM wizard WHERE is_singleton")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(completed);
     for (id, expected_rdn, expected_path) in [
         (first, "Doe, John", "ou=users,dc=example,dc=org"),
         (second, "Smith, Jane", r"ou=People\,West,dc=example,dc=org"),
@@ -111,8 +117,21 @@ async fn repair_migrates_both_legacy_dn_formats_and_is_idempotent(
         native_user.ldap_user_path.as_deref(),
         Some("ou=users,dc=example,dc=org")
     );
+    add_user(
+        &pool,
+        "repair_after_completion",
+        true,
+        r"Late\2C User",
+        "ou=users,dc=example,dc=org",
+    )
+    .await;
     let repeated = repair(&pool).await.unwrap();
     assert_eq!((repeated.found, repeated.migrated), (0, 0));
+    let late_user = User::find_by_username(&pool, "repair_after_completion")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(late_user.ldap_rdn.as_deref(), Some(r"Late\2C User"));
 }
 
 #[sqlx::test]

@@ -36,7 +36,7 @@ struct MigrationStateResponse {
 pub async fn get_migration_state(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     let migration_state = MigrationWizardState::get(&pool).await?.unwrap_or_default();
     let (ldap_migration_required,): (bool,) = query_as(
-        "SELECT EXISTS(SELECT 1 FROM \"user\" WHERE from_ldap AND POSITION(chr(92) IN ldap_rdn) > 0)",
+        "SELECT NOT ldap_migration_completed AND EXISTS(SELECT 1 FROM \"user\" WHERE from_ldap AND POSITION(chr(92) IN ldap_rdn) > 0) FROM wizard WHERE is_singleton",
     )
     .fetch_one(&pool)
     .await?;

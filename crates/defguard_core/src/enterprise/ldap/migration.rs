@@ -3,7 +3,7 @@
 //! This offline repair rejoins the stored RDN value and path, then splits them at the first
 //! unescaped comma and decodes only the RDN value.
 
-use sqlx::{PgPool, query, query_as};
+use sqlx::{PgPool, query, query_as, query_scalar};
 use tracing::info;
 
 use super::{
@@ -44,20 +44,35 @@ fn repaired_dn(
 /// Updates both DN fields atomically using the stored LDAP DN components.
 pub async fn repair(pool: &PgPool) -> Result<LdapRepairCounts, LdapError> {
     info!("Starting LDAP user DN repair");
+    let mut transaction = pool.begin().await?;
+    let completed: bool =
+        query_scalar("SELECT ldap_migration_completed FROM wizard WHERE is_singleton FOR UPDATE")
+            .fetch_one(&mut *transaction)
+            .await?;
+    if completed {
+        transaction.commit().await?;
+        return Ok(LdapRepairCounts {
+            found: 0,
+            migrated: 0,
+        });
+    }
     let candidates: Vec<Candidate> = query_as(
         "SELECT id, username, ldap_rdn, ldap_user_path FROM \"user\" WHERE from_ldap AND POSITION(chr(92) IN ldap_rdn) > 0",
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *transaction)
     .await?;
     info!("Found {} LDAP users requiring repair", candidates.len());
     if candidates.is_empty() {
+        query("UPDATE wizard SET ldap_migration_completed = TRUE WHERE is_singleton")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await?;
         return Ok(LdapRepairCounts {
             found: 0,
             migrated: 0,
         });
     }
 
-    let mut transaction = pool.begin().await?;
     let mut migrated = 0;
     for candidate in &candidates {
         debug!("Repairing LDAP user {}", candidate.username);
@@ -72,6 +87,9 @@ pub async fn repair(pool: &PgPool) -> Result<LdapRepairCounts, LdapError> {
         migrated += result.rows_affected();
         info!("Repaired LDAP user {}", candidate.username);
     }
+    query("UPDATE wizard SET ldap_migration_completed = TRUE WHERE is_singleton")
+        .execute(&mut *transaction)
+        .await?;
     transaction.commit().await?;
     info!(
         "User migration completed: found {}. Successfully migrated: {}.",
