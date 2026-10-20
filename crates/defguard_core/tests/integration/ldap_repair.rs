@@ -1,6 +1,9 @@
 use defguard_common::db::{models::User, setup_pool};
 use defguard_core::enterprise::ldap::migration::repair;
-use sqlx::{PgConnectOptions, PgPoolOptions, query, query_as};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query, query_as, query_scalar,
+};
 
 async fn add_user(pool: &sqlx::PgPool, username: &str, ldap: bool, rdn: &str, path: &str) -> i64 {
     let mut user = User::new(
@@ -14,8 +17,7 @@ async fn add_user(pool: &sqlx::PgPool, username: &str, ldap: bool, rdn: &str, pa
     user.from_ldap = ldap;
     user.ldap_rdn = Some(rdn.into());
     user.ldap_user_path = Some(path.into());
-    user.save(pool).await.unwrap();
-    user.id
+    user.save(pool).await.unwrap().id
 }
 
 #[sqlx::test]
@@ -89,16 +91,26 @@ async fn repair_migrates_both_legacy_dn_formats_and_is_idempotent(
             )
         );
     }
-    for id in [plain, native] {
-        let (rdn, path): (String, String) =
-            query_as("SELECT ldap_rdn, ldap_user_path FROM \"user\" WHERE id = $1")
-                .bind(id)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
-        assert!(rdn.contains('\\'));
-        assert_eq!(path, "ou=users,dc=example,dc=org");
-    }
+    let plain_user = User::find_by_username(&pool, "repair_plain")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(plain_user.id, plain);
+    assert_eq!(plain_user.ldap_rdn.as_deref(), Some("Plain"));
+    assert_eq!(
+        plain_user.ldap_user_path.as_deref(),
+        Some("ou=users,dc=example,dc=org")
+    );
+    let native_user = User::find_by_username(&pool, "repair_native")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(native_user.id, native);
+    assert_eq!(native_user.ldap_rdn.as_deref(), Some(r"Native\2C User"));
+    assert_eq!(
+        native_user.ldap_user_path.as_deref(),
+        Some("ou=users,dc=example,dc=org")
+    );
     let repeated = repair(&pool).await.unwrap();
     assert_eq!((repeated.found, repeated.migrated), (0, 0));
 }
@@ -129,9 +141,13 @@ async fn repair_rolls_back_updates_when_a_later_candidate_fails(
         .execute(&pool)
         .await
         .unwrap();
-    query("CREATE FUNCTION repair_update_guard() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF nextval('repair_update_sequence') = 2 THEN RAISE EXCEPTION 'expected repair failure'; END IF; RETURN NEW; END $$").execute(&pool).await.unwrap();
+    query("CREATE FUNCTION repair_update_guard() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF nextval('repair_update_sequence') = 2 THEN RAISE EXCEPTION 'expected repair failure'; END IF; RETURN NEW; END; $$").execute(&pool).await.unwrap();
     query("CREATE TRIGGER repair_update_trigger BEFORE UPDATE OF ldap_rdn, ldap_user_path ON \"user\" FOR EACH ROW EXECUTE FUNCTION repair_update_guard()").execute(&pool).await.unwrap();
-    assert!(repair(&pool).await.is_err());
+    let error = match repair(&pool).await {
+        Ok(_) => panic!("repair should fail on its second update"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("expected repair failure"));
     let values: Vec<(String, String)> = query_as("SELECT ldap_rdn, ldap_user_path FROM \"user\" WHERE username IN ('rollback_first', 'rollback_second') ORDER BY username").fetch_all(&pool).await.unwrap();
     assert_eq!(
         values,
@@ -140,10 +156,9 @@ async fn repair_rolls_back_updates_when_a_later_candidate_fails(
             (r"Smith\2C Jane".into(), "ou=users,dc=example,dc=org".into())
         ]
     );
-    let sequence_value: i64 = query("SELECT last_value FROM repair_update_sequence")
+    let sequence_value: i64 = query_scalar("SELECT last_value FROM repair_update_sequence")
         .fetch_one(&pool)
         .await
-        .unwrap()
-        .get(0);
+        .unwrap();
     assert_eq!(sequence_value, 2);
 }
