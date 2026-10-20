@@ -50,6 +50,7 @@ pub async fn repair(pool: &PgPool) -> Result<LdapRepairCounts, LdapError> {
             .fetch_one(&mut *transaction)
             .await?;
     if completed {
+        info!("LDAP user DN repair already completed, skipping");
         transaction.commit().await?;
         return Ok(LdapRepairCounts {
             found: 0,
