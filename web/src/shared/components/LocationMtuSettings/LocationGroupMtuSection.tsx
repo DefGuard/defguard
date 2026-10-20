@@ -33,7 +33,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
     LicenseFeature.GroupMTUOverride,
   ).result;
 
-  const { data: groupOptions = [] } = useQuery({
+  const { data: groupOptions = [], isPending: groupsPending } = useQuery({
     ...getGroupsInfoQueryOptions,
     select: (response) =>
       response.data.map(
@@ -93,6 +93,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
         variant="outlined"
         text={m.location_network_group_mtu_add()}
         disabled={locked}
+        loading={groupsPending}
         onClick={() => openEditor('new')}
       />
       {overrides.length > 0 && (

@@ -78,7 +78,7 @@ const GroupMtuModalContent = ({
 }: ContentProps) => {
   // With no groups left there is nothing to apply an MTU value to.
   const noGroups = groupOptions.length === 0;
-  const [onGroupStep, setOnGroupStep] = useState(noGroups);
+  const [onGroupStep, setOnGroupStep] = useState(false);
   const [clientMtu, setClientMtu] = useState(initial?.client_mtu ?? null);
   const [mtuError, setMtuError] = useState<string>();
   const [groupIds, setGroupIds] = useState(new Set(initial?.group_ids));
@@ -116,7 +116,7 @@ const GroupMtuModalContent = ({
 
   return (
     <>
-      {onGroupStep ? (
+      {onGroupStep || noGroups ? (
         <>
           <SelectionSection
             options={groupOptions}
