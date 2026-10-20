@@ -95,6 +95,12 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
         {m.location_network_group_mtu_description()}
       </AppText>
       <SizedBox height={ThemeSpacing.Lg} />
+      <Button
+        variant="outlined"
+        text={m.location_network_group_mtu_add()}
+        disabled={locked}
+        onClick={() => openEditor('new')}
+      />
       {overrides.length > 0 && (
         <div className="overrides">
           {overrides.map((override, index) => (
@@ -109,12 +115,6 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
           ))}
         </div>
       )}
-      <Button
-        variant="outlined"
-        text={m.location_network_group_mtu_add()}
-        disabled={locked || allGroupsAssigned}
-        onClick={() => openEditor('new')}
-      />
       <GroupMtuModal
         isOpen={modalOpen}
         initial={
