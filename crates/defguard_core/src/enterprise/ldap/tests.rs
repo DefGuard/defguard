@@ -4144,66 +4144,87 @@ async fn test_sync_matches_imported_user_with_escaped_dn(
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     ldap_conn.config.ldap_username_attr = "uid".to_owned();
     ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
-    let directory_dn = r"cn=Doe\, John,ou=example\,something,dc=com";
-    let mut ldap_user = make_test_user(
-        "escaped_dn_user",
-        Some("Doe, John".to_owned()),
-        Some(r"ou=example\,something,dc=com".to_owned()),
-    );
+    let mut ldap_users = [
+        (
+            make_test_user(
+                "escaped_dn_user",
+                Some("Doe, John".to_owned()),
+                Some(r"ou=example\,something,dc=com".to_owned()),
+            ),
+            r"cn=Doe\, John,ou=example\,something,dc=com",
+        ),
+        (
+            make_test_user(
+                "hex_dn_user",
+                Some("Smith, Jane".to_owned()),
+                Some(r"ou=example\2Csomething,dc=com".to_owned()),
+            ),
+            r"cn=Smith\2C Jane,ou=example\2Csomething,dc=com",
+        ),
+    ];
+    for (ldap_user, directory_dn) in &ldap_users {
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+        assert!(
+            User::find_by_username(&pool, &ldap_user.username)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
     ldap_conn
-        .test_client_mut()
-        .add_test_user_with_dn(&ldap_user, directory_dn);
-    assert!(
-        User::find_by_username(&pool, &ldap_user.username)
+        .sync(&pool, false, &wg_tx, &ldap_tx)
+        .await
+        .unwrap();
+
+    let mut imported_users = Vec::new();
+    let events = drain_ldap_sync_events(&mut ldap_rx);
+    assert_eq!(events.len(), ldap_users.len());
+    for (ldap_user, _) in &ldap_users {
+        let imported = User::find_by_username(&pool, &ldap_user.username)
             .await
             .unwrap()
-            .is_none()
-    );
+            .expect("LDAP user should be imported into Defguard");
+        assert!(imported.from_ldap);
+        assert_eq!(imported.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(imported.ldap_user_path, ldap_user.ldap_user_path);
+        assert!(events.iter().any(|event| matches!(
+            event,
+            LdapSyncEventType::UserCreated { user } if user.id == imported.id
+        )));
+        imported_users.push(imported);
+    }
 
+    for (ldap_user, directory_dn) in &mut ldap_users {
+        ldap_user.first_name = format!("Updated {}", ldap_user.username);
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+    }
     ldap_conn
         .sync(&pool, false, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 
-    let imported = User::find_by_username(&pool, &ldap_user.username)
-        .await
-        .unwrap()
-        .expect("LDAP user should be imported into Defguard");
-    assert!(imported.from_ldap);
-    assert_eq!(imported.ldap_rdn.as_deref(), Some("Doe, John"));
-    assert_eq!(
-        imported.ldap_user_path.as_deref(),
-        Some(r"ou=example\,something,dc=com")
-    );
     let events = drain_ldap_sync_events(&mut ldap_rx);
-    assert!(matches!(
-        events.as_slice(),
-        [LdapSyncEventType::UserCreated { user }] if user.id == imported.id
-    ));
-
-    ldap_user.first_name = "Updated John".to_owned();
-    ldap_conn
-        .test_client_mut()
-        .add_test_user_with_dn(&ldap_user, directory_dn);
-    ldap_conn
-        .sync(&pool, false, &wg_tx, &ldap_tx)
-        .await
-        .unwrap();
-
-    let synced = User::find_by_username(&pool, &ldap_user.username)
-        .await
-        .unwrap()
-        .expect("Imported user should still exist after syncing again");
-    assert_eq!(synced.id, imported.id);
-    assert_eq!(synced.first_name, ldap_user.first_name);
-    assert_eq!(synced.ldap_rdn, imported.ldap_rdn);
-    assert_eq!(synced.ldap_user_path, imported.ldap_user_path);
-    let events = drain_ldap_sync_events(&mut ldap_rx);
-    assert!(matches!(
-        events.as_slice(),
-        [LdapSyncEventType::UserModified { before, after }]
-            if before.id == imported.id && after.id == imported.id
-    ));
+    assert_eq!(events.len(), ldap_users.len());
+    for ((ldap_user, _), imported) in ldap_users.iter().zip(&imported_users) {
+        let synced = User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .expect("Imported user should still exist after syncing again");
+        assert_eq!(synced.id, imported.id);
+        assert_eq!(synced.first_name, ldap_user.first_name);
+        assert_eq!(synced.ldap_rdn, imported.ldap_rdn);
+        assert_eq!(synced.ldap_user_path, imported.ldap_user_path);
+        assert!(events.iter().any(|event| matches!(
+            event,
+            LdapSyncEventType::UserModified { before, after }
+                if before.id == imported.id && after.id == imported.id
+        )));
+    }
     assert!(ldap_conn.test_client.get_events().is_empty());
 }
 
@@ -4218,57 +4239,74 @@ async fn test_sync_matches_migrated_user_with_escaped_dn(
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
 
-    let mut legacy_user = make_test_user(
-        "migrated_dn_user",
-        Some(r"Doe\".to_owned()),
-        Some(r" John,ou=example\,something,dc=com".to_owned()),
-    );
-    legacy_user.from_ldap = true;
-    let legacy_user = legacy_user.save(&pool).await.unwrap();
+    let mut cases = [
+        (
+            make_test_user(
+                "migrated_dn_user",
+                Some("Doe, John".to_owned()),
+                Some(r"ou=example\,something,dc=com".to_owned()),
+            ),
+            r"Doe\",
+            r" John,ou=example\,something,dc=com",
+            r"cn=Doe\, John,ou=example\,something,dc=com",
+        ),
+        (
+            make_test_user(
+                "migrated_hex_dn_user",
+                Some("Smith, Jane".to_owned()),
+                Some(r"ou=example\2Csomething,dc=com".to_owned()),
+            ),
+            r"Smith\2C Jane",
+            r"ou=example\2Csomething,dc=com",
+            r"cn=Smith\2C Jane,ou=example\2Csomething,dc=com",
+        ),
+    ];
+    let mut legacy_ids = Vec::new();
+    for (ldap_user, legacy_rdn, legacy_path, _) in &cases {
+        let mut legacy_user = ldap_user.clone();
+        legacy_user.ldap_rdn = Some((*legacy_rdn).to_owned());
+        legacy_user.ldap_user_path = Some((*legacy_path).to_owned());
+        legacy_user.from_ldap = true;
+        legacy_ids.push(legacy_user.save(&pool).await.unwrap().id);
+    }
 
     let counts = repair(&pool).await.unwrap();
-    assert_eq!((counts.found, counts.migrated), (1, 1));
-    let migrated = User::find_by_id(&pool, legacy_user.id)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(migrated.ldap_rdn.as_deref(), Some("Doe, John"));
-    assert_eq!(
-        migrated.ldap_user_path.as_deref(),
-        Some(r"ou=example\,something,dc=com")
-    );
+    assert_eq!((counts.found, counts.migrated), (2, 2));
 
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     ldap_conn.config.ldap_username_attr = "uid".to_owned();
     ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
-    let mut ldap_user = make_test_user(
-        "migrated_dn_user",
-        Some("Doe, John".to_owned()),
-        Some(r"ou=example\,something,dc=com".to_owned()),
-    );
-    ldap_user.first_name = "Updated John".to_owned();
-    ldap_conn
-        .test_client_mut()
-        .add_test_user_with_dn(&ldap_user, r"cn=Doe\, John,ou=example\,something,dc=com");
+    for ((ldap_user, _, _, directory_dn), id) in cases.iter_mut().zip(&legacy_ids) {
+        let migrated = User::find_by_id(&pool, *id).await.unwrap().unwrap();
+        assert_eq!(migrated.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(migrated.ldap_user_path, ldap_user.ldap_user_path);
+        ldap_user.first_name = format!("Updated {}", ldap_user.username);
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+    }
     ldap_conn
         .sync(&pool, false, &wg_tx, &ldap_tx)
         .await
         .unwrap();
 
-    let synced = User::find_by_username(&pool, &ldap_user.username)
-        .await
-        .unwrap()
-        .expect("Migrated user should still exist after syncing");
-    assert_eq!(synced.id, legacy_user.id);
-    assert_eq!(synced.first_name, ldap_user.first_name);
-    assert_eq!(synced.ldap_rdn, migrated.ldap_rdn);
-    assert_eq!(synced.ldap_user_path, migrated.ldap_user_path);
     let events = drain_ldap_sync_events(&mut ldap_rx);
-    assert!(matches!(
-        events.as_slice(),
-        [LdapSyncEventType::UserModified { before, after }]
-            if before.id == legacy_user.id && after.id == legacy_user.id
-    ));
+    assert_eq!(events.len(), cases.len());
+    for ((ldap_user, _, _, _), id) in cases.iter().zip(&legacy_ids) {
+        let synced = User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .expect("Migrated user should still exist after syncing");
+        assert_eq!(synced.id, *id);
+        assert_eq!(synced.first_name, ldap_user.first_name);
+        assert_eq!(synced.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(synced.ldap_user_path, ldap_user.ldap_user_path);
+        assert!(events.iter().any(|event| matches!(
+            event,
+            LdapSyncEventType::UserModified { before, after }
+                if before.id == *id && after.id == *id
+        )));
+    }
     assert!(ldap_conn.test_client.get_events().is_empty());
 }
 
