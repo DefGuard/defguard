@@ -20,6 +20,7 @@
     list-style: none;
     display: flex;
     flex-flow: column;
+    align-self: var(--content-align);
     row-gap: var(--spacing-md);
 
     li {

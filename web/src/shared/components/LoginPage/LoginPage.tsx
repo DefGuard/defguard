@@ -1,8 +1,6 @@
 import './style.scss';
 import dayjs from 'dayjs';
 import type { PropsWithChildren } from 'react';
-import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../defguard-ui/types';
 import loginImage from './assets/login.png';
 import { LoginPageLogo } from './LoginPageLogo';
 
@@ -15,7 +13,6 @@ export const LoginPage = ({ children, id }: PropsWithChildren & { id?: string })
       <div className="main-track">
         <main id={id}>
           <LoginPageLogo />
-          <SizedBox height={ThemeSpacing.Xl8} />
           {children}
           <footer>
             <p>
