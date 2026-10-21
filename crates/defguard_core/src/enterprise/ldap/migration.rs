@@ -3,7 +3,7 @@
 //! This offline repair rejoins the stored RDN value and path, then splits them at the first
 //! unescaped comma and decodes only the RDN value.
 
-use sqlx::{PgPool, query, query_as, query_scalar, FromRow};
+use sqlx::{FromRow, PgPool, query, query_as, query_scalar};
 use tracing::info;
 
 use super::{
