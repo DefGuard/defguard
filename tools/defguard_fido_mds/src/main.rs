@@ -1,13 +1,18 @@
 //! Regenerates `defguard_core/src/fido2/trusted_authenticators.json` from the FIDO Metadata
 //! Service (MDS3) blob, keeping only what the hardware key attestation check needs.
 
-use std::{env, fs, path::PathBuf};
+use std::{
+    env,
+    fs::{self, OpenOptions},
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, bail, ensure};
 use base64::{
     Engine,
     prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
 };
+use reqwest::blocking::{self, Response};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime, pem::PemObject};
 use serde::{Deserialize, Serialize};
 use webpki::{
@@ -94,11 +99,12 @@ fn main() -> anyhow::Result<()> {
     let output = env::args_os()
         .nth(1)
         .map_or_else(|| PathBuf::from(DEFAULT_OUTPUT), PathBuf::from);
+    validate_output(&output)?;
 
     println!("Downloading {MDS_URL}");
-    let token = reqwest::blocking::get(MDS_URL)
-        .and_then(reqwest::blocking::Response::error_for_status)
-        .and_then(reqwest::blocking::Response::text)
+    let token = blocking::get(MDS_URL)
+        .and_then(Response::error_for_status)
+        .and_then(Response::text)
         .context("failed to download the MDS blob")?;
     let payload = verify_jws(token.trim())?;
     let blob: MetadataBlob =
@@ -135,6 +141,39 @@ fn main() -> anyhow::Result<()> {
         catalog.next_update,
         output.display()
     );
+    Ok(())
+}
+
+fn validate_output(output: &Path) -> anyhow::Result<()> {
+    let dir = output
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    ensure!(
+        dir.is_dir(),
+        "output directory {} does not exist",
+        dir.display()
+    );
+    ensure!(
+        !output.is_dir(),
+        "output path {} is a directory",
+        output.display()
+    );
+
+    let not_writable = || format!("{} is not writable", output.display());
+    if output.exists() {
+        OpenOptions::new()
+            .append(true)
+            .open(output)
+            .with_context(not_writable)?;
+    } else {
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output)
+            .with_context(not_writable)?;
+        fs::remove_file(output).with_context(not_writable)?;
+    }
     Ok(())
 }
 
