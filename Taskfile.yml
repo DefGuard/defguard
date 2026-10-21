@@ -1,0 +1,157 @@
+version: "3"
+
+vars:
+  IMAGE_TAG: release-2.1
+  LDAP_COMPOSE: docker compose -p defguard-ldap -f docker-compose.ldap-test.yaml
+
+tasks:
+  default:
+    desc: Show available tasks
+    silent: true
+    cmds:
+      - "{{.TASK_EXE}} --list"
+
+  build:
+    desc: Build release binary
+    cmds:
+      - cargo build --release
+
+  drop-test-dbs:
+    desc: Remove test databases
+    dotenv: [.env]
+    preconditions:
+      - sh: command -v psql
+        msg: psql is not installed
+      - sh: test -n "$DATABASE_URL"
+        msg: DATABASE_URL is not set
+    cmds:
+      - echo "Dropping test databases"
+      - |
+        psql "$DATABASE_URL" -c "copy (SELECT datname FROM pg_database WHERE datname ~ '_sqlx_test_*') to stdout" | while read -r dbname; do
+          echo "Dropping $dbname"
+          psql "$DATABASE_URL" -c "DROP DATABASE \"$dbname\""
+        done
+      - echo "Test databases were deleted!"
+
+  fido-mds:
+    desc: Regenerate the trusted FIDO2 authenticator list from the FIDO Metadata Service blob
+    cmds:
+      - cargo run --locked --release -p defguard_fido_mds -- crates/defguard_core/src/fido2/trusted_authenticators.json
+      - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib fido2::attestation
+
+  move-tag:
+    desc: "Move tag to current commit (task move-tag -- <TAG>)"
+    vars:
+      TAG: "{{.TAG | default .CLI_ARGS}}"
+    preconditions:
+      - sh: test -n "{{.TAG}}"
+        msg: "TAG is required: task move-tag -- <TAG>"
+    cmds:
+      - git tag --delete {{.TAG}}
+      - git push --delete origin {{.TAG}}
+      - git tag {{.TAG}}
+      - git push
+      - git push origin {{.TAG}}
+
+  format:
+    desc: Format Rust project
+    cmds:
+      - cargo --locked fmt --all
+
+  lint:
+    desc: Lint Rust project
+    cmds:
+      - cargo clippy --all-targets --all-features -- -D warnings
+
+  migrate:
+    desc: Run all migrations
+    cmds:
+      - sqlx migrate run
+
+  query-data:
+    desc: Update sqlx query data
+    cmds:
+      - cargo sqlx prepare --workspace -- --all-targets --tests
+
+  check-everything:
+    desc: Run every check the lint CI workflows gate on (Rust + web + e2e)
+    cmds:
+      - task: check-rust
+      - task: check-web
+      - task: check-e2e
+
+  check-rust:
+    desc: Rust lint checks (mirrors the lint job in ci.yml)
+    cmds:
+      - task: check-no-openapi
+      - cargo --locked fmt --all -- --check
+      - SQLX_OFFLINE=true cargo clippy --all-targets --all-features -- -D warnings
+      - cargo deny check
+
+  check-no-openapi:
+    desc: Lint the build without the default openapi feature (see CONTRIBUTING.md)
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - cargo clippy --all-targets --no-default-features -- -D warnings
+
+  check-web:
+    desc: Frontend build, lint and unit tests (mirrors lint-web.yml and test-web.yml)
+    dir: web
+    cmds:
+      - CI=true pnpm install
+      - pnpm build
+      - pnpm lint
+      - pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide
+      - pnpm test
+
+  check-e2e:
+    desc: E2E lint (mirrors lint-e2e.yml)
+    dir: e2e
+    cmds:
+      - CI=true pnpm install
+      - pnpm lint
+
+  fix-clippy:
+    desc: Apply automatic clippy fixes with extra pedantic lints
+    cmds:
+      - >-
+        cargo clippy --all-targets --all-features --fix --allow-dirty --
+        -W clippy::uninlined_format_args
+        -W clippy::use_self
+        -W clippy::redundant_closure_for_method_calls
+        -W clippy::cloned_instead_of_copied
+        -W clippy::str_to_string
+        -W clippy::explicit_iter_loop
+
+  test:
+    desc: "Run all tests with cargo nextest, needs a running Postgres for DATABASE_URL (task test -- <ARGS>)"
+    cmds:
+      - cargo nextest run --locked --all-features {{.CLI_ARGS}}
+
+  test-ldap:
+    desc: "Run LDAP integration tests against a throwaway OpenLDAP container, needs a running Postgres for DATABASE_URL (task test-ldap -- <ARGS>)"
+    env:
+      LDAP_URL: ldap://localhost:389
+      LDAP_BIND_USERNAME: cn=admin,dc=example,dc=org
+      LDAP_BIND_PASSWORD: pass123
+      LDAP_USER_SEARCH_BASE: ou=users,dc=example,dc=org
+      LDAP_GROUP_SEARCH_BASE: ou=groups,dc=example,dc=org
+      LDAP_USER_CLASS: inetOrgPerson
+      LDAP_GROUP_CLASS: groupOfUniqueNames
+      LDAP_USERNAME_ATTR: cn
+      LDAP_GROUPNAME_ATTR: cn
+      LDAP_MEMBER_ATTR: memberOf
+      LDAP_GROUP_MEMBER_ATTR: uniqueMember
+    cmds:
+      - defer: "{{.LDAP_COMPOSE}} down"
+      - "{{.LDAP_COMPOSE}} up -d --wait openldap"
+      - cargo nextest run --run-ignored only -E 'package(defguard_core) and test(/^ldap::/)' {{.CLI_ARGS}}
+
+  e2e-test:
+    desc: "Run e2e tests, requires Docker (task e2e-test [IMAGE_TAG=<tag>] -- <ARGS>)"
+    dir: e2e
+    env:
+      IMAGE_TAG: "{{.IMAGE_TAG}}"
+    cmds:
+      - pnpm exec playwright test {{.CLI_ARGS}}

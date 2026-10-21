@@ -24,7 +24,7 @@ move-tag TAG:
 
 # format Rust project
 format:
-    cargo +nightly --locked fmt --all  # use nightly toolchain for better import handling
+    cargo --locked fmt --all
 
 # lint Rust project
 lint:
@@ -43,7 +43,7 @@ check-everything: check-rust check-web check-e2e
 
 # Rust lint checks (mirrors the `lint` job in ci.yml)
 check-rust: check-no-openapi
-    cargo +nightly --locked fmt --all -- --check
+    cargo --locked fmt --all -- --check
     SQLX_OFFLINE=true cargo clippy --all-targets --all-features -- -D warnings
     cargo deny check
 
