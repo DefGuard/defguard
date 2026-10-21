@@ -11,8 +11,8 @@ use defguard_common::db::{
         Settings, WireguardNetwork,
         mfa_flow::{
             LocationMfaFlowAssignment, MfaFlow, MfaFlowAssignmentError, MfaFlowDeleteError,
-            MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError, MfaFlowValidationField,
-            MfaFlowWithStepCount, validate_flow_input,
+            MfaFlowLocation, MfaFlowSnapshot, MfaFlowStep, MfaFlowUpdateError,
+            MfaFlowValidationField, MfaFlowWithStepCount, validate_flow_input,
         },
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -45,12 +45,14 @@ pub struct MfaFlowListItemResponse {
     /// The first license or configuration condition that prevents the flow from running.
     /// `None` = usable
     pub unavailable_reason: Option<MethodAvailabilityReason>,
+    pub locations: Vec<MfaFlowLocationResponse>,
 }
 
 impl MfaFlowListItemResponse {
     fn new(
         flow: MfaFlowWithStepCount,
         steps: Vec<MfaFlowStep<Id>>,
+        locations: Vec<MfaFlowLocation>,
         unavailable_reason: Option<MethodAvailabilityReason>,
     ) -> Self {
         Self {
@@ -61,6 +63,27 @@ impl MfaFlowListItemResponse {
             created_at: flow.created_at,
             updated_at: flow.updated_at,
             unavailable_reason,
+            locations: locations.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct MfaFlowLocationResponse {
+    pub id: Id,
+    pub name: String,
+    pub is_default: bool,
+    pub mfa_enabled: bool,
+}
+
+impl From<MfaFlowLocation> for MfaFlowLocationResponse {
+    fn from(location: MfaFlowLocation) -> Self {
+        Self {
+            id: location.location_id,
+            name: location.name,
+            is_default: location.is_default,
+            mfa_enabled: location.mfa_enabled,
         }
     }
 }
@@ -419,6 +442,13 @@ pub async fn list_mfa_flows(
     for step in MfaFlowStep::find_all(&appstate.pool).await? {
         steps_by_flow.entry(step.flow_id).or_default().push(step);
     }
+    let mut locations_by_flow: HashMap<Id, Vec<MfaFlowLocation>> = HashMap::new();
+    for location in MfaFlow::list_locations(&appstate.pool).await? {
+        locations_by_flow
+            .entry(location.flow_id)
+            .or_default()
+            .push(location);
+    }
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
     let has_business = is_business_license_active();
@@ -426,9 +456,10 @@ pub async fn list_mfa_flows(
         .into_iter()
         .map(|item| {
             let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
+            let locations = locations_by_flow.remove(&item.id).unwrap_or_default();
             let reason =
                 flow_unavailable_reason(&steps, smtp_configured, oidc_configured, has_business);
-            MfaFlowListItemResponse::new(item, steps, reason)
+            MfaFlowListItemResponse::new(item, steps, locations, reason)
         })
         .collect();
 
