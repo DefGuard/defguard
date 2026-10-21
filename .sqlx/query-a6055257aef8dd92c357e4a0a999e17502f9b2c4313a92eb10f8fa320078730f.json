@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to FROM wizard WHERE is_singleton LIMIT 1",
+  "query": "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to, ldap_migration_completed FROM wizard WHERE is_singleton LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,17 @@
             "name": "last_version_migrated_to"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "ldap_migration_completed",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wizard",
+            "name": "ldap_migration_completed"
+          }
+        }
       }
     ],
     "parameters": {
@@ -55,8 +66,9 @@
     "nullable": [
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "ffbab68d66d664f894995b26033489e61e0042f34ce0e892f4772960d3c2b1f0"
+  "hash": "a6055257aef8dd92c357e4a0a999e17502f9b2c4313a92eb10f8fa320078730f"
 }
