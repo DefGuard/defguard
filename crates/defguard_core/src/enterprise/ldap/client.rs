@@ -247,7 +247,9 @@ impl LDAPConnection {
                     let members = members
                         .iter()
                         .filter_map(|v| {
-                            if let Some(user) = dn_map.get(v.to_lowercase().as_str()) {
+                            if let Some(user) =
+                                dn_map.get(&self.config.dn_match_key(v).to_lowercase())
+                            {
                                 Some(*user)
                             } else {
                                 debug!(

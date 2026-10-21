@@ -1538,6 +1538,82 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[test]
+fn test_dn_match_key_reconciles_escape_spellings() {
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    let path = "OU=Members,DC=example,DC=com";
+    let user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+
+    let member_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    let rebuilt = config.user_dn_for_user(&user);
+    assert_ne!(member_dn, rebuilt);
+    assert_eq!(config.dn_match_key(&member_dn), rebuilt);
+
+    let hexpair_dn = format!(r"CN=Doe\2c John - jdoe,{path}");
+    assert_eq!(
+        config.dn_match_key(&hexpair_dn),
+        config.dn_match_key(&member_dn)
+    );
+
+    assert_eq!(config.dn_match_key("value"), "value");
+}
+
+#[sqlx::test]
+async fn test_sync_resolves_membership_for_comma_in_rdn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("directory-group").save(&pool).await.unwrap();
+    let path = "OU=Members,DC=example,DC=com";
+    let ldap_user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+    let directory_dn = format!(r"cn=Doe\, John - jdoe,{path}");
+    assert_ne!(config.user_dn_for_user(&ldap_user), directory_dn);
+
+    let mut defguard_user = ldap_user.clone();
+    defguard_user.from_ldap = true;
+    let defguard_user = defguard_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .test_client_mut()
+        .add_test_user_with_dn(&ldap_user, &directory_dn);
+    let ldap_group = group.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_group(&ldap_group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership_with_dn(&ldap_group, &directory_dn, &config);
+
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    assert_eq!(
+        group.member_usernames(&pool).await.unwrap(),
+        vec![defguard_user.username]
+    );
+}
+
+#[test]
 fn test_extract_intersecting_users_empty() {
     let mut defguard_users = Vec::<User<Id>>::new();
     let mut ldap_users = Vec::<User>::new();

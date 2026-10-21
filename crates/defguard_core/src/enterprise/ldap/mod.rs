@@ -11,13 +11,13 @@ use defguard_common::db::{
 #[cfg(not(test))]
 use ldap3::Ldap;
 use ldap3::{Mod, dn_escape, ldap_escape};
-use model::UserObjectClass;
+use model::{UserObjectClass, split_first_rdn};
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 use tokio::sync::broadcast::Sender;
 
-use self::error::LdapError;
+use self::{dn::unescape_value, error::LdapError};
 use crate::{
     enterprise::{
         is_business_license_active,
@@ -245,6 +245,14 @@ impl LDAPConfig {
             &self.ldap_user_search_base
         };
         self.user_dn(user.ldap_rdn_value(), path)
+    }
+
+    /// reconciles RDN escape spellings before comparing directory member DNs.
+    #[must_use]
+    pub(crate) fn dn_match_key(&self, dn: &str) -> String {
+        split_first_rdn(dn)
+            .and_then(|(value, path)| Some(self.user_dn(&unescape_value(value)?, path)))
+            .unwrap_or_else(|| dn.into())
     }
 
     /// Constructs group distinguished name.
