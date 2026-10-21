@@ -28,7 +28,7 @@
     "prettier": "^3.9.10"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.9.0",
+    "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.64.1",
     "@scure/base": "^1.2.6",
     "@types/lodash": "^4.17.26",
