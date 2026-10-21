@@ -3,7 +3,7 @@
 //! This offline repair rejoins the stored RDN value and path, then splits them at the first
 //! unescaped comma and decodes only the RDN value.
 
-use sqlx::{PgPool, query, query_as, query_scalar};
+use sqlx::{PgPool, query, query_as, query_scalar, FromRow};
 use tracing::info;
 
 use super::{
@@ -11,7 +11,7 @@ use super::{
     error::LdapError,
 };
 
-#[derive(sqlx::FromRow)]
+#[derive(FromRow)]
 struct Candidate {
     id: i64,
     username: String,
@@ -19,7 +19,6 @@ struct Candidate {
     ldap_user_path: Option<String>,
 }
 
-#[derive(serde::Serialize)]
 pub struct LdapRepairCounts {
     pub found: u64,
     pub migrated: u64,
