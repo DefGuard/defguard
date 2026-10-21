@@ -2714,6 +2714,55 @@ fn test_extract_dn_value() {
         Some(String::new())
     );
     assert_eq!(extract_rdn_value(""), None);
+    assert_eq!(extract_rdn_value(r"cn=Doe\,John"), None);
+    assert_eq!(extract_rdn_value(r"cn=Doe\FF,ou=users"), None);
+    assert_eq!(extract_rdn_value("cn,dc=example,dc=com"), None);
+}
+
+#[test]
+fn test_from_searchentry_with_escaped_dn() {
+    let attrs = HashMap::from([
+        ("sn".to_owned(), vec!["Doe".to_owned()]),
+        ("givenName".to_owned(), vec!["John".to_owned()]),
+        ("mail".to_owned(), vec!["jdoe@example.com".to_owned()]),
+    ]);
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    for (dn, expected_rdn, expected_path) in [
+        (
+            r"cn=Doe\, John,ou=People\,West,dc=example",
+            "Doe, John",
+            r"ou=People\,West,dc=example",
+        ),
+        (
+            r"cn=Smith\2C Jane,ou=People\2CWest,dc=example",
+            "Smith, Jane",
+            r"ou=People\2CWest,dc=example",
+        ),
+        (
+            r"cn=ACME\\jdoe,ou=users,dc=example",
+            r"ACME\jdoe",
+            "ou=users,dc=example",
+        ),
+        (
+            r"cn=Micha\c5\82,ou=users,dc=example",
+            "Michał",
+            "ou=users,dc=example",
+        ),
+    ] {
+        let entry = SearchEntry {
+            dn: dn.to_owned(),
+            attrs: attrs.clone(),
+            bin_attrs: HashMap::new(),
+        };
+        let user = user_from_searchentry(&entry, "jdoe", None, &config).unwrap();
+        assert_eq!(user.ldap_rdn.as_deref(), Some(expected_rdn));
+        assert_eq!(user.ldap_user_path.as_deref(), Some(expected_path));
+        assert!(user.from_ldap);
+    }
 }
 
 #[test]
@@ -3327,6 +3376,17 @@ fn test_extract_dn_path_various_cases() {
         extract_dn_path(" cn=abc ,dc=example,dc=com "),
         Some("dc=example,dc=com ".to_string())
     );
+    for dn in [
+        r"cn=Doe\, John,ou=People\,West,dc=example",
+        r"cn=Doe\2c John,ou=People\,West,dc=example",
+        r"cn=ACME\\,ou=People\,West,dc=example",
+    ] {
+        assert_eq!(
+            extract_dn_path(dn).as_deref(),
+            Some(r"ou=People\,West,dc=example")
+        );
+    }
+    assert_eq!(extract_dn_path(r"cn=Doe\,John"), None);
 }
 
 #[sqlx::test]

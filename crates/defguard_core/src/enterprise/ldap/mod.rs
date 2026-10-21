@@ -32,6 +32,7 @@ use crate::{
 
 #[cfg(not(test))]
 pub mod client;
+mod dn;
 pub mod error;
 pub mod hash;
 pub mod model;
