@@ -7,6 +7,7 @@ use defguard_common::db::{
         group::Group,
         vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
         vpn_client_session::VpnClientMfaMethod,
+        webauthn::{AuthenticatorKind, RegistrationSource},
     },
 };
 use defguard_core::{
@@ -1099,6 +1100,9 @@ fn fabricate_security_key(rng: &mut ThreadRng, user_id: Id) -> WebAuthn<Id> {
             .expect("SECURITY_KEY_NAMES is non-empty")
             .to_string(),
         passkey: Vec::new(),
+        authenticator_name: None,
+        authenticator_kind: AuthenticatorKind::Unknown,
+        registration_source: RegistrationSource::Core,
     }
 }
 

@@ -99,36 +99,36 @@ mod test {
         assert!(stats.trim_allowed_ips().is_empty());
 
         stats.allowed_ips = Some("10.1.1.1".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1"]);
 
         stats.allowed_ips = Some("10.1.1.1/24".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1"]);
 
         stats.allowed_ips = Some("10.1.1.1/24, 10.1.1.2".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "10.1.1.2"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1", "10.1.1.2"]);
 
         stats.allowed_ips = Some("10.1.1.1/24, 10.1.1.2/24".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "10.1.1.2"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1", "10.1.1.2"]);
 
         stats.allowed_ips = Some("fc00::1".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["fc00::1"]);
 
         stats.allowed_ips = Some("fc00::1/112".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["fc00::1"]);
 
         stats.allowed_ips = Some("fc00::1/112,fc00::2".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1", "fc00::2"]);
+        assert_eq!(stats.trim_allowed_ips(), ["fc00::1", "fc00::2"]);
 
         stats.allowed_ips = Some("fc00::1/112,fc00::2/112".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1", "fc00::2"]);
+        assert_eq!(stats.trim_allowed_ips(), ["fc00::1", "fc00::2"]);
 
         stats.allowed_ips = Some("10.1.1.1, fc00::1".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "fc00::1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1", "fc00::1"]);
 
         stats.allowed_ips = Some("10.1.1.1/24, fc00::1/112".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "fc00::1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["10.1.1.1", "fc00::1"]);
 
         stats.allowed_ips = Some("nonparsable, fc00::1/112".to_string());
-        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
+        assert_eq!(stats.trim_allowed_ips(), ["fc00::1"]);
     }
 }

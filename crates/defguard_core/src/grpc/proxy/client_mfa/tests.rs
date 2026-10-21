@@ -9,24 +9,27 @@ use std::{
 
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 use chrono::Utc;
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, DeviceType, User, WireguardNetwork,
-        biometric_auth::BiometricAuth,
-        device::WireguardNetworkDevice,
-        mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
-        polling_token::PollingToken,
-        settings::initialize_current_settings,
-        user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-        vpn_client_mfa_session::{
-            MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VPN_MFA_SESSION_TIMEOUT, VpnClientMfaSession,
-            VpnMfaFlowKind,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            biometric_auth::BiometricAuth,
+            device::WireguardNetworkDevice,
+            mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
+            polling_token::PollingToken,
+            settings::initialize_current_settings,
+            user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
+            vpn_client_mfa_session::{
+                MFA_FAILED_ATTEMPT_CAP, MfaAttribution, VPN_MFA_SESSION_TIMEOUT,
+                VpnClientMfaSession, VpnMfaFlowKind,
+            },
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
+            wireguard::ServiceLocationMode,
         },
-        vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
-        wireguard::ServiceLocationMode,
+        setup_pool,
     },
-    setup_pool,
+    secret::SecretStringWrapper,
 };
 use defguard_proto::{
     client_types::{
@@ -137,7 +140,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
                 network_info
                     .preshared_key
                     .as_ref()
-                    .map(|key| key.expose_secret()),
+                    .map(defguard_common::secret::SecretStringWrapper::expose_secret),
                 Some(preshared_key.as_str())
             );
             assert!(network_info.is_authorized);
@@ -154,7 +157,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
         active_sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(preshared_key.as_str())
     );
 }
@@ -418,7 +421,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         victim_session
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some("victim-psk"),
         "the victim's preshared key must not have been rotated"
     );
@@ -722,7 +725,7 @@ async fn test_posture_check_failure_revokes_active_session(
         }
         super::PostureCheckOutcome::Rejected { failed_checks } => failed_checks,
     };
-    assert!(!rejected_checks.is_empty());
+    assert_ne!(rejected_checks, [] as [String; 0]);
 
     let event = event_rx
         .try_recv()
@@ -1283,7 +1286,7 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
         active_sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(SecretStringWrapper::expose_secret),
         Some(NEW_MFA_PRESHARED_KEY)
     );
 
@@ -2109,7 +2112,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
         sessions[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret())
+            .map(SecretStringWrapper::expose_secret)
     );
 }
 

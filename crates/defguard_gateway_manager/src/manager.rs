@@ -23,10 +23,13 @@ use tonic::Request;
 use crate::GatewayManagerTestSupport;
 use crate::{
     AbortTaskOnDrop, Client, GatewayTxSet, TEN_SECS, certs, error::GatewayError,
-    handler::GatewayHandler, needs_restart,
+    handler::GatewayHandler,
 };
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
+
+/// Per-Gateway channels feeding each `GatewayHandler`.
+pub(crate) type EventSenders = Arc<Mutex<HashMap<Id, UnboundedSender<GatewayCommand>>>>;
 
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
@@ -41,8 +44,7 @@ pub struct GatewayManager {
     tx: GatewayTxSet,
     /// Taken by [`Self::run`].
     events_rx: Option<UnboundedReceiver<GatewayCommand>>,
-    /// Per-Gateway channels feeding each `GatewayHandler`.
-    event_senders: Arc<Mutex<HashMap<Id, UnboundedSender<GatewayCommand>>>>,
+    event_senders: EventSenders,
 }
 
 impl GatewayManager {
@@ -77,10 +79,10 @@ impl GatewayManager {
             handlers: JoinSet::new(),
             pool,
             disconnect_notification_sent_by_gateway: Arc::default(),
+            event_senders: Arc::clone(&test_support.event_senders),
             test_support,
             tx,
             events_rx: Some(events_rx),
-            event_senders: Arc::default(),
         }
     }
 
@@ -180,8 +182,9 @@ impl GatewayManager {
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
     pub async fn run(&mut self) -> Result<(), anyhow::Error> {
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
-        certs::refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
+
+        // These two variables will be dropped by the end of this method.
         let _refresh_certs_task = AbortTaskOnDrop::new(tokio::spawn(async move {
             loop {
                 certs::refresh_certs(&refresh_pool, &certs_tx).await;
@@ -200,6 +203,7 @@ impl GatewayManager {
                 }
             }))
         });
+
         // Stores the abort handle and a snapshot of the gateway at the time the handler was last
         // started. The snapshot is used by the Update arm to detect connection-relevant changes.
         let mut abort_handles = HashMap::new();
@@ -236,7 +240,7 @@ impl GatewayManager {
                                 Ok(None) => {
                                     warn!(
                                         "Received Insert notification for Gateway \
-                                            id={gateway_id} but it was not found in the database"
+                                        id={gateway_id} but it was not found in the database"
                                     );
                                     #[cfg(test)]
                                     self.note_gateway_notification_for_tests(gateway_id);
@@ -285,21 +289,21 @@ impl GatewayManager {
                                     }
                                 };
 
-                            // Only restart the handler when connection-relevant fields have actually changed
+                            // Only restart the handler when connection-relevant fields have
+                            // actually changed.
                             let should_restart = match abort_handles.get(&gateway_id) {
-                                Some((_, snapshot)) => needs_restart(snapshot, &gateway),
+                                Some((_, snapshot)) => snapshot.needs_restart(&gateway),
                                 // Gateway not currently handled - treat as needing a (re)start.
                                 None => true,
                             };
 
                             if should_restart {
                                 self.remove_client(gateway_id);
-                                if let Some((abort_handle, _)) = abort_handles.remove(&gateway_id) {
+                                if self.stop_handler(gateway_id, &mut abort_handles) {
                                     info!(
-                                        "Aborting connection to Gateway id={gateway_id}, \
+                                        "Aborted connection to Gateway id={gateway_id}, \
                                         connection-relevant fields have changed"
                                     );
-                                    abort_handle.abort();
                                 }
 
                                 // Only mark disconnected if the gateway was actually connected
@@ -308,7 +312,7 @@ impl GatewayManager {
                                 {
                                     error!(
                                         "Failed to update disconnection time for Gateway \
-                                            id={gateway_id} after database change: {err}"
+                                        id={gateway_id} after database change: {err}"
                                     );
                                 }
 
@@ -360,12 +364,11 @@ impl GatewayManager {
                             }
 
                             // Kill the `GatewayHandler` and the connection.
-                            if let Some((abort_handle, _)) = abort_handles.remove(&gateway_id) {
+                            if self.stop_handler(gateway_id, &mut abort_handles) {
                                 info!(
-                                    "Aborting connection to Gateway id={gateway_id}, it has \
+                                    "Aborted connection to Gateway id={gateway_id}, it has \
                                     disappeared from the database"
                                 );
-                                abort_handle.abort();
                             } else {
                                 warn!(
                                     "Cannot find Gateway id={gateway_id} on the list of \
@@ -411,6 +414,24 @@ impl GatewayManager {
                 .await
         });
         Ok(abort_handle)
+    }
+
+    /// Aborts the Gateway's handler and drops its event sender. Returns `false` if no handler was
+    /// running.
+    fn stop_handler(
+        &self,
+        gateway_id: Id,
+        abort_handles: &mut HashMap<Id, (AbortHandle, Gateway<Id>)>,
+    ) -> bool {
+        self.event_senders
+            .lock()
+            .expect("Failed to lock GatewayManager::event_senders")
+            .remove(&gateway_id);
+        let Some((abort_handle, _)) = abort_handles.remove(&gateway_id) else {
+            return false;
+        };
+        abort_handle.abort();
+        true
     }
 
     fn remove_client(&self, gateway_id: Id) -> Option<Client> {

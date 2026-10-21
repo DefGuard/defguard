@@ -135,7 +135,7 @@ async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectO
         .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), Id::from(999))
         .await
         .unwrap();
-    assert_eq!(devices, [] as [device::Device<i64>; 0]);
+    assert_eq!(devices, [] as [device::Device<Id>; 0]);
 }
 
 #[sqlx::test]
@@ -223,7 +223,7 @@ async fn test_get_allowed_devices_for_user_with_groups(
         .get_allowed_devices_for_user(&mut transaction, user2.id)
         .await
         .unwrap();
-    assert_eq!(devices, [] as [device::Device<i64>; 0]);
+    assert_eq!(devices, [] as [device::Device<Id>; 0]);
 }
 
 #[sqlx::test]

@@ -185,13 +185,13 @@ async fn test_explicit_user_allow(_: PgPoolOptions, options: PgConnectOptions) {
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
         .await
         .unwrap();
-    assert_eq!(result, vec![destination]);
+    assert_eq!(result, [destination]);
 
     // Bob is not in the allowed list - should receive nothing
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &other_user)
         .await
         .unwrap();
-    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
+    assert_eq!(result, [] as [IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -247,13 +247,13 @@ async fn test_group_membership_allow(_: PgPoolOptions, options: PgConnectOptions
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
         .await
         .unwrap();
-    assert_eq!(result, vec![destination]);
+    assert_eq!(result, [destination]);
 
     // Non-member should receive nothing
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &non_member)
         .await
         .unwrap();
-    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
+    assert_eq!(result, [] as [IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -540,13 +540,13 @@ async fn test_non_matching_rule_excluded(_: PgPoolOptions, options: PgConnectOpt
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &other_user)
         .await
         .unwrap();
-    assert_eq!(result, vec!["172.16.0.0/12".parse().unwrap()]);
+    assert_eq!(result, ["172.16.0.0/12".parse().unwrap()]);
 
     // alice does not match and gets nothing
     let result = get_allowed_ips_from_acl_rules(&mut conn, &location, &user)
         .await
         .unwrap();
-    assert_eq!(result, [] as [ipnetwork::IpNetwork; 0]);
+    assert_eq!(result, [] as [IpNetwork; 0]);
 }
 
 #[sqlx::test]
@@ -579,7 +579,7 @@ async fn test_expired_rule_excluded(_: PgPoolOptions, options: PgConnectOptions)
         .unwrap();
 
     // Only the active rule's destination should appear.
-    assert_eq!(result, vec!["10.10.0.0/16".parse().unwrap()]);
+    assert_eq!(result, ["10.10.0.0/16".parse().unwrap()]);
 }
 
 #[sqlx::test]
@@ -612,7 +612,7 @@ async fn test_unapplied_rule_excluded(_: PgPoolOptions, options: PgConnectOption
         .unwrap();
 
     // Only the applied rule's destination should appear.
-    assert_eq!(result, vec!["10.10.0.0/16".parse().unwrap()]);
+    assert_eq!(result, ["10.10.0.0/16".parse().unwrap()]);
 }
 
 #[sqlx::test]
@@ -807,7 +807,7 @@ async fn test_any_address_alias_skipped(_: PgPoolOptions, options: PgConnectOpti
         .unwrap();
 
     // The any_address alias is skipped. Only the concrete address remains.
-    assert_eq!(result, vec!["10.20.0.0/16".parse().unwrap()]);
+    assert_eq!(result, ["10.20.0.0/16".parse().unwrap()]);
 }
 
 #[sqlx::test]
@@ -918,7 +918,7 @@ async fn test_effective_allowed_ips_toggle_off(_: PgPoolOptions, options: PgConn
     let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
 
     // Toggle off: only manual IPs.
-    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
+    assert_eq!(result, ["10.100.0.0/16".parse().unwrap()]);
 }
 
 #[sqlx::test]
@@ -959,5 +959,5 @@ async fn test_effective_allowed_ips_no_matching_rules(_: PgPoolOptions, options:
     let result = get_effective_allowed_ips(&mut conn, &location, &user).await;
 
     // Toggle on but user doesn't match any rules: only manual IPs.
-    assert_eq!(result, vec!["10.100.0.0/16".parse().unwrap()]);
+    assert_eq!(result, ["10.100.0.0/16".parse().unwrap()]);
 }

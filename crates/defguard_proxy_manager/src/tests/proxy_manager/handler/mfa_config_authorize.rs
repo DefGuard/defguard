@@ -13,6 +13,7 @@ use defguard_common::{
         models::{
             User, WebAuthn,
             settings::{Settings, update_current_settings},
+            webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
         },
     },
     testing::smtp::configure_working_smtp,
@@ -97,7 +98,7 @@ async fn assert_setup_allowed(context: &mut HandlerTestContext, session_token: &
     );
 }
 
-/// Registers a security key whose private key the test holds.
+/// Registers a hardware-attested security key whose private key the test holds.
 ///
 /// A `SoftPasskey` registration yields a well-formed `Passkey`, whose public key is then
 /// swapped for an Ed25519 key the test can sign with.
@@ -130,20 +131,38 @@ async fn register_signing_key(pool: &PgPool, user_id: Id) -> (SigningKey, Vec<u8
         }
     });
     let passkey: Passkey = serde_json::from_value(passkey).expect("deserialize passkey");
-    WebAuthn::new(user_id, "test key".to_owned(), &passkey)
-        .expect("new webauthn key")
-        .save(pool)
-        .await
-        .expect("save webauthn key");
+    WebAuthn::new(
+        user_id,
+        "test key".to_owned(),
+        &passkey,
+        AuthenticatorInfo {
+            name: None,
+            kind: AuthenticatorKind::Hardware,
+            source: RegistrationSource::Desktop,
+        },
+    )
+    .expect("new webauthn key")
+    .save(pool)
+    .await
+    .expect("save webauthn key");
     (signing_key, passkey.cred_id().to_vec())
 }
 
-/// Signs `challenge` the way a security key does for `ctap_hid_fido2`'s verifier, returning the
-/// raw signature and the authenticator data.
+const USER_PRESENT_AND_VERIFIED: u8 = 0x05;
+
+/// Signs the challenge like a security key does for the ctap_hid_fido2 verifier.
+/// Returns the raw signature and the authenticator data.
 fn sign_challenge(signing_key: &SigningKey, challenge: &str) -> (Vec<u8>, Vec<u8>) {
-    // rpIdHash, flags (user present + verified), signature counter.
+    sign_challenge_with_flags(signing_key, challenge, USER_PRESENT_AND_VERIFIED)
+}
+
+fn sign_challenge_with_flags(
+    signing_key: &SigningKey,
+    challenge: &str,
+    flags: u8,
+) -> (Vec<u8>, Vec<u8>) {
     let mut auth_data = Sha256::digest(TEST_RP_ID).to_vec();
-    auth_data.push(0x05);
+    auth_data.push(flags);
     auth_data.extend_from_slice(&1_u32.to_be_bytes());
     let mut message = auth_data.clone();
     message.extend_from_slice(&Sha256::digest(challenge));
@@ -325,6 +344,46 @@ async fn test_fido2_challenge_is_single_use(_: PgPoolOptions, options: PgConnect
     )
     .await;
     assert_authorized(&authorized);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A validly signed assertion still fails when the key skipped the touch or the PIN.
+#[sqlx::test]
+async fn test_fido2_requires_presence_and_verification(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    const USER_PRESENT_ONLY: u8 = 0x01;
+    const USER_VERIFIED_ONLY: u8 = 0x04;
+
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (session, _, (signing_key, credential_id)) =
+        start_session(&mut context, async |pool, user| {
+            register_signing_key(pool, user.id).await
+        })
+        .await;
+    let session_token = session.session_token;
+
+    for flags in [USER_PRESENT_ONLY, USER_VERIFIED_ONLY] {
+        let (challenge, _) = fido2_challenge(&mut context, &session_token).await;
+        let (signature, auth_data) = sign_challenge_with_flags(&signing_key, &challenge, flags);
+        let rejected = send_mfa_config_authorize_fido2(
+            &mut context,
+            &session_token,
+            Some(signature),
+            Some(auth_data),
+            Some(credential_id.clone()),
+        )
+        .await;
+        assert_eq!(
+            assert_error_response(&rejected),
+            Code::Unauthenticated,
+            "flags {flags:#04x} must not authorize"
+        );
+    }
 
     context.finish().await.expect_server_finished().await;
 }

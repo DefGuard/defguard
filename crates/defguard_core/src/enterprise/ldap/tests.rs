@@ -943,9 +943,9 @@ fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnect
     // When LDAP is authoritative, users in Defguard but not LDAP should be removed from Defguard
     assert_eq!(changes.delete_defguard.len(), 1);
     assert_eq!(changes.delete_defguard[0].username, "test_user");
-    assert!(changes.add_defguard.is_empty());
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[sqlx::test]
@@ -975,9 +975,9 @@ fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptio
     );
 
     // When Defguard is authoritative, users in Defguard but not LDAP should be added to LDAP
-    assert!(changes.delete_defguard.is_empty());
-    assert!(changes.add_defguard.is_empty());
-    assert!(changes.delete_ldap.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
     assert_eq!(changes.add_ldap.len(), 1);
     assert_eq!(changes.add_ldap[0].username, "test_user");
 }
@@ -1004,11 +1004,11 @@ fn test_defguard_authority_delete_from_ldap() {
     );
 
     // When Defguard is authoritative, users in LDAP but not Defguard should be removed from LDAP
-    assert!(changes.delete_defguard.is_empty());
-    assert!(changes.add_defguard.is_empty());
+    assert_eq!(changes.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
     assert_eq!(changes.delete_ldap.len(), 1);
     assert_eq!(changes.delete_ldap[0].username, "test_user");
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[sqlx::test]
@@ -1048,10 +1048,10 @@ fn test_matching_users_no_changes(_: PgPoolOptions, options: PgConnectOptions) {
     );
 
     // Identical users should result in no sync changes regardless of authority
-    assert!(changes_ldap.delete_defguard.is_empty());
-    assert!(changes_ldap.add_defguard.is_empty());
-    assert!(changes_ldap.delete_ldap.is_empty());
-    assert!(changes_ldap.add_ldap.is_empty());
+    assert_eq!(changes_ldap.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes_ldap.add_defguard, [] as [User; 0]);
+    assert_eq!(changes_ldap.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes_ldap.add_ldap, [] as [User<Id>; 0]);
 
     let changes_defguard = compute_user_sync_changes(
         &mut ldap_users,
@@ -1060,10 +1060,10 @@ fn test_matching_users_no_changes(_: PgPoolOptions, options: PgConnectOptions) {
         &LDAPConfig::default(),
     );
 
-    assert!(changes_defguard.delete_defguard.is_empty());
-    assert!(changes_defguard.add_defguard.is_empty());
-    assert!(changes_defguard.delete_ldap.is_empty());
-    assert!(changes_defguard.add_ldap.is_empty());
+    assert_eq!(changes_defguard.delete_defguard, [] as [User<Id>; 0]);
+    assert_eq!(changes_defguard.add_defguard, [] as [User; 0]);
+    assert_eq!(changes_defguard.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes_defguard.add_ldap, [] as [User<Id>; 0]);
 }
 
 #[test]
@@ -1621,9 +1621,9 @@ fn test_extract_intersecting_users_empty() {
         extract_intersecting_users(&mut defguard_users, &mut ldap_users, &LDAPConfig::default());
 
     // Empty lists should result in no intersections and no remaining users
-    assert!(result.is_empty());
-    assert!(defguard_users.is_empty());
-    assert!(ldap_users.is_empty());
+    assert_eq!(result, [] as [(User, User<Id>); 0]);
+    assert_eq!(defguard_users, [] as [User<Id>; 0]);
+    assert_eq!(ldap_users, [] as [User; 0]);
 }
 
 #[sqlx::test]
@@ -1751,7 +1751,7 @@ fn test_extract_intersecting_users_no_matches(_: PgPoolOptions, options: PgConne
         extract_intersecting_users(&mut defguard_users, &mut ldap_users, &LDAPConfig::default());
 
     // No matching usernames should result in no intersections and all users remaining
-    assert!(result.is_empty());
+    assert_eq!(result, [] as [(User, User<Id>); 0]);
     assert_eq!(defguard_users.len(), 1);
     assert_eq!(ldap_users.len(), 1);
 }
@@ -2357,7 +2357,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             Some("ou=developers,ou=engineering,ou=users,dc=example,dc=com".to_owned())
         );
         assert_eq!(updated_user.username, "user1");
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 
     // user with empty path in deeply nested OU structure
@@ -2396,7 +2396,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             Some("ou=qa,ou=testers,ou=internal,ou=company,ou=users,dc=example,dc=com".to_owned())
         );
         assert_eq!(updated_user.username, "user2");
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 
     // user exists with matching DN - should update path correctly
@@ -2437,7 +2437,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         );
         assert_eq!(updated_user.username, "user3");
         assert_eq!(updated_user.email, "updated3@example.com");
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 
     // multiple users with empty paths in different nested OUs
@@ -2510,7 +2510,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             Some("ou=support,ou=helpdesk,ou=users,dc=example,dc=com".to_owned())
         );
         assert_eq!(updated_user5.username, "user5");
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 
     // user with matching DN should get attributes synced
@@ -2550,7 +2550,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         );
         assert_eq!(updated_user.username, "user6");
         assert_eq!(updated_user.first_name, "UpdatedFirst");
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 
     // user in LDAP only should be added to Defguard
@@ -2593,7 +2593,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
         );
         assert_eq!(added_user.username, "ldap_only_user");
         assert!(added_user.from_ldap);
-        assert!(ldap_conn.test_client.get_events().is_empty());
+        assert_eq!(ldap_conn.test_client.get_events(), []);
     }
 }
 
@@ -2674,7 +2674,7 @@ async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnect
     let user2_groups = added_user.member_of_names(&pool).await.unwrap();
     assert!(user2_groups.contains(&"developers".to_owned()));
 
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 
     assert_incremental_sync_converges(&mut ldap_conn, &pool, &wg_tx).await;
 }
@@ -2770,7 +2770,7 @@ async fn test_sync_incremental_with_nested_ou_conflicts(
         created_user3.ldap_user_path,
         Some("ou=correct,ou=path,dc=example,dc=com".to_owned())
     );
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 }
 
 #[sqlx::test]
@@ -2904,7 +2904,7 @@ async fn test_sync_defguard_authority_with_complex_nested_ous(
     let user3_groups = updated_defguard_only.member_of_names(&pool).await.unwrap();
     assert!(user3_groups.contains(&"backend-devs".to_owned()));
     assert!(user3_groups.contains(&"frontend-devs".to_owned()));
-    assert!(!ldap_conn.test_client.get_events().is_empty());
+    assert_ne!(ldap_conn.test_client.get_events(), []);
 
     let events = drain_ldap_sync_events(&mut ldap_rx);
     assert!(events.iter().any(|event| matches!(
@@ -3007,7 +3007,7 @@ async fn test_sync_with_ou_path_edge_cases(_: PgPoolOptions, options: PgConnectO
         new_user4.ldap_user_path,
         Some("ou=new-structure,ou=reorganized,dc=example,dc=com".to_owned())
     );
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 }
 
 #[sqlx::test]
@@ -3092,7 +3092,7 @@ async fn test_sync_group_membership_with_intersecting_users(
     let user2_groups = updated_user2.member_of_names(&pool).await.unwrap();
     assert!(user2_groups.iter().any(|e| e == "management"));
     assert!(!user2_groups.iter().any(|e| e == "engineering")); // Removed from LDAP
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 
     let events = drain_ldap_sync_events(&mut ldap_rx);
     assert!(events.iter().any(|event| matches!(
@@ -5275,9 +5275,9 @@ async fn test_user_sync_changes_ignore_dn_case(_: PgPoolOptions, options: PgConn
         changes.delete_defguard.is_empty(),
         "A DN that differs only by case must not delete the Defguard user"
     );
-    assert!(changes.add_defguard.is_empty());
-    assert!(changes.delete_ldap.is_empty());
-    assert!(changes.add_ldap.is_empty());
+    assert_eq!(changes.add_defguard, [] as [User; 0]);
+    assert_eq!(changes.delete_ldap, [] as [User; 0]);
+    assert_eq!(changes.add_ldap, [] as [User<Id>; 0]);
 }
 
 /// Treats group member DNs that differ only by case as the same member.

@@ -699,8 +699,8 @@ fn test_parse_ports_rejects_malformed_range_tokens() {
 fn test_parse_destination_addresses_allows_empty_and_strips_whitespace() {
     let parsed = parse_destination_addresses("  \n\t ").unwrap();
 
-    assert!(parsed.addrs.is_empty());
-    assert!(parsed.ranges.is_empty());
+    assert_eq!(parsed.addrs, [] as [IpNetwork; 0]);
+    assert_eq!(parsed.ranges, [] as [(IpAddr, IpAddr); 0]);
 }
 
 #[test]

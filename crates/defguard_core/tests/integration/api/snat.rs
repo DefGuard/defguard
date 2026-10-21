@@ -32,10 +32,7 @@ async fn test_snat_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/network/1/snat").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let bindings: Vec<UserSnatBinding<Id>> = response.json().await;
-    assert_eq!(
-        bindings,
-        [] as [defguard_core::enterprise::db::models::snat::UserSnatBinding<i64>; 0]
-    );
+    assert_eq!(bindings, [] as [UserSnatBinding<Id>; 0]);
 
     // create SNAT binding
     let new_binding = NewUserSnatBinding {
@@ -101,10 +98,7 @@ async fn test_snat_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/network/1/snat").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let bindings: Vec<UserSnatBinding<Id>> = response.json().await;
-    assert_eq!(
-        bindings,
-        [] as [defguard_core::enterprise::db::models::snat::UserSnatBinding<i64>; 0]
-    );
+    assert_eq!(bindings, [] as [UserSnatBinding<Id>; 0]);
 }
 
 #[sqlx::test]

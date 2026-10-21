@@ -313,11 +313,11 @@ mod test {
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(
             group2.member_usernames(&pool).await.unwrap(),
-            [] as [std::string::String; 0]
+            [] as [String; 0]
         );
         assert_eq!(
             group4.member_usernames(&pool).await.unwrap(),
-            [] as [std::string::String; 0]
+            [] as [String; 0]
         );
     }
 
