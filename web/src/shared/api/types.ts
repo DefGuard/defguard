@@ -880,6 +880,9 @@ export interface EditNetworkLocation
   mfa_flows: MfaFlowAssignment[];
 }
 
+// Group MTU overrides are configured only after the location exists.
+export type AddNetworkLocation = Omit<EditNetworkLocation, 'group_client_mtus'>;
+
 export interface EditNetworkLocationRequest {
   id: number;
   data: EditNetworkLocation;

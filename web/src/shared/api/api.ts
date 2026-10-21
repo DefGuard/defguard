@@ -25,6 +25,7 @@ import type {
   AddDeviceResponseConfig,
   AddNetworkDeviceRequest,
   AddNetworkDeviceResponse,
+  AddNetworkLocation,
   AddOpenIdClient,
   AddOpenIdProvider,
   AddUserRequest,
@@ -62,7 +63,6 @@ import type {
   EditDevicePostureRequest,
   EditGroupRequest,
   EditNetworkDeviceRequest,
-  EditNetworkLocation,
   EditNetworkLocationRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
@@ -429,7 +429,7 @@ const api = {
           },
         )
         .then((resp) => resp.data),
-    addLocation: (data: EditNetworkLocation) =>
+    addLocation: (data: AddNetworkLocation) =>
       client.post<NetworkLocation>('/network', data),
     editLocation: ({ id, data }: EditNetworkLocationRequest) =>
       client.put(`/network/${id}`, data),

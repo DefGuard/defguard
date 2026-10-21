@@ -28,6 +28,8 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
   enableDividers = false,
   itemGap = 8,
   itemHeight = 24,
+  emptyTitle,
+  emptySubtitle,
 }: SelectionSectionProps<T, M>) => {
   const [onlySelected, setOnlySelected] = useState(false);
   const [search, setSearch] = useState('');
@@ -92,6 +94,20 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
     }
     return res;
   }, [enableDividers, itemGap, itemHeight, visibleItemsLimit]);
+
+  if (options.length === 0) {
+    return (
+      <div className={clsx('selection-section', className)} id={id}>
+        <SizedBox height={130} />
+        <EmptyState
+          icon="search"
+          title={emptyTitle ?? m.cmp_selection_section_no_options_title()}
+          subtitle={emptySubtitle ?? m.cmp_selection_section_no_options_subtitle()}
+        />
+        <SizedBox height={130} />
+      </div>
+    );
+  }
 
   return (
     <div className={clsx('selection-section', className)} id={id}>
