@@ -17,7 +17,7 @@
   "migration_wizard_ldap_status_error": "An error occurred during the LDAP migration.",
   "migration_wizard_ldap_success_log_title": "Activity log",
   "migration_wizard_ldap_error_log_title": "Error log",
-  "migration_wizard_ldap_disable_sync_label": "Disable LDAP and continue",
+  "migration_wizard_ldap_disable_sync_label": "Disable LDAP sync and continue",
   "migration_wizard_ldap_disable_sync_helper": "If you continue without LDAP migration, you can resolve the issue and migrate the users later. Confirm that you want to continue without syncing LDAP users.",
   "migration_wizard_ldap_disable_sync_error": "Could not disable LDAP synchronization. Please try again.",
   "migration_wizard_ldap_retry": "Retry",
