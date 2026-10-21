@@ -1317,6 +1317,54 @@ async fn test_mfa_flow_list_groups_steps_per_flow(_: PgPoolOptions, options: PgC
     assert_eq!(second_item["steps"][0]["methods"], json!(["totp"]));
 }
 
+#[sqlx::test]
+async fn test_mfa_flow_list_reports_assigned_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let assigned = create_mfa_flow(&client, "Assigned", json!([{"methods": ["totp"]}])).await;
+    let unassigned = create_mfa_flow(&client, "Unassigned", json!([{"methods": ["totp"]}])).await;
+
+    let mut location_ids = Vec::new();
+    for (name, mfa_enabled) in [("Warsaw", false), ("Berlin", true)] {
+        let resp = make_network(&client, name).await;
+        let location_id = resp.json::<Value>().await["id"].as_i64().unwrap();
+        let resp = client
+            .put(format!("/api/v1/network/{location_id}"))
+            .json(&network_body(name, mfa_enabled, assigned))
+            .send()
+            .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        location_ids.push(location_id);
+    }
+
+    let resp = client.get("/api/v1/mfa-flow").send().await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let items = resp.json::<Value>().await;
+    let locations_of = |id: i64| {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"].as_i64() == Some(id))
+            .expect("flow must appear in list")["locations"]
+            .clone()
+    };
+
+    assert_eq!(
+        locations_of(assigned),
+        json!([
+            {"id": location_ids[1], "name": "Berlin", "is_default": true, "mfa_enabled": true},
+            {"id": location_ids[0], "name": "Warsaw", "is_default": true, "mfa_enabled": false},
+        ])
+    );
+    assert_eq!(locations_of(unassigned), json!([]));
+}
+
 /// Saving an assignment set with no designated default is refused over HTTP with
 /// `no_default_designated` (400), never silently normalised.
 #[sqlx::test]

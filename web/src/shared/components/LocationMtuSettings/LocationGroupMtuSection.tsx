@@ -33,7 +33,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
     LicenseFeature.GroupMTUOverride,
   ).result;
 
-  const { data: groupOptions = [] } = useQuery({
+  const { data: groupOptions = [], isPending: groupsPending } = useQuery({
     ...getGroupsInfoQueryOptions,
     select: (response) =>
       response.data.map(
@@ -64,12 +64,6 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
     return groupOptions.filter((option) => !taken.has(option.id));
   }, [overrides, groupOptions, editing]);
 
-  const allGroupsAssigned =
-    groupOptions.length > 0 &&
-    groupOptions.every((option) =>
-      overrides.some((override) => override.group_ids.includes(option.id)),
-    );
-
   const handleSubmit = (value: GroupClientMtu) => {
     if (editing === 'new') {
       onChange([...overrides, value]);
@@ -95,6 +89,13 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
         {m.location_network_group_mtu_description()}
       </AppText>
       <SizedBox height={ThemeSpacing.Lg} />
+      <Button
+        variant="outlined"
+        text={m.location_network_group_mtu_add()}
+        disabled={locked}
+        loading={groupsPending}
+        onClick={() => openEditor('new')}
+      />
       {overrides.length > 0 && (
         <div className="overrides">
           {overrides.map((override, index) => (
@@ -109,12 +110,6 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
           ))}
         </div>
       )}
-      <Button
-        variant="outlined"
-        text={m.location_network_group_mtu_add()}
-        disabled={locked || allGroupsAssigned}
-        onClick={() => openEditor('new')}
-      />
       <GroupMtuModal
         isOpen={modalOpen}
         initial={
@@ -125,6 +120,7 @@ export const LocationGroupMtuSection = ({ overrides, onChange }: Props) => {
               : overrides[editing]
         }
         groupOptions={editorGroupOptions}
+        hasGroups={groupOptions.length > 0}
         onClose={() => setModalOpen(false)}
         afterClose={() => setEditing(undefined)}
         onSubmit={handleSubmit}

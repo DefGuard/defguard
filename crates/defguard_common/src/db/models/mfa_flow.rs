@@ -46,6 +46,15 @@ pub struct MfaFlowWithStepCount {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct MfaFlowLocation {
+    pub flow_id: Id,
+    pub location_id: Id,
+    pub name: String,
+    pub is_default: bool,
+    pub mfa_enabled: bool,
+}
+
 /// A point-in-time snapshot of an MFA flow and its steps, used as the
 /// payload for audit events.
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -378,6 +387,20 @@ impl MfaFlow<Id> {
                  GROUP BY flow_id \
              ) s ON s.flow_id = mf.id \
              ORDER BY mf.id"
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn list_locations<'e, E: PgExecutor<'e>>(
+        executor: E,
+    ) -> sqlx::Result<Vec<MfaFlowLocation>> {
+        query_as!(
+            MfaFlowLocation,
+            "SELECT lmf.flow_id, wn.id AS location_id, wn.name, lmf.is_default, wn.mfa_enabled \
+             FROM location_mfa_flow lmf \
+             JOIN wireguard_network wn ON wn.id = lmf.location_id \
+             ORDER BY lmf.flow_id, wn.name"
         )
         .fetch_all(executor)
         .await

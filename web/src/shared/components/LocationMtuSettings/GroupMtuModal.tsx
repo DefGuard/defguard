@@ -19,6 +19,8 @@ type Props = {
   initial?: GroupClientMtu | null;
   /** Groups not assigned to any other override. */
   groupOptions: SelectionOption<number>[];
+  /** Whether any groups exist, assigned or not. */
+  hasGroups: boolean;
   onClose: () => void;
   afterClose: () => void;
   onSubmit: (value: GroupClientMtu) => void;
@@ -28,6 +30,7 @@ export const GroupMtuModal = ({
   isOpen,
   initial,
   groupOptions,
+  hasGroups,
   onClose,
   afterClose,
   onSubmit,
@@ -44,6 +47,7 @@ export const GroupMtuModal = ({
       <GroupMtuModalContent
         initial={initial}
         groupOptions={groupOptions}
+        hasGroups={hasGroups}
         onClose={onClose}
         onSubmit={onSubmit}
       />
@@ -54,6 +58,7 @@ export const GroupMtuModal = ({
 type ContentProps = {
   initial: GroupClientMtu | null;
   groupOptions: SelectionOption<number>[];
+  hasGroups: boolean;
   onClose: () => void;
   onSubmit: (value: GroupClientMtu) => void;
 };
@@ -67,9 +72,12 @@ const validateMtu = (value: number | null): string | undefined => {
 const GroupMtuModalContent = ({
   initial,
   groupOptions,
+  hasGroups,
   onClose,
   onSubmit,
 }: ContentProps) => {
+  // With no groups left there is nothing to apply an MTU value to.
+  const noGroups = groupOptions.length === 0;
   const [onGroupStep, setOnGroupStep] = useState(false);
   const [clientMtu, setClientMtu] = useState(initial?.client_mtu ?? null);
   const [mtuError, setMtuError] = useState<string>();
@@ -108,7 +116,7 @@ const GroupMtuModalContent = ({
 
   return (
     <>
-      {onGroupStep ? (
+      {onGroupStep || noGroups ? (
         <>
           <SelectionSection
             options={groupOptions}
@@ -116,6 +124,12 @@ const GroupMtuModalContent = ({
             onChange={handleGroupChange}
             searchPlaceholder={m.controls_search()}
             visibleItemsLimit={10}
+            emptyTitle={m.location_network_group_mtu_empty_title()}
+            emptySubtitle={
+              hasGroups
+                ? m.location_network_group_mtu_empty_all_assigned()
+                : m.location_network_group_mtu_empty_no_groups()
+            }
           />
           <FieldError error={groupError} />
         </>
@@ -137,7 +151,7 @@ const GroupMtuModalContent = ({
       )}
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
-        {onGroupStep && (
+        {onGroupStep && !noGroups && (
           <Button
             variant="outlined"
             text={m.controls_back()}
@@ -145,11 +159,17 @@ const GroupMtuModalContent = ({
           />
         )}
         <div className="right">
-          <Button variant="secondary" text={m.controls_cancel()} onClick={onClose} />
-          {onGroupStep ? (
-            <Button text={m.controls_submit()} onClick={handleSubmit} />
+          {noGroups ? (
+            <Button variant="secondary" text={m.controls_close()} onClick={onClose} />
           ) : (
-            <Button text={m.controls_continue()} onClick={handleContinue} />
+            <>
+              <Button variant="secondary" text={m.controls_cancel()} onClick={onClose} />
+              {onGroupStep ? (
+                <Button text={m.controls_submit()} onClick={handleSubmit} />
+              ) : (
+                <Button text={m.controls_continue()} onClick={handleContinue} />
+              )}
+            </>
           )}
         </div>
       </Controls>

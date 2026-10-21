@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT lmf.flow_id, wn.id AS location_id, wn.name, lmf.is_default, wn.mfa_enabled FROM location_mfa_flow lmf JOIN wireguard_network wn ON wn.id = lmf.location_id ORDER BY lmf.flow_id, wn.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "flow_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "location_mfa_flow",
+            "name": "flow_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "is_default",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "location_mfa_flow",
+            "name": "is_default"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mfa_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "wireguard_network",
+            "name": "mfa_enabled"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "153f8c9f50a65102f6c293f2bab6fecd012fc52c32d91224098348d8bc44381e"
+}

@@ -2,7 +2,6 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { LocationGroupMtuSection } from '../../../shared/components/LocationMtuSettings/LocationGroupMtuSection';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { MAX_MTU, MIN_MTU } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -30,7 +29,6 @@ type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationNetworkStep = () => {
   const locationType = useAddLocationStore((s) => s.locationType);
-  const groupClientMtus = useAddLocationStore((s) => s.group_client_mtus);
 
   const defaultValues = useAddLocationStore(
     useShallow(
@@ -89,18 +87,11 @@ export const AddLocationNetworkStep = () => {
               <field.FormInput
                 required
                 label={m.location_network_label_mtu()}
-                helper={m.location_network_helper_mtu()}
+                helper={m.location_network_helper_mtu_wizard()}
                 type="number"
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <LocationGroupMtuSection
-            overrides={groupClientMtus}
-            onChange={(group_client_mtus) =>
-              useAddLocationStore.setState({ group_client_mtus })
-            }
-          />
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">
             {(field) => (

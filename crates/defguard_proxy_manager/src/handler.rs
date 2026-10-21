@@ -636,6 +636,7 @@ impl ProxyHandler {
             payload: Some(core_response::Payload::CoreError(CoreError {
                 status_code: status_code as i32,
                 message: message.to_owned(),
+                ..Default::default()
             })),
         };
         if tx.send(response).is_err() {
@@ -1053,13 +1054,13 @@ impl ProxyHandler {
                         )
                         .await
                     }
-                    Err(err) => Err(err),
+                    Err(err) => Err(err.into()),
                 };
                 match result {
                     Ok(()) => Some(core_response::Payload::Empty(())),
                     Err(err) => {
-                        error!("client MFA OIDC authenticate error {err}");
-                        Some(core_response::Payload::CoreError(err.into()))
+                        error!("client MFA OIDC authenticate error {err:?}");
+                        Some(core_response::Payload::CoreError(err))
                     }
                 }
             }
@@ -1429,6 +1430,7 @@ impl ProxyHandler {
                         Some(core_response::Payload::CoreError(CoreError {
                             status_code,
                             message,
+                            ..Default::default()
                         }))
                     }
                 }

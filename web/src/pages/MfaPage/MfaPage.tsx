@@ -11,6 +11,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getLicenseInfoQueryOptions, getMfaFlowsQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { DeletionBlockedModal } from '../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { MfaFlowsTable } from './MfaFlowsTable';
 
 const MfaPageContent = () => {
@@ -56,6 +57,7 @@ export const MfaPage = () => {
       <Suspense fallback={<TableSkeleton />}>
         <MfaPageContent />
       </Suspense>
+      <DeletionBlockedModal />
     </Page>
   );
 };

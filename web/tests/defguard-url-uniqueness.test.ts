@@ -38,13 +38,19 @@ describe('Settings instance URL validation', () => {
     expect(canonicalizeUrl(first)).toBe(canonicalizeUrl(second));
   });
 
-  it('rejects equivalent defguard and proxy URLs in the settings schema', () => {
+  it('reports equivalent defguard and proxy URLs on both fields', () => {
     const result = formSchema.safeParse(values);
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(
-        result.error.issues.some((issue) => issue.path[0] === 'public_proxy_url'),
-      ).toBe(true);
+        result.error.issues
+          .filter(
+            (issue) =>
+              issue.code === 'custom' &&
+              ['defguard_url', 'public_proxy_url'].includes(String(issue.path[0])),
+          )
+          .map((issue) => issue.path[0]),
+      ).toEqual(['defguard_url', 'public_proxy_url']);
     }
   });
 

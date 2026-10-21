@@ -513,7 +513,7 @@ const EditLocationForm = ({
   const { mutateAsync: editLocation } = useMutation({
     mutationFn: api.location.editLocation,
     meta: {
-      invalidate: [['network'], ['gateway'], ['location', location.id]],
+      invalidate: [['network'], ['gateway'], ['location', location.id], ['mfa-flow']],
     },
     onSuccess: () => {
       navigate({
@@ -1092,7 +1092,12 @@ const EditLocationForm = ({
                     title: m.modal_delete_location_title(),
                     contentMd: m.modal_delete_location_body({ name: location.name }),
                     actionPromise: () => api.location.deleteLocation(location.id),
-                    invalidateKeys: [['network'], ['gateway'], ['enterprise_info']],
+                    invalidateKeys: [
+                      ['network'],
+                      ['gateway'],
+                      ['enterprise_info'],
+                      ['mfa-flow'],
+                    ],
                     submitProps: { text: m.controls_delete(), variant: 'critical' },
                     onSuccess: () => {
                       Snackbar.default(m.location_delete_success());

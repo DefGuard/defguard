@@ -14,6 +14,8 @@ import type { SelectionOption } from '../../shared/components/SelectionSection/t
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
+import { Icon } from '../../shared/defguard-ui/components/Icon/Icon';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
@@ -23,9 +25,19 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
+import { ThemeVariable } from '../../shared/defguard-ui/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { closeModal, openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { getDeleteMfaFlowModalData, getMfaFlowDeleteErrorMessage } from './mfaFlows';
+import {
+  getDeleteMfaFlowModalData,
+  getMfaFlowDeleteBlockingLocations,
+  getMfaFlowDeleteConflictLocations,
+  openMfaFlowDeleteBlockedModal,
+} from './mfaFlows';
 
 type Props = {
   flows: MfaFlowListItemResponse[];
@@ -59,6 +71,17 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         .map((count) => ({ id: count, label: String(count) })),
     [flows],
   );
+  const locationOptions = useMemo(
+    (): SelectionOption<number>[] =>
+      [
+        ...new Map(
+          flows.flatMap((flow) => flow.locations).map((loc) => [loc.id, loc.name]),
+        ),
+      ]
+        .sort(([, left], [, right]) => left.localeCompare(right))
+        .map(([id, label]) => ({ id, label })),
+    [flows],
+  );
   const filterMessages: TableFilterMessages = {
     searchPlaceholder: m.controls_search(),
     clearButton: m.controls_reset(),
@@ -73,6 +96,19 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
+            {isPresent(info.row.original.unavailable_reason) && (
+              <TooltipProvider>
+                <TooltipTrigger>
+                  <Icon
+                    icon={IconKind.WarningFilled}
+                    staticColor={ThemeVariable.FgAttention}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{m.mfa_flow_unavailable_warning()}</p>
+                </TooltipContent>
+              </TooltipProvider>
+            )}
           </TableCell>
         ),
       }),
@@ -81,12 +117,32 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         size: 140,
         enableColumnFilter: true,
         filterFn: filterByStepCount,
-        meta: { flex: true, filterOptions: stepCountOptions },
+        meta: { filterOptions: stepCountOptions },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
           </TableCell>
         ),
+      }),
+      columnHelper.accessor((flow) => flow.locations.map((location) => location.id), {
+        id: 'locations',
+        header: m.mfa_flows_table_locations(),
+        minSize: 350,
+        enableColumnFilter: true,
+        filterFn: 'arrIncludesSome',
+        meta: { flex: true, filterOptions: locationOptions },
+        cell: (info) => {
+          const { locations } = info.row.original;
+          return (
+            <TableCell>
+              <span>
+                {locations.length > 0
+                  ? locations.map((location) => location.name).join(', ')
+                  : '-'}
+              </span>
+            </TableCell>
+          );
+        },
       }),
       columnHelper.display({
         id: 'edit',
@@ -117,11 +173,25 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
+                    const blockingLocations = getMfaFlowDeleteBlockingLocations(flow);
+                    if (blockingLocations.length > 0) {
+                      openMfaFlowDeleteBlockedModal(blockingLocations);
+                      return;
+                    }
                     openModal(ModalName.ConfirmAction, {
                       ...getDeleteMfaFlowModalData(flow),
                       onSuccess: () => Snackbar.default(m.mfa_flow_deleted()),
-                      onError: (_message, _code, error) =>
-                        Snackbar.error(getMfaFlowDeleteErrorMessage(error)),
+                      onError: (_message, _code, error) => {
+                        // The list can be stale, so the server refusal opens the same modal.
+                        const conflictLocations =
+                          getMfaFlowDeleteConflictLocations(error);
+                        if (isPresent(conflictLocations)) {
+                          closeModal(ModalName.ConfirmAction);
+                          openMfaFlowDeleteBlockedModal(conflictLocations);
+                          return;
+                        }
+                        Snackbar.error(m.mfa_flow_delete_failed());
+                      },
                     });
                   },
                 },
@@ -133,7 +203,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         },
       }),
     ],
-    [navigate, stepCountOptions],
+    [navigate, stepCountOptions, locationOptions],
   );
   const table = useReactTable({
     state: { columnFilters },

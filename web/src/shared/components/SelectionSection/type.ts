@@ -32,6 +32,9 @@ export interface SelectionSectionProps<T extends SelectionKey, M = unknown> {
   enableDividers?: boolean;
   itemHeight?: number;
   itemGap?: number;
+  /** Shown instead of the list when there are no options at all. */
+  emptyTitle?: string;
+  emptySubtitle?: string;
   className?: string;
   id?: string;
 }
