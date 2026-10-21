@@ -31,7 +31,7 @@ use defguard_proto::{
         MfaConfigFido2ChallengeRequest, MfaConfigFido2ChallengeResponse, MfaConfigSendCodeRequest,
         MfaConfigSendCodeResponse, MfaConfigStartRequest, MfaConfigStartResponse, MfaMethod,
     },
-    proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo},
+    proxy::{ClientMfaOidcAuthenticateRequest, CoreError, CoreErrorCode, DeviceInfo},
 };
 use openidconnect::{AuthorizationCode, Nonce};
 use sqlx::PgPool;
@@ -651,11 +651,13 @@ impl MfaConfigServer {
         state: MfaOidcState,
         request: ClientMfaOidcAuthenticateRequest,
         device_info: Option<DeviceInfo>,
-    ) -> Result<(), Status> {
+    ) -> Result<(), CoreError> {
         debug!("Completing MFA configuration OIDC authentication");
         if !is_business_license_active() {
             error!("MFA config OIDC: OIDC MFA requires an active business license");
-            return Err(Status::invalid_argument("OIDC MFA method is not supported"));
+            return Err(CoreError::invalid_argument(
+                "OIDC MFA method is not supported",
+            ));
         }
         let MfaConfigSession {
             mut token,
@@ -665,7 +667,7 @@ impl MfaConfigServer {
         } = load_session(&self.pool, &state.token).await?;
         if !oidc_configured {
             error!("MFA config OIDC: user {} cannot use OIDC", user.username);
-            return Err(Status::permission_denied("method not configured"));
+            return Err(Status::permission_denied("method not configured").into());
         }
         // Turn a callback for a superseded attempt away before anything can end the session.
         if !matches!(
@@ -674,7 +676,8 @@ impl MfaConfigServer {
                 if attempt_id == state.attempt_id
         ) {
             debug!("MFA config OIDC: callback arrived for a superseded attempt");
-            return Err(Status::invalid_argument("stale OIDC MFA attempt"));
+            return Err(CoreError::invalid_argument("stale OIDC MFA attempt")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         }
 
         let (ip, user_agent) = parse_client_ip_agent(&device_info).map_err(|err| {
@@ -707,7 +710,8 @@ impl MfaConfigServer {
                     user.username
                 );
                 end_oidc_attempt(&self.pool, &token, &state.attempt_id).await?;
-                return Err(Status::unauthenticated("unauthorized"));
+                return Err(CoreError::unauthenticated("unauthorized")
+                    .with_code(CoreErrorCode::OidcVerificationFailed));
             }
         };
         if claims_user.id != user.id {
@@ -715,16 +719,19 @@ impl MfaConfigServer {
                 "User {claims_user} tried to authorize MFA configuration for another user: {user}"
             );
             end_oidc_attempt(&self.pool, &token, &state.attempt_id).await?;
-            return Err(Status::unauthenticated("unauthorized"));
+            return Err(CoreError::unauthenticated("unauthorized")
+                .with_code(CoreErrorCode::OidcAccountMismatch));
         }
 
         // The attempt is checked again under a row lock, catching one re-issued mid round trip.
         if !token
             .mark_mfa_config_oidc_completed(&self.pool, &state.attempt_id)
-            .await?
+            .await
+            .map_err(Status::from)?
         {
             debug!("MFA config OIDC: attempt superseded during the OIDC round trip");
-            return Err(Status::invalid_argument("stale OIDC MFA attempt"));
+            return Err(CoreError::invalid_argument("stale OIDC MFA attempt")
+                .with_code(CoreErrorCode::MfaSessionExpired));
         }
         info!(
             "User {} completed OIDC authentication for MFA configuration",

@@ -21,8 +21,8 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{AuthFlowType, AuthInfoRequest, MfaMethod, OpenIdProviderKind},
     proxy::{
-        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, core_request,
-        core_response,
+        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreErrorCode, CoreRequest,
+        core_request, core_response,
     },
 };
 use reqwest::Url;
@@ -31,11 +31,12 @@ use tokio::time::timeout;
 use tonic::Code;
 
 use super::support::{
-    EmailVerified, assert_error_response, assert_error_response_details, assert_vpn_session_exists,
-    clear_test_license, complete_proxy_handshake, create_external_mfa_network,
-    create_oidc_provider, create_user, create_user_with_device, expect_bidi_mfa_success,
-    link_user_oidc_identity, make_device_info, make_oidc_code, make_oidc_code_with_email_verified,
-    send_mfa_finish, send_mfa_start, set_public_proxy_url, set_test_license_business,
+    EmailVerified, assert_error_response, assert_error_response_details,
+    assert_error_response_full, assert_vpn_session_exists, clear_test_license,
+    complete_proxy_handshake, create_external_mfa_network, create_oidc_provider, create_user,
+    create_user_with_device, expect_bidi_mfa_success, link_user_oidc_identity, make_device_info,
+    make_oidc_code, make_oidc_code_with_email_verified, send_mfa_finish, send_mfa_start,
+    set_public_proxy_url, set_test_license_business,
 };
 use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
@@ -882,9 +883,10 @@ async fn test_mfa_oidc_unknown_identity_does_not_link_account(
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let (code, message) = assert_error_response_details(&response);
+    let (code, message, error_code) = assert_error_response_full(&response);
     assert_eq!(code, Code::Unauthenticated);
     assert_eq!(message, "unauthorized");
+    assert_eq!(error_code, CoreErrorCode::OidcVerificationFailed);
 
     // The bystander is still unlinked: the refused callback wrote nothing.
     let bystander = User::find_by_id(&context.pool, bystander.id)
@@ -894,6 +896,78 @@ async fn test_mfa_oidc_unknown_identity_does_not_link_account(
     assert!(
         bystander.openid_sub.is_none(),
         "a refused MFA callback linked an account to the provider identity"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+/// An MFA callback for another user's linked identity is refused with the account-mismatch code.
+#[sqlx::test]
+async fn test_mfa_oidc_foreign_identity_returns_account_mismatch(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_external_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut user).await;
+    let mut other = create_user(&context.pool).await;
+    link_user_oidc_identity(&context.pool, &mut other).await;
+
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let (_, mfa_token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Oidc,
+    )
+    .await;
+    let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+        .await
+        .expect("failed to find active MFA session")
+        .expect("expected an active MFA session");
+    let attempt_id = session
+        .ephemeral_state
+        .as_ref()
+        .expect("expected an attempt in progress")
+        .step_attempt_id
+        .clone();
+    let state = build_state(Some(MfaOidcState::build(&mfa_token, &attempt_id)))
+        .secret()
+        .clone();
+
+    let raw_nonce = "mfa-oidc-foreign-identity-nonce";
+    let code = make_oidc_code(&other.email, &other.email, raw_nonce);
+    context.mock_proxy().send_request(CoreRequest {
+        id: 33,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaOidcAuthenticate(
+            ClientMfaOidcAuthenticateRequest {
+                code,
+                state,
+                nonce: raw_nonce.to_owned(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let (code, message, error_code) = assert_error_response_full(&response);
+    assert_eq!(code, Code::Unauthenticated);
+    assert_eq!(message, "unauthorized");
+    assert_eq!(error_code, CoreErrorCode::OidcAccountMismatch);
+    assert!(
+        VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
+            .await
+            .expect("failed to query MFA session")
+            .is_none(),
+        "a mismatched identity must end the MFA session"
     );
 
     clear_test_license();
@@ -950,12 +1024,13 @@ async fn test_mfa_oidc_rejects_stale_attempt_id(_: PgPoolOptions, options: PgCon
 
     // The handler must reject the stale attempt rather than silently ignore it.
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let error_code = assert_error_response(&response);
+    let (status_code, _, error_code) = assert_error_response_full(&response);
     assert_eq!(
-        error_code,
+        status_code,
         tonic::Code::InvalidArgument,
         "expected InvalidArgument for a stale attempt id"
     );
+    assert_eq!(error_code, CoreErrorCode::MfaSessionExpired);
 
     // The live attempt is untouched: the mark was a no-op, so the session is still pending OIDC.
     let session = VpnClientMfaSession::<Id>::find_active_by_token(&context.pool, &mfa_token)
