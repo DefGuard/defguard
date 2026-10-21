@@ -15,25 +15,35 @@
 #login-page {
   display: grid;
   grid-template-rows: 1fr;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   min-height: 100dvh;
+
+  @include break-up(lg) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   & > * {
     overflow: hidden;
   }
 
   aside {
-    display: flex;
+    display: none;
     flex-flow: column;
     align-items: center;
     justify-content: center;
+    align-self: start;
+    position: sticky;
+    top: 0;
     overflow: hidden;
-    height: 100%;
+    height: 100dvh;
     width: 100%;
     min-width: 0;
     background: linear-gradient(191deg, #e6e6ff 6.68%, #8cadff 89.78%);
     grid-column: 1 / 2;
-    max-height: 100dvh;
+
+    @include break-up(lg) {
+      display: flex;
+    }
 
     img {
       position: relative;
@@ -42,7 +52,7 @@
   }
 
   & > .main-track {
-    grid-column: 2 / 3;
+    grid-column: 1 / -1;
     box-sizing: border-box;
     min-width: 0;
     width: 100%;
@@ -51,24 +61,70 @@
     grid-template-columns: repeat(12, 1fr);
     grid-template-rows: 1fr;
     column-gap: var(--spacing-2xl);
-    padding: 200px var(--spacing-xl) var(--spacing-4xl) var(--spacing-xl);
+    padding: 60px var(--spacing-xl) var(--spacing-4xl) var(--spacing-xl);
+
+    @include break-up(lg) {
+      grid-column: 2 / 3;
+    }
 
     & > main {
-      grid-column: 3 / 8;
+      --max-width: 390px;
+      --title-max-width: 306px;
+      --content-align: center;
+      --logo-gap: 74px;
+
+      grid-column: 1 / -1;
+      justify-self: center;
       width: 100%;
+      max-width: var(--max-width);
+      min-width: 0;
       display: flex;
       flex-flow: column;
       flex: none;
 
+      @include break-up(md) {
+        --title-max-width: none;
+        --logo-gap: var(--spacing-8xl);
+      }
+
+      @include break-up(lg) {
+        --max-width: none;
+        --content-align: start;
+        --logo-gap: 125px;
+
+        grid-column: 2 / 12;
+        justify-self: stretch;
+      }
+
+      @include break-up(xl) {
+        grid-column: 2 / 10;
+      }
+
+      @include break-up(xxl) {
+        grid-column: 3 / 8;
+      }
+
+      & > .login-logo {
+        align-self: var(--content-align);
+        margin-bottom: var(--logo-gap);
+      }
+
       h1 {
+        align-self: var(--content-align);
+        width: 100%;
+        max-width: var(--title-max-width);
         font: var(--t-title-h4);
         color: var(--fg-default);
-        text-align: left;
+        text-align: var(--content-align);
       }
 
       h2 {
+        align-self: var(--content-align);
+        width: 100%;
+        max-width: var(--title-max-width);
         font: var(--t-body-primary-400);
         color: var(--fg-muted);
+        text-align: var(--content-align);
       }
 
       footer {
@@ -77,6 +133,7 @@
         p {
           font: var(--t-body-xxs-400);
           color: var(--fg-muted);
+          text-align: var(--content-align);
         }
 
         a {
