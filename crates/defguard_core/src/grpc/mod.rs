@@ -37,6 +37,7 @@ use crate::{
         },
         has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
         license::LicenseTier,
+        licensed_mfa_setup_methods,
     },
     grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
 };
@@ -180,6 +181,7 @@ pub struct InstanceInfo {
     smtp_configured: bool,
     openid_available: bool,
     pub configured_methods: Vec<VpnClientMfaMethod>,
+    setup_methods: Vec<VpnClientMfaMethod>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -242,6 +244,7 @@ impl InstanceInfo {
             smtp_configured,
             openid_available: oidc_configured,
             configured_methods,
+            setup_methods: licensed_mfa_setup_methods(),
         })
     }
 }
@@ -275,9 +278,11 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
                     .collect(),
             }),
             mfa_capabilities: Some(MfaCapabilities {
-                setup_methods: VpnClientMfaMethod::CONFIG_SETUP
+                setup_methods: instance
+                    .setup_methods
+                    .into_iter()
                     .map(|method| MfaMethod::from(method) as i32)
-                    .to_vec(),
+                    .collect(),
                 authorize_methods: VpnClientMfaMethod::CONFIG_AUTHORIZE
                     .map(|method| MfaMethod::from(method) as i32)
                     .to_vec(),

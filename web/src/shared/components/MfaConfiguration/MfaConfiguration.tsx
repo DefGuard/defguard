@@ -29,6 +29,8 @@ const getDisabledHelper = (reason: MfaMethodAvailabilityReasonValue) => {
   switch (reason) {
     case MfaMethodAvailabilityReason.Licensed:
       return m.mfa_flow_method_business_required();
+    case MfaMethodAvailabilityReason.EnterpriseLicensed:
+      return m.mfa_flow_method_enterprise_required();
     case MfaMethodAvailabilityReason.SmtpNotConfigured:
       return m.mfa_flow_method_smtp_required();
     case MfaMethodAvailabilityReason.OidcProviderMissing:
@@ -73,11 +75,13 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
   const buildMethodGroups = (
     methods: MfaFlowMethodValue[],
   ): MfaConfigurationMethodGroup[] => {
-    const licensedMethods = methods.filter(
-      (method) =>
-        methodAvailability?.find((item) => item.method === method)?.reason ===
-        MfaMethodAvailabilityReason.Licensed,
-    );
+    const licensedMethods = methods.filter((method) => {
+      const reason = methodAvailability?.find((item) => item.method === method)?.reason;
+      return (
+        reason === MfaMethodAvailabilityReason.Licensed ||
+        reason === MfaMethodAvailabilityReason.EnterpriseLicensed
+      );
+    });
     if (licensedMethods.length === 0) return [{ items: methods }];
 
     const planMethods = methods.filter((method) => !licensedMethods.includes(method));

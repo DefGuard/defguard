@@ -57,6 +57,7 @@ use crate::{
         db::models::openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
+        fido2::verify_mfa_config_fido2_assertion,
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::{Counts, set_counts},
     },
@@ -65,10 +66,7 @@ use crate::{
     mfa_engine::{
         error::StartError,
         legacy::{FinishError, LegacyProof},
-        method::{
-            InitiateError, Verdict, VerifyError, check_mobile_approval, verify,
-            verify_mfa_config_fido2_assertion,
-        },
+        method::{InitiateError, Verdict, VerifyError, check_mobile_approval, verify},
         multi_step::{
             Fido2Assertion, StartRejectionReason, StartResult, StepCredential, StepError,
             StepFinishError, StepProof,
@@ -1918,6 +1916,52 @@ async fn test_start_multi_step_rejects_unconfigured_method(
     assert_eq!(rejections.len(), 1);
     assert_eq!(rejections[0].step, 1);
     assert_eq!(rejections[0].reason, StartRejectionReason::StepUnavailable);
+    assert!(event_rx.try_recv().is_err());
+    assert_eq!(session_count(&pool, location.id, device.id).await, 0);
+}
+
+/// FIDO2 security keys need an Enterprise license. On a Business license a FIDO2-only step is
+/// empty after the license filter, so the plan is rejected before any session starts.
+#[sqlx::test]
+async fn test_start_multi_step_rejects_fido2_only_step_without_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_flow(&pool, location.id, vec![vec![VpnClientMfaMethod::Fido2]]).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+
+    let (flow_id, step_methods) = resolve_flow(&pool, location.id, user.id).await;
+    let (engine, mut event_rx, _gateway_rx) = make_engine(pool.clone());
+
+    let result = engine
+        .start_multi_step(
+            &location,
+            &device,
+            &user,
+            flow_id,
+            step_methods,
+            vec![VpnClientMfaMethod::Fido2],
+        )
+        .await
+        .expect("start should return a rejection, not an error");
+    let StartResult::Rejected(rejections) = result else {
+        panic!("expected a rejected plan")
+    };
+    assert_eq!(rejections.len(), 1);
+    assert_eq!(rejections[0].step, 0);
+    assert_eq!(
+        rejections[0].reason,
+        StartRejectionReason::StepEmptyAfterLicense
+    );
     assert!(event_rx.try_recv().is_err());
     assert_eq!(session_count(&pool, location.id, device.id).await, 0);
 }

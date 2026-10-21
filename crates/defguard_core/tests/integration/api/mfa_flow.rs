@@ -318,6 +318,66 @@ async fn test_mfa_flow_group_scoping_requires_enterprise(
     set_cached_license(saved);
 }
 
+/// A FIDO2 step needs an Enterprise license on create and on update. A Business license gets a
+/// 403 with the `enterprise_license_required` code, and the refusal emits no audit event.
+#[sqlx::test]
+async fn test_mfa_flow_fido2_requires_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+    let saved = get_cached_license().clone();
+    let fido2_flow = json!({
+        "title": "Security Key Flow",
+        "steps": [{ "methods": ["fido2"] }]
+    });
+
+    // The test client runs on a Business license.
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&fido2_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body = response.json::<Value>().await;
+    assert_eq!(body["fields"][0]["field"], "steps[0].methods");
+    assert_eq!(body["fields"][0]["code"], "enterprise_license_required");
+    assert!(
+        client.drain_all_events().is_empty(),
+        "refused request must not emit an audit event"
+    );
+
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&json!({
+            "title": "Code Flow",
+            "steps": [{ "methods": ["totp"] }]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let flow_id = response.json::<Value>().await["id"].as_i64().unwrap();
+    let _ = client.drain_all_events();
+
+    let response = client
+        .put(format!("/api/v1/mfa-flow/{flow_id}"))
+        .json(&fido2_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let body = response.json::<Value>().await;
+    assert_eq!(body["fields"][0]["code"], "enterprise_license_required");
+
+    set_enterprise_license();
+    let response = client
+        .post("/api/v1/mfa-flow")
+        .json(&fido2_flow)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    set_cached_license(saved);
+}
+
 /// Multi-step guard also applies to updates.
 #[sqlx::test]
 async fn test_mfa_flow_update_multi_step_requires_business(
@@ -734,7 +794,25 @@ async fn test_method_availability_basic(_: PgPoolOptions, options: PgConnectOpti
     );
     assert_eq!(find("biometric")["available"].as_bool(), Some(true));
     assert_eq!(find("mobileapprove")["available"].as_bool(), Some(true));
-    assert_eq!(find("fido2")["available"].as_bool(), Some(true));
+    // FIDO2 security keys need the Enterprise tier, and the test client runs on Business.
+    assert_eq!(find("fido2")["available"].as_bool(), Some(false));
+    assert_eq!(
+        find("fido2")["reason"].as_str(),
+        Some("enterprise_licensed")
+    );
+
+    set_enterprise_license();
+    let response = client
+        .get("/api/v1/mfa-flow/method-availability")
+        .send()
+        .await;
+    let items = response.json::<Value>().await;
+    let items = items.as_array().unwrap();
+    let fido2 = items
+        .iter()
+        .find(|m| m["method"].as_str() == Some("fido2"))
+        .unwrap();
+    assert_eq!(fido2["available"].as_bool(), Some(true));
 
     set_cached_license(None);
     let response = client

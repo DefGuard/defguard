@@ -36,8 +36,7 @@ use tracing::{debug, error, warn};
 
 use crate::{
     enterprise::{
-        db::models::openid_provider::OpenIdProvider, is_business_license_active,
-        is_oidc_mfa_available,
+        db::models::openid_provider::OpenIdProvider, is_mfa_method_licensed, is_oidc_mfa_available,
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayCommand,
@@ -122,11 +121,10 @@ pub struct MfaEngine {
 pub(crate) fn filter_unlicensed_mfa_methods(
     methods: &HashSet<VpnClientMfaMethod>,
 ) -> HashSet<VpnClientMfaMethod> {
-    let business = is_business_license_active();
     methods
         .iter()
         .copied()
-        .filter(|method| *method != VpnClientMfaMethod::Oidc || business)
+        .filter(|method| is_mfa_method_licensed(*method))
         .collect()
 }
 
