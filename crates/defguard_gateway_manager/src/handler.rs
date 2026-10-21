@@ -106,6 +106,10 @@ pub(crate) struct GatewayHandler {
     test_support: Option<GatewayManagerTestSupport>,
 }
 
+fn is_gateway_already_connected(err: &Status) -> bool {
+    err.code() == Code::Internal && err.message() == "Client already connected"
+}
+
 impl GatewayHandler {
     pub fn new(
         gateway: Gateway<Id>,
@@ -496,6 +500,10 @@ impl GatewayHandler {
         retry_on_connect_failure: bool,
         retry_delay: Duration,
     ) {
+        if let Some(handle) = self.updates_handler_handle.take() {
+            handle.abort();
+            let _ = handle.await;
+        }
         self.remove_client(clients);
         self.handle_disconnection_error().await;
 
@@ -531,7 +539,19 @@ impl GatewayHandler {
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
             Ok(response) => response,
             Err(err) => {
-                error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                if is_gateway_already_connected(&err) {
+                    if retry_on_connect_failure {
+                        warn!(
+                            "Gateway {uri} refused this Core because another Core is already connected; this Core will retry"
+                        );
+                    } else {
+                        warn!(
+                            "Gateway {uri} refused this Core because another Core is already connected"
+                        );
+                    }
+                } else {
+                    error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                }
                 if retry_on_connect_failure {
                     sleep(retry_delay).await;
                     return Ok(());
@@ -1290,8 +1310,26 @@ mod tests {
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{
-        GatewayHandler, GatewayUpdatesHandler, WireguardPeer, try_protos_into_stats_message,
+        GatewayHandler, GatewayUpdatesHandler, WireguardPeer, is_gateway_already_connected,
+        try_protos_into_stats_message,
     };
+    use tonic::{Code, Status};
+
+    #[test]
+    fn test_gateway_already_connected_requires_exact_status() {
+        assert!(is_gateway_already_connected(&Status::new(
+            Code::Internal,
+            "Client already connected",
+        )));
+        assert!(!is_gateway_already_connected(&Status::new(
+            Code::Internal,
+            "client already connected",
+        )));
+        assert!(!is_gateway_already_connected(&Status::new(
+            Code::AlreadyExists,
+            "Client already connected",
+        )));
+    }
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
         WireguardNetwork::new(

@@ -2,6 +2,7 @@ use std::{
     collections::HashSet,
     fs::read_to_string,
     sync::{Arc, Mutex, RwLock},
+    time::Duration,
 };
 
 use anyhow::bail;
@@ -52,17 +53,22 @@ use defguard_setup::{
 };
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
+#[cfg(unix)]
+use tokio::signal::unix::{SignalKind, signal};
 use tokio::{
     signal::ctrl_c,
     sync::{
         broadcast,
         mpsc::{channel, unbounded_channel},
     },
+    time::timeout,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
+
+const MANAGER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -362,10 +368,16 @@ async fn main() -> Result<(), anyhow::Error> {
     Gateway::mark_all_disconnected(&pool).await?;
     debug!("Gateway connection states reset");
 
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let proxy_manager_run = proxy_manager.run(shutdown_rx.clone());
+    let gateway_manager_run = gateway_manager.run(shutdown_rx);
+    tokio::pin!(proxy_manager_run);
+    tokio::pin!(gateway_manager_run);
+
     // run services
     tokio::select! {
-        res = proxy_manager.run() => bail!("ProxyManager returned early: {res:?}"),
-        res = gateway_manager.run() => bail!("GatewayManager returned early: {res:?}"),
+        res = &mut proxy_manager_run => bail!("ProxyManager returned early: {res:?}"),
+        res = &mut gateway_manager_run => bail!("GatewayManager returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),
@@ -419,6 +431,41 @@ async fn main() -> Result<(), anyhow::Error> {
             session_manager_event_tx,
             gateway_tx
         ) => bail!("VPN client session manager returned early: {res:?}"),
-        _ = ctrl_c() => Ok(()),
+        signal = shutdown_signal() => signal?,
     }
+
+    shutdown_tx.send_replace(true);
+    // Bound the combined wait; the managers perform their own cleanup.
+    match timeout(MANAGER_SHUTDOWN_TIMEOUT, async {
+        tokio::join!(&mut proxy_manager_run, &mut gateway_manager_run)
+    })
+    .await
+    {
+        Ok((Ok(()), Ok(()))) => info!("ProxyManager and GatewayManager stopped"),
+        Ok((proxy_result, gateway_result)) => {
+            if let Err(err) = proxy_result {
+                error!("ProxyManager shutdown failed: {err}");
+            }
+            if let Err(err) = gateway_result {
+                error!("GatewayManager shutdown failed: {err}");
+            }
+        }
+        Err(_) => error!("Timed out waiting for managers to shut down"),
+    }
+
+    Ok(())
+}
+
+async fn shutdown_signal() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            result = ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+
+    #[cfg(not(unix))]
+    ctrl_c().await
 }

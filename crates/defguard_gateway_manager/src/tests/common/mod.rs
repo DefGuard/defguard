@@ -89,11 +89,13 @@ struct MockGatewayService {
 struct MockGatewayState {
     outbound_tx: UnboundedSender<CoreResponse>,
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
+    bidi_error: Mutex<Option<Status>>,
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
     connection_count: AtomicU16,
     connection_notify: Notify,
     purge_count: AtomicU16,
     purge_notify: Notify,
+    core_stream_closed_tx: Mutex<Option<oneshot::Sender<()>>>,
 }
 
 impl MockGatewayState {
@@ -119,9 +121,27 @@ impl MockGatewayState {
             .ok_or_else(|| Status::failed_precondition("mock gateway already connected"))
     }
 
+    fn take_bidi_error(&self) -> Option<Status> {
+        self.bidi_error
+            .lock()
+            .expect("failed to lock mock bidi error")
+            .take()
+    }
+
     fn note_purge(&self) {
         self.purge_count.fetch_add(1, Ordering::Relaxed);
         self.purge_notify.notify_waiters();
+    }
+
+    fn note_core_stream_closed(&self) {
+        if let Some(tx) = self
+            .core_stream_closed_tx
+            .lock()
+            .expect("failed to lock Core stream close notifier")
+            .take()
+        {
+            let _ = tx.send(());
+        }
     }
 }
 
@@ -133,15 +153,28 @@ impl gateway_server::Gateway for MockGatewayService {
         &self,
         request: Request<Streaming<CoreResponse>>,
     ) -> Result<Response<Self::BidiStream>, Status> {
+        if let Some(status) = self.state.take_bidi_error() {
+            return Err(status);
+        }
+
         let inbound_rx = self.state.take_inbound_rx()?;
         self.state.notify_connected();
 
         let mut outbound_stream = request.into_inner();
         let outbound_tx = self.state.outbound_tx.clone();
+        let state = Arc::clone(&self.state);
         tokio::spawn(async move {
-            while let Ok(Some(response)) = outbound_stream.message().await {
-                if outbound_tx.send(response).is_err() {
-                    break;
+            loop {
+                match outbound_stream.message().await {
+                    Ok(Some(response)) => {
+                        if outbound_tx.send(response).is_err() {
+                            break;
+                        }
+                    }
+                    Ok(None) | Err(_) => {
+                        state.note_core_stream_closed();
+                        break;
+                    }
                 }
             }
         });
@@ -161,6 +194,7 @@ pub(crate) struct MockGatewayHarness {
     inbound_tx: Option<UnboundedSender<Result<CoreRequest, Status>>>,
     outbound_rx: UnboundedReceiver<CoreResponse>,
     connected_rx: oneshot::Receiver<()>,
+    core_stream_closed_rx: Option<oneshot::Receiver<()>>,
     server_task: Option<JoinHandle<Result<(), io::Error>>>,
     next_message_id: AtomicU64,
 }
@@ -178,14 +212,17 @@ impl MockGatewayHarness {
         let (outbound_tx, outbound_rx) = mpsc::unbounded_channel();
         let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
         let (connected_tx, connected_rx) = oneshot::channel();
+        let (core_stream_closed_tx, core_stream_closed_rx) = oneshot::channel();
         let state = Arc::new(MockGatewayState {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
+            bidi_error: Mutex::new(None),
             connected_tx: Mutex::new(Some(connected_tx)),
             connection_count: AtomicU16::new(0),
             connection_notify: Notify::new(),
             purge_count: AtomicU16::new(0),
             purge_notify: Notify::new(),
+            core_stream_closed_tx: Mutex::new(Some(core_stream_closed_tx)),
         });
         let service = MockGatewayService {
             state: Arc::clone(&state),
@@ -206,6 +243,7 @@ impl MockGatewayHarness {
             inbound_tx: Some(inbound_tx),
             outbound_rx,
             connected_rx,
+            core_stream_closed_rx: Some(core_stream_closed_rx),
             server_task: Some(server_task),
             next_message_id: AtomicU64::new(1),
         }
@@ -220,6 +258,17 @@ impl MockGatewayHarness {
             .await
             .expect("timed out waiting for mock gateway connection")
             .expect("mock gateway connection notifier dropped");
+    }
+
+    pub(crate) async fn wait_for_core_stream_closed(&mut self) {
+        let receiver = self
+            .core_stream_closed_rx
+            .take()
+            .expect("Core stream close receiver already taken");
+        timeout(Duration::from_secs(2), receiver)
+            .await
+            .expect("timed out waiting for Core stream to close")
+            .expect("Core stream close notifier dropped");
     }
 
     pub(crate) fn connection_count(&self) -> u16 {
@@ -276,6 +325,14 @@ impl MockGatewayHarness {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
             payload: Some(core_request::Payload::PeerStats(peer_stats)),
         });
+    }
+
+    pub(crate) fn reject_next_bidi_with(&self, status: Status) {
+        *self
+            .state
+            .bidi_error
+            .lock()
+            .expect("failed to lock mock bidi error") = Some(status);
     }
 
     pub(crate) fn send_stream_error(&self, status: Status) {
@@ -338,6 +395,8 @@ impl Drop for MockGatewayHarness {
 pub(crate) struct ManagerTestContext {
     pub(crate) pool: PgPool,
     control: GatewayManagerTestSupport,
+    events_tx: Option<broadcast::Sender<GatewayCommand>>,
+    shutdown_tx: Option<watch::Sender<bool>>,
     manager_task: Option<JoinHandle<Result<(), anyhow::Error>>>,
 }
 
@@ -351,6 +410,8 @@ impl ManagerTestContext {
         Self {
             pool,
             control: GatewayManagerTestSupport::default(),
+            events_tx: None,
+            shutdown_tx: None,
             manager_task: None,
         }
     }
@@ -475,14 +536,50 @@ impl ManagerTestContext {
 
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
-        let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
+        let tx = GatewayTxSet::new(events_tx.clone(), peer_stats_tx);
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let mut manager = GatewayManager::new(self.pool.clone(), tx, self.control.clone());
-        let manager_task = tokio::spawn(async move { manager.run().await });
+        let manager_task = tokio::spawn(async move { manager.run(shutdown_rx).await });
 
+        self.events_tx = Some(events_tx);
+        self.shutdown_tx = Some(shutdown_tx);
+        self.manager_task = Some(manager_task);
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
             .await
             .expect("timed out waiting for gateway manager listener to become ready");
-        self.manager_task = Some(manager_task);
+    }
+
+    pub(crate) async fn wait_for_updates_handler(&self) {
+        timeout(TEST_TIMEOUT, async {
+            while self
+                .events_tx
+                .as_ref()
+                .expect("gateway manager not started")
+                .receiver_count()
+                == 0
+            {
+                sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("timed out waiting for gateway updates handler");
+    }
+
+    pub(crate) async fn request_shutdown(&mut self) {
+        self.shutdown_tx
+            .take()
+            .expect("gateway manager shutdown sender already taken")
+            .send(true)
+            .expect("gateway manager shutdown receiver dropped");
+        let manager_task = self
+            .manager_task
+            .take()
+            .expect("gateway manager task already taken");
+        let result = timeout(Duration::from_secs(2), manager_task)
+            .await
+            .expect("timed out waiting for gateway manager shutdown")
+            .expect("gateway manager task panicked during shutdown");
+        result.expect("gateway manager returned an error during shutdown");
     }
 
     pub(crate) fn set_retry_delay(&self, retry_delay: Duration) {

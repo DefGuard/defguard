@@ -108,6 +108,7 @@ struct MockProxyState {
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
     connection_count: AtomicU16,
     connection_notify: Notify,
+    stream_end_tx: Mutex<Option<oneshot::Sender<Result<(), String>>>>,
     purge_count: AtomicU16,
     purge_notify: Notify,
 }
@@ -133,6 +134,17 @@ impl MockProxyState {
             .expect("failed to lock inbound receiver")
             .take()
             .ok_or_else(|| Status::failed_precondition("mock proxy already connected"))
+    }
+
+    fn note_stream_end(&self, result: Result<(), String>) {
+        if let Some(tx) = self
+            .stream_end_tx
+            .lock()
+            .expect("failed to lock stream-end notifier")
+            .take()
+        {
+            let _ = tx.send(result);
+        }
     }
 
     fn note_purge(&self) {
@@ -165,12 +177,20 @@ impl proxy_server::Proxy for MockProxyService {
 
         let mut outbound_stream = request.into_inner();
         let outbound_tx = self.state.outbound_tx.clone();
+        let state = Arc::clone(&self.state);
         tokio::spawn(async move {
-            while let Ok(Some(msg)) = outbound_stream.message().await {
-                if outbound_tx.send(msg).is_err() {
-                    break;
+            let result = loop {
+                match outbound_stream.message().await {
+                    Ok(Some(msg)) => {
+                        if outbound_tx.send(msg).is_err() {
+                            return;
+                        }
+                    }
+                    Ok(None) => break Ok(()),
+                    Err(err) => break Err(err.to_string()),
                 }
-            }
+            };
+            state.note_stream_end(result);
         });
 
         Ok(Response::new(UnboundedReceiverStream::new(inbound_rx)))
@@ -203,6 +223,7 @@ pub(crate) struct MockProxyHarness {
     /// Receiver of `CoreResponse` messages forwarded from the handler.
     outbound_rx: UnboundedReceiver<CoreResponse>,
     connected_rx: oneshot::Receiver<()>,
+    stream_end_rx: oneshot::Receiver<Result<(), String>>,
     server_task: Option<JoinHandle<Result<(), io::Error>>>,
 }
 
@@ -219,12 +240,14 @@ impl MockProxyHarness {
         let (outbound_tx, outbound_rx) = mpsc::unbounded_channel();
         let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
         let (connected_tx, connected_rx) = oneshot::channel();
+        let (stream_end_tx, stream_end_rx) = oneshot::channel();
         let state = Arc::new(MockProxyState {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
             connected_tx: Mutex::new(Some(connected_tx)),
             connection_count: AtomicU16::new(0),
             connection_notify: Notify::new(),
+            stream_end_tx: Mutex::new(Some(stream_end_tx)),
             purge_count: AtomicU16::new(0),
             purge_notify: Notify::new(),
         });
@@ -248,6 +271,7 @@ impl MockProxyHarness {
             inbound_tx: Some(inbound_tx),
             outbound_rx,
             connected_rx,
+            stream_end_rx,
             server_task: Some(server_task),
         }
     }
@@ -261,6 +285,13 @@ impl MockProxyHarness {
             .await
             .expect("timed out waiting for mock proxy connection")
             .expect("mock proxy connection notifier dropped");
+    }
+
+    pub(crate) async fn wait_stream_end(&mut self) -> Result<(), String> {
+        timeout(TEST_TIMEOUT, &mut self.stream_end_rx)
+            .await
+            .expect("timed out waiting for mock proxy stream to end")
+            .expect("mock proxy stream-end notifier dropped")
     }
 
     pub(crate) fn connection_count(&self) -> u16 {
@@ -570,6 +601,7 @@ pub(crate) struct ManagerTestContext {
     /// Sender for the proxy control channel used by `ProxyManager`.
     pub(crate) proxy_control_tx:
         tokio::sync::mpsc::Sender<defguard_common::types::proxy::ProxyControlMessage>,
+    shutdown_tx: watch::Sender<bool>,
     manager_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
 }
 
@@ -584,11 +616,13 @@ impl ManagerTestContext {
             tokio::sync::mpsc::channel::<defguard_common::types::proxy::ProxyControlMessage>(16);
 
         let control = ProxyManagerTestSupport::default();
+        let (shutdown_tx, _) = watch::channel(false);
 
         Self {
             pool,
             control,
             proxy_control_tx,
+            shutdown_tx,
             manager_task: None,
         }
     }
@@ -646,7 +680,8 @@ impl ManagerTestContext {
             "test-secret-key-at-least-64-bytes-long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             self.control.clone(),
         );
-        let manager_task = tokio::spawn(async move { manager.run().await });
+        let shutdown_rx = self.shutdown_tx.subscribe();
+        let manager_task = tokio::spawn(async move { manager.run(shutdown_rx).await });
 
         // No PgListener in proxy manager - just yield to let the manager start.
         tokio::task::yield_now().await;
@@ -656,6 +691,19 @@ impl ManagerTestContext {
 
     pub(crate) fn set_retry_delay(&self, retry_delay: Duration) {
         self.control.set_retry_delay(retry_delay);
+    }
+
+    pub(crate) async fn shutdown(&mut self) {
+        self.shutdown_tx.send_replace(true);
+        let manager_task = self
+            .manager_task
+            .take()
+            .expect("proxy manager task was not started");
+        let result = timeout(TEST_TIMEOUT, manager_task)
+            .await
+            .expect("timed out waiting for proxy manager shutdown")
+            .expect("proxy manager task panicked");
+        result.expect("proxy manager shutdown failed");
     }
 
     pub(crate) async fn finish(mut self) {

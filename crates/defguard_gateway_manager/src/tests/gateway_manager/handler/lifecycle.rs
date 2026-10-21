@@ -1,3 +1,8 @@
+use crate::tests::common::{
+    ManagerTestContext, MockGatewayHarness, complete_manager_handshake, create_gateway,
+    create_network,
+};
+
 #[sqlx::test]
 async fn test_gateway_is_marked_connected_after_successful_config_handshake(
     _: PgPoolOptions,
@@ -39,7 +44,7 @@ async fn test_gateway_is_marked_disconnected_when_stream_closes(
     let mut connection_events_rx = context.take_connection_events_rx();
 
     let pool = context.pool.clone();
-    let mock_gateway = context.finish().await;
+    let mut mock_gateway = context.finish().await;
     let disconnected_gateway = reload_gateway(&pool, gateway_id).await;
     assert!(!disconnected_gateway.is_connected());
     assert!(disconnected_gateway.disconnected_at.is_some());
@@ -58,7 +63,42 @@ async fn test_gateway_is_marked_disconnected_when_stream_closes(
         })
     );
 
+    mock_gateway.wait_for_core_stream_closed().await;
     mock_gateway.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_gateway_manager_shutdown_closes_stream_with_updates_handler_running(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = ManagerTestContext::new(options).await;
+    let network = create_network(&context.pool).await;
+    let gateway = create_gateway(&context.pool, network.id).await;
+    let mut mock_gateway = MockGatewayHarness::start().await;
+    context.register_gateway_mock(&gateway, &mock_gateway);
+
+    context.start().await;
+    complete_manager_handshake(&context, &gateway, &mut mock_gateway).await;
+    context.wait_for_updates_handler().await;
+
+    context.request_shutdown().await;
+
+    let stopped_gateway = reload_gateway(&context.pool, gateway.id).await;
+    assert!(!stopped_gateway.is_connected());
+    let connected_at = stopped_gateway
+        .connected_at
+        .expect("connected_at should be set after handshake");
+    let disconnected_at = stopped_gateway
+        .disconnected_at
+        .expect("disconnected_at should be set after manager shutdown");
+    assert!(
+        disconnected_at > connected_at,
+        "disconnected_at must be later than connected_at after shutdown"
+    );
+
+    mock_gateway.wait_for_core_stream_closed().await;
+    context.finish().await;
 }
 
 #[sqlx::test]
