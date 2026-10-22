@@ -504,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    fn is_search_entry_accepts_only_real_entries() {
+    fn test_is_search_entry_accepts_only_real_entries() {
         // id 4 is a SearchResultEntry, the only type SearchEntry::try_construct accepts.
         assert!(is_search_entry(&result_entry(4)));
         // id 19 is a referral, id 25 an intermediate response.

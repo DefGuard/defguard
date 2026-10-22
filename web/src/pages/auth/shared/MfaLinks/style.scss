@@ -2,11 +2,12 @@
   padding-top: var(--spacing-2xl);
   display: flex;
   flex-flow: column;
-  align-items: flex-start;
+  align-items: var(--content-align);
   justify-content: flex-start;
   row-gap: var(--spacing-2xl);
 
   a {
+    text-align: var(--content-align);
     text-decoration: none;
     font: var(--t-body-sm-400);
     color: var(--fg-action);
