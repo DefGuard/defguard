@@ -2,6 +2,8 @@
   .selection-section {
     .items-box {
       width: 100%;
+      box-sizing: border-box;
+      padding-right: var(--spacing-sm);
     }
   }
 }
