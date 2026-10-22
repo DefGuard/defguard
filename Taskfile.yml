@@ -36,7 +36,7 @@ tasks:
   fido-mds:
     desc: Regenerate the trusted FIDO2 authenticator list from the FIDO Metadata Service blob
     cmds:
-      - cargo run --locked --release -p defguard_fido_mds -- crates/defguard_core/src/fido2/trusted_authenticators.json
+      - cargo run --locked --release -p defguard_fido_mds -- crates/defguard_core/src/enterprise/fido2/trusted_authenticators.json
       - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib fido2::attestation
 
   move-tag:

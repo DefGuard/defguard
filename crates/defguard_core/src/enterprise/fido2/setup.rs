@@ -12,10 +12,8 @@ use webauthn_rs::prelude::{
     WebauthnError,
 };
 
-use crate::{
-    db::models::enrollment::{MfaConfigAuthState, Token, TokenError},
-    fido2::attestation::{trusted_attestation_cas, verify_hardware_key},
-};
+use super::attestation::{trusted_attestation_cas, verify_hardware_key};
+use crate::db::models::enrollment::{MfaConfigAuthState, Token, TokenError};
 
 impl Token {
     /// Token-based counterpart of `Session::set_passkey_registration` on the REST path.

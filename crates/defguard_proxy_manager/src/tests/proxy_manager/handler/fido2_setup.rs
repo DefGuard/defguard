@@ -11,8 +11,8 @@ use defguard_common::db::{
     },
 };
 use defguard_core::{
-    db::models::enrollment::Token, events::ApiEventType,
-    fido2::attestation::trust_test_authenticator,
+    db::models::enrollment::Token, enterprise::fido2::attestation::trust_test_authenticator,
+    events::ApiEventType,
 };
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

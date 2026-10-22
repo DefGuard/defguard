@@ -1,5 +1,5 @@
-//! Regenerates `defguard_core/src/fido2/trusted_authenticators.json` from the FIDO Metadata
-//! Service (MDS3) blob, keeping only what the hardware key attestation check needs.
+//! Regenerates `defguard_core/src/enterprise/fido2/trusted_authenticators.json` from the FIDO
+//! Metadata Service (MDS3) blob, keeping only what the hardware key attestation check needs.
 
 use std::{
     env,
@@ -25,7 +25,7 @@ const MDS_SIGNER_NAME: &str = "mds.fidoalliance.org";
 const MDS_ROOT_PEM: &[u8] = include_bytes!("../globalsign_root_r3.pem");
 const DEFAULT_OUTPUT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../crates/defguard_core/src/fido2/trusted_authenticators.json"
+    "/../../crates/defguard_core/src/enterprise/fido2/trusted_authenticators.json"
 );
 
 const TRUSTED_ATTESTATION_TYPES: [&str; 2] = ["basic_full", "attca"];

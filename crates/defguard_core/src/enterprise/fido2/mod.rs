@@ -13,15 +13,15 @@ use defguard_common::db::{
 use sqlx::PgPool;
 use thiserror::Error;
 
-use crate::{
-    fido2::auth_flags::AuthFlags,
-    mfa_engine::{
-        method::{Verdict, VerifyError, credential_method_mismatch},
-        multi_step::StepFinishError,
-        types::VerificationProof,
-    },
+use self::auth_flags::AuthFlags;
+use crate::mfa_engine::{
+    method::{Verdict, VerifyError, credential_method_mismatch},
+    multi_step::StepFinishError,
+    types::VerificationProof,
 };
 
+pub mod attestation;
+pub mod auth_flags;
 mod setup;
 
 const RP_ID_HASH_LEN: usize = 32;
