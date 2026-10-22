@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -6,10 +7,27 @@ import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { RenderMarkdown } from '../../../shared/defguard-ui/components/RenderMarkdown/RenderMarkdown';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { getMigrationStateQueryOptions } from '../../../shared/query';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 export const MigrationWizardStart = () => {
+  const queryClient = useQueryClient();
+  const { mutate: start, isPending } = useMutation({
+    mutationFn: () =>
+      queryClient.fetchQuery({ ...getMigrationStateQueryOptions, staleTime: 0 }),
+    onSuccess: (state) => {
+      useMigrationWizardStore.setState({
+        ldap_migration_required: state.data?.ldap_migration_required ?? false,
+      });
+      useMigrationWizardStore.getState().next();
+    },
+    onError: () => {
+      Snackbar.error(m.migration_wizard_ldap_detection_error());
+    },
+  });
+
   return (
     <>
       <SizedBox height={ThemeSpacing.Lg} />
@@ -30,9 +48,8 @@ export const MigrationWizardStart = () => {
         <div className="left">
           <Button
             text={m.migration_wizard_start_button()}
-            onClick={() => {
-              useMigrationWizardStore.getState().next();
-            }}
+            loading={isPending}
+            onClick={() => start()}
           />
         </div>
       </Controls>

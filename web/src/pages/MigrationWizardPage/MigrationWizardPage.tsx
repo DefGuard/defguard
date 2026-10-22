@@ -23,6 +23,7 @@ import { MigrationWizardExternalUrlSslConfigStep } from './steps/MigrationWizard
 import { MigrationWizardGeneralConfigurationStep } from './steps/MigrationWizardGeneralConfigurationStep';
 import { MigrationWizardInternalUrlSettingsStep } from './steps/MigrationWizardInternalUrlSettingsStep';
 import { MigrationWizardInternalUrlSslConfigStep } from './steps/MigrationWizardInternalUrlSslConfigStep';
+import { MigrationWizardLdapMigrationStep } from './steps/MigrationWizardLdapMigrationStep';
 import { MigrationWizardStart } from './steps/MigrationWizardStart';
 import { useMigrationWizardStore } from './store/useMigrationWizardStore';
 import { MigrationWizardStep, type MigrationWizardStepValue } from './types';
@@ -35,6 +36,7 @@ export const MigrationWizardPage = () => {
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
   const activeStep = useMigrationWizardStore((s) => s.current_step);
+  const ldapMigrationRequired = useMigrationWizardStore((s) => s.ldap_migration_required);
 
   const welcomePageConfig = useMemo(
     (): WizardWelcomePageConfig =>
@@ -55,73 +57,81 @@ export const MigrationWizardPage = () => {
         label: m.migration_wizard_step_general_config_label(),
         description: m.migration_wizard_step_general_config_description(),
       },
+      ldapMigration: {
+        id: MigrationWizardStep.LdapMigration,
+        order: 2,
+        label: m.migration_wizard_ldap_step_label(),
+        description: m.migration_wizard_ldap_intro(),
+        hidden: !ldapMigrationRequired,
+      },
       ca: {
         id: MigrationWizardStep.Ca,
-        order: 2,
+        order: 3,
         label: m.migration_wizard_step_certificate_authority_label(),
         description: m.migration_wizard_step_certificate_authority_description(),
       },
       caSummary: {
         id: MigrationWizardStep.CaSummary,
-        order: 3,
+        order: 4,
         label: m.migration_wizard_step_certificate_authority_summary_label(),
         description: m.migration_wizard_step_certificate_authority_summary_description(),
       },
       edgeDeployment: {
         id: MigrationWizardStep.EdgeDeployment,
-        order: 4,
+        order: 5,
         label: m.edge_setup_step_deploy_label(),
         description: m.migration_wizard_step_edge_deploy_description(),
       },
       edge: {
         id: MigrationWizardStep.Edge,
-        order: 5,
+        order: 6,
         label: m.migration_wizard_step_edge_component_label(),
         description: m.migration_wizard_step_edge_component_description(),
       },
       edgeAdoption: {
         id: MigrationWizardStep.EdgeAdoption,
-        order: 6,
+        order: 7,
         label: m.migration_wizard_step_edge_adoption_label(),
         description: m.migration_wizard_step_edge_adoption_description(),
       },
       internalUrlSettings: {
         id: MigrationWizardStep.InternalUrlSettings,
-        order: 7,
+        order: 8,
         label: m.migration_wizard_step_internal_url_settings_label(),
         description: m.migration_wizard_step_internal_url_settings_description(),
       },
       internalUrlSslConfig: {
         id: MigrationWizardStep.InternalUrlSslConfig,
-        order: 8,
+        order: 9,
         label: m.migration_wizard_step_internal_url_ssl_config_label(),
         description: m.migration_wizard_step_internal_url_ssl_config_description(),
       },
       externalUrlSettings: {
         id: MigrationWizardStep.ExternalUrlSettings,
-        order: 9,
+        order: 10,
         label: m.migration_wizard_step_external_url_settings_label(),
         description: m.migration_wizard_step_external_url_settings_description(),
       },
       externalUrlSslConfig: {
         id: MigrationWizardStep.ExternalUrlSslConfig,
-        order: 10,
+        order: 11,
         label: m.migration_wizard_step_external_url_ssl_config_label(),
         description: m.migration_wizard_step_external_url_ssl_config_description(),
       },
       confirmation: {
         id: MigrationWizardStep.Confirmation,
-        order: 11,
+        order: 12,
         label: m.migration_wizard_step_confirmation_label(),
         description: m.migration_wizard_step_confirmation_description(),
       },
     }),
-    [],
+    [ldapMigrationRequired],
   );
 
   const stepsComponents = useMemo(
     (): Record<MigrationWizardStepValue, ReactNode> => ({
       general: <MigrationWizardGeneralConfigurationStep />,
+      ldapMigration: <MigrationWizardLdapMigrationStep />,
       internalUrlSettings: <MigrationWizardInternalUrlSettingsStep />,
       internalUrlSslConfig: <MigrationWizardInternalUrlSslConfigStep />,
       externalUrlSettings: <MigrationWizardExternalUrlSettingsStep />,
@@ -142,6 +152,9 @@ export const MigrationWizardPage = () => {
     if (wizardState) {
       useMigrationWizardStore.setState({
         ...wizardState,
+        ldap_migration_required:
+          useMigrationWizardStore.getState().ldap_migration_required ||
+          wizardState.ldap_migration_required,
         ...(wizardState.proxy_url && {
           ip_or_domain: wizardState.proxy_url.domain,
           grpc_port: wizardState.proxy_url.port,

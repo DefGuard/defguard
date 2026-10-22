@@ -67,6 +67,7 @@ import type {
   GetInternalSslInfoResponse,
   GroupInfo,
   IpValidation,
+  LdapMigrationRepairResponse,
   LicenseCheckResponse,
   LicenseInfo,
   LicenseInfoResponse,
@@ -84,6 +85,7 @@ import type {
   LoginResponseBasic,
   MfaCompleteResponse,
   MigrationWizardApiState,
+  MigrationWizardStateResponse,
   NetworkDevice,
   NetworkLocation,
   OpenIdAuthInfo,
@@ -556,7 +558,9 @@ const api = {
     },
     state: {
       getMigrationState: () =>
-        client.get<MigrationWizardApiState | null>(`/migration/state`),
+        client.get<MigrationWizardStateResponse | null>(`/migration/state`),
+      repairLdap: () =>
+        client.post<LdapMigrationRepairResponse>('/migration/ldap/repair'),
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },
