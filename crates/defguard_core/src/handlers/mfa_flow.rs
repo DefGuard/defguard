@@ -27,8 +27,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{
-        db::models::openid_provider::OpenIdProvider, has_enterprise_access,
-        is_business_license_active,
+        db::models::openid_provider::OpenIdProvider, is_business_license_active,
+        is_mfa_method_licensed,
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -222,28 +222,20 @@ fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<
         return Some(license_error_response("steps", "business_license_required"));
     }
 
-    let oidc_step = step_methods
-        .iter()
-        .position(|methods| methods.contains(&VpnClientMfaMethod::Oidc));
-    if let Some(index) = oidc_step
-        && !is_business_license_active()
-    {
-        return Some(license_error_response(
-            &format!("steps[{index}].methods"),
-            "business_license_required",
-        ));
-    }
-
-    let fido2_step = step_methods
-        .iter()
-        .position(|methods| methods.contains(&VpnClientMfaMethod::Fido2));
-    if let Some(index) = fido2_step
-        && !has_enterprise_access(None)
-    {
-        return Some(license_error_response(
-            &format!("steps[{index}].methods"),
-            "enterprise_license_required",
-        ));
+    for (method, code) in [
+        (VpnClientMfaMethod::Oidc, "business_license_required"),
+        (VpnClientMfaMethod::Fido2, "enterprise_license_required"),
+    ] {
+        if !is_mfa_method_licensed(method)
+            && let Some(index) = step_methods
+                .iter()
+                .position(|methods| methods.contains(&method))
+        {
+            return Some(license_error_response(
+                &format!("steps[{index}].methods"),
+                code,
+            ));
+        }
     }
 
     None
@@ -466,19 +458,14 @@ pub async fn list_mfa_flows(
     }
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let has_business = is_business_license_active();
-    let availability = compute_method_availability(
-        smtp_configured,
-        oidc_configured,
-        has_business,
-        has_enterprise_access(None),
-    );
+    let gates = MethodGates::current(smtp_configured, oidc_configured);
+    let availability = compute_method_availability(gates);
     let response: Vec<MfaFlowListItemResponse> = items
         .into_iter()
         .map(|item| {
             let steps = steps_by_flow.remove(&item.id).unwrap_or_default();
             let locations = locations_by_flow.remove(&item.id).unwrap_or_default();
-            let reason = flow_unavailable_reason(&steps, &availability, has_business);
+            let reason = flow_unavailable_reason(&steps, &availability, gates);
             MfaFlowListItemResponse::new(item, steps, locations, reason)
         })
         .collect();
@@ -880,9 +867,9 @@ pub enum MethodAvailabilityReason {
 fn flow_unavailable_reason(
     steps: &[MfaFlowStep<Id>],
     availability: &[MethodAvailabilityResponse],
-    has_business: bool,
+    gates: MethodGates,
 ) -> Option<MethodAvailabilityReason> {
-    if steps.len() > 1 && !has_business {
+    if steps.len() > 1 && !gates.multi_step_licensed {
         return Some(MethodAvailabilityReason::Licensed);
     }
 
@@ -908,18 +895,39 @@ fn flow_unavailable_reason(
     None
 }
 
+#[derive(Clone, Copy, Debug)]
+struct MethodGates {
+    smtp_configured: bool,
+    oidc_provider_configured: bool,
+    oidc_licensed: bool,
+    fido2_licensed: bool,
+    multi_step_licensed: bool,
+}
+
+impl MethodGates {
+    fn current(smtp_configured: bool, oidc_provider_configured: bool) -> Self {
+        Self {
+            smtp_configured,
+            oidc_provider_configured,
+            oidc_licensed: is_mfa_method_licensed(VpnClientMfaMethod::Oidc),
+            fido2_licensed: is_mfa_method_licensed(VpnClientMfaMethod::Fido2),
+            multi_step_licensed: is_business_license_active(),
+        }
+    }
+}
+
 /// Compute per-method availability for the MFA flow editor.
 ///
-/// Checks license tier, SMTP configuration, and OIDC provider presence to
-/// determine which methods are currently usable. Every method in
-/// [`VpnClientMfaMethod`] is always enumerated; unavailable methods carry
+/// Every method in [`VpnClientMfaMethod`] is always enumerated; unavailable methods carry
 /// a `reason` that the UI maps to an appropriate CTA.
-fn compute_method_availability(
-    smtp_configured: bool,
-    oidc_configured: bool,
-    has_business: bool,
-    fido2_licensed: bool,
-) -> Vec<MethodAvailabilityResponse> {
+fn compute_method_availability(gates: MethodGates) -> Vec<MethodAvailabilityResponse> {
+    let MethodGates {
+        smtp_configured,
+        oidc_provider_configured,
+        oidc_licensed,
+        fido2_licensed,
+        multi_step_licensed: _,
+    } = gates;
     let methods = [
         (
             VpnClientMfaMethod::Totp,
@@ -937,10 +945,10 @@ fn compute_method_availability(
         ),
         (
             VpnClientMfaMethod::Oidc,
-            has_business && oidc_configured,
-            if !has_business {
+            oidc_licensed && oidc_provider_configured,
+            if !oidc_licensed {
                 MethodAvailabilityReason::Licensed
-            } else if !oidc_configured {
+            } else if !oidc_provider_configured {
                 MethodAvailabilityReason::OidcProviderMissing
             } else {
                 MethodAvailabilityReason::Available
@@ -1004,13 +1012,11 @@ pub async fn get_method_availability(
     );
     let smtp_configured = Settings::get_current_settings().smtp_configured();
     let oidc_configured = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let result = compute_method_availability(
-        smtp_configured,
-        oidc_configured,
-        is_business_license_active(),
-        has_enterprise_access(None),
-    );
-    Ok(ApiResponse::json(result, StatusCode::OK))
+    let gates = MethodGates::current(smtp_configured, oidc_configured);
+    Ok(ApiResponse::json(
+        compute_method_availability(gates),
+        StatusCode::OK,
+    ))
 }
 
 #[cfg(test)]
@@ -1026,52 +1032,64 @@ mod tests {
         }
     }
 
+    fn gates(smtp: bool, oidc_provider: bool, business: bool, fido2: bool) -> MethodGates {
+        MethodGates {
+            smtp_configured: smtp,
+            oidc_provider_configured: oidc_provider,
+            oidc_licensed: business,
+            fido2_licensed: fido2,
+            multi_step_licensed: business,
+        }
+    }
+
+    fn flow_reason(
+        steps: &[MfaFlowStep<Id>],
+        gates: MethodGates,
+    ) -> Option<MethodAvailabilityReason> {
+        flow_unavailable_reason(steps, &compute_method_availability(gates), gates)
+    }
+
     #[test]
     fn test_flow_unavailable_reason() {
         assert!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Totp])],
-                &compute_method_availability(false, false, false, false),
-                false,
+                gates(false, false, false, false)
             )
             .is_none()
         );
 
         assert!(matches!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[
                     step(&[VpnClientMfaMethod::Totp]),
                     step(&[VpnClientMfaMethod::Totp])
                 ],
-                &compute_method_availability(true, true, false, false),
-                false,
+                gates(true, true, false, false)
             ),
             Some(MethodAvailabilityReason::Licensed)
         ));
 
         assert!(matches!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Email])],
-                &compute_method_availability(false, true, true, false),
-                true,
+                gates(false, true, true, false)
             ),
             Some(MethodAvailabilityReason::SmtpNotConfigured)
         ));
 
         assert!(matches!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Oidc])],
-                &compute_method_availability(true, false, true, false),
-                true,
+                gates(true, false, true, false)
             ),
             Some(MethodAvailabilityReason::OidcProviderMissing)
         ));
 
         assert!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email])],
-                &compute_method_availability(false, true, true, false),
-                true,
+                gates(false, true, true, false)
             )
             .is_none()
         );
@@ -1081,24 +1099,22 @@ mod tests {
     /// the Enterprise reason. A step that also has another usable method still runs.
     #[test]
     fn test_flow_unavailable_reason_reports_enterprise_license_for_fido2_only_step() {
-        let business = compute_method_availability(true, true, true, false);
+        let business = gates(true, true, true, false);
         assert!(matches!(
-            flow_unavailable_reason(&[step(&[VpnClientMfaMethod::Fido2])], &business, true),
+            flow_reason(&[step(&[VpnClientMfaMethod::Fido2])], business),
             Some(MethodAvailabilityReason::EnterpriseLicensed)
         ));
         assert!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Totp, VpnClientMfaMethod::Fido2])],
-                &business,
-                true,
+                business
             )
             .is_none()
         );
         assert!(
-            flow_unavailable_reason(
+            flow_reason(
                 &[step(&[VpnClientMfaMethod::Fido2])],
-                &compute_method_availability(true, true, true, true),
-                true,
+                gates(true, true, true, true)
             )
             .is_none()
         );

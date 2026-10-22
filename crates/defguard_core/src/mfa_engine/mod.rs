@@ -121,11 +121,19 @@ pub struct MfaEngine {
 pub(crate) fn filter_unlicensed_mfa_methods(
     methods: &HashSet<VpnClientMfaMethod>,
 ) -> HashSet<VpnClientMfaMethod> {
-    methods
+    let licensed: HashSet<_> = methods
         .iter()
         .copied()
         .filter(|method| is_mfa_method_licensed(*method))
-        .collect()
+        .collect();
+    if licensed.len() < methods.len() {
+        let removed: Vec<_> = VpnClientMfaMethod::ALL
+            .into_iter()
+            .filter(|method| methods.contains(method) && !licensed.contains(method))
+            .collect();
+        debug!("The active license removed MFA methods {removed:?} from this step");
+    }
+    licensed
 }
 
 /// The side effects of a completed flow, built inside the transaction but dispatched by the

@@ -2,8 +2,8 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, MFAMethod, Settings, User, polling_token::PollingToken,
-            vpn_client_session::VpnClientMfaMethod,
+            Device, MFAMethod, Settings, User, biometric_auth::BiometricChallenge,
+            polling_token::PollingToken, vpn_client_session::VpnClientMfaMethod,
         },
     },
     random::gen_alphanumeric,
@@ -447,7 +447,16 @@ impl MfaConfigServer {
             return Err(Status::permission_denied("method not configured"));
         }
 
-        let Some(challenge) = token.issue_fido2_challenge(&self.pool).await? else {
+        let challenge = BiometricChallenge::new().challenge;
+        if !token
+            .replace_mfa_config_auth_state(
+                &self.pool,
+                &MfaConfigAuthState::Fido2 {
+                    challenge: challenge.clone(),
+                },
+            )
+            .await?
+        {
             debug!(
                 "MFA config FIDO2 challenge: user {} already completed OIDC authentication",
                 user.username
@@ -455,7 +464,7 @@ impl MfaConfigServer {
             return Err(Status::failed_precondition(
                 "OIDC authentication already completed",
             ));
-        };
+        }
         let credential_ids = fido2_credential_ids(&self.pool, user.id)
             .await
             .map_err(|err| {

@@ -2,7 +2,6 @@ use defguard_common::db::{
     Id,
     models::{
         Settings, WebAuthn,
-        biometric_auth::BiometricChallenge,
         user::User,
         webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
     },
@@ -46,28 +45,6 @@ impl Token {
         self.mfa_setup_state
             .as_ref()
             .and_then(|state| serde_cbor::from_slice(state).ok())
-    }
-
-    /// Stores a new single-use challenge for authorizing an MFA configuration session with FIDO2.
-    /// Returns `None`, storing nothing, when a completed OIDC attempt is waiting for the client to
-    /// authorize the session.
-    pub async fn issue_fido2_challenge(
-        &mut self,
-        pool: &PgPool,
-    ) -> Result<Option<String>, TokenError> {
-        let challenge = BiometricChallenge::new().challenge;
-        if !self
-            .replace_mfa_config_auth_state(
-                pool,
-                &MfaConfigAuthState::Fido2 {
-                    challenge: challenge.clone(),
-                },
-            )
-            .await?
-        {
-            return Ok(None);
-        }
-        Ok(Some(challenge))
     }
 
     /// Removes and returns the stored FIDO2 challenge, so each challenge verifies at most once.

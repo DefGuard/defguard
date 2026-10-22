@@ -24,6 +24,8 @@ use crate::{
 
 mod setup;
 
+const RP_ID_HASH_LEN: usize = 32;
+
 /// Binary FIDO2 assertion submitted to a multi-step finish.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Fido2Assertion {
@@ -50,7 +52,6 @@ impl TryFrom<Fido2Assertion> for VerificationProof {
     type Error = ProofConversionError;
 
     fn try_from(assertion: Fido2Assertion) -> Result<Self, Self::Error> {
-        const RP_ID_HASH_LEN: usize = 32;
         let Fido2Assertion {
             rp_id_hash,
             authenticator_data,
@@ -200,8 +201,6 @@ pub async fn verify_mfa_config_fido2_assertion(
     auth_data: Option<&[u8]>,
     credential_id: Option<&[u8]>,
 ) -> Result<bool, VerifyError> {
-    const RP_ID_HASH_LEN: usize = 32;
-
     let settings = Settings::get_current_settings();
     let rp_id = settings
         .webauthn_rp_id()
