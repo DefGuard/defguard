@@ -27,7 +27,11 @@ import {
   PostureCheckLocationsSection,
   PostureCheckOperatingSystemsSection,
 } from '../../shared/components/postureChecksEditor/PostureCheckEditorSections';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
+import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
+import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
@@ -165,6 +169,12 @@ const EditPostureCheckForm = ({
         <PostureCheckGeneralSection values={values} updateValues={updateValues} />
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_operating_systems()}>
+        <InfoBanner
+          icon={IconKind.InfoOutlined}
+          text={m.location_posture_checks_info()}
+          variant="info"
+        />
+        <SizedBox height={ThemeSpacing.Xl2} />
         <PostureCheckOperatingSystemsSection
           asCards={false}
           values={values}
