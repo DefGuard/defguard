@@ -5,17 +5,16 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WebAuthn, user::User},
+        models::{Settings, user::User},
     },
     random::gen_alphanumeric,
     types::UrlParseError,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as, types::Uuid};
+use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
-use webauthn_rs::prelude::{PasskeyRegistration, RegisterPublicKeyCredential};
 
 use crate::mail::templates;
 
@@ -189,35 +188,6 @@ impl Token {
         Ok(())
     }
 
-    /// Token-based counterpart of `Session::set_passkey_registration` on the REST path.
-    pub async fn set_passkey_registration<'e, E>(
-        &mut self,
-        executor: E,
-        passkey_reg: &PasskeyRegistration,
-    ) -> Result<(), TokenError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let mfa_setup_state = serde_cbor::to_vec(passkey_reg)
-            .map_err(|err| TokenError::MfaSetupStateSerialization(err.to_string()))?;
-        query!(
-            "UPDATE token SET mfa_setup_state = $1 WHERE id = $2",
-            mfa_setup_state,
-            self.id
-        )
-        .execute(executor)
-        .await?;
-        self.mfa_setup_state = Some(mfa_setup_state);
-        Ok(())
-    }
-
-    #[must_use]
-    pub fn get_passkey_registration(&self) -> Option<PasskeyRegistration> {
-        self.mfa_setup_state
-            .as_ref()
-            .and_then(|state| serde_cbor::from_slice(state).ok())
-    }
-
     pub async fn clear_mfa_setup_state<'e, E>(&mut self, executor: E) -> Result<(), TokenError>
     where
         E: PgExecutor<'e>,
@@ -260,7 +230,7 @@ impl Token {
             .and_then(|state| serde_cbor::from_slice(state).ok())
     }
 
-    async fn lock_mfa_config_auth_state(
+    pub(crate) async fn lock_mfa_config_auth_state(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Option<MfaConfigAuthState>, TokenError> {
@@ -293,28 +263,6 @@ impl Token {
             .await?;
         transaction.commit().await?;
         Ok(true)
-    }
-
-    /// Removes and returns the stored FIDO2 challenge, so each challenge verifies at most once.
-    pub async fn take_fido2_challenge(
-        &mut self,
-        pool: &PgPool,
-    ) -> Result<Option<String>, TokenError> {
-        let mut transaction = pool.begin().await?;
-        let Some(MfaConfigAuthState::Fido2 { challenge }) =
-            self.lock_mfa_config_auth_state(&mut transaction).await?
-        else {
-            return Ok(None);
-        };
-        query!(
-            "UPDATE token SET mfa_setup_state = NULL WHERE id = $1",
-            self.id
-        )
-        .execute(&mut *transaction)
-        .await?;
-        transaction.commit().await?;
-        self.mfa_setup_state = None;
-        Ok(Some(challenge))
     }
 
     /// Whether `attempt_id` is still the pending OIDC attempt, locking the token row for the
@@ -379,60 +327,6 @@ impl Token {
             .await?;
         transaction.commit().await?;
         Ok(true)
-    }
-
-    /// Like the REST `webauthn_init`, but stores the ceremony state on the token.
-    /// Returns the `CreationChallengeResponse` as JSON for the client's authenticator.
-    pub async fn start_fido2_setup(
-        &mut self,
-        pool: &PgPool,
-        user: &User<Id>,
-    ) -> Result<String, TokenError> {
-        let passkeys = WebAuthn::passkeys_for_user(pool, user.id).await?;
-        let webauthn = Settings::get_current_settings()
-            .build_webauthn()
-            .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
-        let (ccr, passkey_reg) = webauthn
-            .start_passkey_registration(
-                Uuid::new_v4(),
-                &user.username,
-                &user.username,
-                Some(passkeys.iter().map(|key| key.cred_id().clone()).collect()),
-            )
-            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        self.set_passkey_registration(pool, &passkey_reg).await?;
-        serde_json::to_string(&ccr).map_err(|err| TokenError::WebauthnRegistration(err.to_string()))
-    }
-
-    /// Like the REST `webauthn_finish`: verifies the attestation against the stored
-    /// challenge, saves the security key and clears the ceremony state.
-    pub async fn finish_fido2_setup(
-        &mut self,
-        pool: &PgPool,
-        user_id: Id,
-        name: String,
-        attestation_json: &str,
-    ) -> Result<WebAuthn<Id>, TokenError> {
-        let webauthn = Settings::get_current_settings()
-            .build_webauthn()
-            .map_err(|err| TokenError::WebauthnConfig(err.to_string()))?;
-        let passkey_reg = self.get_passkey_registration().ok_or_else(|| {
-            TokenError::WebauthnRegistration("Passkey registration session not found".into())
-        })?;
-        let rpkc: RegisterPublicKeyCredential =
-            serde_json::from_str(attestation_json).map_err(|_| {
-                TokenError::WebauthnRegistration("Failed to parse registration attestation".into())
-            })?;
-        let passkey = webauthn
-            .finish_passkey_registration(&rpkc, &passkey_reg)
-            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        let webauthn_key = WebAuthn::new(user_id, name, &passkey)
-            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?
-            .save(pool)
-            .await
-            .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?;
-        self.clear_mfa_setup_state(pool).await?;
-        Ok(webauthn_key)
     }
 
     // check if token has already expired

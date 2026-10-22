@@ -31,6 +31,7 @@ use crate::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_mfa_location_usage, should_prevent_service_location_usage,
     },
+    mfa_engine::filter_unlicensed_mfa_methods,
 };
 
 pub async fn build_device_config_response(
@@ -241,7 +242,8 @@ pub fn build_wire_steps(
     let mut wire_steps = Vec::with_capacity(steps.len());
     for step in steps {
         let mut methods = Vec::with_capacity(step.methods.len());
-        for method in VpnClientMfaMethod::ordered_set(&step.methods) {
+        for method in VpnClientMfaMethod::ordered_set(&filter_unlicensed_mfa_methods(&step.methods))
+        {
             methods.push(MfaStepMethod {
                 method: <VpnClientMfaMethod as Into<MfaMethod>>::into(method) as i32,
                 configured: configured_methods.contains(&method),
@@ -1026,7 +1028,11 @@ mod tests {
         let instance_info = InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
             .await
             .expect("failed to build instance info");
+        // OIDC needs a Business license to stay in the wire steps.
+        let saved_license = get_cached_license().clone();
+        set_cached_license(Some(business_license()));
         let wire = build_wire_steps(&steps, &instance_info.configured_methods);
+        set_cached_license(saved_license);
 
         assert_eq!(wire.len(), 2);
 
@@ -1071,7 +1077,7 @@ mod tests {
                 id: 2,
                 flow_id: 1,
                 position: 1,
-                methods: HashSet::from([VpnClientMfaMethod::Totp, VpnClientMfaMethod::Fido2]),
+                methods: HashSet::from([VpnClientMfaMethod::Totp, VpnClientMfaMethod::Biometric]),
             },
         ];
         let wire = build_wire_steps(&steps, &[VpnClientMfaMethod::Totp]);
@@ -1079,6 +1085,67 @@ mod tests {
         assert!(!wire[0].methods[1].configured);
         assert!(wire[1].methods[0].configured);
         assert!(!wire[1].methods[1].configured);
+    }
+
+    /// The client must not offer a method that the MFA engine refuses at connect time.
+    #[test]
+    fn test_build_wire_steps_leaves_out_unlicensed_methods() {
+        let steps = vec![
+            MfaFlowStep {
+                id: 1,
+                flow_id: 1,
+                position: 0,
+                methods: HashSet::from([
+                    VpnClientMfaMethod::Totp,
+                    VpnClientMfaMethod::Oidc,
+                    VpnClientMfaMethod::Fido2,
+                ]),
+            },
+            MfaFlowStep {
+                id: 2,
+                flow_id: 1,
+                position: 1,
+                methods: HashSet::from([VpnClientMfaMethod::Fido2]),
+            },
+        ];
+        let saved_license = get_cached_license().clone();
+
+        let cases: [(Option<License>, &[MfaMethod], &[MfaMethod]); 3] = [
+            (None, &[MfaMethod::Totp], &[]),
+            (
+                Some(business_license()),
+                &[MfaMethod::Totp, MfaMethod::Oidc],
+                &[],
+            ),
+            (
+                Some(License {
+                    tier: LicenseTier::Enterprise,
+                    ..business_license()
+                }),
+                &[MfaMethod::Totp, MfaMethod::Oidc, MfaMethod::Fido2],
+                &[MfaMethod::Fido2],
+            ),
+        ];
+        for (license, expected_first, expected_second) in cases {
+            set_cached_license(license);
+            let wire = build_wire_steps(&steps, &[VpnClientMfaMethod::Fido2]);
+
+            assert_eq!(wire.len(), 2);
+            for (step, expected) in wire.iter().zip([expected_first, expected_second]) {
+                assert_eq!(
+                    step.methods
+                        .iter()
+                        .map(|method| method.method)
+                        .collect::<Vec<_>>(),
+                    expected
+                        .iter()
+                        .map(|method| *method as i32)
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
+
+        set_cached_license(saved_license);
     }
 
     #[sqlx::test]
@@ -1127,27 +1194,6 @@ mod tests {
                 .expect("failed to build instance info")
                 .into();
 
-        let capabilities = instance
-            .mfa_capabilities
-            .as_ref()
-            .expect("InstanceInfo should advertise MFA capabilities");
-        assert_eq!(
-            capabilities.setup_methods,
-            vec![
-                MfaMethod::Totp as i32,
-                MfaMethod::Email as i32,
-                MfaMethod::Fido2 as i32,
-            ]
-        );
-        assert_eq!(
-            capabilities.authorize_methods,
-            vec![
-                MfaMethod::Totp as i32,
-                MfaMethod::Email as i32,
-                MfaMethod::Fido2 as i32,
-                MfaMethod::Oidc as i32,
-            ]
-        );
         assert!(
             instance
                 .mfa_user_state
@@ -1157,8 +1203,10 @@ mod tests {
         );
     }
 
+    /// Without an Enterprise license, FIDO2 is left out of the setup methods, so the client shows
+    /// it as locked. FIDO2 still authorizes an MFA configuration session on every tier.
     #[sqlx::test]
-    async fn test_instance_info_advertises_mfa_capabilities(
+    async fn test_instance_info_offers_fido2_setup_only_with_enterprise_license(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1166,30 +1214,53 @@ mod tests {
         init_settings(&pool).await;
         let user = create_user(&pool).await;
         let settings = Settings::get_current_settings();
+        let saved_license = get_cached_license().clone();
 
-        let instance: defguard_proto::client_types::InstanceInfo =
-            InstanceInfo::build(&pool, &settings, &user, None, None)
-                .await
-                .expect("failed to build instance info")
-                .into();
+        let cases: [(Option<License>, &[MfaMethod]); 3] = [
+            (None, &[MfaMethod::Totp, MfaMethod::Email]),
+            (
+                Some(business_license()),
+                &[MfaMethod::Totp, MfaMethod::Email],
+            ),
+            (
+                Some(License {
+                    tier: LicenseTier::Enterprise,
+                    ..business_license()
+                }),
+                &[MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2],
+            ),
+        ];
+        for (license, expected_setup_methods) in cases {
+            set_cached_license(license);
+            let instance: defguard_proto::client_types::InstanceInfo =
+                InstanceInfo::build(&pool, &settings, &user, None, None)
+                    .await
+                    .expect("failed to build instance info")
+                    .into();
 
-        let capabilities = instance
-            .mfa_capabilities
-            .expect("InstanceInfo should contain MFA capabilities");
-        assert_eq!(
-            capabilities.setup_methods,
-            [MfaMethod::Totp, MfaMethod::Email, MfaMethod::Fido2].map(|method| method as i32)
-        );
-        assert_eq!(
-            capabilities.authorize_methods,
-            [
-                MfaMethod::Totp,
-                MfaMethod::Email,
-                MfaMethod::Fido2,
-                MfaMethod::Oidc
-            ]
-            .map(|method| method as i32)
-        );
+            let capabilities = instance
+                .mfa_capabilities
+                .expect("InstanceInfo should contain MFA capabilities");
+            assert_eq!(
+                capabilities.setup_methods,
+                expected_setup_methods
+                    .iter()
+                    .map(|method| *method as i32)
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                capabilities.authorize_methods,
+                [
+                    MfaMethod::Totp,
+                    MfaMethod::Email,
+                    MfaMethod::Fido2,
+                    MfaMethod::Oidc
+                ]
+                .map(|method| method as i32)
+            );
+        }
+
+        set_cached_license(saved_license);
     }
 
     #[sqlx::test]

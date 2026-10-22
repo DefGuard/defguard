@@ -1,23 +1,18 @@
-use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
-use ctap_hid_fido2::{
-    fidokey::get_assertion::get_assertion_params::Assertion, verifier::verify_assertion,
-};
-use defguard_common::db::{
-    Id,
-    models::{
-        Settings, ThrottleScope, WebAuthn,
-        biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
-        user::UserError,
-        vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
-        vpn_client_session::VpnClientMfaMethod,
-        webauthn::to_ctap_public_key,
-    },
+use defguard_common::db::models::{
+    ThrottleScope,
+    biometric_auth::{BiometricAuth, BiometricAuthError, BiometricChallenge},
+    user::UserError,
+    vpn_client_mfa_session::{EphemeralState, MfaSessionContext},
+    vpn_client_session::VpnClientMfaMethod,
 };
 use sqlx::PgPool;
 use thiserror::Error;
 
 use super::types::VerificationProof;
-use crate::mail::templates::{TemplateError, mfa_code_mail};
+use crate::{
+    enterprise::fido2::{fido2_credential_ids, verify_vpn_fido2_step},
+    mail::templates::{TemplateError, mfa_code_mail},
+};
 
 /// Outcome of proof verification.
 #[derive(Debug, PartialEq)]
@@ -41,7 +36,7 @@ pub(super) enum LegacyCredential {
 
 /// Errors produced by method verifiers shared by the legacy and multi-step contracts.
 #[derive(Debug, Error)]
-pub(super) enum CommonVerifyError {
+pub(crate) enum CommonVerifyError {
     /// A required credential is absent or has the wrong shape. `event` is the audit message to emit.
     #[error("{message}")]
     MalformedProof {
@@ -151,7 +146,7 @@ pub async fn initiate(
     }
 }
 
-fn credential_method_mismatch() -> CommonVerifyError {
+pub(crate) fn credential_method_mismatch() -> CommonVerifyError {
     CommonVerifyError::MalformedProof {
         message: "MFA credential does not match the selected method",
         event: None,
@@ -290,127 +285,6 @@ pub(super) fn verify_legacy(
     }
 }
 
-async fn verify_vpn_fido2_step(
-    pool: &PgPool,
-    ctx: &MfaSessionContext,
-    ephemeral: &EphemeralState,
-    proof: Option<&VerificationProof>,
-) -> Result<Verdict, VerifyError> {
-    let assertion = match proof {
-        Some(VerificationProof::Fido2 {
-            rp_id_hash,
-            signature,
-            authenticator_data,
-            credential_id,
-        }) => Some((rp_id_hash, signature, authenticator_data, credential_id)),
-        Some(_) => return Err(credential_method_mismatch().into()),
-        None => None,
-    };
-    let settings = Settings::get_current_settings();
-    let rp_id = settings
-        .webauthn_rp_id()
-        .map_err(|_| VerifyError::MissingRPID)?;
-    let challenge = ephemeral
-        .biometric_challenge
-        .as_ref()
-        .ok_or(VerifyError::MissingChallenge)?;
-    let Some((rp_id_hash, signature, authenticator_data, credential_id)) = assertion else {
-        return Err(VerifyError::MalformedProof {
-            message: "Signature",
-            event: None,
-        });
-    };
-    let assertion = Assertion {
-        rpid_hash: rp_id_hash.clone(),
-        signature: signature.clone(),
-        auth_data: authenticator_data.clone(),
-        ..Default::default()
-    };
-    if verify_registered_fido2_assertion(
-        pool,
-        ctx.user.id,
-        &rp_id,
-        &challenge.challenge,
-        &assertion,
-        Some(credential_id.as_slice()),
-    )
-    .await?
-    {
-        Ok(Verdict::Proved)
-    } else {
-        Ok(Verdict::Failed {
-            message: "FIDO2 challenge failed",
-        })
-    }
-}
-
-async fn verify_registered_fido2_assertion(
-    pool: &PgPool,
-    user_id: Id,
-    rp_id: &str,
-    challenge: &str,
-    assertion: &Assertion,
-    credential_id: Option<&[u8]>,
-) -> Result<bool, VerifyError> {
-    let passkeys = WebAuthn::passkeys_for_user(pool, user_id).await?;
-    for passkey in &passkeys {
-        if credential_id.is_some_and(|credential_id| passkey.cred_id().as_ref() != credential_id) {
-            continue;
-        }
-        let Some(public_key) = to_ctap_public_key(passkey) else {
-            continue;
-        };
-        if verify_assertion(rp_id, &public_key, challenge.as_bytes(), assertion) {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
-
-/// Verify a FIDO2 assertion used to authorize MFA configuration.
-///
-/// Returns `Ok(false)` when no registered key verifies the assertion.
-pub async fn verify_mfa_config_fido2_assertion(
-    pool: &PgPool,
-    user_id: Id,
-    challenge: &str,
-    signature: Option<&[u8]>,
-    auth_data: Option<&[u8]>,
-    credential_id: Option<&[u8]>,
-) -> Result<bool, VerifyError> {
-    const RP_ID_HASH_LEN: usize = 32;
-
-    let settings = Settings::get_current_settings();
-    let rp_id = settings
-        .webauthn_rp_id()
-        .map_err(|_| VerifyError::MissingRPID)?;
-    let signature = signature.ok_or(VerifyError::MalformedProof {
-        message: "Signature",
-        event: None,
-    })?;
-    let auth_data = auth_data.ok_or(VerifyError::MalformedProof {
-        message: "Auth data not found in request",
-        event: None,
-    })?;
-    let rpid_hash = auth_data
-        .get(..RP_ID_HASH_LEN)
-        .ok_or(VerifyError::MalformedProof {
-            message: "Auth data too small",
-            event: None,
-        })?
-        .to_vec();
-
-    let assertion = Assertion {
-        rpid_hash,
-        signature: signature.to_vec(),
-        auth_data: auth_data.to_vec(),
-        ..Default::default()
-    };
-    verify_registered_fido2_assertion(pool, user_id, &rp_id, challenge, &assertion, credential_id)
-        .await
-}
-
 /// Verify a signed MobileApprove challenge.
 ///
 /// This entry point requires both signature fields and never reads the durable approval mark.
@@ -459,13 +333,4 @@ pub async fn offered_credential_ids(
         return Ok(Vec::new());
     }
     fido2_credential_ids(pool, ctx.user.id).await
-}
-
-/// Every security key credential the user has registered, base64url as webauthn-rs serializes them.
-pub async fn fido2_credential_ids(pool: &PgPool, user_id: Id) -> Result<Vec<String>, sqlx::Error> {
-    Ok(WebAuthn::passkeys_for_user(pool, user_id)
-        .await?
-        .iter()
-        .map(|passkey| BASE64_URL_SAFE_NO_PAD.encode(passkey.cred_id()))
-        .collect())
 }

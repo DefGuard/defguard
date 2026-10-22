@@ -9,7 +9,6 @@ use defguard_common::{
             WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
             polling_token::PollingToken,
-            vpn_client_session::VpnClientMfaMethod,
             wireguard::ServiceLocationMode,
         },
     },
@@ -23,6 +22,7 @@ use defguard_core::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
         ldap::utils::ldap_add_user,
+        licensed_mfa_setup_methods,
         limits::update_counts,
     },
     events::{
@@ -1095,7 +1095,8 @@ impl EnrollmentServer {
     ) -> Result<CodeMfaSetupStartResponse, Status> {
         debug!("Starting MFA setup");
         let method = request.method();
-        if !VpnClientMfaMethod::CONFIG_SETUP.contains(&method.into()) {
+        if !licensed_mfa_setup_methods().contains(&method.into()) {
+            warn!("Refusing to start {method} MFA setup; the active license does not allow it");
             return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
         let (mut token, is_enrollment) = self
@@ -1178,7 +1179,8 @@ impl EnrollmentServer {
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
         let method = request.method();
-        if !VpnClientMfaMethod::CONFIG_SETUP.contains(&method.into()) {
+        if !licensed_mfa_setup_methods().contains(&method.into()) {
+            warn!("Refusing to finish {method} MFA setup; the active license does not allow it");
             return Err(Status::invalid_argument("Method not supported"));
         }
         let mut user = token.fetch_user(&self.pool).await?;

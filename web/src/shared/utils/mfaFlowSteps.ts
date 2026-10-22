@@ -41,6 +41,8 @@ export const mfaFlowUnavailableText = (
   switch (reason) {
     case MfaMethodAvailabilityReason.Licensed:
       return m.location_mfa_flow_unavailable_license();
+    case MfaMethodAvailabilityReason.EnterpriseLicensed:
+      return m.location_mfa_flow_unavailable_enterprise_license();
     case MfaMethodAvailabilityReason.SmtpNotConfigured:
       return m.location_mfa_flow_unavailable_smtp();
     case MfaMethodAvailabilityReason.OidcProviderMissing:
