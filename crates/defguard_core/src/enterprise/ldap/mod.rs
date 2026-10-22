@@ -248,7 +248,10 @@ impl LDAPConfig {
         self.user_dn(user.ldap_rdn_value(), path)
     }
 
-    /// reconciles RDN escape spellings before comparing directory member DNs.
+    /// Respells a DN the server sent the way `user_dn` builds one, for comparison.
+    ///
+    /// A server may escape a comma as `\,` where Defguard writes `\2c`, so a `member` value can name
+    /// a user and still differ from that user's DN byte for byte.
     #[must_use]
     pub(crate) fn dn_match_key(&self, dn: &str) -> String {
         split_first_rdn(dn)

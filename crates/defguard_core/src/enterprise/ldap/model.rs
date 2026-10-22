@@ -337,7 +337,7 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
     }
 }
 
-/// splits the first RDN value from its parent path without decoding either part.
+/// Splits a DN into the still-escaped value of its first component and the path after it.
 #[must_use]
 pub(super) fn split_first_rdn(dn: &str) -> Option<(&str, &str)> {
     let comma_index = find_unescaped_separator(dn, b',')?;
@@ -346,7 +346,7 @@ pub(super) fn split_first_rdn(dn: &str) -> Option<(&str, &str)> {
     Some((&rdn[(eq_index + 1)..], &dn[(comma_index + 1)..]))
 }
 
-/// only the RDN value is decoded, the parent path must remain escaped.
+/// Returns the unescaped value of the first component, so `cn=Doe\, John,ou=x` gives `Doe, John`.
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
     split_first_rdn(dn).and_then(|(value, _)| unescape_value(value))
@@ -362,7 +362,7 @@ pub(super) fn is_search_entry(entry: &ResultEntry) -> bool {
     entry.0.id == 4
 }
 
-/// escapes in the parent path retain the structure of its RDN components.
+/// Returns the part after the first unescaped comma, so `cn=Doe\, John,ou=x` gives `ou=x`.
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
     let Some(comma_index) = find_unescaped_separator(dn, b',') else {
