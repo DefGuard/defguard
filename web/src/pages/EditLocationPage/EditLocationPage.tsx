@@ -1046,7 +1046,6 @@ const EditLocationForm = ({
                 editText={m.location_posture_checks_edit()}
                 editIcon={IconKind.Edit}
                 toggleValue={false}
-                counterText={() => ''}
                 onSelectionChange={handlePostureSelection}
                 onToggleChange={() => {}}
                 selectionCustomItemRender={renderPostureCheckSelectionItem}
