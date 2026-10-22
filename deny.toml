@@ -72,10 +72,10 @@ feature-depth = 1
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "https://github.com/RustCrypto/RSA/issues/19" },
     { id = "RUSTSEC-2024-0436", reason = "Unmaintained dependency of tera" },
-    { id = "RUSTSEC-2024-0449", reason = "Unmaintained dependency of uaparser" },
-    { id = "RUSTSEC-2026-0367", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
-    { id = "RUSTSEC-2026-0368", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
-    { id = "RUSTSEC-2026-0369", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
+    { id = "RUSTSEC-2024-0449", reason = "Transitive through uaparser; parses bundled user-agent regex YAML, not request data. No patched release is available." },
+    { id = "RUSTSEC-2026-0367", reason = "Build-only zip use through utoipa-swagger-ui's vendored archive. Its build script applies archive-derived Unix modes, but the archive is package-bundled, not user-supplied. No compatible wrapper release allows zip >=9." },
+    { id = "RUSTSEC-2026-0368", reason = "Build-only zip use through utoipa-swagger-ui; the vendored path manually copies enclosed entries and does not call ZipArchive::extract. No compatible wrapper release allows zip >=9." },
+    { id = "RUSTSEC-2026-0369", reason = "Build-only zip use through utoipa-swagger-ui; the vendored path does not call extraction APIs that apply permissions through archive symlinks. No compatible wrapper release allows zip >=9." }
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
