@@ -81,7 +81,9 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
           {selectedOptions.map((o) => (
             <Chip text={o.label} key={o.id} />
           ))}
-          {selectedOptions.length > 5 && <Chip text={counterText(selected.size - 5)} />}
+          {isPresent(counterText) && selectedOptions.length > 5 && (
+            <Chip text={counterText(selected.size - 5)} />
+          )}
         </div>
         {selectedOptions.length > 0 && <SizedBox height={ThemeSpacing.Md} />}
         <button
