@@ -46,6 +46,7 @@ pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
     pub last_version_migrated_to: Option<String>,
+    pub ldap_migration_completed: bool,
 }
 
 impl Wizard {
@@ -54,11 +55,12 @@ impl Wizard {
         E: PgExecutor<'e>,
     {
         query!(
-            "UPDATE wizard SET active_wizard = $1, completed = $2, last_version_migrated_to = $3 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2, last_version_migrated_to = $3, ldap_migration_completed = $4 \
             WHERE is_singleton",
             self.active_wizard as ActiveWizard,
             self.completed,
-            self.last_version_migrated_to
+            self.last_version_migrated_to,
+            self.ldap_migration_completed,
         )
         .execute(executor)
         .await?;
@@ -72,7 +74,7 @@ impl Wizard {
     {
         let row = query_as!(
             Wizard,
-            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to \
+            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to, ldap_migration_completed \
             FROM wizard WHERE is_singleton LIMIT 1",
         )
         .fetch_one(executor)
@@ -82,6 +84,7 @@ impl Wizard {
             active_wizard: row.active_wizard,
             completed: row.completed,
             last_version_migrated_to: row.last_version_migrated_to,
+            ldap_migration_completed: row.ldap_migration_completed,
         })
     }
 
