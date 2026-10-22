@@ -1096,6 +1096,7 @@ impl EnrollmentServer {
         debug!("Starting MFA setup");
         let method = request.method();
         if !licensed_mfa_setup_methods().contains(&method.into()) {
+            warn!("Refusing to start {method} MFA setup; the active license does not allow it");
             return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
         let (mut token, is_enrollment) = self
@@ -1179,6 +1180,7 @@ impl EnrollmentServer {
             .await?;
         let method = request.method();
         if !licensed_mfa_setup_methods().contains(&method.into()) {
+            warn!("Refusing to finish {method} MFA setup; the active license does not allow it");
             return Err(Status::invalid_argument("Method not supported"));
         }
         let mut user = token.fetch_user(&self.pool).await?;
