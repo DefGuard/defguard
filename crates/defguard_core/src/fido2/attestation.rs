@@ -325,9 +325,16 @@ mod tests {
         let catalog: Catalog =
             serde_json::from_str(TRUSTED_AUTHENTICATORS_JSON).expect("bundled list parses");
         let yubico_root_1 = "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8";
-        assert!(catalog.models.iter().flat_map(|model| &model.roots).any(|root| {
-            certificate_sha256(&BASE64_STANDARD.decode(root).expect("valid base64")) == yubico_root_1
-        }));
+        assert!(
+            catalog
+                .models
+                .iter()
+                .flat_map(|model| &model.roots)
+                .any(|root| {
+                    certificate_sha256(&BASE64_STANDARD.decode(root).expect("valid base64"))
+                        == yubico_root_1
+                })
+        );
     }
 
     #[test]

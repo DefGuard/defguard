@@ -221,3 +221,58 @@ pub fn to_ctap_public_key(passkey: &Passkey) -> Option<PublicKey> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use super::*;
+    use crate::db::{models::User, setup_pool};
+
+    #[sqlx::test]
+    async fn test_find_by_attestation_roots(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let root_sha256 = "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8";
+        let key = WebAuthn {
+            id: NoId,
+            user_id: user.id,
+            name: "security-key".to_owned(),
+            passkey: Vec::new(),
+            authenticator_name: None,
+            authenticator_kind: AuthenticatorKind::Hardware,
+            registration_source: RegistrationSource::Desktop,
+            attestation_aaguid: Some(Uuid::nil()),
+            attestation_root_sha256: Some(root_sha256.to_owned()),
+            attestation_valid_until: Some(Utc::now().naive_utc()),
+            registered_at: Some(Utc::now().naive_utc()),
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let found = WebAuthn::find_by_attestation_roots(
+            &pool,
+            &[root_sha256.to_owned(), "unknown".to_owned()],
+        )
+        .await
+        .unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, key.id);
+
+        let found = WebAuthn::find_by_attestation_roots(&pool, &["unknown".to_owned()])
+            .await
+            .unwrap();
+        assert!(found.is_empty());
+    }
+}
