@@ -1004,6 +1004,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         active_wizard: ActiveWizard::None,
         completed: true,
         last_version_migrated_to: None,
+        ldap_migration_completed: false,
     };
     // Ensure wizard is initialized, then overwrite with completed state
     let _ = Wizard::init(&pool, false, config).await;
