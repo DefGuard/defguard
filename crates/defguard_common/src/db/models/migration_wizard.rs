@@ -8,6 +8,8 @@ pub enum MigrationWizardStep {
     Welcome,
     #[serde(rename = "general")]
     General,
+    #[serde(rename = "ldapMigration")]
+    LdapMigration,
     #[serde(rename = "internalUrlSettings")]
     InternalUrlSettings,
     #[serde(rename = "internalUrlSslConfig")]

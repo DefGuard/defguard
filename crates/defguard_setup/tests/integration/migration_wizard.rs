@@ -2,7 +2,7 @@ use defguard_common::{
     config::DefGuardConfig,
     db::{
         models::{
-            Certificates, Settings,
+            Certificates, Settings, User,
             migration_wizard::MigrationWizardState,
             wizard::{ActiveWizard, Wizard},
         },
@@ -42,6 +42,18 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     init_settings_with_secret_key(&pool).await;
 
     seed_admin_user(&pool, "migration_admin", "Passw0rd!").await;
+    let mut ldap_user = User::new(
+        "migration_ldap_user",
+        None,
+        "Doe",
+        "John",
+        "jdoe@example.org",
+        None,
+    );
+    ldap_user.from_ldap = true;
+    ldap_user.ldap_rdn = Some(r"Doe\".into());
+    ldap_user.ldap_user_path = Some(r" John,ou=People\,West,dc=example,dc=org".into());
+    let ldap_user = ldap_user.save(&pool).await.unwrap();
 
     Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
@@ -84,6 +96,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         state["current_step"], "welcome",
         "Initial migration step should be 'welcome'"
     );
+    assert_eq!(state["ldap_migration_required"], true);
     assert!(
         state["location_state"].is_null(),
         "location_state should be null initially"
@@ -122,6 +135,52 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(settings.defguard_url, "https://migration.example.com");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);
+
+    let resp = client
+        .put("/api/v1/migration/state")
+        .json(&json!({"current_step": "ldapMigration", "location_state": null}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_migration_step(&pool, "ldapMigration").await;
+
+    let resp = client
+        .post("/api/v1/migration/ldap/repair")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(result["found"], 1);
+    assert_eq!(result["migrated"], 1);
+    assert!(result["logs"].is_array());
+    let repaired = User::find_by_id(&pool, ldap_user.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(repaired.ldap_rdn.as_deref(), Some("Doe, John"));
+    assert_eq!(
+        repaired.ldap_user_path.as_deref(),
+        Some(r"ou=People\,West,dc=example,dc=org")
+    );
+    assert!(Wizard::get(&pool).await.unwrap().ldap_migration_completed);
+
+    let resp = client.get("/api/v1/migration/state").send().await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let state: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(state["current_step"], "ldapMigration");
+    assert_eq!(state["ldap_migration_required"], false);
+
+    let resp = client
+        .post("/api/v1/migration/ldap/repair")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(result["found"], 0);
+    assert_eq!(result["migrated"], 0);
 
     let resp = client
         .post("/api/v1/migration/ca")
@@ -163,6 +222,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     let wizard = Wizard::get(&pool).await.expect("Failed to get wizard");
     assert!(wizard.completed, "Wizard should be completed after finish");
+    assert!(wizard.ldap_migration_completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
     let migration_state = MigrationWizardState::get(&pool)
@@ -213,6 +273,13 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
         StatusCode::UNAUTHORIZED,
         "GET /migration/state should require auth"
     );
+
+    let resp = unauth
+        .post(format!("{base}/api/v1/migration/ldap/repair"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 
     let resp = unauth
         .put(format!("{base}/api/v1/migration/state"))
@@ -277,6 +344,8 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
         StatusCode::OK,
         "GET /migration/state should succeed after login"
     );
+    let state: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(state["ldap_migration_required"], false);
 
     let resp = client
         .put("/api/v1/migration/state")
@@ -289,4 +358,12 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
         StatusCode::OK,
         "PUT /migration/state should succeed after login"
     );
+
+    let resp = client
+        .post("/api/v1/migration/ldap/repair")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert!(Wizard::get(&pool).await.unwrap().ldap_migration_completed);
 }
