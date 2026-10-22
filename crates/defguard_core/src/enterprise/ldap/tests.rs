@@ -15,6 +15,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::broadcast::{Receiver, Sender, channel};
 
 use super::{
+    migration::repair,
     model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
     sync::{
         Authority, compute_group_sync_changes, compute_user_sync_changes,
@@ -1538,6 +1539,82 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[test]
+fn test_dn_match_key_reconciles_escape_spellings() {
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    let path = "OU=Members,DC=example,DC=com";
+    let user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+
+    let member_dn = format!(r"CN=Doe\, John - jdoe,{path}");
+    let rebuilt = config.user_dn_for_user(&user);
+    assert_ne!(member_dn, rebuilt);
+    assert_eq!(config.dn_match_key(&member_dn), rebuilt);
+
+    let hexpair_dn = format!(r"CN=Doe\2c John - jdoe,{path}");
+    assert_eq!(
+        config.dn_match_key(&hexpair_dn),
+        config.dn_match_key(&member_dn)
+    );
+
+    assert_eq!(config.dn_match_key("value"), "value");
+}
+
+#[sqlx::test]
+async fn test_sync_resolves_membership_for_comma_in_rdn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let config = ldap_conn.config.clone();
+
+    let group = Group::new("directory-group").save(&pool).await.unwrap();
+    let path = "OU=Members,DC=example,DC=com";
+    let ldap_user = make_test_user(
+        "jdoe",
+        Some("Doe, John - jdoe".to_owned()),
+        Some(path.to_owned()),
+    );
+    let directory_dn = format!(r"cn=Doe\, John - jdoe,{path}");
+    assert_ne!(config.user_dn_for_user(&ldap_user), directory_dn);
+
+    let mut defguard_user = ldap_user.clone();
+    defguard_user.from_ldap = true;
+    let defguard_user = defguard_user.save(&pool).await.unwrap();
+
+    ldap_conn
+        .test_client_mut()
+        .add_test_user_with_dn(&ldap_user, &directory_dn);
+    let ldap_group = group.clone().as_noid();
+    ldap_conn
+        .test_client_mut()
+        .add_test_group(&ldap_group, &config);
+    ldap_conn
+        .test_client_mut()
+        .add_test_membership_with_dn(&ldap_group, &directory_dn, &config);
+
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    assert_eq!(
+        group.member_usernames(&pool).await.unwrap(),
+        vec![defguard_user.username]
+    );
+}
+
+#[test]
 fn test_extract_intersecting_users_empty() {
     let mut defguard_users = Vec::<User<Id>>::new();
     let mut ldap_users = Vec::<User>::new();
@@ -2714,6 +2791,55 @@ fn test_extract_dn_value() {
         Some(String::new())
     );
     assert_eq!(extract_rdn_value(""), None);
+    assert_eq!(extract_rdn_value(r"cn=Doe\,John"), None);
+    assert_eq!(extract_rdn_value(r"cn=Doe\FF,ou=users"), None);
+    assert_eq!(extract_rdn_value("cn,dc=example,dc=com"), None);
+}
+
+#[test]
+fn test_from_searchentry_with_escaped_dn() {
+    let attrs = HashMap::from([
+        ("sn".to_owned(), vec!["Doe".to_owned()]),
+        ("givenName".to_owned(), vec!["John".to_owned()]),
+        ("mail".to_owned(), vec!["jdoe@example.com".to_owned()]),
+    ]);
+    let config = LDAPConfig {
+        ldap_username_attr: "uid".to_owned(),
+        ldap_user_rdn_attr: Some("cn".to_owned()),
+        ..LDAPConfig::default()
+    };
+    for (dn, expected_rdn, expected_path) in [
+        (
+            r"cn=Doe\, John,ou=People\,West,dc=example",
+            "Doe, John",
+            r"ou=People\,West,dc=example",
+        ),
+        (
+            r"cn=Smith\2C Jane,ou=People\2CWest,dc=example",
+            "Smith, Jane",
+            r"ou=People\2CWest,dc=example",
+        ),
+        (
+            r"cn=ACME\\jdoe,ou=users,dc=example",
+            r"ACME\jdoe",
+            "ou=users,dc=example",
+        ),
+        (
+            r"cn=Micha\c5\82,ou=users,dc=example",
+            "Michał",
+            "ou=users,dc=example",
+        ),
+    ] {
+        let entry = SearchEntry {
+            dn: dn.to_owned(),
+            attrs: attrs.clone(),
+            bin_attrs: HashMap::new(),
+        };
+        let user = user_from_searchentry(&entry, "jdoe", None, &config).unwrap();
+        assert_eq!(user.ldap_rdn.as_deref(), Some(expected_rdn));
+        assert_eq!(user.ldap_user_path.as_deref(), Some(expected_path));
+        assert!(user.from_ldap);
+    }
 }
 
 #[test]
@@ -3327,6 +3453,17 @@ fn test_extract_dn_path_various_cases() {
         extract_dn_path(" cn=abc ,dc=example,dc=com "),
         Some("dc=example,dc=com ".to_string())
     );
+    for dn in [
+        r"cn=Doe\, John,ou=People\,West,dc=example",
+        r"cn=Doe\2c John,ou=People\,West,dc=example",
+        r"cn=ACME\\,ou=People\,West,dc=example",
+    ] {
+        assert_eq!(
+            extract_dn_path(dn).as_deref(),
+            Some(r"ou=People\,West,dc=example")
+        );
+    }
+    assert_eq!(extract_dn_path(r"cn=Doe\,John"), None);
 }
 
 #[sqlx::test]
@@ -3531,6 +3668,158 @@ async fn test_ldap_sync_disallowed_non_ldap_pending_enrollment(
 
     let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
+}
+
+#[sqlx::test]
+async fn test_sync_matches_imported_user_with_escaped_dn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    let mut ldap_users = [
+        (
+            make_test_user(
+                "escaped_dn_user",
+                Some("Doe, John".to_owned()),
+                Some(r"ou=example\,something,dc=com".to_owned()),
+            ),
+            r"cn=Doe\, John,ou=example\,something,dc=com",
+        ),
+        (
+            make_test_user(
+                "hex_dn_user",
+                Some("Smith, Jane".to_owned()),
+                Some(r"ou=example\2Csomething,dc=com".to_owned()),
+            ),
+            r"cn=Smith\2C Jane,ou=example\2Csomething,dc=com",
+        ),
+    ];
+    for (ldap_user, directory_dn) in &ldap_users {
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+        assert!(
+            User::find_by_username(&pool, &ldap_user.username)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    let mut imported_users = Vec::new();
+    assert_eq!(User::all(&pool).await.unwrap().len(), ldap_users.len());
+    for (ldap_user, _) in &ldap_users {
+        let imported = User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .expect("LDAP user should be imported into Defguard");
+        assert!(imported.from_ldap);
+        assert_eq!(imported.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(imported.ldap_user_path, ldap_user.ldap_user_path);
+        imported_users.push(imported);
+    }
+
+    for (ldap_user, directory_dn) in &mut ldap_users {
+        ldap_user.first_name = format!("Updated {}", ldap_user.username);
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+    }
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    assert_eq!(User::all(&pool).await.unwrap().len(), ldap_users.len());
+    for ((ldap_user, _), imported) in ldap_users.iter().zip(&imported_users) {
+        let synced = User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .expect("Imported user should still exist after syncing again");
+        assert_eq!(synced.id, imported.id);
+        assert_eq!(synced.first_name, ldap_user.first_name);
+        assert_eq!(synced.ldap_rdn, imported.ldap_rdn);
+        assert_eq!(synced.ldap_user_path, imported.ldap_user_path);
+    }
+    assert!(ldap_conn.test_client.get_events().is_empty());
+}
+
+#[sqlx::test]
+async fn test_sync_matches_migrated_user_with_escaped_dn(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (wg_tx, _wg_rx) = wg_test_channel();
+    let _ = initialize_current_settings(&pool).await;
+    set_test_license_business();
+
+    let mut cases = [
+        (
+            make_test_user(
+                "migrated_dn_user",
+                Some("Doe, John".to_owned()),
+                Some(r"ou=example\,something,dc=com".to_owned()),
+            ),
+            r"Doe\",
+            r" John,ou=example\,something,dc=com",
+            r"cn=Doe\, John,ou=example\,something,dc=com",
+        ),
+        (
+            make_test_user(
+                "migrated_hex_dn_user",
+                Some("Smith, Jane".to_owned()),
+                Some(r"ou=example\2Csomething,dc=com".to_owned()),
+            ),
+            r"Smith\2C Jane",
+            r"ou=example\2Csomething,dc=com",
+            r"cn=Smith\2C Jane,ou=example\2Csomething,dc=com",
+        ),
+    ];
+    let mut legacy_ids = Vec::new();
+    for (ldap_user, legacy_rdn, legacy_path, _) in &cases {
+        let mut legacy_user = ldap_user.clone();
+        legacy_user.ldap_rdn = Some((*legacy_rdn).to_owned());
+        legacy_user.ldap_user_path = Some((*legacy_path).to_owned());
+        legacy_user.from_ldap = true;
+        legacy_ids.push(legacy_user.save(&pool).await.unwrap().id);
+    }
+
+    let counts = repair(&pool).await.unwrap();
+    assert_eq!((counts.found, counts.migrated), (2, 2));
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_username_attr = "uid".to_owned();
+    ldap_conn.config.ldap_user_rdn_attr = Some("cn".to_owned());
+    for ((ldap_user, _, _, directory_dn), id) in cases.iter_mut().zip(&legacy_ids) {
+        let migrated = User::find_by_id(&pool, *id).await.unwrap().unwrap();
+        assert_eq!(migrated.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(migrated.ldap_user_path, ldap_user.ldap_user_path);
+        ldap_user.first_name = format!("Updated {}", ldap_user.username);
+        ldap_conn
+            .test_client_mut()
+            .add_test_user_with_dn(ldap_user, directory_dn);
+    }
+    ldap_conn.sync(&pool, false, &wg_tx).await.unwrap();
+
+    assert_eq!(User::all(&pool).await.unwrap().len(), cases.len());
+    for ((ldap_user, _, _, _), id) in cases.iter().zip(&legacy_ids) {
+        let synced = User::find_by_username(&pool, &ldap_user.username)
+            .await
+            .unwrap()
+            .expect("Migrated user should still exist after syncing");
+        assert_eq!(synced.id, *id);
+        assert_eq!(synced.first_name, ldap_user.first_name);
+        assert_eq!(synced.ldap_rdn, ldap_user.ldap_rdn);
+        assert_eq!(synced.ldap_user_path, ldap_user.ldap_user_path);
+    }
+    assert!(ldap_conn.test_client.get_events().is_empty());
 }
 
 #[sqlx::test]

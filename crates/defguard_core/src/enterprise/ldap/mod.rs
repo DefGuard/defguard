@@ -11,13 +11,13 @@ use defguard_common::db::{
 #[cfg(not(test))]
 use ldap3::Ldap;
 use ldap3::{Mod, dn_escape, ldap_escape};
-use model::UserObjectClass;
+use model::{UserObjectClass, split_first_rdn};
 use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 use tokio::sync::broadcast::Sender;
 
-use self::error::LdapError;
+use self::{dn::unescape_value, error::LdapError};
 use crate::{
     enterprise::{
         is_business_license_active,
@@ -32,8 +32,10 @@ use crate::{
 
 #[cfg(not(test))]
 pub mod client;
+mod dn;
 pub mod error;
 pub mod hash;
+pub mod migration;
 pub mod model;
 pub mod sync;
 #[cfg(test)]
@@ -244,6 +246,17 @@ impl LDAPConfig {
             &self.ldap_user_search_base
         };
         self.user_dn(user.ldap_rdn_value(), path)
+    }
+
+    /// Respells a DN the server sent the way `user_dn` builds one, for comparison.
+    ///
+    /// A server may escape a comma as `\,` where Defguard writes `\2c`, so a `member` value can name
+    /// a user and still differ from that user's DN byte for byte.
+    #[must_use]
+    pub(crate) fn dn_match_key(&self, dn: &str) -> String {
+        split_first_rdn(dn)
+            .and_then(|(value, path)| Some(self.user_dn(&unescape_value(value)?, path)))
+            .unwrap_or_else(|| dn.into())
     }
 
     /// Constructs group distinguished name.

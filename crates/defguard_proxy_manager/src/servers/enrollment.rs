@@ -1038,9 +1038,8 @@ impl EnrollmentServer {
         if user.is_enrolled() {
             return Err(Status::permission_denied("User is already enrolled"));
         }
-        let mfa_method: MFAMethod;
         // enable corresponding MFA
-        match method {
+        let mfa_method = match method {
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code) {
                     return Err(Status::invalid_argument("Email code invalid".to_string()));
@@ -1048,7 +1047,7 @@ impl EnrollmentServer {
                 user.enable_email_mfa(&self.pool)
                     .await
                     .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
-                mfa_method = MFAMethod::Email;
+                MFAMethod::Email
             }
             MfaMethod::Totp => {
                 if !user.verify_totp_code(&request.code) {
@@ -1057,12 +1056,12 @@ impl EnrollmentServer {
                 user.enable_totp(&self.pool)
                     .await
                     .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
-                mfa_method = MFAMethod::OneTimePassword;
+                MFAMethod::OneTimePassword
             }
             _ => {
                 return Err(Status::invalid_argument("Method not supported"));
             }
-        }
+        };
         user.enable_mfa(&self.pool)
             .await
             .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_string()))?;

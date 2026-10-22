@@ -50,7 +50,7 @@ use crate::handlers::{
     initial_wizard::{create_ca, get_ca, upload_ca},
     migration::{
         finish_setup, get_migration_state, migration_set_external_url_settings,
-        migration_set_internal_url_settings, update_migration_state,
+        migration_set_internal_url_settings, repair_ldap_migration, update_migration_state,
     },
     version::get_version,
 };
@@ -145,6 +145,7 @@ pub fn build_migration_webapp(
                             "/state",
                             get(get_migration_state).put(update_migration_state),
                         )
+                        .route("/ldap/repair", post(repair_ldap_migration))
                         .route("/ca", post(create_ca).get(get_ca))
                         .route("/ca/upload", post(upload_ca))
                         .route("/finish", post(finish_setup))
