@@ -1,6 +1,7 @@
 import { chromium, request } from '@playwright/test';
 
 import { defaultUserAdmin, testsConfig } from '../config';
+import { loginOnCurrentPage } from './controllers/login';
 import {
   dockerCheckContainers,
   dockerCheckTemplateExists,
@@ -137,11 +138,14 @@ export const runWizard = async () => {
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page
-    .getByRole('button', { name: "I'll do this later" })
+    .getByRole('button', { name: 'Create location now' })
     .waitFor({ state: 'visible' });
-  await page.getByRole('button', { name: "I'll do this later" }).click();
+  await page.getByRole('button', { name: 'Create location now' }).click();
 
-  await page.waitForURL('**/auth/login', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
+  await page.waitForURL('**/auth/login**', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
+  await loginOnCurrentPage(page, defaultUserAdmin);
+  await page.waitForURL('**/add-location', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
+  await page.getByText('Add new VPN location').waitFor({ state: 'visible' });
 
   await context.close();
   await browser.close();
