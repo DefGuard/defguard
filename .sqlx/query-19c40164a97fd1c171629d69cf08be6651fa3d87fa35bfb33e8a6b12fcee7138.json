@@ -1,0 +1,169 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at FROM webauthn WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "passkey",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "passkey"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "authenticator_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "authenticator_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "authenticator_kind: AuthenticatorKind",
+        "type_info": {
+          "Custom": {
+            "name": "webauthn_authenticator_kind",
+            "kind": {
+              "Enum": [
+                "hardware",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "authenticator_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "registration_source: RegistrationSource",
+        "type_info": {
+          "Custom": {
+            "name": "webauthn_registration_source",
+            "kind": {
+              "Enum": [
+                "core",
+                "desktop",
+                "mobile"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registration_source"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "attestation_aaguid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_aaguid"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_root_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_root_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attestation_valid_until",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_valid_until"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "registered_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registered_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "19c40164a97fd1c171629d69cf08be6651fa3d87fa35bfb33e8a6b12fcee7138"
+}

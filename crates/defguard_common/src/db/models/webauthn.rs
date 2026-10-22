@@ -1,7 +1,9 @@
+use chrono::{NaiveDateTime, Utc};
 use ctap_hid_fido2::public_key::{PublicKey, PublicKeyType};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as, query_scalar};
+use uuid::Uuid;
 use webauthn_rs::prelude::{COSEKeyType, ECDSACurve, EDDSACurve, Passkey};
 
 use crate::db::{Id, NoId, models::ModelError};
@@ -27,11 +29,20 @@ pub enum RegistrationSource {
     Mobile,
 }
 
+/// The trusted authenticator certificate that vouched for a key at registration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AttestationAnchor {
+    pub aaguid: Uuid,
+    pub root_sha256: String,
+    pub valid_until: NaiveDateTime,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthenticatorInfo {
     pub name: Option<String>,
     pub kind: AuthenticatorKind,
     pub source: RegistrationSource,
+    pub anchor: Option<AttestationAnchor>,
 }
 
 impl AuthenticatorInfo {
@@ -41,6 +52,7 @@ impl AuthenticatorInfo {
             name: None,
             kind: AuthenticatorKind::Unknown,
             source,
+            anchor: None,
         }
     }
 }
@@ -57,6 +69,10 @@ pub struct WebAuthn<I = NoId> {
     pub authenticator_kind: AuthenticatorKind,
     #[model(enum)]
     pub registration_source: RegistrationSource,
+    pub attestation_aaguid: Option<Uuid>,
+    pub attestation_root_sha256: Option<String>,
+    pub attestation_valid_until: Option<NaiveDateTime>,
+    pub registered_at: Option<NaiveDateTime>,
 }
 
 impl WebAuthn {
@@ -67,6 +83,7 @@ impl WebAuthn {
         authenticator: AuthenticatorInfo,
     ) -> Result<Self, ModelError> {
         let passkey = serde_cbor::to_vec(passkey).map_err(|_| ModelError::CannotCreate)?;
+        let anchor = authenticator.anchor;
         Ok(Self {
             id: NoId,
             user_id,
@@ -75,6 +92,10 @@ impl WebAuthn {
             authenticator_name: authenticator.name,
             authenticator_kind: authenticator.kind,
             registration_source: authenticator.source,
+            attestation_aaguid: anchor.as_ref().map(|anchor| anchor.aaguid),
+            attestation_root_sha256: anchor.as_ref().map(|anchor| anchor.root_sha256.clone()),
+            attestation_valid_until: anchor.map(|anchor| anchor.valid_until),
+            registered_at: Some(Utc::now().naive_utc()),
         })
     }
 }
@@ -133,11 +154,33 @@ impl WebAuthn<Id> {
             Self,
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
-            registration_source \"registration_source: RegistrationSource\" \
+            registration_source \"registration_source: RegistrationSource\", \
+            attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at \
             FROM webauthn WHERE user_id = $1",
             user_id
         )
         .fetch_all(pool)
+        .await
+    }
+
+    /// Fetch keys attested by any of the given trusted root certificates.
+    pub async fn find_by_attestation_roots<'e, E>(
+        executor: E,
+        root_sha256: &[String],
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, user_id, name, passkey, authenticator_name, \
+            authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
+            registration_source \"registration_source: RegistrationSource\", \
+            attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at \
+            FROM webauthn WHERE attestation_root_sha256 = ANY($1)",
+            root_sha256
+        )
+        .fetch_all(executor)
         .await
     }
 

@@ -139,6 +139,7 @@ async fn register_signing_key(pool: &PgPool, user_id: Id) -> (SigningKey, Vec<u8
             name: None,
             kind: AuthenticatorKind::Hardware,
             source: RegistrationSource::Desktop,
+            anchor: None,
         },
     )
     .expect("new webauthn key")

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\" FROM \"webauthn\" WHERE id = $1",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at FROM webauthn WHERE attestation_root_sha256 = ANY($1)",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "authenticator_kind: _",
+        "name": "authenticator_kind: AuthenticatorKind",
         "type_info": {
           "Custom": {
             "name": "webauthn_authenticator_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "registration_source: _",
+        "name": "registration_source: RegistrationSource",
         "type_info": {
           "Custom": {
             "name": "webauthn_registration_source",
@@ -100,11 +100,55 @@
             "name": "registration_source"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "attestation_aaguid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_aaguid"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_root_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_root_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attestation_valid_until",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_valid_until"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "registered_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registered_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "TextArray"
       ]
     },
     "nullable": [
@@ -114,8 +158,12 @@
       false,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "16ec1ca004c0d66cedcc6fc1fde90526402fb18646aaac54d719dc5ed2e271dd"
+  "hash": "770c01e7c45d4a50bce92aed2a2e740a88a1c49d18b18d2bc732b38f0f21f763"
 }

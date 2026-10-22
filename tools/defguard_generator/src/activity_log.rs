@@ -1103,6 +1103,10 @@ fn fabricate_security_key(rng: &mut ThreadRng, user_id: Id) -> WebAuthn<Id> {
         authenticator_name: None,
         authenticator_kind: AuthenticatorKind::Unknown,
         registration_source: RegistrationSource::Core,
+        attestation_aaguid: None,
+        attestation_root_sha256: None,
+        attestation_valid_until: None,
+        registered_at: None,
     }
 }
 

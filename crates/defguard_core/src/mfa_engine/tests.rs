@@ -1416,6 +1416,7 @@ async fn register_test_fido2_passkey(
             name: None,
             kind,
             source: RegistrationSource::Desktop,
+            anchor: None,
         },
     )
     .expect("failed to serialize passkey")

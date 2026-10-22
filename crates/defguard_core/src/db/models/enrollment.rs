@@ -8,7 +8,9 @@ use defguard_common::{
         models::{
             Settings, WebAuthn,
             user::User,
-            webauthn::{AuthenticatorInfo, AuthenticatorKind, RegistrationSource},
+            webauthn::{
+                AttestationAnchor, AuthenticatorInfo, AuthenticatorKind, RegistrationSource,
+            },
         },
     },
     random::gen_alphanumeric,
@@ -465,17 +467,23 @@ impl Token {
         let hardware_key = verify_hardware_key(&attested)
             .map_err(|err| TokenError::UntrustedAuthenticator(err.to_string()))?;
         info!(
-            "Security key attested as {} ({})",
+            "Security key attested as {} ({}) by root certificate {}",
             hardware_key
                 .description
                 .as_deref()
                 .unwrap_or("unnamed model"),
-            hardware_key.aaguid
+            hardware_key.aaguid,
+            hardware_key.root_sha256
         );
         let authenticator = AuthenticatorInfo {
             name: hardware_key.description,
             kind: AuthenticatorKind::Hardware,
             source,
+            anchor: Some(AttestationAnchor {
+                aaguid: hardware_key.aaguid,
+                root_sha256: hardware_key.root_sha256,
+                valid_until: hardware_key.valid_until,
+            }),
         };
         let webauthn_key = WebAuthn::new(user_id, name, &Passkey::from(attested), authenticator)
             .map_err(|err| TokenError::WebauthnRegistration(err.to_string()))?

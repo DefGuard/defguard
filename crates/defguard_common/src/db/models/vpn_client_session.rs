@@ -501,6 +501,10 @@ mod tests {
             authenticator_name: None,
             authenticator_kind,
             registration_source: RegistrationSource::Core,
+            attestation_aaguid: None,
+            attestation_root_sha256: None,
+            attestation_valid_until: None,
+            registered_at: None,
         };
         security_key(AuthenticatorKind::Unknown)
             .save(&pool)
