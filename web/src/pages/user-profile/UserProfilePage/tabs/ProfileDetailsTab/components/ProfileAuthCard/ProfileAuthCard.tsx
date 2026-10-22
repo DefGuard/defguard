@@ -29,7 +29,7 @@ const toMenuGroup = (items: MenuItemProps[]): MenuItemsGroup | null =>
   items.length > 0 ? { items } : null;
 
 const makeDefaultItem = (onClick: () => void): MenuItemProps => ({
-  icon: 'check',
+  icon: 'online',
   text: m.profile_auth_card_make_default(),
   onClick,
 });
@@ -84,7 +84,8 @@ export const ProfileAuthCard = () => {
       }
       items.push({
         text: m.controls_disable(),
-        icon: 'minus-circle',
+        variant: 'danger',
+        icon: 'cancel',
         onClick: () =>
           openModal(ModalName.ConfirmAction, {
             title: m.modal_disable_mfa_email_title(),
@@ -223,7 +224,8 @@ export const ProfileAuthCard = () => {
         );
       }
       items.push({
-        icon: 'minus-circle',
+        icon: 'cancel',
+        variant: 'danger',
         text: m.controls_disable(),
         onClick: () =>
           openModal(ModalName.ConfirmAction, {

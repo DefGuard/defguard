@@ -23,7 +23,7 @@
   "profile_auth_card_passkey_usage_vpn_helper": "This passkey can be used for MFA when connecting to VPN in Defguard clients.",
   "profile_auth_card_passkey_usage_web": "Web login",
   "profile_auth_card_password_change": "Change",
-  "profile_auth_card_make_default": "Make default",
+  "profile_auth_card_make_default": "Make default for Web login",
   "profile_auth_card_default_method": "Default method",
   "profile_auth_card_biometric_title": "Biometric authentication devices",
   "profile_auth_card_devices_link": "Devices",
