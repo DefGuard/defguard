@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\" FROM \"webauthn\"",
+  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\",\"attestation_aaguid\",\"attestation_valid_until\",\"attestation_chain\" \"attestation_chain?: _\",\"attestation_chain_sha256\" \"attestation_chain_sha256?: _\",\"registered_at\" FROM \"webauthn\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -100,10 +100,67 @@
             "name": "registration_source"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "attestation_aaguid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_aaguid"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_valid_until",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_valid_until"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attestation_chain?: _",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "attestation_chain_sha256?: _",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "registered_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registered_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -112,8 +169,13 @@
       false,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "73881abf7872f5e543af575a925e3897c1b6c32d48a033292723a6ce69b1c10e"
+  "hash": "95fee4d45128178c8a73f249912ca733481ad645fe7b40009ea0d088efd87710"
 }

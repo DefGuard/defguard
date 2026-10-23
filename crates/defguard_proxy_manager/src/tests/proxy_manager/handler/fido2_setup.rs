@@ -11,7 +11,8 @@ use defguard_common::db::{
     },
 };
 use defguard_core::{
-    db::models::enrollment::Token, enterprise::fido2::attestation::trust_test_authenticator,
+    db::models::enrollment::Token,
+    enterprise::fido2::attestation::{certificate_sha256, trust_test_authenticator},
     events::ApiEventType,
 };
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
@@ -47,14 +48,15 @@ async fn set_webauthn_origin(context: &HandlerTestContext) -> Url {
 
 const SOFT_TOKEN_DESCRIPTION: &str = "Test soft token";
 
-fn soft_token(trusted: bool) -> SoftToken {
+/// Returns the token with the DER of its attestation CA.
+fn soft_token(trusted: bool) -> (SoftToken, Vec<u8>) {
     let (token, ca) = SoftToken::new(true).expect("software token");
+    let ca_der = ca.to_der().expect("soft token CA encodes");
     if trusted {
-        let ca_der = ca.to_der().expect("soft token CA encodes");
         trust_test_authenticator(&ca_der, AAGUID, SOFT_TOKEN_DESCRIPTION)
             .expect("trust soft token CA");
     }
-    token
+    (token, ca_der)
 }
 
 fn register(
@@ -128,7 +130,7 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
     let (session_token, user_id) = authorized_session(&mut context).await;
 
     // Trusted before the ceremony starts, which snapshots the CA list into its state.
-    let authenticator = soft_token(true);
+    let (authenticator, ca_der) = soft_token(true);
     let ccr = fido2_setup_start(&mut context, &session_token).await;
     let token = Token::find_by_id(&context.pool, &session_token)
         .await
@@ -172,6 +174,19 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         Some(SOFT_TOKEN_DESCRIPTION)
     );
     assert_eq!(keys[0].registration_source, RegistrationSource::Desktop);
+    assert_eq!(keys[0].attestation_aaguid, Some(AAGUID));
+    assert!(keys[0].attestation_valid_until.is_some());
+    let chain = keys[0]
+        .attestation_chain
+        .as_ref()
+        .expect("attestation chain is stored");
+    assert_eq!(chain.len(), 2, "leaf and trusted root must be stored");
+    assert_eq!(chain.last(), Some(&ca_der));
+    assert_eq!(
+        keys[0].attestation_chain_sha256,
+        Some(chain.iter().map(|der| certificate_sha256(der)).collect())
+    );
+    assert!(keys[0].registered_at.is_some());
     let user = User::find_by_id(&context.pool, user_id)
         .await
         .expect("find user")
@@ -235,7 +250,7 @@ async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options:
     let origin = set_webauthn_origin(&context).await;
 
     let (session_token, _user_id) = authorized_session(&mut context).await;
-    let authenticator = soft_token(true);
+    let (authenticator, _) = soft_token(true);
     let ccr = fido2_setup_start(&mut context, &session_token).await;
     let attestation = register(authenticator, origin, ccr);
 
@@ -308,7 +323,7 @@ async fn test_fido2_untrusted_attestation_ca_is_rejected(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    assert_registration_rejected(soft_token(false), options).await;
+    assert_registration_rejected(soft_token(false).0, options).await;
 }
 
 /// FIDO2 security keys as an MFA factor need the Enterprise tier. A Business license must not
@@ -357,7 +372,7 @@ async fn test_fido2_setup_finish_requires_enterprise_license(
     let origin = set_webauthn_origin(&context).await;
 
     let (session_token, user_id) = authorized_session(&mut context).await;
-    let authenticator = soft_token(true);
+    let (authenticator, _) = soft_token(true);
     let ccr = fido2_setup_start(&mut context, &session_token).await;
     let attestation = register(authenticator, origin, ccr);
 
