@@ -329,6 +329,7 @@ async fn test_retries_after_stream_close_with_single_handler_supervisor(
     let reconnect_socket_path = mock_gateway.socket_path();
 
     mock_gateway.close_stream();
+    mock_gateway.wait_for_core_stream_closed().await;
 
     let gateway_after_disconnect =
         wait_for_gateway_connection_state(&context.pool, gateway.id, false).await;
@@ -407,4 +408,43 @@ async fn test_retries_after_stream_error_with_single_handler_supervisor(
     );
 
     context.finish().await;
+}
+
+#[sqlx::test]
+async fn test_retries_after_gateway_refuses_existing_core(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = ManagerTestContext::new(options).await;
+    let network = create_network(&context.pool).await;
+    let gateway = create_gateway(&context.pool, network.id).await;
+    let mock_gateway = MockGatewayHarness::start().await;
+    mock_gateway.reject_next_bidi_with(Status::internal("Client already connected"));
+    context.register_gateway_mock(&gateway, &mock_gateway);
+
+    let initial_spawn_attempts = context.handler_spawn_attempt_count(gateway.id);
+    let initial_connection_attempts = context.handler_connection_attempt_count(gateway.id);
+    let reconnect_socket_path = mock_gateway.socket_path();
+    context.start().await;
+    context
+        .wait_for_handler_connection_attempt_count(gateway.id, initial_connection_attempts + 1)
+        .await;
+    mock_gateway.expect_server_finished().await;
+
+    let mut replacement_mock_gateway = MockGatewayHarness::start_at(reconnect_socket_path);
+    replacement_mock_gateway.wait_for_connection_count(1).await;
+    context
+        .wait_for_handler_connection_attempt_count(gateway.id, initial_connection_attempts + 2)
+        .await;
+    complete_manager_handshake(&context, &gateway, &mut replacement_mock_gateway).await;
+
+    assert_eq!(replacement_mock_gateway.connection_count(), 1);
+    assert_eq!(
+        context.handler_spawn_attempt_count(gateway.id),
+        initial_spawn_attempts + 1,
+        "gateway refusal retries should keep a single handler supervisor"
+    );
+
+    context.finish().await;
+    replacement_mock_gateway.expect_server_finished().await;
 }

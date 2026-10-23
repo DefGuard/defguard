@@ -26,9 +26,26 @@ use defguard_proto::gateway::{Configuration, PeerStats, core_response};
 use prost_types::Timestamp;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::{mpsc::unbounded_channel, watch};
+use tonic::{Code, Status};
 
-use super::{GatewayHandler, try_protos_into_stats_message};
+use super::{GatewayHandler, is_gateway_already_connected, try_protos_into_stats_message};
 use crate::updates::GatewayUpdatesHandler;
+
+#[test]
+fn test_gateway_already_connected_requires_exact_status() {
+    assert!(is_gateway_already_connected(&Status::new(
+        Code::Internal,
+        "Client already connected",
+    )));
+    assert!(!is_gateway_already_connected(&Status::new(
+        Code::Internal,
+        "client already connected",
+    )));
+    assert!(!is_gateway_already_connected(&Status::new(
+        Code::AlreadyExists,
+        "Client already connected",
+    )));
+}
 
 fn test_network(mfa_enabled: bool) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
