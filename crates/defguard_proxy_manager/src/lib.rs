@@ -255,20 +255,12 @@ impl ProxyManager {
     /// Spawns and supervises asynchronous tasks for all configured proxies.
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
-    pub async fn run(mut self) -> Result<(), ProxyError> {
+    pub async fn run(mut self, mut shutdown_rx: watch::Receiver<bool>) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         // Prime the cache to avoid race with connection loop.
         refresh_certs(&self.pool, &certs_tx).await;
-        let refresh_pool = self.pool.clone();
-        tokio::spawn(async move {
-            loop {
-                refresh_certs(&refresh_pool, &certs_tx).await;
-                sleep(TEN_SECS).await;
-            }
-        });
-
         // Shared map: proxy_id → sender for the handler's active gRPC stream.
         let handler_tx_map: HandlerTxMap = Arc::new(RwLock::new(HashMap::new()));
 
@@ -290,6 +282,13 @@ impl ProxyManager {
             })
             .collect::<Result<Vec<_>, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
+        let refresh_pool = self.pool.clone();
+        let cert_refresh_task = tokio::spawn(async move {
+            loop {
+                refresh_certs(&refresh_pool, &certs_tx).await;
+                sleep(TEN_SECS).await;
+            }
+        });
 
         // Connect to all enabled proxies.
         let mut tasks = JoinSet::new();
@@ -313,6 +312,10 @@ impl ProxyManager {
                             debug!("All proxy tasks completed");
                         }
                     }
+                }
+                _ = shutdown_rx.changed() => {
+                    debug!("ProxyManager shutdown requested");
+                    break;
                 }
                 msg = self.proxy_control.recv() => {
                     match msg {
@@ -419,6 +422,16 @@ impl ProxyManager {
                 }
             }
         }
+
+        cert_refresh_task.abort();
+        let _ = cert_refresh_task.await;
+        tasks.abort_all();
+        while tasks.join_next().await.is_some() {}
+        if let Ok(mut senders) = handler_tx_map.write() {
+            senders.clear();
+        }
+        Proxy::mark_all_disconnected(&self.pool).await?;
+
         Ok(())
     }
 }
