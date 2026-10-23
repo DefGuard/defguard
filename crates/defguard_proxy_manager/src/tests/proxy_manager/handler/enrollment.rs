@@ -26,15 +26,15 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
 use super::support::{
-    STRONG_PASSWORD, assert_device_config_response, assert_error_response,
+    STRONG_PASSWORD, assert_device_config_response, assert_error_response, clear_test_license,
     complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
-    create_enrollment_token, create_mfa_network, create_multi_step_mfa_network, create_network,
-    create_polling_token, create_user, create_user_with_device, generate_totp_code,
-    insert_acl_rule_for_network, make_device_info, send_activate_user,
-    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    send_mfa_config_authorize, send_mfa_config_start, set_test_license_business,
-    set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
-    totp_code_from_base32_secret,
+    create_enrollment_token, create_mfa_network, create_multi_step_mfa_network,
+    create_multi_step_mfa_network_with_steps, create_network, create_polling_token, create_user,
+    create_user_with_device, generate_totp_code, insert_acl_rule_for_network, make_device_info,
+    send_activate_user, send_activate_user_without_password, send_code_mfa_setup_finish,
+    send_code_mfa_setup_start, send_mfa_config_authorize, send_mfa_config_start,
+    set_test_license_business, set_test_license_enterprise, setup_user_totp_mfa,
+    start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -265,6 +265,54 @@ async fn test_new_device_omits_multi_step_location_for_legacy_client(
     );
     assert_eq!(internal_config.steps.len(), 1);
     assert_eq!(internal_config.steps[0].methods.len(), 4);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Without a license, a `NewDevice` enrollment must send a single-step location to a capable
+/// client even when the step has no legacy equivalent, and must omit a multi-step location.
+#[sqlx::test]
+#[allow(deprecated)]
+async fn test_new_device_sends_single_step_location_on_free_tier(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    clear_test_license();
+
+    let single_step =
+        create_multi_step_mfa_network_with_steps(&context.pool, vec![vec![MfaMethod::Totp.into()]])
+            .await;
+    create_multi_step_mfa_network(&context.pool).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(DeviceInfo {
+            version: Some("2.2.0".to_owned()),
+            ..make_device_info()
+        }),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "Free Tier Laptop".to_owned(),
+            pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+    let names: Vec<&str> = cfg
+        .configs
+        .iter()
+        .map(|config| config.network_name.as_str())
+        .collect();
+    assert_eq!(names, vec![single_step.name.as_str()]);
+    let config = &cfg.configs[0];
+    assert_eq!(config.location_mfa_mode, None);
+    assert_eq!(config.steps.len(), 1);
 
     context.finish().await.expect_server_finished().await;
 }
