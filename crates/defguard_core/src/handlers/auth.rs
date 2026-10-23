@@ -171,8 +171,10 @@ pub async fn authenticate(
         // user was found, attempt to authenticate by password first
         match user.verify_password(&data.password) {
             Ok(()) => user,
-            Err(err) => {
-                // password authentication failed, try authenticating with LDAP if configured
+            Err(_) => {
+                // Password authentication failed. The log/event message below is intentionally
+                // generic ("invalid username or password") to avoid a username-enumeration
+                // signal, so the underlying error is not used.
                 if settings.ldap_enabled {
                     match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
                         .await
@@ -183,7 +185,7 @@ pub async fn authenticate(
                         }
                         Err(ldap_err) => {
                             warn!(
-                                "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
+                                "Failed to authenticate user {username_or_email} internally and through LDAP. LDAP error: {ldap_err}"
                             );
 
                             log_failed_login_attempt(&appstate.failed_logins, &user.username);
@@ -196,7 +198,7 @@ pub async fn authenticate(
                             ),
                             event: Box::new(ApiEventType::UserLoginFailed {
                                 message: format!(
-                                    "Internal and LDAP authentication for {username_or_email} failed. Internal error: {err}, LDAP error: {ldap_err}"
+                                    "Authentication for {username_or_email} failed: invalid username or password"
                                 ),
                             }),
                         })?;
@@ -204,7 +206,9 @@ pub async fn authenticate(
                         }
                     }
                 } else {
-                    warn!("Failed to authenticate user {username_or_email}: {err}");
+                    warn!(
+                        "Failed to authenticate user {username_or_email}: invalid username or password"
+                    );
                     log_failed_login_attempt(&appstate.failed_logins, &user.username);
                     appstate.emit_event(ApiEvent {
                         context: ApiRequestContext::new(
@@ -215,7 +219,7 @@ pub async fn authenticate(
                         ),
                         event: Box::new(ApiEventType::UserLoginFailed {
                             message: format!(
-                                "Authentication for {username_or_email} failed: {err}"
+                                "Authentication for {username_or_email} failed: invalid username or password"
                             ),
                         }),
                     })?;
