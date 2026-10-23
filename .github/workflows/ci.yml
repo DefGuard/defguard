@@ -1,6 +1,7 @@
 name: Continuous integration
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev
