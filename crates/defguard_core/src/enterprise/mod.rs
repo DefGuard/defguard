@@ -15,7 +15,7 @@ pub mod snat;
 mod utils;
 
 use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;
-use license::{get_cached_license, License};
+use license::{License, get_cached_license};
 use limits::get_counts;
 use strum::VariantArray;
 
@@ -126,11 +126,10 @@ mod test {
 
     use crate::{
         enterprise::{
-            effective_features, has_enterprise_access, is_business_license_active,
-            license::{set_cached_license, License, LicenseTier, SupportType},
+            LicenseFeature, effective_features, has_enterprise_access, is_business_license_active,
+            license::{License, LicenseTier, SupportType, set_cached_license},
             licensed_mfa_setup_methods,
-            limits::{set_counts, Counts},
-            LicenseFeature,
+            limits::{Counts, set_counts},
         },
         grpc::proto::enterprise::license::LicenseLimits,
     };

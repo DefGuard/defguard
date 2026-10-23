@@ -44,12 +44,10 @@ impl VpnClientMfaMethod {
         Self::MobileApprove,
         Self::Fido2,
     ];
-
-    /// Methods an MFA configuration session can set up.
-    pub const CONFIG_SETUP: [Self; 3] = [Self::Totp, Self::Email, Self::Fido2];
-
     /// Methods that can authorize an MFA configuration session.
     pub const CONFIG_AUTHORIZE: [Self; 4] = [Self::Totp, Self::Email, Self::Fido2, Self::Oidc];
+    /// Methods an MFA configuration session can set up.
+    pub const CONFIG_SETUP: [Self; 3] = [Self::Totp, Self::Email, Self::Fido2];
 
     /// Returns the methods in a fixed order.
     #[must_use]
