@@ -36,7 +36,7 @@ services:
       start_period: 5s
 
   edge:
-    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard-proxy:2.2.0-beta1
     ports:
       - "8080:8080"
       - "50051:50051"
@@ -45,7 +45,7 @@ services:
       RUST_BACKTRACE: 1
 
   gateway:
-    image: ghcr.io/defguard/gateway:${IMAGE_TAG}
+    image: ghcr.io/defguard/gateway:2.2.0-beta1
     ports:
       - "50066:50066"
     environment:
