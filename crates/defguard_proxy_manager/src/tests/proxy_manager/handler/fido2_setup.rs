@@ -180,6 +180,16 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
         Some(certificate_sha256(&ca_der))
     );
     assert!(keys[0].attestation_valid_until.is_some());
+    let chain = keys[0]
+        .attestation_chain
+        .as_ref()
+        .expect("attestation chain is stored");
+    assert_eq!(chain.len(), 2, "leaf and trusted root must be stored");
+    assert_eq!(chain.last(), Some(&ca_der));
+    assert_eq!(
+        keys[0].attestation_chain_sha256,
+        Some(chain.iter().map(|der| certificate_sha256(der)).collect())
+    );
     assert!(keys[0].registered_at.is_some());
     let user = User::find_by_id(&context.pool, user_id)
         .await

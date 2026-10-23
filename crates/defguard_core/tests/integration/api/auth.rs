@@ -668,6 +668,8 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(stored[0].attestation_aaguid, None);
     assert_eq!(stored[0].attestation_root_sha256, None);
     assert_eq!(stored[0].attestation_valid_until, None);
+    assert_eq!(stored[0].attestation_chain, None);
+    assert_eq!(stored[0].attestation_chain_sha256, None);
     assert!(stored[0].registered_at.is_some());
 
     // delete security key

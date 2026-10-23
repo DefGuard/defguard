@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\",\"attestation_aaguid\",\"attestation_root_sha256\",\"attestation_valid_until\",\"registered_at\" FROM \"webauthn\"",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_root_sha256, attestation_valid_until, attestation_chain, attestation_chain_sha256, registered_at FROM webauthn WHERE attestation_root_sha256 = ANY($1)",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "authenticator_kind: _",
+        "name": "authenticator_kind: AuthenticatorKind",
         "type_info": {
           "Custom": {
             "name": "webauthn_authenticator_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "registration_source: _",
+        "name": "registration_source: RegistrationSource",
         "type_info": {
           "Custom": {
             "name": "webauthn_registration_source",
@@ -136,6 +136,28 @@
       },
       {
         "ordinal": 10,
+        "name": "attestation_chain",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "attestation_chain_sha256",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
         "name": "registered_at",
         "type_info": "Timestamp",
         "origin": {
@@ -147,7 +169,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "TextArray"
+      ]
     },
     "nullable": [
       false,
@@ -160,8 +184,10 @@
       true,
       true,
       true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "fb8543621a201589e6694870479df4a0e99fa3aedefc4b8490bca33dc6f4f22a"
+  "hash": "deb1eae79bd9b1069e5639394c286a1cda15627258e080e96517af5b9c95e3b2"
 }

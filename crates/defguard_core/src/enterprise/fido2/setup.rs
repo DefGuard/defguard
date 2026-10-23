@@ -150,6 +150,8 @@ impl Token {
                 aaguid: hardware_key.aaguid,
                 root_sha256: hardware_key.root_sha256,
                 valid_until: hardware_key.valid_until,
+                chain: hardware_key.chain,
+                chain_sha256: hardware_key.chain_sha256,
             }),
         };
         let webauthn_key = WebAuthn::new(user_id, name, &Passkey::from(attested), authenticator)

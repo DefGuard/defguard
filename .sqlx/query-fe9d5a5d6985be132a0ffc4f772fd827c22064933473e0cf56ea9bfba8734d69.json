@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\",\"attestation_aaguid\",\"attestation_root_sha256\",\"attestation_valid_until\",\"registered_at\" FROM \"webauthn\" WHERE id = $1",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_root_sha256, attestation_valid_until, attestation_chain, attestation_chain_sha256, registered_at FROM webauthn WHERE user_id = $1",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "authenticator_kind: _",
+        "name": "authenticator_kind: AuthenticatorKind",
         "type_info": {
           "Custom": {
             "name": "webauthn_authenticator_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "registration_source: _",
+        "name": "registration_source: RegistrationSource",
         "type_info": {
           "Custom": {
             "name": "webauthn_registration_source",
@@ -136,6 +136,28 @@
       },
       {
         "ordinal": 10,
+        "name": "attestation_chain",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "attestation_chain_sha256",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
         "name": "registered_at",
         "type_info": "Timestamp",
         "origin": {
@@ -162,8 +184,10 @@
       true,
       true,
       true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "761d10824e55189bc06d356aac05582ebbb3cd71d10461e0aeb2c0b04dddf5e4"
+  "hash": "fe9d5a5d6985be132a0ffc4f772fd827c22064933473e0cf56ea9bfba8734d69"
 }

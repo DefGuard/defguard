@@ -66,6 +66,9 @@ pub struct HardwareKey {
     pub root_sha256: String,
     // earliest expiry across the attestation chain and its trusted root
     pub valid_until: NaiveDateTime,
+    // DER certificates from leaf to the trusted root, root included once
+    pub chain: Vec<Vec<u8>>,
+    pub chain_sha256: Vec<String>,
 }
 
 /// Lowercase hex SHA-256 of a DER certificate, the identity webauthn-rs keys trusted CAs by.
@@ -176,7 +179,7 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
         | ParsedAttestationData::AnonCa(chain) => chain.as_slice(),
         _ => &[],
     };
-    let chain = chain
+    let mut chain = chain
         .iter()
         .map(|certificate| certificate.to_der())
         .collect::<Result<Vec<_>, _>>()
@@ -201,12 +204,19 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
         .try_fold(NaiveDateTime::MAX, |earliest, not_after| {
             not_after.map(|not_after| earliest.min(not_after))
         })?;
+    let root_sha256 = certificate_sha256(&root);
+    if chain.last() != Some(&root) {
+        chain.push(root);
+    }
+    let chain_sha256 = chain.iter().map(|der| certificate_sha256(der)).collect();
 
     Ok(HardwareKey {
         aaguid,
         description: authenticator_description(&aaguid),
-        root_sha256: certificate_sha256(&root),
+        root_sha256,
         valid_until,
+        chain,
+        chain_sha256,
     })
 }
 

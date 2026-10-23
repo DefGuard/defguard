@@ -35,6 +35,8 @@ pub struct AttestationAnchor {
     pub aaguid: Uuid,
     pub root_sha256: String,
     pub valid_until: NaiveDateTime,
+    pub chain: Vec<Vec<u8>>,
+    pub chain_sha256: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +74,10 @@ pub struct WebAuthn<I = NoId> {
     pub attestation_aaguid: Option<Uuid>,
     pub attestation_root_sha256: Option<String>,
     pub attestation_valid_until: Option<NaiveDateTime>,
+    #[model(option_ref)]
+    pub attestation_chain: Option<Vec<Vec<u8>>>,
+    #[model(option_ref)]
+    pub attestation_chain_sha256: Option<Vec<String>>,
     pub registered_at: Option<NaiveDateTime>,
 }
 
@@ -83,8 +89,7 @@ impl WebAuthn {
         authenticator: AuthenticatorInfo,
     ) -> Result<Self, ModelError> {
         let passkey = serde_cbor::to_vec(passkey).map_err(|_| ModelError::CannotCreate)?;
-        let anchor = authenticator.anchor;
-        Ok(Self {
+        let mut key = Self {
             id: NoId,
             user_id,
             name,
@@ -92,11 +97,21 @@ impl WebAuthn {
             authenticator_name: authenticator.name,
             authenticator_kind: authenticator.kind,
             registration_source: authenticator.source,
-            attestation_aaguid: anchor.as_ref().map(|anchor| anchor.aaguid),
-            attestation_root_sha256: anchor.as_ref().map(|anchor| anchor.root_sha256.clone()),
-            attestation_valid_until: anchor.map(|anchor| anchor.valid_until),
+            attestation_aaguid: None,
+            attestation_root_sha256: None,
+            attestation_valid_until: None,
+            attestation_chain: None,
+            attestation_chain_sha256: None,
             registered_at: Some(Utc::now().naive_utc()),
-        })
+        };
+        if let Some(anchor) = authenticator.anchor {
+            key.attestation_aaguid = Some(anchor.aaguid);
+            key.attestation_root_sha256 = Some(anchor.root_sha256);
+            key.attestation_valid_until = Some(anchor.valid_until);
+            key.attestation_chain = Some(anchor.chain);
+            key.attestation_chain_sha256 = Some(anchor.chain_sha256);
+        }
+        Ok(key)
     }
 }
 
@@ -155,7 +170,8 @@ impl WebAuthn<Id> {
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
             registration_source \"registration_source: RegistrationSource\", \
-            attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at \
+            attestation_aaguid, attestation_root_sha256, attestation_valid_until, \
+            attestation_chain, attestation_chain_sha256, registered_at \
             FROM webauthn WHERE user_id = $1",
             user_id
         )
@@ -176,7 +192,8 @@ impl WebAuthn<Id> {
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
             registration_source \"registration_source: RegistrationSource\", \
-            attestation_aaguid, attestation_root_sha256, attestation_valid_until, registered_at \
+            attestation_aaguid, attestation_root_sha256, attestation_valid_until, \
+            attestation_chain, attestation_chain_sha256, registered_at \
             FROM webauthn WHERE attestation_root_sha256 = ANY($1)",
             root_sha256
         )
@@ -255,6 +272,8 @@ mod tests {
             attestation_aaguid: Some(Uuid::nil()),
             attestation_root_sha256: Some(root_sha256.to_owned()),
             attestation_valid_until: Some(Utc::now().naive_utc()),
+            attestation_chain: Some(vec![b"leaf".to_vec(), b"root".to_vec()]),
+            attestation_chain_sha256: Some(vec!["leaf".to_owned(), root_sha256.to_owned()]),
             registered_at: Some(Utc::now().naive_utc()),
         }
         .save(&pool)
@@ -269,6 +288,11 @@ mod tests {
         .unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].id, key.id);
+        assert_eq!(found[0].attestation_chain, key.attestation_chain);
+        assert_eq!(
+            found[0].attestation_chain_sha256,
+            key.attestation_chain_sha256
+        );
 
         let found = WebAuthn::find_by_attestation_roots(&pool, &["unknown".to_owned()])
             .await

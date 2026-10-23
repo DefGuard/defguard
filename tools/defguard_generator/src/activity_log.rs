@@ -1106,6 +1106,8 @@ fn fabricate_security_key(rng: &mut ThreadRng, user_id: Id) -> WebAuthn<Id> {
         attestation_aaguid: None,
         attestation_root_sha256: None,
         attestation_valid_until: None,
+        attestation_chain: None,
+        attestation_chain_sha256: None,
         registered_at: None,
     }
 }
