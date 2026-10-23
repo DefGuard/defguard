@@ -66,7 +66,7 @@ pub async fn get_allowed_ips_from_acl_rules(
 
     debug!(
         "Computing ACL-derived AllowedIPs for user {} in location {}",
-        user.id, location.id
+        user.username, location.id
     );
 
     let acl_rules = get_location_active_acl_rules(location, &mut *conn).await?;
@@ -82,7 +82,7 @@ pub async fn get_allowed_ips_from_acl_rules(
 
         debug!(
             "Rule {} matches user {} - collecting destinations",
-            rule.id, user.id
+            rule.id, user.username
         );
 
         // Collect addresses from manually specified destination settings.
@@ -90,7 +90,7 @@ pub async fn get_allowed_ips_from_acl_rules(
             if rule.any_address {
                 debug!(
                     "Rule {} has any_address enabled. Skipping manual destinations for user {}",
-                    rule.id, user.id
+                    rule.id, user.username
                 );
                 continue;
             }
@@ -102,7 +102,7 @@ pub async fn get_allowed_ips_from_acl_rules(
                 if alias.any_address {
                     debug!(
                         "Alias {} in rule {} has any_address enabled. Skipping for user {}",
-                        alias.id, rule.id, user.id
+                        alias.id, rule.id, user.username
                     );
                     continue;
                 }
@@ -117,7 +117,7 @@ pub async fn get_allowed_ips_from_acl_rules(
             if destination.any_address {
                 debug!(
                     "Destination {} in rule {} has any_address enabled. Skipping for user {}",
-                    destination.id, rule.id, user.id
+                    destination.id, rule.id, user.username
                 );
                 continue;
             }
@@ -146,7 +146,7 @@ pub async fn get_allowed_ips_from_acl_rules(
     debug!(
         "Computed {} AllowedIPs networks for user {} in location {}",
         result.len(),
-        user.id,
+        user.username,
         location.id
     );
 

@@ -100,14 +100,11 @@ pub async fn forward_auth(
                     Ok(Some(user)) => {
                         if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
                             info!(
-                                "Session {} for user id {} MFA not completed, redirecting to login",
-                                session.id, session.user_id
+                                "Session {} for user {} MFA not completed, redirecting to login",
+                                session.id, user.username
                             );
                         } else if !user.is_active {
-                            info!(
-                                "User id {} is disabled, redirecting to login",
-                                session.user_id
-                            );
+                            info!("User {} is disabled, redirecting to login", user.username);
                         } else {
                             return Ok(ForwardAuthResponse::Accept);
                         }
