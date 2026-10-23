@@ -12,8 +12,8 @@ use defguard_common::db::{
 };
 use defguard_core::{
     db::models::enrollment::Token,
+    enterprise::fido2::attestation::{certificate_sha256, trust_test_authenticator},
     events::ApiEventType,
-    fido2::attestation::{certificate_sha256, trust_test_authenticator},
 };
 use defguard_proto::{client_types::MfaMethod, proxy::core_response};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -28,7 +28,8 @@ use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredentia
 use super::support::{
     assert_error_response, complete_proxy_handshake, create_polling_token, create_user_with_device,
     generate_totp_code, send_code_mfa_setup_finish_fido2, send_code_mfa_setup_start,
-    send_mfa_config_authorize, send_mfa_config_start, setup_user_totp_mfa,
+    send_mfa_config_authorize, send_mfa_config_start, set_test_license_business,
+    set_test_license_enterprise, setup_user_totp_mfa,
 };
 use crate::tests::common::HandlerTestContext;
 
@@ -121,6 +122,7 @@ async fn fido2_setup_start(
 
 #[sqlx::test]
 async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_enterprise();
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     let origin = set_webauthn_origin(&context).await;
@@ -207,6 +209,7 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
 
 #[sqlx::test]
 async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_enterprise();
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     set_webauthn_origin(&context).await;
@@ -235,6 +238,7 @@ async fn test_fido2_finish_without_start_is_rejected(_: PgPoolOptions, options: 
 
 #[sqlx::test]
 async fn test_fido2_finish_missing_fields_is_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_enterprise();
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     let origin = set_webauthn_origin(&context).await;
@@ -266,6 +270,7 @@ async fn assert_registration_rejected(
     authenticator: impl AuthenticatorBackend,
     options: PgConnectOptions,
 ) {
+    set_test_license_enterprise();
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     let origin = set_webauthn_origin(&context).await;
@@ -313,4 +318,94 @@ async fn test_fido2_untrusted_attestation_ca_is_rejected(
     options: PgConnectOptions,
 ) {
     assert_registration_rejected(soft_token(false).0, options).await;
+}
+
+/// FIDO2 security keys as an MFA factor need the Enterprise tier. A Business license must not
+/// start a FIDO2 setup, even when the client skips the lock that the UI shows.
+#[sqlx::test]
+async fn test_fido2_setup_start_requires_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_webauthn_origin(&context).await;
+
+    let (session_token, _user_id) = authorized_session(&mut context).await;
+
+    let response = send_code_mfa_setup_start(&mut context, &session_token, MfaMethod::Fido2).await;
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::InvalidArgument
+    );
+    let token = Token::find_by_id(&context.pool, &session_token)
+        .await
+        .expect("token exists");
+    assert!(
+        token.mfa_setup_state.is_none(),
+        "a refused FIDO2 setup must not store a passkey registration"
+    );
+
+    set_test_license_enterprise();
+    fido2_setup_start(&mut context, &session_token).await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// The finish checks the license again, so a setup started under Enterprise cannot save a key
+/// after the license drops to Business.
+#[sqlx::test]
+async fn test_fido2_setup_finish_requires_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_enterprise();
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let origin = set_webauthn_origin(&context).await;
+
+    let (session_token, user_id) = authorized_session(&mut context).await;
+    let (authenticator, _) = soft_token(true);
+    let ccr = fido2_setup_start(&mut context, &session_token).await;
+    let attestation = register(authenticator, origin, ccr);
+
+    set_test_license_business();
+    let response = send_code_mfa_setup_finish_fido2(
+        &mut context,
+        &session_token,
+        Some("my key"),
+        Some(&attestation),
+    )
+    .await;
+    assert_eq!(
+        assert_error_response(&response),
+        tonic::Code::InvalidArgument
+    );
+    assert!(
+        !WebAuthn::exists_for_user(&context.pool, user_id, None)
+            .await
+            .expect("query webauthn"),
+        "a refused FIDO2 finish must not save a security key"
+    );
+
+    // The same attestation finishes once the license allows FIDO2 again, so only the license
+    // refused it.
+    set_test_license_enterprise();
+    let finish = send_code_mfa_setup_finish_fido2(
+        &mut context,
+        &session_token,
+        Some("my key"),
+        Some(&attestation),
+    )
+    .await;
+    assert!(
+        matches!(
+            finish.payload,
+            Some(core_response::Payload::CodeMfaSetupFinishResponse(_))
+        ),
+        "FIDO2 setup must finish under an Enterprise license"
+    );
+
+    context.finish().await.expect_server_finished().await;
 }

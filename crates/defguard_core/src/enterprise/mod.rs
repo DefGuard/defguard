@@ -2,6 +2,7 @@ pub mod activity_log_stream;
 pub mod allowed_ips;
 pub mod db;
 pub mod directory_sync;
+pub mod fido2;
 pub mod firewall;
 pub mod grpc;
 pub mod handlers;
@@ -13,6 +14,7 @@ pub mod posture;
 pub mod snat;
 mod utils;
 
+use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;
 use license::{License, get_cached_license};
 use limits::get_counts;
 use strum::VariantArray;
@@ -49,6 +51,33 @@ pub fn is_business_license_active() -> bool {
 #[must_use]
 pub fn is_oidc_mfa_available(openid_provider_present: bool) -> bool {
     is_business_license_active() && openid_provider_present
+}
+
+/// Returns whether the active license allows this client MFA method.
+#[must_use]
+pub fn is_mfa_method_licensed(method: VpnClientMfaMethod) -> bool {
+    match method {
+        VpnClientMfaMethod::Oidc => is_business_license_active(),
+        VpnClientMfaMethod::Fido2 => has_enterprise_access(None),
+        _ => true,
+    }
+}
+
+/// Returns the MFA methods a client can set up under the active license.
+#[must_use]
+pub fn licensed_mfa_setup_methods() -> Vec<VpnClientMfaMethod> {
+    let methods: Vec<_> = VpnClientMfaMethod::CONFIG_SETUP
+        .into_iter()
+        .filter(|method| is_mfa_method_licensed(*method))
+        .collect();
+    if methods.len() < VpnClientMfaMethod::CONFIG_SETUP.len() {
+        let removed: Vec<_> = VpnClientMfaMethod::CONFIG_SETUP
+            .into_iter()
+            .filter(|method| !methods.contains(method))
+            .collect();
+        debug!("The active license hides MFA setup methods {removed:?} from the client");
+    }
+    methods
 }
 
 /// Helper function to gate an enterprise feature.
@@ -92,12 +121,14 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
 #[cfg(test)]
 mod test {
     use chrono::{TimeDelta, Utc};
+    use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;
     use strum::VariantArray;
 
     use crate::{
         enterprise::{
             LicenseFeature, effective_features, has_enterprise_access, is_business_license_active,
             license::{License, LicenseTier, SupportType, set_cached_license},
+            licensed_mfa_setup_methods,
             limits::{Counts, set_counts},
         },
         grpc::proto::enterprise::license::LicenseLimits,
@@ -229,6 +260,33 @@ mod test {
             LicenseFeature::VARIANTS.to_vec(),
         )));
         assert!(!has_enterprise_access(None));
+    }
+
+    /// A license gate may only take methods out of the canonical setup list, so the result stays
+    /// a subset of it, in its order.
+    #[test]
+    fn test_licensed_mfa_setup_methods_only_remove_from_the_canonical_list() {
+        set_counts(Counts::new(1, 1, 5, 1));
+        let free = vec![VpnClientMfaMethod::Totp, VpnClientMfaMethod::Email];
+
+        let cases = [
+            (None, free.clone()),
+            (Some(make_license(LicenseTier::Business, Vec::new())), free),
+            (
+                Some(make_license(LicenseTier::Enterprise, Vec::new())),
+                VpnClientMfaMethod::CONFIG_SETUP.to_vec(),
+            ),
+        ];
+        for (license, expected) in cases {
+            set_cached_license(license);
+            let methods = licensed_mfa_setup_methods();
+            assert_eq!(methods, expected);
+            let kept: Vec<_> = VpnClientMfaMethod::CONFIG_SETUP
+                .into_iter()
+                .filter(|method| methods.contains(method))
+                .collect();
+            assert_eq!(methods, kept);
+        }
     }
 
     #[test]

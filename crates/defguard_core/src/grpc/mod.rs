@@ -37,6 +37,7 @@ use crate::{
         },
         has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
         license::LicenseTier,
+        licensed_mfa_setup_methods,
     },
     grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
 };
@@ -275,9 +276,10 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
                     .collect(),
             }),
             mfa_capabilities: Some(MfaCapabilities {
-                setup_methods: VpnClientMfaMethod::CONFIG_SETUP
+                setup_methods: licensed_mfa_setup_methods()
+                    .into_iter()
                     .map(|method| MfaMethod::from(method) as i32)
-                    .to_vec(),
+                    .collect(),
                 authorize_methods: VpnClientMfaMethod::CONFIG_AUTHORIZE
                     .map(|method| MfaMethod::from(method) as i32)
                     .to_vec(),

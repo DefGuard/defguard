@@ -31,6 +31,7 @@ use crate::{
         client_version::{ClientFeature, should_omit_location_for_device},
         should_prevent_mfa_location_usage, should_prevent_service_location_usage,
     },
+    mfa_engine::filter_unlicensed_mfa_methods,
 };
 
 pub async fn build_device_config_response(
@@ -241,7 +242,8 @@ pub fn build_wire_steps(
     let mut wire_steps = Vec::with_capacity(steps.len());
     for step in steps {
         let mut methods = Vec::with_capacity(step.methods.len());
-        for method in VpnClientMfaMethod::ordered_set(&step.methods) {
+        for method in VpnClientMfaMethod::ordered_set(&filter_unlicensed_mfa_methods(&step.methods))
+        {
             methods.push(MfaStepMethod {
                 method: <VpnClientMfaMethod as Into<MfaMethod>>::into(method) as i32,
                 configured: configured_methods.contains(&method),

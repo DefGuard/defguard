@@ -19,8 +19,9 @@ use super::{
     poll_allowed, throttle_key,
     types::{FinishOutcome, MultiStepStartOutcome, VerificationProof},
 };
+pub use crate::enterprise::fido2::{Fido2Assertion, ProofConversionError};
 use crate::{
-    enterprise::is_business_license_active,
+    enterprise::{fido2::map_proof_conversion_error, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
 };
 
@@ -37,28 +38,6 @@ pub enum StepCredential {
     Code(String),
     BiometricSignature(String),
     Fido2(Fido2Assertion),
-}
-
-/// Binary FIDO2 assertion submitted to a multi-step finish.
-#[derive(Debug, Eq, PartialEq)]
-pub struct Fido2Assertion {
-    pub rp_id_hash: Vec<u8>,
-    pub authenticator_data: Vec<u8>,
-    pub signature: Vec<u8>,
-    pub credential_id: Vec<u8>,
-}
-
-/// Error converting a typed credential to the verifier representation.
-#[derive(Debug, Eq, Error, PartialEq)]
-pub enum ProofConversionError {
-    #[error("FIDO2 authenticator data is too short")]
-    Fido2AuthenticatorDataTooShort,
-    #[error("FIDO2 RP ID hash does not match authenticator data")]
-    Fido2RpIdHashMismatch,
-    #[error("FIDO2 credential ID is empty")]
-    Fido2CredentialIdEmpty,
-    #[error("FIDO2 signature is empty")]
-    Fido2SignatureEmpty,
 }
 
 /// Proof used by the mark-only mobile approval operation.
@@ -162,36 +141,7 @@ impl TryFrom<StepCredential> for VerificationProof {
             StepCredential::BiometricSignature(signature) => {
                 Ok(Self::BiometricSignature(signature))
             }
-            StepCredential::Fido2(assertion) => {
-                const RP_ID_HASH_LEN: usize = 32;
-                let Fido2Assertion {
-                    rp_id_hash,
-                    authenticator_data,
-                    signature,
-                    credential_id,
-                } = assertion;
-
-                if authenticator_data.len() < RP_ID_HASH_LEN {
-                    return Err(ProofConversionError::Fido2AuthenticatorDataTooShort);
-                }
-                if authenticator_data[..RP_ID_HASH_LEN] != rp_id_hash {
-                    return Err(ProofConversionError::Fido2RpIdHashMismatch);
-                }
-                if credential_id.is_empty() {
-                    // Unknown non-empty IDs must fail verification to prevent credential enumeration.
-                    return Err(ProofConversionError::Fido2CredentialIdEmpty);
-                }
-                if signature.is_empty() {
-                    return Err(ProofConversionError::Fido2SignatureEmpty);
-                }
-
-                Ok(Self::Fido2 {
-                    rp_id_hash,
-                    signature,
-                    authenticator_data,
-                    credential_id,
-                })
-            }
+            StepCredential::Fido2(assertion) => Self::try_from(assertion),
         }
     }
 }
@@ -745,21 +695,6 @@ impl MfaEngine {
             }
             Verdict::NotYet => Err(StepFinishError::Internal),
         }
-    }
-}
-
-fn map_proof_conversion_error(error: ProofConversionError) -> StepFinishError {
-    StepFinishError::MalformedProof {
-        message: match error {
-            ProofConversionError::Fido2AuthenticatorDataTooShort => {
-                "FIDO2 authenticator data is too short"
-            }
-            ProofConversionError::Fido2RpIdHashMismatch => {
-                "FIDO2 RP ID hash does not match authenticator data"
-            }
-            ProofConversionError::Fido2CredentialIdEmpty => "FIDO2 credential ID is empty",
-            ProofConversionError::Fido2SignatureEmpty => "FIDO2 signature is empty",
-        },
     }
 }
 

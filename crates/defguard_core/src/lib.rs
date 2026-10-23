@@ -215,7 +215,6 @@ pub mod enrollment_management;
 pub mod enterprise;
 pub mod error;
 pub mod events;
-pub mod fido2;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;

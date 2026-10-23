@@ -22,7 +22,7 @@ export type SelectMultipleProps<T extends SelectionKey, M = unknown> = {
   toggleValue: boolean;
   toggleText?: string;
   error?: string;
-  counterText: (count: number) => string;
+  counterText?: (count: number) => string;
   onSelectionChange: (
     value: Array<T>,
     toggleValue?: boolean,

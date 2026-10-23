@@ -188,6 +188,7 @@ async fn fido2_challenge(
     }
 }
 
+/// Runs with no license on purpose, because a registered key authorizes on every tier.
 #[sqlx::test]
 async fn test_fido2_authorizes_session(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
