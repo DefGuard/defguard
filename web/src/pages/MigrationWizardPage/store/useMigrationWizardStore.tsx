@@ -46,6 +46,7 @@ interface StoreValues extends MigrationWizardApiState {
   ip_or_domain: string;
   grpc_port: number;
   edgeAdoptionState: EdgeAdoptionState;
+  ldap_migration_required: boolean;
 }
 
 const edgeAdoptionStateDefaults: EdgeAdoptionState = {
@@ -79,6 +80,7 @@ const defaults: StoreValues = {
   ip_or_domain: '',
   grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
+  ldap_migration_required: false,
 };
 
 interface Store extends StoreValues {
@@ -144,6 +146,11 @@ export const useMigrationWizardStore = create<Store>()(
             stepToSet = MigrationWizardStep.Welcome;
             break;
           case 'ca':
+            stepToSet = get().ldap_migration_required
+              ? MigrationWizardStep.LdapMigration
+              : MigrationWizardStep.General;
+            break;
+          case 'ldapMigration':
             stepToSet = MigrationWizardStep.General;
             break;
           case 'caSummary':
@@ -189,6 +196,11 @@ export const useMigrationWizardStore = create<Store>()(
             stepToSet = MigrationWizardStep.General;
             break;
           case 'general':
+            stepToSet = get().ldap_migration_required
+              ? MigrationWizardStep.LdapMigration
+              : MigrationWizardStep.Ca;
+            break;
+          case 'ldapMigration':
             stepToSet = MigrationWizardStep.Ca;
             break;
           case 'ca':

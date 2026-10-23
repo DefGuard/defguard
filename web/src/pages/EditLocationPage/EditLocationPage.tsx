@@ -1021,6 +1021,12 @@ const EditLocationForm = ({
           label={m.cmp_nav_item_posture_checks()}
           labelContent={postureChecksLabelContent}
         >
+          <InfoBanner
+            icon={IconKind.InfoOutlined}
+            text={m.location_posture_checks_info()}
+            variant="info"
+          />
+          <SizedBox height={ThemeSpacing.Xl2} />
           {postureChecksSectionState.showEmptyState && (
             <div className="location-empty-state">
               <img src={postureCheckShield} alt="" className="shield" />
@@ -1040,7 +1046,6 @@ const EditLocationForm = ({
                 editText={m.location_posture_checks_edit()}
                 editIcon={IconKind.Edit}
                 toggleValue={false}
-                counterText={() => ''}
                 onSelectionChange={handlePostureSelection}
                 onToggleChange={() => {}}
                 selectionCustomItemRender={renderPostureCheckSelectionItem}

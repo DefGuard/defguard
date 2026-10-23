@@ -40,6 +40,7 @@ pub mod client;
 pub mod dn;
 pub mod error;
 pub mod hash;
+pub mod migration;
 pub mod model;
 pub mod sync;
 #[cfg(test)]

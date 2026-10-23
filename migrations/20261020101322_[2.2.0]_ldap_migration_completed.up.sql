@@ -1,0 +1,1 @@
+ALTER TABLE wizard ADD COLUMN ldap_migration_completed BOOLEAN NOT NULL DEFAULT FALSE;

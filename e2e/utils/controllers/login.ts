@@ -24,6 +24,16 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
   await responsePromise;
 };
 
+export const loginOnCurrentPage = async (page: Page, userInfo: AuthInfo) => {
+  await page.getByTestId('field-username').fill(userInfo.username);
+  await page.getByTestId('field-password').fill(userInfo.password);
+  const responsePromise = page.waitForResponse(
+    (resp) => resp.url().endsWith('/api/v1/auth') && resp.request().method() === 'POST',
+  );
+  await page.getByTestId('sign-in').click();
+  await responsePromise;
+};
+
 export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);

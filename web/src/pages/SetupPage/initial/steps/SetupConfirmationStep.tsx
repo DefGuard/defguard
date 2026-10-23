@@ -31,7 +31,7 @@ export const SetupConfirmationStep = () => {
       useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
       await new Promise((r) => setTimeout(r, 2000));
-      redirectAfterFinish('/auth/login');
+      redirectAfterFinish('/auth/login?redirect=/add-location');
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
       useSetupWizardStore.setState({ isFinishing: false });
