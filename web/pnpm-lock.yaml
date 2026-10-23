@@ -160,6 +160,9 @@ importers:
       axios:
         specifier: 1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      bowser:
+        specifier: ^2.14.1
+        version: 2.14.1
       byte-size:
         specifier: ^9.0.2
         version: 9.0.2
@@ -1963,6 +1966,9 @@ packages:
   binaryen@130.0.0:
     resolution: {integrity: sha512-XDrb+zql0RbFPKgj7MuH9zOc78R3Fa/P/VSGnnpdwYsvNZPWjcMYMdAkKCOQEL2A7yqgjSMTDRFp6gfSDW+/QQ==}
     hasBin: true
+
+  bowser@2.14.1:
+    resolution: {integrity: sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -5169,6 +5175,8 @@ snapshots:
       require-from-string: 2.0.2
 
   binaryen@130.0.0: {}
+
+  bowser@2.14.1: {}
 
   braces@3.0.3:
     dependencies:

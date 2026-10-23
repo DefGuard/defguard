@@ -13,8 +13,6 @@ import type { SelectionOption } from '../../../../../../shared/components/Select
 import { Button } from '../../../../../../shared/defguard-ui/components/Button/Button';
 import { FieldError } from '../../../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Modal } from '../../../../../../shared/defguard-ui/components/Modal/Modal';
-import { SizedBox } from '../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 
 export type MfaFlowAssignmentTarget = {
@@ -154,12 +152,9 @@ export const MfaFlowAssignmentModalContent = ({
           renderItem={renderMfaFlowSelectionItem}
           searchPlaceholder={m.controls_search()}
           showActions={false}
-          enableDividers
-          itemGap={12}
-          visibleItemsLimit={6}
+          visibleItemsLimit={10}
         />
       )}
-      <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
         {onGroupStep && (
           <Button
