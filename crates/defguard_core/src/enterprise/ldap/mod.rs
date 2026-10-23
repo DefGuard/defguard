@@ -144,7 +144,7 @@ where
     match f.await {
         Ok(result) => Ok(result),
         Err(e) => {
-            warn!("Encountered an error while performing LDAP operation: {e:?}");
+            error!("Encountered an error while performing LDAP operation: {e:?}");
             if let Err(status_err) = set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await {
                 warn!("Failed to update LDAP sync status: {status_err:?}");
             }

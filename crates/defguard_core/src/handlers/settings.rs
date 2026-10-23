@@ -421,7 +421,7 @@ fn fill_ldap_password(settings: &mut Settings) {
     tag = "LDAP",
     responses(
         (status = 200, description = "LDAP connection established."),
-        (status = 400, description = "Unable to connect to LDAP."),
+        (status = 400, description = "Unable to connect to LDAP.", body = ApiErrorResponse, example = json!({"msg": "LDAP error: LDAP operation result: rc=49 (invalidCredentials)"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to test LDAP connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -433,16 +433,11 @@ fn fill_ldap_password(settings: &mut Settings) {
 ))]
 pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
     debug!("Testing LDAP connection");
-    match LDAPConnection::create().await {
-        Ok(_) => {
-            debug!("LDAP connected successfully");
-            Ok(ApiResponse::with_status(StatusCode::OK))
-        }
-        Err(err) => {
-            debug!("LDAP connection rejected: {err}");
-            Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
-        }
-    }
+    LDAPConnection::create()
+        .await
+        .map_err(|err| WebError::BadRequest(err.to_string()))?;
+    debug!("LDAP connected successfully");
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 /// Test the LDAP connection
@@ -455,7 +450,7 @@ pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo)
     request_body = Object,
     responses(
         (status = 200, description = "LDAP connection established."),
-        (status = 400, description = "Unable to connect to LDAP."),
+        (status = 400, description = "Unable to connect to LDAP.", body = ApiErrorResponse, example = json!({"msg": "LDAP error: LDAP operation result: rc=49 (invalidCredentials)"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to test LDAP connection.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -472,16 +467,11 @@ pub(crate) async fn test_submitted_ldap_settings(
 ) -> ApiResult {
     fill_ldap_password(&mut settings);
     debug!("Testing LDAP connection with provided settings");
-    match LDAPConnection::create_with_settings(settings).await {
-        Ok(_) => {
-            debug!("LDAP connected successfully");
-            Ok(ApiResponse::with_status(StatusCode::OK))
-        }
-        Err(err) => {
-            debug!("LDAP connection rejected: {err}");
-            Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
-        }
-    }
+    LDAPConnection::create_with_settings(settings)
+        .await
+        .map_err(|err| WebError::BadRequest(err.to_string()))?;
+    debug!("LDAP connected successfully");
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 /// Preview the changes a full LDAP sync would make
@@ -498,7 +488,7 @@ pub(crate) async fn test_submitted_ldap_settings(
             "defguard": [{"username": "jane", "email": "jane@example.com", "first_name": "Jane", "last_name": "Doe", "action": "add"}],
             "ldap": [{"username": "john", "email": "john@example.com", "first_name": "John", "last_name": "Doe", "action": "remove"}]
         })),
-        (status = 400, description = "Unable to connect to LDAP or to perform the dry run."),
+        (status = 400, description = "Unable to connect to LDAP or to perform the dry run.", body = ApiErrorResponse, example = json!({"msg": "LDAP error: LDAP operation result: rc=49 (invalidCredentials)"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges and an active enterprise license.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to perform LDAP dry run.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -522,24 +512,15 @@ pub(crate) async fn ldap_dry_run(
         Authority::Defguard
     };
 
-    let mut connection = match LDAPConnection::create_with_settings(settings).await {
-        Ok(connection) => connection,
-        Err(err) => {
-            debug!("LDAP dry run connection rejected: {err}");
-            return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
-        }
-    };
-
-    match connection.dry_run(&appstate.pool, authority).await {
-        Ok(result) => {
-            debug!("LDAP dry run completed successfully");
-            Ok(ApiResponse::json(result, StatusCode::OK))
-        }
-        Err(err) => {
-            debug!("LDAP dry run failed: {err}");
-            Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST))
-        }
-    }
+    let mut connection = LDAPConnection::create_with_settings(settings)
+        .await
+        .map_err(|err| WebError::BadRequest(err.to_string()))?;
+    let result = connection
+        .dry_run(&appstate.pool, authority)
+        .await
+        .map_err(|err| WebError::BadRequest(err.to_string()))?;
+    debug!("LDAP dry run completed successfully");
+    Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
 #[cfg(test)]
