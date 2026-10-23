@@ -13,6 +13,7 @@ ladle-build
 .envrc
 .direnv/
 *.pem
+!tools/defguard_fido_mds/globalsign_root_r3.pem
 result/
 .aider*
 .env
