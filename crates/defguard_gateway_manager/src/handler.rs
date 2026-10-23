@@ -44,7 +44,10 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::transport::{Channel, Endpoint};
+use tonic::{
+    Code, Status,
+    transport::{Channel, Endpoint},
+};
 
 #[cfg(test)]
 use crate::GatewayManagerTestSupport;
@@ -71,6 +74,10 @@ pub(crate) struct GatewayHandler {
     test_socket_path: Option<PathBuf>,
     #[cfg(test)]
     test_support: Option<GatewayManagerTestSupport>,
+}
+
+fn is_gateway_already_connected(err: &Status) -> bool {
+    err.code() == Code::Internal && err.message() == "Client already connected"
 }
 
 impl GatewayHandler {
@@ -479,7 +486,19 @@ impl GatewayHandler {
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
             Ok(response) => response,
             Err(err) => {
-                error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                if is_gateway_already_connected(&err) {
+                    if retry_on_connect_failure {
+                        warn!(
+                            "Gateway {uri} refused this Core because another Core is already connected; this Core will retry"
+                        );
+                    } else {
+                        warn!(
+                            "Gateway {uri} refused this Core because another Core is already connected"
+                        );
+                    }
+                } else {
+                    error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                }
                 if retry_on_connect_failure {
                     sleep(retry_delay).await;
                     return Ok(());

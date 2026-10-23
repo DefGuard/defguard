@@ -180,7 +180,10 @@ impl GatewayManager {
     }
 
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
-    pub async fn run(&mut self) -> Result<(), anyhow::Error> {
+    pub async fn run(
+        &mut self,
+        mut shutdown_rx: watch::Receiver<bool>,
+    ) -> Result<(), anyhow::Error> {
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let refresh_pool = self.pool.clone();
 
@@ -227,7 +230,20 @@ impl GatewayManager {
         #[cfg(test)]
         self.test_support.mark_listener_ready();
 
-        while let Ok(notification) = listener.recv().await {
+        loop {
+            let notification = tokio::select! {
+                result = listener.recv() => match result {
+                    Ok(notification) => notification,
+                    Err(_) => break,
+                },
+                _ = shutdown_rx.changed() => {
+                    debug!("GatewayManager shutdown requested");
+                    self.handlers.abort_all();
+                    while self.handlers.join_next().await.is_some() {}
+                    Gateway::mark_all_disconnected(&self.pool).await?;
+                    return Ok(());
+                }
+            };
             let payload = notification.payload();
             match serde_json::from_str::<ChangeNotification>(payload) {
                 Ok(gateway_notification) => {
