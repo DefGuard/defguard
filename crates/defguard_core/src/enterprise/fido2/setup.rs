@@ -140,7 +140,10 @@ impl Token {
                 .as_deref()
                 .unwrap_or("unnamed model"),
             hardware_key.aaguid,
-            hardware_key.root_sha256
+            hardware_key
+                .chain_sha256
+                .last()
+                .map_or("unknown", String::as_str)
         );
         let authenticator = AuthenticatorInfo {
             name: hardware_key.description,
@@ -148,7 +151,6 @@ impl Token {
             source,
             anchor: Some(AttestationAnchor {
                 aaguid: hardware_key.aaguid,
-                root_sha256: hardware_key.root_sha256,
                 valid_until: hardware_key.valid_until,
                 chain: hardware_key.chain,
                 chain_sha256: hardware_key.chain_sha256,

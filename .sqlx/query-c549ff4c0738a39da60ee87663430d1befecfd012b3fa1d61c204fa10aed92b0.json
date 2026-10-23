@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"webauthn\" SET \"user_id\" = $2,\"name\" = $3,\"passkey\" = $4,\"authenticator_name\" = $5,\"authenticator_kind\" = $6,\"registration_source\" = $7,\"attestation_aaguid\" = $8,\"attestation_root_sha256\" = $9,\"attestation_valid_until\" = $10,\"attestation_chain\" = $11,\"attestation_chain_sha256\" = $12,\"registered_at\" = $13 WHERE id = $1",
+  "query": "UPDATE \"webauthn\" SET \"user_id\" = $2,\"name\" = $3,\"passkey\" = $4,\"authenticator_name\" = $5,\"authenticator_kind\" = $6,\"registration_source\" = $7,\"attestation_aaguid\" = $8,\"attestation_valid_until\" = $9,\"attestation_chain\" = $10,\"attestation_chain_sha256\" = $11,\"registered_at\" = $12 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -34,7 +34,6 @@
           }
         },
         "Uuid",
-        "Text",
         "Timestamp",
         "ByteaArray",
         "TextArray",
@@ -43,5 +42,5 @@
     },
     "nullable": []
   },
-  "hash": "88dfd20ea1391271c0c41e3deb6ab6c2476ae1c2d1f2ba50cf2a257d1649ed3e"
+  "hash": "c549ff4c0738a39da60ee87663430d1befecfd012b3fa1d61c204fa10aed92b0"
 }

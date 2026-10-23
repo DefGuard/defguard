@@ -175,10 +175,6 @@ async fn test_fido2_setup_registers_security_key(_: PgPoolOptions, options: PgCo
     );
     assert_eq!(keys[0].registration_source, RegistrationSource::Desktop);
     assert_eq!(keys[0].attestation_aaguid, Some(AAGUID));
-    assert_eq!(
-        keys[0].attestation_root_sha256,
-        Some(certificate_sha256(&ca_der))
-    );
     assert!(keys[0].attestation_valid_until.is_some());
     let chain = keys[0]
         .attestation_chain

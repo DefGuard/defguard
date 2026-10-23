@@ -29,11 +29,10 @@ pub enum RegistrationSource {
     Mobile,
 }
 
-/// The trusted authenticator certificate that vouched for a key at registration.
+/// The trusted attestation that vouched for a key at registration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AttestationAnchor {
     pub aaguid: Uuid,
-    pub root_sha256: String,
     pub valid_until: NaiveDateTime,
     pub chain: Vec<Vec<u8>>,
     pub chain_sha256: Vec<String>,
@@ -72,7 +71,6 @@ pub struct WebAuthn<I = NoId> {
     #[model(enum)]
     pub registration_source: RegistrationSource,
     pub attestation_aaguid: Option<Uuid>,
-    pub attestation_root_sha256: Option<String>,
     pub attestation_valid_until: Option<NaiveDateTime>,
     #[model(option_ref)]
     pub attestation_chain: Option<Vec<Vec<u8>>>,
@@ -98,7 +96,6 @@ impl WebAuthn {
             authenticator_kind: authenticator.kind,
             registration_source: authenticator.source,
             attestation_aaguid: None,
-            attestation_root_sha256: None,
             attestation_valid_until: None,
             attestation_chain: None,
             attestation_chain_sha256: None,
@@ -106,7 +103,6 @@ impl WebAuthn {
         };
         if let Some(anchor) = authenticator.anchor {
             key.attestation_aaguid = Some(anchor.aaguid);
-            key.attestation_root_sha256 = Some(anchor.root_sha256);
             key.attestation_valid_until = Some(anchor.valid_until);
             key.attestation_chain = Some(anchor.chain);
             key.attestation_chain_sha256 = Some(anchor.chain_sha256);
@@ -170,7 +166,7 @@ impl WebAuthn<Id> {
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
             registration_source \"registration_source: RegistrationSource\", \
-            attestation_aaguid, attestation_root_sha256, attestation_valid_until, \
+            attestation_aaguid, attestation_valid_until, \
             attestation_chain, attestation_chain_sha256, registered_at \
             FROM webauthn WHERE user_id = $1",
             user_id
@@ -179,10 +175,10 @@ impl WebAuthn<Id> {
         .await
     }
 
-    /// Fetch keys attested by any of the given trusted root certificates.
-    pub async fn find_by_attestation_roots<'e, E>(
+    /// Fetch keys whose attestation chain contains any of the given certificates.
+    pub async fn find_by_attestation_certs<'e, E>(
         executor: E,
-        root_sha256: &[String],
+        cert_sha256: &[String],
     ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
@@ -192,10 +188,10 @@ impl WebAuthn<Id> {
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
             registration_source \"registration_source: RegistrationSource\", \
-            attestation_aaguid, attestation_root_sha256, attestation_valid_until, \
+            attestation_aaguid, attestation_valid_until, \
             attestation_chain, attestation_chain_sha256, registered_at \
-            FROM webauthn WHERE attestation_root_sha256 = ANY($1)",
-            root_sha256
+            FROM webauthn WHERE attestation_chain_sha256 && $1",
+            cert_sha256
         )
         .fetch_all(executor)
         .await
@@ -247,7 +243,7 @@ mod tests {
     use crate::db::{models::User, setup_pool};
 
     #[sqlx::test]
-    async fn test_find_by_attestation_roots(_: PgPoolOptions, options: PgConnectOptions) {
+    async fn test_find_by_attestation_certs(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
         let user = User::new(
             "hpotter",
@@ -260,6 +256,7 @@ mod tests {
         .save(&pool)
         .await
         .unwrap();
+        let leaf_sha256 = "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4";
         let root_sha256 = "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8";
         let key = WebAuthn {
             id: NoId,
@@ -270,17 +267,16 @@ mod tests {
             authenticator_kind: AuthenticatorKind::Hardware,
             registration_source: RegistrationSource::Desktop,
             attestation_aaguid: Some(Uuid::nil()),
-            attestation_root_sha256: Some(root_sha256.to_owned()),
             attestation_valid_until: Some(Utc::now().naive_utc()),
             attestation_chain: Some(vec![b"leaf".to_vec(), b"root".to_vec()]),
-            attestation_chain_sha256: Some(vec!["leaf".to_owned(), root_sha256.to_owned()]),
+            attestation_chain_sha256: Some(vec![leaf_sha256.to_owned(), root_sha256.to_owned()]),
             registered_at: Some(Utc::now().naive_utc()),
         }
         .save(&pool)
         .await
         .unwrap();
 
-        let found = WebAuthn::find_by_attestation_roots(
+        let found = WebAuthn::find_by_attestation_certs(
             &pool,
             &[root_sha256.to_owned(), "unknown".to_owned()],
         )
@@ -294,7 +290,12 @@ mod tests {
             key.attestation_chain_sha256
         );
 
-        let found = WebAuthn::find_by_attestation_roots(&pool, &["unknown".to_owned()])
+        let found = WebAuthn::find_by_attestation_certs(&pool, &[leaf_sha256.to_owned()])
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 1);
+
+        let found = WebAuthn::find_by_attestation_certs(&pool, &["unknown".to_owned()])
             .await
             .unwrap();
         assert!(found.is_empty());

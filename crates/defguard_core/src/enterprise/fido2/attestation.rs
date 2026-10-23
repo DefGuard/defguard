@@ -63,7 +63,6 @@ pub enum HardwareKeyError {
 pub struct HardwareKey {
     pub aaguid: Uuid,
     pub description: Option<String>,
-    pub root_sha256: String,
     // earliest expiry across the attestation chain and its trusted root
     pub valid_until: NaiveDateTime,
     // DER certificates from leaf to the trusted root, root included once
@@ -204,7 +203,6 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
         .try_fold(NaiveDateTime::MAX, |earliest, not_after| {
             not_after.map(|not_after| earliest.min(not_after))
         })?;
-    let root_sha256 = certificate_sha256(&root);
     if chain.last() != Some(&root) {
         chain.push(root);
     }
@@ -213,7 +211,6 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
     Ok(HardwareKey {
         aaguid,
         description: authenticator_description(&aaguid),
-        root_sha256,
         valid_until,
         chain,
         chain_sha256,

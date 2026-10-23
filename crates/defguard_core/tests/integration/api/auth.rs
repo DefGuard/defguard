@@ -666,7 +666,6 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert_eq!(stored.len(), 1);
     assert_eq!(stored[0].attestation_aaguid, None);
-    assert_eq!(stored[0].attestation_root_sha256, None);
     assert_eq!(stored[0].attestation_valid_until, None);
     assert_eq!(stored[0].attestation_chain, None);
     assert_eq!(stored[0].attestation_chain_sha256, None);

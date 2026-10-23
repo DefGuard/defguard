@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\",\"attestation_aaguid\",\"attestation_root_sha256\",\"attestation_valid_until\",\"attestation_chain\" \"attestation_chain?: _\",\"attestation_chain_sha256\" \"attestation_chain_sha256?: _\",\"registered_at\" FROM \"webauthn\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\",\"attestation_aaguid\",\"attestation_valid_until\",\"attestation_chain\" \"attestation_chain?: _\",\"attestation_chain_sha256\" \"attestation_chain_sha256?: _\",\"registered_at\" FROM \"webauthn\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -114,17 +114,6 @@
       },
       {
         "ordinal": 8,
-        "name": "attestation_root_sha256",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "webauthn",
-            "name": "attestation_root_sha256"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
         "name": "attestation_valid_until",
         "type_info": "Timestamp",
         "origin": {
@@ -135,7 +124,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "attestation_chain?: _",
         "type_info": "ByteaArray",
         "origin": {
@@ -146,7 +135,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "attestation_chain_sha256?: _",
         "type_info": "TextArray",
         "origin": {
@@ -157,7 +146,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "registered_at",
         "type_info": "Timestamp",
         "origin": {
@@ -186,9 +175,8 @@
       true,
       true,
       true,
-      true,
       true
     ]
   },
-  "hash": "96cf1769d00d93196bc5e6926367859a90db55bd86070b45be9ec39b10d266b9"
+  "hash": "7fbbeb2bbc4216557ab0bf98888f46119febd64a84a4cbe3ff4e439b002b8dd2"
 }

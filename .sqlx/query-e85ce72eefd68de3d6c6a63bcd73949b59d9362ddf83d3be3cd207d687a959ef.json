@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_root_sha256, attestation_valid_until, attestation_chain, attestation_chain_sha256, registered_at FROM webauthn WHERE user_id = $1",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_valid_until, attestation_chain, attestation_chain_sha256, registered_at FROM webauthn WHERE attestation_chain_sha256 && $1",
   "describe": {
     "columns": [
       {
@@ -114,17 +114,6 @@
       },
       {
         "ordinal": 8,
-        "name": "attestation_root_sha256",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "webauthn",
-            "name": "attestation_root_sha256"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
         "name": "attestation_valid_until",
         "type_info": "Timestamp",
         "origin": {
@@ -135,7 +124,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "attestation_chain",
         "type_info": "ByteaArray",
         "origin": {
@@ -146,7 +135,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "attestation_chain_sha256",
         "type_info": "TextArray",
         "origin": {
@@ -157,7 +146,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "registered_at",
         "type_info": "Timestamp",
         "origin": {
@@ -170,7 +159,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "TextArray"
       ]
     },
     "nullable": [
@@ -185,9 +174,8 @@
       true,
       true,
       true,
-      true,
       true
     ]
   },
-  "hash": "fe9d5a5d6985be132a0ffc4f772fd827c22064933473e0cf56ea9bfba8734d69"
+  "hash": "e85ce72eefd68de3d6c6a63bcd73949b59d9362ddf83d3be3cd207d687a959ef"
 }

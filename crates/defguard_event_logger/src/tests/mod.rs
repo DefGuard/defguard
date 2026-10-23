@@ -437,7 +437,6 @@ fn api_event_cases() -> Vec<EventTestCase> {
         authenticator_kind: AuthenticatorKind::Unknown,
         registration_source: RegistrationSource::Core,
         attestation_aaguid: None,
-        attestation_root_sha256: None,
         attestation_valid_until: None,
         attestation_chain: None,
         attestation_chain_sha256: None,
