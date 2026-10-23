@@ -11,6 +11,7 @@ import { Toggle } from '../../defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../defguard-ui/types';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { sortByLabel } from '../../defguard-ui/utils/sortByLabel';
+import { isWindows } from '../../utils/isWindows';
 import type { SelectionKey, SelectionOption, SelectionSectionProps } from './type';
 
 //TODO: virtualize items
@@ -118,23 +119,25 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
       />
       <SizedBox height={ThemeSpacing.Xl} />
       {showActions && (
-        <div className="actions">
-          <Checkbox
-            text={m.cmp_selection_section_all()}
-            active={selection.size === options.length}
-            onClick={handleSelectAll}
-          />
-          <div className="right">
-            <Toggle
-              label={m.cmp_selection_section_selected_filter()}
-              active={onlySelected}
-              onClick={() => setOnlySelected((s) => !s)}
-              disabled={selection.size === 0}
+        <>
+          <div className="actions">
+            <Checkbox
+              text={m.cmp_selection_section_all()}
+              active={selection.size === options.length}
+              onClick={handleSelectAll}
             />
+            <div className="right">
+              <Toggle
+                label={m.cmp_selection_section_selected_filter()}
+                active={onlySelected}
+                onClick={() => setOnlySelected((s) => !s)}
+                disabled={selection.size === 0}
+              />
+            </div>
           </div>
-        </div>
+          <Divider spacing={ThemeSpacing.Md} />
+        </>
       )}
-      <Divider spacing={ThemeSpacing.Md} />
       {searching && visibleOptions.length === 0 && (
         <>
           <SizedBox height={130} />
@@ -148,7 +151,7 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
       )}
       {visibleOptions.length > 0 && (
         <div
-          className="items-box"
+          className={clsx('items-box', { 'platform-windows': isWindows })}
           style={{
             height: maxHeight,
             maxHeight,

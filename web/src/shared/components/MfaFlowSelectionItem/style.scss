@@ -1,4 +1,17 @@
 .mfa-flow-selection-item {
+  display: flex;
   flex: 1 0 100%;
+  flex-flow: row nowrap;
+  align-items: center;
+  column-gap: var(--spacing-md);
   width: 100%;
+  cursor: pointer;
+  user-select: none;
+
+  & > .label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+  }
 }
