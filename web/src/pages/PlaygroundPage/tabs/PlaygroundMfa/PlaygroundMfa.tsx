@@ -131,6 +131,7 @@ export const PlaygroundMfa = () => {
           />
           {[
             MfaMethodAvailabilityReason.Licensed,
+            MfaMethodAvailabilityReason.EnterpriseLicensed,
             MfaMethodAvailabilityReason.SmtpNotConfigured,
             MfaMethodAvailabilityReason.OidcProviderMissing,
           ].map((reason) => (

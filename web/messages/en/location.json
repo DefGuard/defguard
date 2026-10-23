@@ -137,6 +137,7 @@
   "location_mfa_default_chip_all_groups": "All groups",
   "location_mfa_default_chip_everyone_else": "Everyone else",
   "location_mfa_flow_unavailable_license": "Upgrade to a Business plan to use this flow, or select another flow.",
+  "location_mfa_flow_unavailable_enterprise_license": "Upgrade to an Enterprise plan to use this flow, or select another flow.",
   "location_mfa_flow_unavailable_smtp": "Enable SMTP in settings to use this flow.",
   "location_mfa_flow_unavailable_oidc": "Enable an OpenID provider in settings to use this flow.",
   "location_mfa_flows_unavailable_error": "MFA contains errors and may be partially or fully disabled.",

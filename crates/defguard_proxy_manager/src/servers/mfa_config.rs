@@ -15,6 +15,7 @@ use defguard_core::{
     },
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
+        fido2::{fido2_credential_ids, verify_mfa_config_fido2_assertion},
         handlers::openid_login::{
             ClaimsUserResolution, MfaOidcState, extract_state_data, user_from_claims,
         },
@@ -23,7 +24,7 @@ use defguard_core::{
     events::{ApiEvent, ApiEventType},
     grpc::utils::parse_client_ip_agent,
     mail::templates::mfa_code_mail,
-    mfa_engine::method::{VerifyError, fido2_credential_ids, verify_mfa_config_fido2_assertion},
+    mfa_engine::method::VerifyError,
 };
 use defguard_proto::{
     client_types::{
@@ -147,6 +148,8 @@ async fn load_session(pool: &PgPool, session_token: &str) -> Result<MfaConfigSes
     };
     let totp_configured = configured(VpnClientMfaMethod::Totp).await?;
     let email_configured = configured(VpnClientMfaMethod::Email).await?;
+    // The owner of a key from an earlier Enterprise license must still add another factor, and the
+    // email fallback would bypass the key, so FIDO2 authorizes with no license check.
     let fido2_configured = configured(VpnClientMfaMethod::Fido2).await?;
     let oidc_configured = configured(VpnClientMfaMethod::Oidc).await?;
 
