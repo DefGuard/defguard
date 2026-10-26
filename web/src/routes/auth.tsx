@@ -6,7 +6,7 @@ import api from '../shared/api/api';
 import { ActiveWizard, type User, UserMfaMethod } from '../shared/api/types';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getSessionInfoQueryOptions } from '../shared/query';
+import { getLicenseInfoQueryOptions, getSessionInfoQueryOptions } from '../shared/query';
 
 const basicSchema = z.object({
   url: z.string().nullable().optional(),
@@ -73,6 +73,7 @@ function RouteComponent() {
       const basicResult = basicSchema.safeParse(state);
       const basicResponse = basicResult.data;
       if (isPresent(basicResponse) && basicResult.success) {
+        queryClient.removeQueries({ queryKey: getLicenseInfoQueryOptions.queryKey });
         useAuth.getState().setUser(basicResponse.user);
         await Promise.all([
           queryClient.invalidateQueries({

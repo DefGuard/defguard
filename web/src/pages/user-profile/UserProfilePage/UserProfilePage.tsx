@@ -32,6 +32,7 @@ const defaultTab = UserProfileTab.Details;
 export const UserProfilePage = () => {
   const navigate = useNavigate();
   const authUsername = useAuth((s) => s.user?.username as string);
+  const isAdmin = useAuth((s) => s.isAdmin);
   const search = useSearch({ from: '/_authorized/_default/user/$username' });
   const activeTab = search.tab ?? defaultTab;
 
@@ -46,7 +47,10 @@ export const UserProfilePage = () => {
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
   const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
-  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const { data: licenseInfo } = useQuery({
+    ...getLicenseInfoQueryOptions,
+    enabled: isAdmin,
+  });
 
   const apiTokensTabAvailability = useMemo((): ApiTokensTabAvailabilityValue => {
     if (!userProfile.user.is_admin) {
