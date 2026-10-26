@@ -71,6 +71,7 @@ feature-depth = 1
 # output a note when they are encountered.
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "https://github.com/RustCrypto/RSA/issues/19" },
+    { id = "RUSTSEC-2026-0387", reason = "Transitive dependency of jsonwebtoken" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
