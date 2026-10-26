@@ -75,6 +75,7 @@ ignore = [
     { id = "RUSTSEC-2026-0367", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
     { id = "RUSTSEC-2026-0368", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
     { id = "RUSTSEC-2026-0369", reason = "zip <9 is a build dependency of utoipa-swagger-ui (latest still uses zip 8), only extracts the trusted vendored Swagger UI archive" },
+    { id = "RUSTSEC-2026-0387", reason = "Transitive dependency of jsonwebtoken" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
