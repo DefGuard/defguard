@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime};
 use chrono::DateTime;
 use defguard_common::{
     db::models::{
-        MFAInfo, MFAMethod, User,
+        MFAInfo, MFAMethod, User, WebAuthn,
         user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
         webauthn::{AuthenticatorKind, RegistrationSource},
     },
@@ -661,6 +661,15 @@ async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(key.authenticator_kind, AuthenticatorKind::Unknown);
     assert_eq!(key.registration_source, RegistrationSource::Core);
     assert_eq!(key.authenticator_name, None);
+    let stored = WebAuthn::all_for_user(&pool, user_info.user.id)
+        .await
+        .unwrap();
+    assert_eq!(stored.len(), 1);
+    assert_eq!(stored[0].attestation_aaguid, None);
+    assert_eq!(stored[0].attestation_valid_until, None);
+    assert_eq!(stored[0].attestation_chain, None);
+    assert_eq!(stored[0].attestation_chain_sha256, None);
+    assert!(stored[0].registered_at.is_some());
 
     // delete security key
     let response = client

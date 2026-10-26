@@ -2,9 +2,10 @@
 
 #[cfg(any(test, feature = "test-support"))]
 use std::sync::{PoisonError, RwLock};
-use std::{borrow::Cow, collections::BTreeMap, sync::LazyLock};
+use std::{borrow::Cow, collections::BTreeMap, iter, sync::LazyLock};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
+use chrono::{DateTime, NaiveDateTime};
 use serde::Deserialize;
 use thiserror::Error;
 use webauthn_rs::prelude::{
@@ -54,12 +55,25 @@ pub enum HardwareKeyError {
     MissingAaguid,
     #[error("attestation certificate does not list a removable transport")]
     NotRoaming,
+    #[error("attestation does not chain to a trusted authenticator certificate")]
+    UntrustedChain,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct HardwareKey {
     pub aaguid: Uuid,
     pub description: Option<String>,
+    // earliest expiry across the attestation chain and its trusted root
+    pub valid_until: NaiveDateTime,
+    // DER certificates from leaf to the trusted root, root included once
+    pub chain: Vec<Vec<u8>>,
+    pub chain_sha256: Vec<String>,
+}
+
+/// Lowercase hex SHA-256 of a DER certificate, the identity webauthn-rs keys trusted CAs by.
+#[must_use]
+pub fn certificate_sha256(der: &[u8]) -> String {
+    sha256::digest(der)
 }
 
 fn parse_catalog(json: &str) -> Result<AttestationCaList, TrustedListError> {
@@ -164,19 +178,51 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
         | ParsedAttestationData::AnonCa(chain) => chain.as_slice(),
         _ => &[],
     };
-    if let Some(leaf) = chain.first() {
-        let der = leaf
-            .to_der()
-            .map_err(|_| HardwareKeyError::MalformedCertificate)?;
-        if certificate_denies_roaming(&der) {
-            return Err(HardwareKeyError::NotRoaming);
-        }
+    let mut chain = chain
+        .iter()
+        .map(|certificate| certificate.to_der())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| HardwareKeyError::MalformedCertificate)?;
+    if let Some(leaf) = chain.first()
+        && certificate_denies_roaming(leaf)
+    {
+        return Err(HardwareKeyError::NotRoaming);
     }
+
+    let cas = trusted_attestation_cas();
+    let root = passkey
+        .verify_attestation(&cas)
+        .map_err(|_| HardwareKeyError::UntrustedChain)?
+        .ca()
+        .to_der()
+        .map_err(|_| HardwareKeyError::MalformedCertificate)?;
+    let valid_until = chain
+        .iter()
+        .chain(iter::once(&root))
+        .map(|der| certificate_not_after(der))
+        .try_fold(NaiveDateTime::MAX, |earliest, not_after| {
+            not_after.map(|not_after| earliest.min(not_after))
+        })?;
+    if chain.last() != Some(&root) {
+        chain.push(root);
+    }
+    let chain_sha256 = chain.iter().map(|der| certificate_sha256(der)).collect();
 
     Ok(HardwareKey {
         aaguid,
         description: authenticator_description(&aaguid),
+        valid_until,
+        chain,
+        chain_sha256,
     })
+}
+
+fn certificate_not_after(der: &[u8]) -> Result<NaiveDateTime, HardwareKeyError> {
+    let (_, certificate) =
+        parse_x509_certificate(der).map_err(|_| HardwareKeyError::MalformedCertificate)?;
+    DateTime::from_timestamp(certificate.validity().not_after.timestamp(), 0)
+        .map(|not_after| not_after.naive_utc())
+        .ok_or(HardwareKeyError::MalformedCertificate)
 }
 
 /// Many vendors omit the transports extension, so only an extension that lists no removable
@@ -203,7 +249,8 @@ fn certificate_denies_roaming(der: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use rcgen::{CertificateParams, CustomExtension, KeyPair};
+    use chrono::NaiveDate;
+    use rcgen::{CertificateParams, CustomExtension, KeyPair, date_time_ymd};
 
     use super::*;
 
@@ -261,5 +308,61 @@ mod tests {
             NOT_A_BITSTRING
         ))));
         assert!(certificate_denies_roaming(b"not a certificate"));
+    }
+
+    #[test]
+    fn test_fingerprint_matches_webauthn_ca_key() {
+        let der = certificate_der(None);
+        let mut builder = AttestationCaListBuilder::new();
+        builder
+            .insert_device_der(&der, Uuid::nil(), String::new(), BTreeMap::new())
+            .expect("insert test CA");
+        let cas = builder.build();
+        let ca_key = cas.cas().keys().next().expect("one CA");
+        let ca_key_hex: String = ca_key
+            .as_ref()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        assert_eq!(certificate_sha256(&der), ca_key_hex);
+    }
+
+    #[test]
+    fn test_fingerprints_bundled_root() {
+        let catalog: Catalog =
+            serde_json::from_str(TRUSTED_AUTHENTICATORS_JSON).expect("bundled list parses");
+        let yubico_root_1 = "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8";
+        assert!(
+            catalog
+                .models
+                .iter()
+                .flat_map(|model| &model.roots)
+                .any(|root| {
+                    certificate_sha256(&BASE64_STANDARD.decode(root).expect("valid base64"))
+                        == yubico_root_1
+                })
+        );
+    }
+
+    #[test]
+    fn test_reads_certificate_expiry() {
+        let mut params = CertificateParams::new(Vec::new()).expect("certificate params");
+        params.not_after = date_time_ymd(2031, 1, 2);
+        let key_pair = KeyPair::generate().expect("key pair");
+        let der = params
+            .self_signed(&key_pair)
+            .expect("self signed certificate")
+            .der()
+            .to_vec();
+        assert_eq!(
+            certificate_not_after(&der),
+            Ok(NaiveDate::from_ymd_opt(2031, 1, 2)
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .expect("valid date"))
+        );
+        assert_eq!(
+            certificate_not_after(b"not a certificate"),
+            Err(HardwareKeyError::MalformedCertificate)
+        );
     }
 }

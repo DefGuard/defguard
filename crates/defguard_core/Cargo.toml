@@ -20,7 +20,7 @@ model_derive.workspace = true
 
 # mail (moved in-crate from the former defguard_mail crate)
 css-inline = "0.23"
-image = "0.25" # match with qrcode
+image = { version = "0.25", default-features = false, features = ["png"] } # match with qrcode
 lettre.workspace = true
 mrml = "6.0"
 pulldown-cmark.workspace = true
@@ -49,7 +49,6 @@ ldap3.workspace = true
 md4.workspace = true
 openidconnect.workspace = true
 parse_link_header.workspace = true
-paste.workspace = true
 pgp.workspace = true
 prost.workspace = true
 # match version used by sqlx

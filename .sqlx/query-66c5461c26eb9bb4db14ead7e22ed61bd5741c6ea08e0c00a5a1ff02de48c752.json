@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"webauthn\" (\"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\",\"registration_source\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
+  "query": "INSERT INTO \"webauthn\" (\"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\",\"registration_source\",\"attestation_aaguid\",\"attestation_valid_until\",\"attestation_chain\",\"attestation_chain_sha256\",\"registered_at\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -43,12 +43,17 @@
               ]
             }
           }
-        }
+        },
+        "Uuid",
+        "Timestamp",
+        "ByteaArray",
+        "TextArray",
+        "Timestamp"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "15bfff136ba004550f05cd15a185b750fcccf43fd334fb0886547828572a993f"
+  "hash": "66c5461c26eb9bb4db14ead7e22ed61bd5741c6ea08e0c00a5a1ff02de48c752"
 }

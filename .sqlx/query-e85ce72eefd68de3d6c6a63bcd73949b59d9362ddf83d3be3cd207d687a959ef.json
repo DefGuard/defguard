@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"name\",\"passkey\",\"authenticator_name\",\"authenticator_kind\" \"authenticator_kind: _\",\"registration_source\" \"registration_source: _\" FROM \"webauthn\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, user_id, name, passkey, authenticator_name, authenticator_kind \"authenticator_kind: AuthenticatorKind\", registration_source \"registration_source: RegistrationSource\", attestation_aaguid, attestation_valid_until, attestation_chain, attestation_chain_sha256, registered_at FROM webauthn WHERE attestation_chain_sha256 && $1",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "authenticator_kind: _",
+        "name": "authenticator_kind: AuthenticatorKind",
         "type_info": {
           "Custom": {
             "name": "webauthn_authenticator_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "registration_source: _",
+        "name": "registration_source: RegistrationSource",
         "type_info": {
           "Custom": {
             "name": "webauthn_registration_source",
@@ -100,12 +100,66 @@
             "name": "registration_source"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "attestation_aaguid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_aaguid"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_valid_until",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_valid_until"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attestation_chain",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "attestation_chain_sha256",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "attestation_chain_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "registered_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "webauthn",
+            "name": "registered_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8"
+        "TextArray"
       ]
     },
     "nullable": [
@@ -115,8 +169,13 @@
       false,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "a198e92068648ae7b6b0fbd5d040d77500dc88bef8e1bd675acce5e4d9bab322"
+  "hash": "e85ce72eefd68de3d6c6a63bcd73949b59d9362ddf83d3be3cd207d687a959ef"
 }
