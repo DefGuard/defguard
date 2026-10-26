@@ -11,12 +11,13 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { Suspense, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import type { LdapDryRunResult, Settings } from '../../../shared/api/types';
+import type { ApiError, LdapDryRunResult, Settings } from '../../../shared/api/types';
 import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
@@ -29,7 +30,10 @@ import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
+import {
+  Snackbar,
+  SnackbarAnchor,
+} from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
@@ -45,7 +49,10 @@ import {
   getSettingsQueryOptions,
 } from '../../../shared/query';
 import { canUseBusinessFeature } from '../../../shared/utils/license';
+import { LdapConnectionErrorModal } from './modals/LdapConnectionErrorModal/LdapConnectionErrorModal';
 import { LdapDryRunModal } from './modals/LdapDryRunModal/LdapDryRunModal';
+
+const connectionErrorSnackbarId = 'ldap-connection-error';
 
 const breadcrumbsLinks = [
   <Link
@@ -227,6 +234,31 @@ const PageForm = () => {
 
   const [dryRunResult, setDryRunResult] = useState<LdapDryRunResult | null>(null);
   const [dryRunModalOpen, setDryRunModalOpen] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  const [connectionErrorModalOpen, setConnectionErrorModalOpen] = useState(false);
+
+  const showConnectionError = (e: Error) => {
+    console.error(e);
+    const msg = (e as AxiosError<ApiError>).response?.data?.msg;
+    if (!isPresent(msg)) {
+      Snackbar.error(m.settings_ldap_test_failed());
+      return;
+    }
+    const snackbar = Snackbar.custom({
+      id: connectionErrorSnackbarId,
+      variant: 'error',
+      text: m.settings_ldap_test_failed(),
+      dismissible: true,
+      action: {
+        text: m.settings_ldap_test_failed_details(),
+        onClick: () => {
+          snackbar.dismiss();
+          setConnectionError(msg);
+          setConnectionErrorModalOpen(true);
+        },
+      },
+    });
+  };
 
   const { mutate: handleLdapDryRun, isPending: dryRunInProgress } = useMutation({
     mutationFn: (data: Settings) => api.settings.ldapDryRun(data),
@@ -234,10 +266,7 @@ const PageForm = () => {
       setDryRunResult(res.data);
       setDryRunModalOpen(true);
     },
-    onError: (e) => {
-      Snackbar.error(m.settings_ldap_test_failed());
-      console.error(e);
-    },
+    onError: showConnectionError,
   });
 
   const { mutate: handleLdapConnectionTest, isPending: connectionTestInProgress } =
@@ -246,10 +275,7 @@ const PageForm = () => {
       onSuccess: () => {
         Snackbar.default(m.settings_ldap_test_success());
       },
-      onError: (e) => {
-        Snackbar.error(m.settings_ldap_test_failed());
-        console.error(e);
-      },
+      onError: showConnectionError,
     });
 
   const form = useAppForm({
@@ -699,6 +725,7 @@ const PageForm = () => {
                           }
                           loading={dryRunInProgress || connectionTestInProgress}
                           onClick={() => {
+                            new SnackbarAnchor(connectionErrorSnackbarId).dismiss();
                             const values = form.state.values;
                             const submitted = {
                               ...settings,
@@ -737,6 +764,11 @@ const PageForm = () => {
         isOpen={dryRunModalOpen}
         result={dryRunResult}
         onClose={() => setDryRunModalOpen(false)}
+      />
+      <LdapConnectionErrorModal
+        isOpen={connectionErrorModalOpen}
+        error={connectionError}
+        onClose={() => setConnectionErrorModalOpen(false)}
       />
     </form>
   );

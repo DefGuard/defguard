@@ -288,5 +288,7 @@
   "modal_ldap_dry_run_status_removed": "Will be removed",
   "modal_ldap_dry_run_empty_title": "No changes detected",
   "modal_ldap_dry_run_empty_subtitle": "Based on the current LDAP configuration, no changes will be applied to users in this group.",
-  "modal_ldap_dry_run_search_empty_subtitle": "Please try another search request."
+  "modal_ldap_dry_run_search_empty_subtitle": "Please try another search request.",
+  "modal_ldap_connection_error_title": "Connection error",
+  "modal_ldap_connection_error_code_title": "LDAP error message"
 }
