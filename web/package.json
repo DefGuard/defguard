@@ -32,6 +32,7 @@
     "@tanstack/react-virtual": "^3.14.21",
     "@uidotdev/usehooks": "^2.4.1",
     "axios": "1.20.0",
+    "bowser": "^2.14.1",
     "byte-size": "^9.0.2",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.23",

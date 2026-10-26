@@ -29,6 +29,10 @@
   .items-box {
     overflow: hidden auto;
 
+    &.platform-windows > .inner {
+      padding-right: 5px;
+    }
+
     & > .inner {
       display: flex;
       flex-flow: column;
