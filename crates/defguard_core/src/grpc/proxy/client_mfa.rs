@@ -27,12 +27,13 @@ use defguard_proto::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, MfaAdvanced, MfaAwaitingExternal, MfaBiometricSignature,
         MfaCodeCredential, MfaCompleted, MfaFido2Assertion, MfaFido2Challenge,
-        MfaFlowApproveRequest, MfaFlowRemoteRequest, MfaFlowRemoteResponse, MfaFlowStartAccepted,
-        MfaFlowStartRejected, MfaFlowStartRequest, MfaFlowStartResponse, MfaFlowStepFinishRequest,
-        MfaFlowStepFinishResponse, MfaFlowStepStartRequest, MfaFlowStepStartResponse, MfaMethod,
-        MfaSignatureChallenge, MfaStartRejectionReason, MfaStepRejection, MfaStepResult,
-        MfaStepStarted, mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result,
-        mfa_step_started,
+        MfaFlowApproveRequest, MfaFlowRemoteRejected, MfaFlowRemoteRequest, MfaFlowRemoteResponse,
+        MfaFlowStartAccepted, MfaFlowStartRejected, MfaFlowStartRequest, MfaFlowStartResponse,
+        MfaFlowStepFinishRequest, MfaFlowStepFinishResponse, MfaFlowStepStartRequest,
+        MfaFlowStepStartResponse, MfaMethod, MfaRemoteRejectionReason, MfaSignatureChallenge,
+        MfaStartRejectionReason, MfaStepRejection, MfaStepResult, MfaStepStarted,
+        mfa_flow_remote_response, mfa_flow_start_response, mfa_flow_step_finish_request,
+        mfa_step_result, mfa_step_started,
     },
     enterprise::posture::{DevicePostureCheckRequest, DevicePostureData},
     proxy::{
@@ -1065,14 +1066,18 @@ impl ClientMfaServer {
                             .await
                     }
                     Ok(Ok(RemoteAuthSignal::MobileClientOutdated)) => {
-                        remove_waiter_and_send_error(
-                            &waiters,
-                            &hash,
-                            &waiter_identity,
-                            &response_tx,
-                            request_id,
-                            Status::failed_precondition(LEGACY_MOBILE_CLIENT_MESSAGE),
-                        );
+                        remove_remote_mfa_waiter(&waiters, &hash, &waiter_identity);
+                        let _ = response_tx.send(CoreResponse {
+                            id: request_id,
+                            payload: Some(Payload::MfaFlowRemote(MfaFlowRemoteResponse {
+                                outcome: Some(mfa_flow_remote_response::Outcome::Rejected(
+                                    MfaFlowRemoteRejected {
+                                        reason: MfaRemoteRejectionReason::MfaRemoteRejectionMobileClientOutdated
+                                            .into(),
+                                    },
+                                )),
+                            })),
+                        });
                         return;
                     }
                     Ok(Ok(RemoteAuthSignal::Superseded)) => {
@@ -1122,7 +1127,7 @@ impl ClientMfaServer {
                     Payload::CoreError(Status::internal("mobile approval did not complete").into())
                 }
                 Ok(outcome) => Payload::MfaFlowRemote(MfaFlowRemoteResponse {
-                    result: Some(outcome.into()),
+                    outcome: Some(mfa_flow_remote_response::Outcome::Result(outcome.into())),
                 }),
                 Err(error) => Payload::CoreError(Status::from(error).into()),
             };

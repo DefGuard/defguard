@@ -19,8 +19,9 @@ use defguard_proto::{
     client_types::{
         ClientMfaFinishRequest, ClientMfaStartRequest, MfaBiometricSignature, MfaCodeCredential,
         MfaFlowApproveRequest, MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
-        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStepResult,
-        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
+        MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaRemoteRejectionReason,
+        MfaStepResult, mfa_flow_remote_response, mfa_flow_start_response,
+        mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -257,9 +258,10 @@ fn flow_step_result(response: CoreResponse) -> MfaStepResult {
 
 fn flow_remote_result(response: CoreResponse) -> MfaStepResult {
     match response.payload {
-        Some(core_response::Payload::MfaFlowRemote(response)) => response
-            .result
-            .expect("remote finish must include a result"),
+        Some(core_response::Payload::MfaFlowRemote(response)) => match response.outcome {
+            Some(mfa_flow_remote_response::Outcome::Result(result)) => result,
+            _ => panic!("remote finish must include a result"),
+        },
         Some(core_response::Payload::CoreError(error)) => panic!(
             "remote finish failed with status={} msg={}",
             error.status_code, error.message
@@ -686,10 +688,17 @@ async fn test_legacy_mfa_finish_rejects_valid_multi_step_mobile_proof(
     assert_eq!(remote.id, 2);
     assert_eq!(phone.id, 3);
 
-    let (remote_code, remote_message) = assert_error_response_details(&remote);
+    let Some(core_response::Payload::MfaFlowRemote(response)) = remote.payload else {
+        panic!("expected MfaFlowRemote rejection");
+    };
+    let Some(mfa_flow_remote_response::Outcome::Rejected(rejected)) = response.outcome else {
+        panic!("expected outdated mobile client rejection");
+    };
+    assert_eq!(
+        rejected.reason(),
+        MfaRemoteRejectionReason::MfaRemoteRejectionMobileClientOutdated
+    );
     let (phone_code, phone_message) = assert_error_response_details(&phone);
-    assert_eq!(remote_code, Code::FailedPrecondition);
-    assert_eq!(remote_message, LEGACY_MOBILE_CLIENT_MESSAGE);
     assert_eq!(phone_code, Code::FailedPrecondition);
     assert_eq!(phone_message, LEGACY_MOBILE_CLIENT_MESSAGE);
 
