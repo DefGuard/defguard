@@ -62,6 +62,10 @@
         &.disabled {
           --color: var(--fg-critical);
         }
+
+        &.unavailable {
+          --color: var(--fg-attention);
+        }
       }
 
       & > .separator {
