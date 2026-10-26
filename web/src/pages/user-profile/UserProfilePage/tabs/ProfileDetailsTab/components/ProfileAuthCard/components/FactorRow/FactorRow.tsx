@@ -34,7 +34,7 @@ export const FactorRow = ({
     >
       {smtpDisabled ? (
         <>
-          <p className="status disabled">{m.state_not_configured()}</p>
+          <p className="status unavailable">{m.state_unavailable()}</p>
           <span className="separator" />
           <p>{m.state_smtp_not_configured()}</p>
         </>
@@ -47,14 +47,14 @@ export const FactorRow = ({
           <p>{m.profile_auth_card_passkey_usage_web()}</p>
           <span className="separator" />
           <p>{m.profile_auth_card_passkey_usage_vpn()}</p>
-          {isDefault && (
-            <Badge
-              variant="success"
-              size="compact"
-              text={m.profile_auth_card_default_method()}
-            />
-          )}
         </>
+      )}
+      {isDefault && (
+        <Badge
+          variant="success"
+          size="compact"
+          text={m.profile_auth_card_default_method()}
+        />
       )}
     </AuthCardRow>
   );

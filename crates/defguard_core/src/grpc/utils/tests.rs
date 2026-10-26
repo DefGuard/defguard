@@ -335,6 +335,53 @@ async fn test_multi_step_location_omitted_for_legacy_client(
 }
 
 #[sqlx::test]
+#[allow(deprecated)]
+async fn test_single_step_location_sent_on_free_tier(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    init_settings(&pool).await;
+    let saved_license = get_cached_license().clone();
+    set_cached_license(None);
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+
+    // A TOTP-only step fits the Free tier but has no legacy equivalent.
+    let single_step = create_location(
+        &pool,
+        "single-step-location",
+        1,
+        vec![vec![VpnClientMfaMethod::Totp]],
+    )
+    .await;
+    let multi_step = create_location(
+        &pool,
+        "multi-step-location",
+        2,
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+        ],
+    )
+    .await;
+    attach_device(&pool, single_step.id, device.id).await;
+    attach_device(&pool, multi_step.id, device.id).await;
+
+    let response = build_device_config_response(&pool, device, None, Some(device_info("2.2.0")))
+        .await
+        .expect("failed to build config for capable client");
+    let names: Vec<&str> = response
+        .configs
+        .iter()
+        .map(|config| config.network_name.as_str())
+        .collect();
+    assert_eq!(names, vec!["single-step-location"]);
+    let config = &response.configs[0];
+    assert_eq!(config.location_mfa_mode, None);
+    assert_eq!(config.steps.len(), 1);
+
+    set_cached_license(saved_license);
+}
+
+#[sqlx::test]
 async fn test_network_device_rejected_on_mfa_locations(
     _: PgPoolOptions,
     options: PgConnectOptions,

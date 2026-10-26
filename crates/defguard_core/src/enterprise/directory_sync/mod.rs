@@ -8,7 +8,6 @@ use defguard_common::db::{
     Id,
     models::{Settings, group::Group, user::User},
 };
-use paste::paste;
 use reqwest::header::AUTHORIZATION;
 use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
@@ -182,17 +181,15 @@ trait DirectorySync {
 /// - The provider main struct is called <PROVIDER>DirectorySync, e.g. GoogleDirectorySync
 /// - The provider implements the [`DirectorySync`] trait
 /// - You implemented some way to initialize the provider client and added an initialization step in the [`DirectorySyncClient::build`] function
-/// - You added the provider name to the macro invocation below the macro definition
+/// - You added the provider name and its client type to the macro invocation below the macro definition
 /// - You've implemented your provider logic in a file called the same as your provider but lowercase, e.g. google.rs
 // If you have time to refactor the whole thing to use boxes instead, go ahead.
 macro_rules! dirsync_clients {
-    ($($variant:ident),*) => {
-        paste! {
+    ($($variant:ident => $client:ty),*) => {
         pub(crate) enum DirectorySyncClient {
             $(
-                $variant([< $variant:lower >]::[< $variant DirectorySync >]),
+                $variant($client),
             )*
-        }
         }
 
         impl DirectorySync for DirectorySyncClient {
@@ -250,10 +247,21 @@ macro_rules! dirsync_clients {
 }
 
 #[cfg(test)]
-dirsync_clients!(Google, Microsoft, Okta, TestProvider, JumpCloud);
+dirsync_clients!(
+    Google => google::GoogleDirectorySync,
+    Microsoft => microsoft::MicrosoftDirectorySync,
+    Okta => okta::OktaDirectorySync,
+    TestProvider => testprovider::TestProviderDirectorySync,
+    JumpCloud => jumpcloud::JumpCloudDirectorySync
+);
 
 #[cfg(not(test))]
-dirsync_clients!(Google, Microsoft, Okta, JumpCloud);
+dirsync_clients!(
+    Google => google::GoogleDirectorySync,
+    Microsoft => microsoft::MicrosoftDirectorySync,
+    Okta => okta::OktaDirectorySync,
+    JumpCloud => jumpcloud::JumpCloudDirectorySync
+);
 
 impl DirectorySyncClient {
     /// Builds the current directory sync client based on the current provider settings (provider name), if possible.

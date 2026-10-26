@@ -1,7 +1,9 @@
+use chrono::{NaiveDateTime, Utc};
 use ctap_hid_fido2::public_key::{PublicKey, PublicKeyType};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as, query_scalar};
+use uuid::Uuid;
 use webauthn_rs::prelude::{COSEKeyType, ECDSACurve, EDDSACurve, Passkey};
 
 use crate::db::{Id, NoId, models::ModelError};
@@ -27,11 +29,21 @@ pub enum RegistrationSource {
     Mobile,
 }
 
+/// The trusted attestation that vouched for a key at registration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AttestationAnchor {
+    pub aaguid: Uuid,
+    pub valid_until: NaiveDateTime,
+    pub chain: Vec<Vec<u8>>,
+    pub chain_sha256: Vec<String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthenticatorInfo {
     pub name: Option<String>,
     pub kind: AuthenticatorKind,
     pub source: RegistrationSource,
+    pub anchor: Option<AttestationAnchor>,
 }
 
 impl AuthenticatorInfo {
@@ -41,6 +53,7 @@ impl AuthenticatorInfo {
             name: None,
             kind: AuthenticatorKind::Unknown,
             source,
+            anchor: None,
         }
     }
 }
@@ -57,6 +70,13 @@ pub struct WebAuthn<I = NoId> {
     pub authenticator_kind: AuthenticatorKind,
     #[model(enum)]
     pub registration_source: RegistrationSource,
+    pub attestation_aaguid: Option<Uuid>,
+    pub attestation_valid_until: Option<NaiveDateTime>,
+    #[model(option_ref)]
+    pub attestation_chain: Option<Vec<Vec<u8>>>,
+    #[model(option_ref)]
+    pub attestation_chain_sha256: Option<Vec<String>>,
+    pub registered_at: Option<NaiveDateTime>,
 }
 
 impl WebAuthn {
@@ -67,7 +87,7 @@ impl WebAuthn {
         authenticator: AuthenticatorInfo,
     ) -> Result<Self, ModelError> {
         let passkey = serde_cbor::to_vec(passkey).map_err(|_| ModelError::CannotCreate)?;
-        Ok(Self {
+        let mut key = Self {
             id: NoId,
             user_id,
             name,
@@ -75,7 +95,19 @@ impl WebAuthn {
             authenticator_name: authenticator.name,
             authenticator_kind: authenticator.kind,
             registration_source: authenticator.source,
-        })
+            attestation_aaguid: None,
+            attestation_valid_until: None,
+            attestation_chain: None,
+            attestation_chain_sha256: None,
+            registered_at: Some(Utc::now().naive_utc()),
+        };
+        if let Some(anchor) = authenticator.anchor {
+            key.attestation_aaguid = Some(anchor.aaguid);
+            key.attestation_valid_until = Some(anchor.valid_until);
+            key.attestation_chain = Some(anchor.chain);
+            key.attestation_chain_sha256 = Some(anchor.chain_sha256);
+        }
+        Ok(key)
     }
 }
 
@@ -133,11 +165,35 @@ impl WebAuthn<Id> {
             Self,
             "SELECT id, user_id, name, passkey, authenticator_name, \
             authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
-            registration_source \"registration_source: RegistrationSource\" \
+            registration_source \"registration_source: RegistrationSource\", \
+            attestation_aaguid, attestation_valid_until, \
+            attestation_chain, attestation_chain_sha256, registered_at \
             FROM webauthn WHERE user_id = $1",
             user_id
         )
         .fetch_all(pool)
+        .await
+    }
+
+    /// Fetch keys whose attestation chain contains any of the given certificates.
+    pub async fn find_by_attestation_certs<'e, E>(
+        executor: E,
+        cert_sha256: &[String],
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, user_id, name, passkey, authenticator_name, \
+            authenticator_kind \"authenticator_kind: AuthenticatorKind\", \
+            registration_source \"registration_source: RegistrationSource\", \
+            attestation_aaguid, attestation_valid_until, \
+            attestation_chain, attestation_chain_sha256, registered_at \
+            FROM webauthn WHERE attestation_chain_sha256 && $1",
+            cert_sha256
+        )
+        .fetch_all(executor)
         .await
     }
 
@@ -176,5 +232,72 @@ pub fn to_ctap_public_key(passkey: &Passkey) -> Option<PublicKey> {
             Some(PublicKey::with_der(&okp.x, PublicKeyType::Ed25519))
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use super::*;
+    use crate::db::{models::User, setup_pool};
+
+    #[sqlx::test]
+    async fn test_find_by_attestation_certs(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let leaf_sha256 = "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4";
+        let root_sha256 = "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8";
+        let key = WebAuthn {
+            id: NoId,
+            user_id: user.id,
+            name: "security-key".to_owned(),
+            passkey: Vec::new(),
+            authenticator_name: None,
+            authenticator_kind: AuthenticatorKind::Hardware,
+            registration_source: RegistrationSource::Desktop,
+            attestation_aaguid: Some(Uuid::nil()),
+            attestation_valid_until: Some(Utc::now().naive_utc()),
+            attestation_chain: Some(vec![b"leaf".to_vec(), b"root".to_vec()]),
+            attestation_chain_sha256: Some(vec![leaf_sha256.to_owned(), root_sha256.to_owned()]),
+            registered_at: Some(Utc::now().naive_utc()),
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let found = WebAuthn::find_by_attestation_certs(
+            &pool,
+            &[root_sha256.to_owned(), "unknown".to_owned()],
+        )
+        .await
+        .unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, key.id);
+        assert_eq!(found[0].attestation_chain, key.attestation_chain);
+        assert_eq!(
+            found[0].attestation_chain_sha256,
+            key.attestation_chain_sha256
+        );
+
+        let found = WebAuthn::find_by_attestation_certs(&pool, &[leaf_sha256.to_owned()])
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 1);
+
+        let found = WebAuthn::find_by_attestation_certs(&pool, &["unknown".to_owned()])
+            .await
+            .unwrap();
+        assert!(found.is_empty());
     }
 }

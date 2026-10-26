@@ -250,6 +250,7 @@
   "settings_ldap_subtitle": "Manage LDAP/Active Directory connection details, user and group mapping, and synchronization rules that determine how users are imported and updated in Defguard.",
   "settings_ldap_test_success": "LDAP Connected",
   "settings_ldap_test_failed": "Connection failed",
+  "settings_ldap_test_failed_details": "Show details",
   "settings_ldap_section_connection_title": "Connection settings",
   "settings_ldap_section_connection_description": "Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).",
   "settings_ldap_checkbox_use_starttls": "Use StartTLS",

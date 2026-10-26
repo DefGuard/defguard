@@ -252,7 +252,6 @@ async fn test_ldap_connection_test_with_submitted_settings(
     let mut submitted = saved_settings.clone();
     submitted.ldap_url = Some("ldap://127.0.0.1:1".to_owned());
     submitted.ldap_bind_username = Some("cn=admin,dc=example,dc=com".to_owned());
-    submitted.ldap_bind_password = Some(SecretStringWrapper::from("secret"));
     submitted.ldap_username_attr = Some("uid".to_owned());
     submitted.ldap_user_search_base = Some("ou=users,dc=example,dc=com".to_owned());
     submitted.ldap_user_obj_class = Some("inetOrgPerson".to_owned());
@@ -261,6 +260,8 @@ async fn test_ldap_connection_test_with_submitted_settings(
     submitted.ldap_group_obj_class = Some("posixGroup".to_owned());
     submitted.ldap_group_member_attr = Some("memberUid".to_owned());
     submitted.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".to_owned());
+    let mut submitted = serde_json::to_value(&submitted).unwrap();
+    submitted["ldap_bind_password"] = json!("secret");
     let response = client
         .post("/api/v1/ldap/test")
         .json(&submitted)
@@ -270,6 +271,29 @@ async fn test_ldap_connection_test_with_submitted_settings(
         response.status(),
         StatusCode::BAD_REQUEST,
         "connection test against an unreachable server should return 400"
+    );
+    let body: serde_json::Value = response.json().await;
+    let msg = body["msg"].as_str().unwrap_or_default();
+    assert!(
+        msg.starts_with("LDAP error:"),
+        "connection test should return the LDAP error, got {body}"
+    );
+
+    let response = client
+        .post("/api/v1/ldap/dry_run")
+        .json(&submitted)
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "dry run against an unreachable server should return 400"
+    );
+    let body: serde_json::Value = response.json().await;
+    let msg = body["msg"].as_str().unwrap_or_default();
+    assert!(
+        msg.starts_with("LDAP error:"),
+        "dry run should return the LDAP error, got {body}"
     );
 
     let response = client.get("/api/v1/settings").send().await;

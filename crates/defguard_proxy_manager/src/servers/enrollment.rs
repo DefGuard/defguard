@@ -34,6 +34,7 @@ use defguard_core::{
         client_version::{
             ClientFeature, client_registration_source, should_omit_location_for_device,
         },
+        should_prevent_mfa_location_usage,
         utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
     },
     handlers::user::check_password_strength,
@@ -949,8 +950,43 @@ impl EnrollmentServer {
             device.wireguard_pubkey, user.username, user.id,
         );
 
+        // Don't send locations whose MFA policy is above the active license.
+        let mut licensed_configs = Vec::with_capacity(configs.len());
+        for config in configs {
+            let location = WireguardNetwork::find_by_id(&mut *transaction, config.network_id)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to fetch WireguardNetwork with ID {}: {err}",
+                        config.network_id
+                    );
+                    Status::internal("unexpected error")
+                })?
+                .ok_or_else(|| {
+                    error!("WireguardNetwork with ID {} not found", config.network_id);
+                    Status::internal("unexpected error")
+                })?;
+            if should_prevent_mfa_location_usage(&mut *transaction, &location)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to read the MFA policy of location {}: {err}",
+                        location.name
+                    );
+                    Status::internal("unexpected error")
+                })?
+            {
+                warn!(
+                    "Tried to use location {} whose MFA policy is above the active licence.",
+                    location.name
+                );
+                continue;
+            }
+            licensed_configs.push(config);
+        }
+
         // Don't send them service locations or posture-checked locations if they don't support it
-        let configs = configs
+        let configs = licensed_configs
             .into_iter()
             .filter(|config| {
                 config.service_location_mode == ServiceLocationMode::Disabled
