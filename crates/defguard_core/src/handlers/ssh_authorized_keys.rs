@@ -108,8 +108,8 @@ pub async fn get_authorized_keys(
                         User::find_active_by_username(&appstate.pool, username).await?
                     {
                         // check if user belongs to specified group
-                        let members = group.member_usernames(&appstate.pool).await?;
-                        if members.contains(&user.username) {
+                        let active_members = group.active_member_usernames(&appstate.pool).await?;
+                        if active_members.contains(&user.username) {
                             add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
                         } else {
                             debug!("User {username} is not a member of group {group_name}",);
@@ -119,9 +119,9 @@ pub async fn get_authorized_keys(
                     }
                 } else {
                     debug!("Fetching SSH keys for all users in group {group_name}");
-                    // fetch all users in group
-                    let users = group.members(&appstate.pool).await?;
-                    for user in users {
+                    // fetch all active users in group
+                    let active_users = group.active_members(&appstate.pool).await?;
+                    for user in active_users {
                         add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
                     }
                 }

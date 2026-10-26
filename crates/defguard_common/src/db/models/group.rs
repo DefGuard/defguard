@@ -74,6 +74,19 @@ impl Group<Id> {
         .await
     }
 
+    pub async fn active_member_usernames<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id \
+            WHERE group_user.group_id = $1 AND \"user\".is_active = true",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     pub async fn members<'e, E>(&self, executor: E) -> sqlx::Result<Vec<User<Id>>>
     where
         E: PgExecutor<'e>,
@@ -87,6 +100,25 @@ impl Group<Id> {
             FROM \"user\" \
             JOIN group_user ON \"user\".id = group_user.user_id \
             WHERE group_user.group_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn active_members<'e, E>(&self, executor: E) -> sqlx::Result<Vec<User<Id>>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            User,
+            "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
+            phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
+            FROM \"user\" \
+            JOIN group_user ON \"user\".id = group_user.user_id \
+            WHERE group_user.group_id = $1 AND \"user\".is_active = true",
             self.id
         )
         .fetch_all(executor)
