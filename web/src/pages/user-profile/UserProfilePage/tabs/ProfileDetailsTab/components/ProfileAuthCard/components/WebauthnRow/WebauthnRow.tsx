@@ -53,7 +53,7 @@ export const WebauthnRow = ({ securityKey, username }: Props) => {
 
   return (
     <AuthCardRow
-      icon="key"
+      icon={isHardware ? 'software-key' : 'key'}
       title={securityKey.name}
       badge={
         isPresent(securityKey.authenticator_name)
