@@ -71,6 +71,10 @@
         border-radius: 50%;
         background-color: var(--fg-muted);
       }
+
+      & > .helper {
+        display: flex;
+      }
     }
   }
 

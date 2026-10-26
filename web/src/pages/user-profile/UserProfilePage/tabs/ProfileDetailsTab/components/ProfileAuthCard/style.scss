@@ -25,6 +25,14 @@
       align-items: center;
       justify-content: space-between;
       padding-bottom: var(--spacing-lg);
+
+      & > .title {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        gap: var(--spacing-xs) var(--spacing-sm);
+        min-width: 0;
+      }
     }
 
     & > .divider {

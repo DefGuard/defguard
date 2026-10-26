@@ -7,6 +7,7 @@ import {
   UserMfaMethod,
   type UserMfaMethodValue,
 } from '../../../../../../../shared/api/types';
+import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type {
@@ -302,7 +303,16 @@ export const ProfileAuthCard = () => {
       <Divider orientation="horizontal" />
       <div className="section">
         <div className="header" data-testid="passkeys-header">
-          <p className="section-title">{m.profile_auth_card_section_passkeys()}</p>
+          <div className="title">
+            <p className="section-title">{m.profile_auth_card_section_passkeys()}</p>
+            {hasPasskeys && user.mfa_method === UserMfaMethod.Webauthn && (
+              <Badge
+                variant="success"
+                size="compact"
+                text={m.profile_auth_card_default_method()}
+              />
+            )}
+          </div>
           {isPresent(webauthnMenuItems) && (
             <IconButtonMenu icon="menu" menuItems={[webauthnMenuItems]} />
           )}
