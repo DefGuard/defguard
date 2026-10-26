@@ -115,7 +115,7 @@ pub async fn get_authorized_keys(
                             debug!("User {username} is not a member of group {group_name}",);
                         }
                     } else {
-                        debug!("Specified user does not exist");
+                        debug!("Specified user does not exist or is disabled");
                     }
                 } else {
                     debug!("Fetching SSH keys for all users in group {group_name}");
@@ -137,7 +137,7 @@ pub async fn get_authorized_keys(
                 if let Some(user) = User::find_active_by_username(&appstate.pool, username).await? {
                     add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
                 } else {
-                    debug!("Specified user does not exist");
+                    debug!("Specified user does not exist or is disabled");
                 }
             }
         }
