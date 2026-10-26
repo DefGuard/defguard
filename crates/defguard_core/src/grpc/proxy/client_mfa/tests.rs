@@ -36,7 +36,8 @@ use defguard_proto::{
         ClientMfaFinishRequest, ClientMfaStartRequest, MfaCodeCredential, MfaFlowApproveRequest,
         MfaFlowRemoteRequest, MfaFlowStartRequest, MfaFlowStepFinishRequest,
         MfaFlowStepStartRequest, MfaMethod, MfaMobileApprovalProof, MfaStartRejectionReason,
-        mfa_flow_start_response, mfa_flow_step_finish_request, mfa_step_result, mfa_step_started,
+        mfa_flow_remote_response, mfa_flow_start_response, mfa_flow_step_finish_request,
+        mfa_step_result, mfa_step_started,
     },
     enterprise::posture::{BoolCheck, DevicePostureCheckRequest, DevicePostureData, bool_check},
     proxy::{ClientMfaOidcAuthenticateRequest, ClientMfaTokenValidationRequest, DeviceInfo},
@@ -2077,9 +2078,9 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
-    let result = response
-        .result
-        .expect("remote response must include a result");
+    let Some(mfa_flow_remote_response::Outcome::Result(result)) = response.outcome else {
+        panic!("remote response must include a result");
+    };
     let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
         panic!("expected a completed remote result");
     };
@@ -2208,11 +2209,10 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
     let Some(super::Payload::MfaFlowRemote(response)) = response.payload else {
         panic!("expected a typed remote flow response");
     };
-    let Some(mfa_step_result::Outcome::Completed(completed)) = response
-        .result
-        .expect("remote response must include a result")
-        .outcome
-    else {
+    let Some(mfa_flow_remote_response::Outcome::Result(result)) = response.outcome else {
+        panic!("remote response must include a result");
+    };
+    let Some(mfa_step_result::Outcome::Completed(completed)) = result.outcome else {
         panic!("expected a completed remote result");
     };
     assert_ne!(completed.preshared_key, "");
