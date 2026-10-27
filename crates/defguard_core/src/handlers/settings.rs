@@ -164,6 +164,8 @@ pub(crate) async fn update_settings(
     let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
+    data.set_secret_key(before.secret_key().map(str::to_owned));
+    data.openid_signing_key_der = before.openid_signing_key_der.clone();
     data.smtp.password = data.smtp.password.or(before.smtp.password.clone());
     data.smtp.oauth_client_secret = data
         .smtp

@@ -816,6 +816,15 @@ async fn test_put_settings_without_secrets_keeps_stored_secrets(
     assert_eq!(response.status(), StatusCode::OK);
 
     store_all_secrets(&pool).await;
+    let before = Settings::get(&pool).await.unwrap().unwrap();
+    let secret_key = before
+        .secret_key()
+        .expect("JWT signing key should exist")
+        .to_owned();
+    let openid_signing_key_der = before
+        .openid_signing_key_der
+        .clone()
+        .expect("OIDC signing key should exist");
 
     let response = client.get("/api/v1/settings").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -837,6 +846,17 @@ async fn test_put_settings_without_secrets_keeps_stored_secrets(
         from_db.smtp.oauth_refresh_token,
         secret("oauth-refresh-token")
     );
+    assert!(
+        from_db.secret_key() == Some(secret_key.as_str()),
+        "JWT signing key should be unchanged after PUT"
+    );
+    assert!(
+        from_db.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+        "OIDC signing key should be unchanged after PUT"
+    );
+
+    let response = client.get("/api/v1/oauth/discovery/keys").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[sqlx::test]
