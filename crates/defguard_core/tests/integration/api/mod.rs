@@ -22,6 +22,7 @@ mod proxy_certs;
 mod resources;
 mod settings;
 mod snat;
+mod ssh_authorized_keys;
 mod user;
 mod webhook;
 mod wireguard;

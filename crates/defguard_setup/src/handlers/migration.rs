@@ -11,6 +11,7 @@ use defguard_core::{
     enterprise::ldap,
     error::WebError,
     handlers::{ApiResponse, ApiResult},
+    setup_logs::scope_setup_logs,
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -18,8 +19,6 @@ use serde_json::json;
 use sqlx::{PgPool, query_as};
 use tokio::sync::oneshot;
 use tracing::{error, info};
-
-use defguard_core::setup_logs::scope_setup_logs;
 
 use crate::handlers::auto_wizard::{
     ExternalUrlSettingsConfig, InternalUrlSettingsConfig, apply_external_url_settings,
@@ -157,13 +156,14 @@ pub async fn migration_set_external_url_settings(
 
 #[cfg(test)]
 mod tests {
-    use super::repair_ldap_migration;
     use axum::{Extension, body::to_bytes, response::IntoResponse};
     use defguard_core::{auth::AdminRole, setup_logs::CoreSetupLogLayer};
     use reqwest::StatusCode;
     use sqlx::postgres::PgPoolOptions;
     use tracing::instrument::WithSubscriber;
     use tracing_subscriber::prelude::*;
+
+    use super::repair_ldap_migration;
 
     #[tokio::test]
     async fn test_ldap_repair_failure_returns_separate_message_and_captured_logs() {
