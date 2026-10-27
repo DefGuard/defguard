@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use defguard_common::{
     db::models::{
-        Settings,
-        settings::{SettingsPatch, update_current_settings},
+        Settings, User,
+        settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
     },
     secret::SecretStringWrapper,
     types::proxy::ProxyControlMessage,
@@ -925,6 +925,145 @@ async fn test_patch_settings_cannot_change_signing_key_or_uuid(
         after.uuid, before.uuid,
         "instance UUID should be unchanged after PATCH"
     );
+}
+
+#[sqlx::test]
+async fn test_patch_cannot_change_default_admin_id(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let admin = User::find_by_username(&pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+    let mut settings = Settings::get_current_settings();
+    settings.default_admin_id = Some(admin.id);
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({ "default_admin_id": i64::MAX }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(after.default_admin_id, Some(admin.id));
+}
+
+#[sqlx::test]
+async fn test_put_preserves_default_admin_id(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let admin = User::find_by_username(&pool, "admin")
+        .await
+        .unwrap()
+        .unwrap();
+    let mut settings = Settings::get_current_settings();
+    settings.default_admin_id = Some(admin.id);
+    update_current_settings(&pool, settings).await.unwrap();
+    let before = Settings::get(&pool).await.unwrap().unwrap();
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body: serde_json::Value = response.json().await;
+    body["default_admin_id"] = json!(i64::MAX);
+
+    let response = client.put("/api/v1/settings").json(&body).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(after.default_admin_id, before.default_admin_id);
+}
+
+#[sqlx::test]
+async fn test_patch_cannot_override_ldap_sync_status(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_sync_status = LdapSyncStatus::InSync;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({
+            "ldap_enabled": false,
+            "ldap_sync_status": LdapSyncStatus::InSync
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(after.ldap_sync_status, LdapSyncStatus::OutOfSync);
+}
+
+#[sqlx::test]
+async fn test_put_preserves_ldap_sync_status(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_sync_status = LdapSyncStatus::InSync;
+    update_current_settings(&pool, settings).await.unwrap();
+    let before = Settings::get(&pool).await.unwrap().unwrap();
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body: serde_json::Value = response.json().await;
+    body["ldap_sync_status"] = json!(LdapSyncStatus::OutOfSync);
+
+    let response = client.put("/api/v1/settings").json(&body).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(after.ldap_sync_status, before.ldap_sync_status);
+}
+
+#[sqlx::test]
+async fn test_put_ldap_config_changes_mark_sync_status_out_of_sync(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let mut settings = Settings::get_current_settings();
+    settings.ldap_sync_status = LdapSyncStatus::InSync;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body: serde_json::Value = response.json().await;
+    body["ldap_sync_groups"] = json!(["settings-api-regression-group"]);
+
+    let response = client.put("/api/v1/settings").json(&body).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(after.ldap_sync_status, LdapSyncStatus::OutOfSync);
 }
 
 #[sqlx::test]

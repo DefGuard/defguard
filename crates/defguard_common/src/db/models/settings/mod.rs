@@ -261,6 +261,7 @@ pub struct Settings {
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
     pub ldap_tls_verify_cert: bool,
+    #[patch(skip)]
     pub ldap_sync_status: LdapSyncStatus,
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
@@ -293,6 +294,7 @@ pub struct Settings {
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
     pub public_proxy_url: String,
+    #[patch(skip)]
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]

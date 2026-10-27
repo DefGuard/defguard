@@ -164,6 +164,14 @@ pub(crate) async fn update_settings(
     let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
+    data.default_admin_id = before.default_admin_id;
+    data.ldap_sync_status = before.ldap_sync_status;
+    if (before.ldap_enabled && !data.ldap_enabled)
+        || before.ldap_is_authoritative != data.ldap_is_authoritative
+        || before.ldap_sync_groups != data.ldap_sync_groups
+    {
+        data.ldap_sync_status = LdapSyncStatus::OutOfSync;
+    }
     data.set_secret_key(before.secret_key().map(str::to_owned));
     data.openid_signing_key_der = before.openid_signing_key_der.clone();
     data.smtp.password = data.smtp.password.or(before.smtp.password.clone());
