@@ -2,7 +2,10 @@ use defguard_common::{
     db::{
         NoId,
         models::{
-            Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+            Device, Settings, User,
+            biometric_auth::BiometricAuth,
+            device_client_info::{DeviceClientInfo, OsType},
+            polling_token::PollingToken,
             settings::update_current_settings,
         },
     },
@@ -16,8 +19,8 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types::{
-        EnrollmentStartRequest, ExistingDevice, LocationMfaMode, MfaMethod, NewDevice,
-        RegisterMobileAuthRequest,
+        ClientPlatformInfo, EnrollmentStartRequest, ExistingDevice, LocationMfaMode, MfaMethod,
+        NewDevice, RegisterMobileAuthRequest,
     },
     proxy::{CoreRequest, DeviceInfo, core_request, core_response},
 };
@@ -30,11 +33,12 @@ use super::support::{
     complete_proxy_handshake, configure_ldap, configure_smtp, create_acl_network,
     create_enrollment_token, create_mfa_network, create_multi_step_mfa_network,
     create_multi_step_mfa_network_with_steps, create_network, create_polling_token, create_user,
-    create_user_with_device, generate_totp_code, insert_acl_rule_for_network, make_device_info,
-    send_activate_user, send_activate_user_without_password, send_code_mfa_setup_finish,
-    send_code_mfa_setup_start, send_mfa_config_authorize, send_mfa_config_start,
-    set_test_license_business, set_test_license_enterprise, setup_user_totp_mfa,
-    start_enrollment_session, totp_code_from_base32_secret,
+    create_user_with_device, generate_totp_code, insert_acl_rule_for_network,
+    make_client_device_info, make_device_info, send_activate_user,
+    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
+    send_mfa_config_authorize, send_mfa_config_start, set_test_license_business,
+    set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
+    totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -105,6 +109,57 @@ async fn test_new_device_creates_device_and_returns_configs(
     assert!(
         devices.is_some(),
         "device should exist in DB after NewDevice"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A `NewDevice` enrollment from a client that sends version and platform headers must store
+/// the reported client version and OS details for the new device.
+#[sqlx::test]
+async fn test_new_device_stores_reported_client_info(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _network = create_network(&context.pool).await;
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let pubkey = "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=";
+    let platform = ClientPlatformInfo {
+        os_family: "windows".to_owned(),
+        os_type: "windows".to_owned(),
+        version: "10.0.26100".to_owned(),
+        edition: Some("Windows 11 Pro".to_owned()),
+        ..Default::default()
+    };
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_client_device_info("2.3.0", &platform)),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "My Laptop".to_owned(),
+            pubkey: pubkey.to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_device_config_response(&response);
+
+    let device = Device::find_by_pubkey(&context.pool, pubkey)
+        .await
+        .unwrap()
+        .expect("device should exist in DB after NewDevice");
+    assert_eq!(
+        DeviceClientInfo::find_by_device_id(&context.pool, device.id)
+            .await
+            .unwrap(),
+        Some(DeviceClientInfo {
+            device_id: device.id,
+            client_version: Some("2.3.0".to_owned()),
+            os_type: OsType::Windows,
+            os_version: "10.0.26100".to_owned(),
+            os_edition: Some("Windows 11 Pro".to_owned()),
+        })
     );
 
     context.finish().await.expect_server_finished().await;

@@ -1,8 +1,16 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_common::db::models::{webauthn::RegistrationSource, wireguard::LocationMfaMode};
+use defguard_common::db::{
+    Id,
+    models::{
+        device_client_info::{DeviceClientInfo, OsType},
+        webauthn::RegistrationSource,
+        wireguard::LocationMfaMode,
+    },
+};
 use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
+use sqlx::PgPool;
 
 const MOBILE_OS_FAMILIES: [&str; 2] = ["android", "ios"];
 
@@ -65,6 +73,39 @@ pub fn client_registration_source(info: Option<&DeviceInfo>) -> RegistrationSour
         RegistrationSource::Mobile
     } else {
         RegistrationSource::Desktop
+    }
+}
+
+/// Stores what the client reported about itself and its operating system.
+///
+/// A request without a decodable platform header or a known OS keeps the last stored report. A
+/// failed write is only logged, because the report must not block enrollment or polling.
+pub async fn store_reported_client_info(pool: &PgPool, device_id: Id, info: Option<&DeviceInfo>) {
+    let (version, platform) = parse_client_version_platform(info);
+    let Some(platform) = platform else {
+        debug!("No client platform info for device {device_id}, keeping the last stored report");
+        return;
+    };
+    // Desktop clients before 2.1 sent the distribution name as `os_type` and the bare OS as
+    // `os_family`.
+    let Some(os_type) =
+        OsType::parse(&platform.os_type).or_else(|| OsType::parse(&platform.os_family))
+    else {
+        debug!(
+            "Unknown OS {}/{} reported for device {device_id}, keeping the last stored report",
+            platform.os_type, platform.os_family
+        );
+        return;
+    };
+    let report = DeviceClientInfo {
+        device_id,
+        client_version: version.map(|version| version.to_string()),
+        os_type,
+        os_version: platform.version,
+        os_edition: platform.edition,
+    };
+    if let Err(err) = report.upsert(pool).await {
+        error!("Failed to store client info for device {device_id}: {err}");
     }
 }
 

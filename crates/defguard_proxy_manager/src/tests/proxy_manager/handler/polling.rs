@@ -1,4 +1,10 @@
-use defguard_common::db::models::group::Group;
+use defguard_common::db::{
+    Id,
+    models::{
+        device_client_info::{DeviceClientInfo, OsType},
+        group::Group,
+    },
+};
 use defguard_core::{
     device_access::join_device_to_all_networks,
     enterprise::db::models::{
@@ -9,7 +15,7 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types,
-    proxy::{CoreRequest, core_request, core_response},
+    proxy::{CoreRequest, DeviceInfo, core_request, core_response},
 };
 use sqlx::{
     PgPool,
@@ -19,9 +25,39 @@ use sqlx::{
 use super::support::{
     assert_error_response, clear_test_license, complete_proxy_handshake, create_device_for_user,
     create_network, create_polling_token, create_user, create_user_with_device,
-    set_test_license_business,
+    make_client_device_info, set_test_license_business,
 };
 use crate::tests::common::HandlerTestContext;
+
+async fn poll_with_device_info(
+    context: &mut HandlerTestContext,
+    token: &str,
+    device_info: Option<DeviceInfo>,
+) {
+    context.mock_proxy().send_request(CoreRequest {
+        id: 30,
+        device_info,
+        payload: Some(core_request::Payload::InstanceInfo(
+            client_types::InstanceInfoRequest {
+                token: token.to_owned(),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert!(
+        matches!(
+            response.payload,
+            Some(core_response::Payload::InstanceInfo(_))
+        ),
+        "poll should return InstanceInfo"
+    );
+}
+
+async fn stored_client_info(pool: &PgPool, device_id: Id) -> Option<DeviceClientInfo> {
+    DeviceClientInfo::find_by_device_id(pool, device_id)
+        .await
+        .expect("failed to read stored client info")
+}
 
 async fn poll_client_traffic_policy(context: &mut HandlerTestContext, token: &str) -> i32 {
     context.mock_proxy().send_request(CoreRequest {
@@ -193,6 +229,97 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
             other.as_ref().map(std::mem::discriminant)
         ),
     }
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_polling_stores_reported_client_info(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+    let (_user, device) = create_user_with_device(&context.pool).await;
+    let token = create_polling_token(&context.pool, device.id).await;
+
+    let mut platform = client_types::ClientPlatformInfo {
+        os_family: "android".to_owned(),
+        os_type: "Android".to_owned(),
+        version: "15".to_owned(),
+        ..Default::default()
+    };
+    poll_with_device_info(
+        &mut context,
+        &token,
+        Some(make_client_device_info("2.3.0", &platform)),
+    )
+    .await;
+    let mut expected = DeviceClientInfo {
+        device_id: device.id,
+        client_version: Some("2.3.0".to_owned()),
+        os_type: OsType::Android,
+        os_version: "15".to_owned(),
+        os_edition: None,
+    };
+    assert_eq!(
+        stored_client_info(&context.pool, device.id).await.as_ref(),
+        Some(&expected)
+    );
+
+    platform.version = "16".to_owned();
+    poll_with_device_info(
+        &mut context,
+        &token,
+        Some(make_client_device_info("2.3.0", &platform)),
+    )
+    .await;
+    expected.os_version = "16".to_owned();
+    assert_eq!(
+        stored_client_info(&context.pool, device.id).await.as_ref(),
+        Some(&expected)
+    );
+
+    poll_with_device_info(&mut context, &token, None).await;
+    let unknown_os = client_types::ClientPlatformInfo {
+        os_family: "unix".to_owned(),
+        os_type: "freebsd".to_owned(),
+        version: "14.1.0".to_owned(),
+        ..Default::default()
+    };
+    poll_with_device_info(
+        &mut context,
+        &token,
+        Some(make_client_device_info("2.3.0", &unknown_os)),
+    )
+    .await;
+    assert_eq!(
+        stored_client_info(&context.pool, device.id).await.as_ref(),
+        Some(&expected)
+    );
+
+    let pre_2_1_desktop = client_types::ClientPlatformInfo {
+        os_family: "linux".to_owned(),
+        os_type: "Ubuntu".to_owned(),
+        version: "24.4.0".to_owned(),
+        codename: Some("noble".to_owned()),
+        ..Default::default()
+    };
+    poll_with_device_info(
+        &mut context,
+        &token,
+        Some(make_client_device_info("2.0.6", &pre_2_1_desktop)),
+    )
+    .await;
+    assert_eq!(
+        stored_client_info(&context.pool, device.id).await,
+        Some(DeviceClientInfo {
+            device_id: device.id,
+            client_version: Some("2.0.6".to_owned()),
+            os_type: OsType::Linux,
+            os_version: "24.4.0".to_owned(),
+            os_edition: None,
+        })
+    );
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;

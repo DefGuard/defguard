@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT device_id, client_version, os_type \"os_type: OsType\", os_version, os_edition FROM device_client_info WHERE device_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "client_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "client_version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "os_type: OsType",
+        "type_info": {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "os_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_version"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "os_edition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_edition"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2f46175c0dd949f54b69ea8b2f24e2c223807b154f84e0bf5dc4d01bd95e3d76"
+}

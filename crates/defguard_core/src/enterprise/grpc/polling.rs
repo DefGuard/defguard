@@ -9,7 +9,10 @@ use defguard_proto::{
 use sqlx::PgPool;
 use tonic::Status;
 
-use crate::{enterprise::is_business_license_active, grpc::utils::build_device_config_response};
+use crate::{
+    enterprise::is_business_license_active,
+    grpc::{client_version::store_reported_client_info, utils::build_device_config_response},
+};
 
 pub struct PollingServer {
     pool: PgPool,
@@ -86,6 +89,8 @@ impl PollingServer {
             );
             return Err(Status::permission_denied("user inactive"));
         }
+
+        store_reported_client_info(&self.pool, device.id, device_info.as_ref()).await;
 
         // Build and return polling info.
         let device_config =

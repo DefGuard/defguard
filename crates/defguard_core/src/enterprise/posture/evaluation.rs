@@ -71,17 +71,6 @@ fn resolve_int32_check(
     }
 }
 
-fn parse_os_type(s: &str) -> Option<OsType> {
-    match s.to_lowercase().as_str() {
-        "windows" => Some(OsType::Windows),
-        "macos" | "darwin" => Some(OsType::Macos),
-        "linux" => Some(OsType::Linux),
-        "ios" => Some(OsType::Ios),
-        "android" => Some(OsType::Android),
-        _ => None,
-    }
-}
-
 /// Evaluates all per-OS DB fields from `rule` against the signals in `data`,
 /// appending any [`FailureReason`]s to `failures`.
 ///
@@ -254,7 +243,7 @@ pub(crate) async fn validate_posture(
         return Ok(PostureResult::Fail(vec![FailureReason::MissingPostureData]));
     };
 
-    let os_type = parse_os_type(&data.os_type);
+    let os_type = OsType::parse(&data.os_type);
     let mut all_failures = Vec::new();
 
     for posture_id in posture_ids {
