@@ -12,6 +12,10 @@ function trimStrings<T>(value: T): T {
     const trimmed = {} as T;
     for (const key in value) {
       if (Object.hasOwn(value as object, key)) {
+        if (SKIP_TRIM_KEYS.includes(key)) {
+          trimmed[key] = value[key];
+          continue;
+        }
         trimmed[key] = trimStrings(
           (value as Record<string, unknown>)[key],
         ) as T[typeof key];
@@ -23,6 +27,8 @@ function trimStrings<T>(value: T): T {
 }
 
 const TRIM_METHODS = ['post', 'patch', 'put'];
+
+const SKIP_TRIM_KEYS = ['password', 'old_password', 'new_password'];
 
 export const client = axios.create({
   baseURL: '/api/v1',
