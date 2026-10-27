@@ -51,6 +51,14 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 ) -> Result<(), SettingsSaveError> {
     debug!("Updating current settings to: {new_settings:?}");
     let previous_settings = get_settings().clone();
+    if let Some(previous_settings) = previous_settings.as_ref() {
+        if new_settings.secret_key.is_none() {
+            new_settings.secret_key = previous_settings.secret_key.clone();
+        }
+        if new_settings.openid_signing_key_der.is_none() {
+            new_settings.openid_signing_key_der = previous_settings.openid_signing_key_der.clone();
+        }
+    }
     new_settings.validate_with_previous(previous_settings.as_ref())?;
     new_settings.save(executor).await?;
     set_settings(Some(new_settings));

@@ -652,6 +652,51 @@ async fn test_initialize_runtime_defaults_keeps_valid_defguard_url(
 }
 
 #[sqlx::test]
+async fn test_update_current_settings_preserves_signing_keys(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool).await.unwrap();
+    Settings::initialize_runtime_defaults(&pool).await.unwrap();
+
+    let before = Settings::get_current_settings();
+    let secret_key = before
+        .secret_key()
+        .expect("JWT signing key should exist")
+        .to_owned();
+    let openid_signing_key_der = before
+        .openid_signing_key_der
+        .clone()
+        .expect("OIDC signing key should exist");
+
+    let mut new_settings = before;
+    new_settings.set_secret_key(None);
+    new_settings.openid_signing_key_der = None;
+    update_current_settings(&pool, new_settings).await.unwrap();
+
+    let current = Settings::get_current_settings();
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+    assert!(
+        current.secret_key() == Some(secret_key.as_str()),
+        "global JWT signing key should be preserved"
+    );
+    assert!(
+        from_db.secret_key() == Some(secret_key.as_str()),
+        "database JWT signing key should be preserved"
+    );
+    assert!(
+        current.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+        "global OIDC signing key should be preserved"
+    );
+    assert!(
+        from_db.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+        "database OIDC signing key should be preserved"
+    );
+}
+
+#[sqlx::test]
 async fn test_initialize_runtime_defaults_generates_openid_signing_key(
     _: PgPoolOptions,
     options: PgConnectOptions,
