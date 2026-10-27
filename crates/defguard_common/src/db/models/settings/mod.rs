@@ -231,6 +231,7 @@ pub struct Settings {
     pub enrollment_display_welcome_message: bool,
     // Instance UUID needed for desktop client
     #[serde(skip)]
+    #[patch(skip)]
     pub uuid: Uuid,
     // LDAP
     pub ldap_url: Option<String>,
@@ -291,6 +292,7 @@ pub struct Settings {
     #[patch(skip)]
     secret_key: Option<SecretStringWrapper>,
     #[serde(skip)]
+    #[patch(skip)]
     pub openid_signing_key_der: Option<Vec<u8>>,
     pub enable_stats_purge: bool,
     pub stats_purge_frequency_hours: i32,

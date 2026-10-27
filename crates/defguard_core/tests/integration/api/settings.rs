@@ -887,6 +887,47 @@ async fn test_put_settings_with_new_secret_replaces_it(
 }
 
 #[sqlx::test]
+async fn test_patch_settings_cannot_change_signing_key_or_uuid(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let before = Settings::get(&pool).await.unwrap().unwrap();
+    let openid_signing_key_der = before
+        .openid_signing_key_der
+        .clone()
+        .expect("OIDC signing key should exist");
+    let patched_uuid = uuid::Uuid::new_v4();
+    assert_ne!(patched_uuid, before.uuid);
+
+    let response = client
+        .patch("/api/v1/settings")
+        .json(&json!({
+            "openid_signing_key_der": null,
+            "uuid": patched_uuid
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let after = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        after.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+        "OIDC signing key should be unchanged after PATCH"
+    );
+    assert_eq!(
+        after.uuid, before.uuid,
+        "instance UUID should be unchanged after PATCH"
+    );
+}
+
+#[sqlx::test]
 async fn test_patch_settings_secrets(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (client, _client_state) = make_test_client(pool.clone()).await;
