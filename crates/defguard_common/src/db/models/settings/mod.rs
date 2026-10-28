@@ -45,6 +45,9 @@ pub async fn initialize_current_settings(pool: &PgPool) -> sqlx::Result<()> {
 
 /// Helper function which stores updated `Settings` in the database and also updates the global
 /// `SETTINGS` struct.
+///
+/// A `None` signing key keeps the previously stored key, because `Settings` deserialized from an
+/// API body never carries the keys. This function cannot clear a signing key.
 pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
     mut new_settings: Settings,
@@ -261,6 +264,7 @@ pub struct Settings {
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
     pub ldap_tls_verify_cert: bool,
+    #[cfg_attr(feature = "openapi", schema(read_only))]
     #[patch(skip)]
     pub ldap_sync_status: LdapSyncStatus,
     pub ldap_enabled: bool,
@@ -294,6 +298,7 @@ pub struct Settings {
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
     pub public_proxy_url: String,
+    #[cfg_attr(feature = "openapi", schema(read_only))]
     #[patch(skip)]
     pub default_admin_id: Option<Id>,
     // 1.6 config options
@@ -974,6 +979,16 @@ impl Settings {
             && non_empty(&self.ldap_group_obj_class)
             && non_empty(&self.ldap_group_member_attr)
             && non_empty(&self.ldap_group_search_base)
+    }
+
+    /// Marks LDAP out of sync when LDAP is disabled or its sync scope changed since `before`.
+    pub fn invalidate_ldap_sync_status(&mut self, before: &Self) {
+        if !self.ldap_enabled
+            || before.ldap_is_authoritative != self.ldap_is_authoritative
+            || before.ldap_sync_groups != self.ldap_sync_groups
+        {
+            self.ldap_sync_status = LdapSyncStatus::OutOfSync;
+        }
     }
 
     /// Returns the LDAP attribute used to store enrollment tokens, if one is configured.

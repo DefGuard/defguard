@@ -16,6 +16,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tokio::{sync::mpsc, time::timeout};
+use uuid::Uuid;
 
 use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
@@ -846,12 +847,14 @@ async fn test_put_settings_without_secrets_keeps_stored_secrets(
         from_db.smtp.oauth_refresh_token,
         secret("oauth-refresh-token")
     );
-    assert!(
-        from_db.secret_key() == Some(secret_key.as_str()),
+    assert_eq!(
+        from_db.secret_key(),
+        Some(secret_key.as_str()),
         "JWT signing key should be unchanged after PUT"
     );
-    assert!(
-        from_db.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+    assert_eq!(
+        from_db.openid_signing_key_der.as_ref(),
+        Some(&openid_signing_key_der),
         "OIDC signing key should be unchanged after PUT"
     );
 
@@ -903,7 +906,7 @@ async fn test_patch_settings_cannot_change_signing_key_or_uuid(
         .openid_signing_key_der
         .clone()
         .expect("OIDC signing key should exist");
-    let patched_uuid = uuid::Uuid::new_v4();
+    let patched_uuid = Uuid::new_v4();
     assert_ne!(patched_uuid, before.uuid);
 
     let response = client
@@ -917,8 +920,9 @@ async fn test_patch_settings_cannot_change_signing_key_or_uuid(
     assert_eq!(response.status(), StatusCode::OK);
 
     let after = Settings::get(&pool).await.unwrap().unwrap();
-    assert!(
-        after.openid_signing_key_der.as_ref() == Some(&openid_signing_key_der),
+    assert_eq!(
+        after.openid_signing_key_der.as_ref(),
+        Some(&openid_signing_key_der),
         "OIDC signing key should be unchanged after PATCH"
     );
     assert_eq!(
@@ -928,7 +932,10 @@ async fn test_patch_settings_cannot_change_signing_key_or_uuid(
 }
 
 #[sqlx::test]
-async fn test_patch_cannot_change_default_admin_id(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_patch_settings_cannot_change_default_admin_id(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
     let (client, _client_state) = make_test_client(pool.clone()).await;
 
@@ -956,7 +963,7 @@ async fn test_patch_cannot_change_default_admin_id(_: PgPoolOptions, options: Pg
 }
 
 #[sqlx::test]
-async fn test_put_preserves_default_admin_id(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_put_settings_keeps_default_admin_id(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (client, _client_state) = make_test_client(pool.clone()).await;
 
@@ -986,7 +993,10 @@ async fn test_put_preserves_default_admin_id(_: PgPoolOptions, options: PgConnec
 }
 
 #[sqlx::test]
-async fn test_patch_cannot_override_ldap_sync_status(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_patch_settings_cannot_change_ldap_sync_status(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
     let (client, _client_state) = make_test_client(pool.clone()).await;
 
@@ -1013,7 +1023,7 @@ async fn test_patch_cannot_override_ldap_sync_status(_: PgPoolOptions, options: 
 }
 
 #[sqlx::test]
-async fn test_put_preserves_ldap_sync_status(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_put_settings_keeps_ldap_sync_status(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (client, _client_state) = make_test_client(pool.clone()).await;
 
@@ -1021,7 +1031,11 @@ async fn test_put_preserves_ldap_sync_status(_: PgPoolOptions, options: PgConnec
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    // Disabled LDAP always marks the sync status out of sync, so enable it to observe the restore.
     let mut settings = Settings::get_current_settings();
+    settings.ldap_url = Some("ldap://localhost:389".into());
+    settings.ldap_bind_password = secret("ldap-secret");
+    settings.ldap_enabled = true;
     settings.ldap_sync_status = LdapSyncStatus::InSync;
     update_current_settings(&pool, settings).await.unwrap();
     let before = Settings::get(&pool).await.unwrap().unwrap();
@@ -1039,7 +1053,7 @@ async fn test_put_preserves_ldap_sync_status(_: PgPoolOptions, options: PgConnec
 }
 
 #[sqlx::test]
-async fn test_put_ldap_config_changes_mark_sync_status_out_of_sync(
+async fn test_put_settings_ldap_changes_mark_sync_out_of_sync(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
