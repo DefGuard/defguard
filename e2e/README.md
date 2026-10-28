@@ -14,6 +14,12 @@ If needed, specifiy image tag by setting `IMAGE_TAG` variable:
 export IMAGE_TAG=release-1.5-alpha
 ```
 
+If port 5432 is already in use on the host, publish the test database on another port by setting `E2E_DB_PORT`:
+
+```bash
+export E2E_DB_PORT=15432
+```
+
 Pull Docker images:
 
 ```bash

@@ -102,6 +102,6 @@ export const dbCred = {
   username: 'defguard',
   password: 'defguard',
   database: 'defguard',
-  port: 5432,
+  port: process.env.E2E_DB_PORT ? Number.parseInt(process.env.E2E_DB_PORT) : 5432,
   host: 'localhost',
 };
