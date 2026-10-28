@@ -25,6 +25,7 @@ type PlainVariantProps = {
   kind: 'plain';
   options: MenuItemsGroup[];
   label: string;
+  testId?: string;
 };
 
 type MfaMethodsMenuProps = ButtonVariantProps | PlainVariantProps;
@@ -35,16 +36,20 @@ export const MfaMethodsMenu = (props: MfaMethodsMenuProps) => {
     return <ButtonMenu menuItems={options} {...buttonProps} />;
   }
 
-  return <PlainButton options={props.options} label={props.label} />;
+  return (
+    <PlainButton options={props.options} label={props.label} testId={props.testId} />
+  );
 };
 
 /** Renders the compact add-method menu trigger used inside a step. */
 const PlainButton = ({
   options,
   label,
+  testId,
 }: {
   options: MenuItemsGroup[];
   label: string;
+  testId?: string;
 }) => {
   const [isOpen, setOpen] = useState(false);
   const { refs, context, floatingStyles } = useFloating({
@@ -78,6 +83,7 @@ const PlainButton = ({
       <button
         type="button"
         className="plain-button"
+        data-testid={testId}
         ref={refs.setReference}
         {...getReferenceProps()}
       >

@@ -26,9 +26,10 @@ export const MfaConfigurationStep = ({
   const dragControls = useDragControls();
   const addMethodMenuOptions = methodGroups.map((group) => ({
     ...group,
-    items: group.items.map((method) =>
-      buildOption(method, () => onAddMethod(step.id, method)),
-    ),
+    items: group.items.map((method) => ({
+      ...buildOption(method, () => onAddMethod(step.id, method)),
+      testId: `add-mfa-method-${stepNumber}-${method}`,
+    })),
   }));
   const error = step.methods.length === 0 ? m.mfa_flow_method_required() : undefined;
 
@@ -44,12 +45,13 @@ export const MfaConfigurationStep = ({
       onDragStart={() => onReorderingChange(true)}
       onDragTransitionEnd={() => onReorderingChange(false)}
       className="mfa-step-card"
-      data-testid={`step-${step.id}`}
+      data-testid={`mfa-flow-step-${stepNumber}`}
     >
       <div className="top">
         <button
           type="button"
           className="drag-button"
+          data-testid={`reorder-mfa-step-${stepNumber}`}
           aria-label={m.mfa_flow_step_reorder({ number: stepNumber })}
           onPointerDown={(event) => dragControls.start(event)}
         >
@@ -59,6 +61,7 @@ export const MfaConfigurationStep = ({
         <button
           type="button"
           className="dispose-button"
+          data-testid={`remove-mfa-step-${stepNumber}`}
           aria-label={m.mfa_flow_step_remove({ number: stepNumber })}
           onClick={() => onDeleteStep(step.id)}
         >
@@ -81,6 +84,7 @@ export const MfaConfigurationStep = ({
                 <button
                   type="button"
                   className="dispose-button"
+                  data-testid={`remove-mfa-method-${stepNumber}-${method}`}
                   aria-label={m.mfa_flow_method_remove({ method: methodLabels[method] })}
                   onClick={() => onDeleteMethod(step.id, method)}
                 >
@@ -96,6 +100,7 @@ export const MfaConfigurationStep = ({
           <MfaMethodsMenu
             kind="plain"
             label={m.mfa_flow_method_add()}
+            testId={`add-mfa-method-${stepNumber}`}
             options={addMethodMenuOptions}
           />
           <Helper>

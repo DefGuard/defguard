@@ -103,14 +103,16 @@ export const MfaConfiguration = ({ onChange, steps, error }: MfaConfigurationPro
 
   const addStepMenuOptions = buildMethodGroups(methods).map((group) => ({
     ...group,
-    items: group.items.map((method) =>
-      buildOption(method, () => {
+    items: group.items.map((method) => ({
+      ...buildOption(method, () => {
         onChange([...steps, { id: crypto.randomUUID(), methods: [method] }]);
       }),
-    ),
+      testId: `add-mfa-step-method-${method}`,
+    })),
   }));
   const addStepButtonProps: Omit<ButtonProps, 'ref'> = {
     type: 'button',
+    testId: 'add-mfa-step',
     variant: 'outlined',
     iconRight: 'arrow-small',
     iconRightRotation: 'down',
