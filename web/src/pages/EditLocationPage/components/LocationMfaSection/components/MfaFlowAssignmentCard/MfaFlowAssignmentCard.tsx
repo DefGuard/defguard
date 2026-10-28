@@ -62,6 +62,7 @@ type Props = {
   chips: string[];
   leading: ReactNode;
   editLabel: string;
+  editTestId?: string;
   onEdit: () => void;
   removeLabel?: string;
   onRemove?: () => void;
@@ -74,6 +75,7 @@ export const MfaFlowAssignmentCard = ({
   chips,
   leading,
   editLabel,
+  editTestId,
   onEdit,
   removeLabel,
   onRemove,
@@ -96,6 +98,7 @@ export const MfaFlowAssignmentCard = ({
             type="button"
             className="card-action"
             aria-label={editLabel}
+            data-testid={editTestId}
             onClick={onEdit}
           >
             <Icon icon={IconKind.Edit} size={20} />

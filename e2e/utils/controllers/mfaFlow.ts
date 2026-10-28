@@ -36,6 +36,51 @@ export const openMfaFlowEdit = async (page: Page, flowId: number): Promise<void>
   await page.waitForURL(`**${routes.mfa.editFlow(flowId)}`);
 };
 
+const saveLocationMfaChanges = async (
+  page: Page,
+  locationId: number,
+  requiresConfirmation: boolean,
+): Promise<void> => {
+  const saveResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      response.url().endsWith(`/network/${locationId}`),
+  );
+  await page.getByTestId('save-location').click();
+  if (requiresConfirmation) {
+    await page.getByRole('button', { name: 'Save changes anyway' }).click();
+  }
+  const response = await saveResponse;
+  if (!response.ok()) throw new Error(`Saving location failed: ${response.status()}`);
+};
+
+export const assignDefaultLocationMfaFlow = async (
+  page: Page,
+  locationId: number,
+  flowId: number,
+): Promise<void> => {
+  await page.goto(`${routes.base}${routes.locations}/${locationId}/edit`);
+  await page.getByTestId('location-mfa-enabled-toggle').click();
+  await page.getByTestId(`location-mfa-flow-option-${flowId}`).click();
+  await page.getByTestId('location-mfa-assignment-save').click();
+  await saveLocationMfaChanges(page, locationId, true);
+};
+
+export const addLocationMfaOverride = async (
+  page: Page,
+  locationId: number,
+  flowId: number,
+  groupId: number,
+): Promise<void> => {
+  await page.goto(`${routes.base}${routes.locations}/${locationId}/edit`);
+  await page.getByTestId('location-mfa-add-override').click();
+  await page.getByTestId(`location-mfa-flow-option-${flowId}`).click();
+  await page.getByTestId('location-mfa-assignment-continue').click();
+  await page.getByTestId(`location-mfa-override-group-${groupId}`).click();
+  await page.getByTestId('location-mfa-assignment-save').click();
+  await saveLocationMfaChanges(page, locationId, false);
+};
+
 export const addMfaFlowStep = async (
   page: Page,
   method: MfaFlowMethod,

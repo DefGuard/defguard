@@ -2,7 +2,7 @@ import { APIRequestContext, expect, test } from '@playwright/test';
 import { TOTP } from 'totp-generator';
 
 import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
-import { User } from '../types';
+import { NetworkForm, User } from '../types';
 import {
   apiCreateDevice,
   apiCreateMfaLocation,
@@ -15,11 +15,14 @@ import {
 } from '../utils/api/clientMfa';
 import { apiLogin } from '../utils/api/users';
 import { createUser } from '../utils/controllers/createUser';
+import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
 import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import {
+  addLocationMfaOverride,
   addMfaFlowStep,
+  assignDefaultLocationMfaFlow,
   changeMfaFlowStepMethod,
   createMfaFlow,
   deleteMfaFlow,
@@ -28,6 +31,7 @@ import {
   saveMfaFlow,
 } from '../utils/controllers/mfaFlow';
 import { setupSMTP } from '../utils/controllers/settings';
+import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 
 const EMAIL_CODE_PERIOD = 300;
@@ -42,6 +46,74 @@ const getFlowId = async (request: APIRequestContext, title: string) => {
   expect(flow).toBeDefined();
   if (!flow) throw new Error(`MFA flow ${title} was not found.`);
   return flow.id;
+};
+
+type LocationMfaAssignment = {
+  title: string;
+  is_default: boolean;
+  groups: { id: number; name: string }[];
+};
+
+const getLocationId = async (request: APIRequestContext, name: string) => {
+  const response = await request.get(coreUrl('/network'));
+  expect(response.status()).toBe(200);
+  const locations: { id: number; name: string }[] = await response.json();
+  const location = locations.find((item) => item.name === name);
+  expect(location).toBeDefined();
+  if (!location) throw new Error(`Location ${name} was not found.`);
+  return location.id;
+};
+
+const getGroupId = async (request: APIRequestContext, name: string) => {
+  const response = await request.get(coreUrl('/group-info'));
+  expect(response.status()).toBe(200);
+  const groups: { id: number; name: string }[] = await response.json();
+  const group = groups.find((item) => item.name === name);
+  expect(group).toBeDefined();
+  if (!group) throw new Error(`Group ${name} was not found.`);
+  return group.id;
+};
+
+const getLocationAssignments = async (
+  request: APIRequestContext,
+  locationId: number,
+): Promise<LocationMfaAssignment[]> => {
+  const response = await request.get(coreUrl(`/location/${locationId}/mfa-flows`));
+  expect(response.status()).toBe(200);
+  return response.json();
+};
+
+const expectDefaultFlowAssignment = async (
+  request: APIRequestContext,
+  locationId: number,
+  title: string,
+) => {
+  const assignments = await getLocationAssignments(request, locationId);
+  expect(assignments).toContainEqual(
+    expect.objectContaining({ title, is_default: true, groups: [] }),
+  );
+};
+
+const enforceTOTPFlowOverEdge = async (
+  request: APIRequestContext,
+  username: string,
+  locationId: number,
+  totpSecret: string,
+) => {
+  const pubkey = await apiCreateDevice(request, username, `${username}-device`);
+  const attempt = await clientMfaConnect(
+    request,
+    { locationId, pubkey, protocol: 'multi-step', method: MfaMethod.TOTP },
+    [MfaMethod.TOTP],
+  );
+  const { otp } = await TOTP.generate(totpSecret);
+  const result = await clientMfaFinishResult(
+    await clientMfaFinish(request, attempt, otp),
+  );
+  expect(result.kind).toBe('Completed');
+  if (result.kind !== 'Completed')
+    throw new Error('Assigned TOTP flow did not complete.');
+  expect(result.presharedKey).toBeTruthy();
 };
 
 test.describe('MFA flows', () => {
@@ -106,6 +178,174 @@ test.describe('MFA flows', () => {
       await request.get(coreUrl('/mfa-flow'))
     ).json();
     expect(remainingFlows.some((flow) => flow.id === flowId)).toBe(false);
+  });
+
+  test('Assign a default flow on the edit page and enforce it over Edge', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const testUser: User = { ...testUserTemplate, username: 'mfa-edit-flow-user' };
+    await createUser(browser, testUser);
+    const { secret } = await enableTOTP(browser, testUser);
+    expect(
+      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+    ).toBe(200);
+    await waitForProxy(request);
+    await loginBasic(page, defaultUserAdmin);
+
+    const title = 'e2e-edit-location-totp-flow';
+    await createMfaFlow(page, title, [['totp']]);
+    const flowId = await getFlowId(request, title);
+    const network: NetworkForm = {
+      name: 'e2e-edit-flow-location',
+      address: '10.55.0.1/24',
+      endpoint: '192.168.4.15',
+      port: '51831',
+      allowed_ips: ['10.55.0.0/24'],
+    };
+    await createRegularLocation(browser, network);
+    const locationId = await getLocationId(request, network.name);
+    await assignDefaultLocationMfaFlow(page, locationId, flowId);
+
+    await expectDefaultFlowAssignment(request, locationId, title);
+    await enforceTOTPFlowOverEdge(request, testUser.username, locationId, secret);
+  });
+
+  test('Assign a default flow in the wizard and enforce it over Edge', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const testUser: User = { ...testUserTemplate, username: 'mfa-wizard-flow-user' };
+    await createUser(browser, testUser);
+    const { secret } = await enableTOTP(browser, testUser);
+    expect(
+      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+    ).toBe(200);
+    await waitForProxy(request);
+    await loginBasic(page, defaultUserAdmin);
+
+    const title = 'e2e-wizard-location-totp-flow';
+    await createMfaFlow(page, title, [['totp']]);
+    const flowId = await getFlowId(request, title);
+    const network: NetworkForm = {
+      name: 'e2e-wizard-flow-location',
+      address: '10.56.0.1/24',
+      endpoint: '192.168.4.16',
+      port: '51832',
+      allowed_ips: ['10.56.0.0/24'],
+      mfa_enabled: true,
+      defaultMfaFlowId: flowId,
+    };
+    await createRegularLocation(browser, network);
+    const locationId = await getLocationId(request, network.name);
+
+    await expectDefaultFlowAssignment(request, locationId, title);
+    await enforceTOTPFlowOverEdge(request, testUser.username, locationId, secret);
+  });
+
+  test('Apply a group override on Edge and fall back to the default flow', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires an Enterprise license.');
+
+    const groupName = 'e2e-mfa-override-group';
+    const member: User = {
+      ...testUserTemplate,
+      username: 'mfa-override-member',
+      mail: 'mfa-override-member@test.com',
+      phone: '123456780',
+    };
+    const nonMember: User = {
+      ...testUserTemplate,
+      username: 'mfa-override-non-member',
+      mail: 'mfa-override-non-member@test.com',
+      phone: '123456781',
+    };
+    await createGroup(browser, groupName);
+    await createUser(browser, member, [groupName]);
+    await createUser(browser, nonMember);
+    const { secret: memberTotp } = await enableTOTP(browser, member);
+    await enableEmailMFA(browser, member, memberTotp);
+    await enableTOTP(browser, nonMember);
+
+    expect(
+      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+    ).toBe(200);
+    await waitForProxy(request);
+    await loginBasic(page, defaultUserAdmin);
+
+    const defaultTitle = 'e2e-group-default-totp-flow';
+    const overrideTitle = 'e2e-group-override-email-flow';
+    await createMfaFlow(page, defaultTitle, [['totp']]);
+    const defaultFlowId = await getFlowId(request, defaultTitle);
+    await createMfaFlow(page, overrideTitle, [['email']]);
+    const overrideFlowId = await getFlowId(request, overrideTitle);
+
+    const network: NetworkForm = {
+      name: 'e2e-group-override-location',
+      address: '10.57.0.1/24',
+      endpoint: '192.168.4.17',
+      port: '51833',
+      allowed_ips: ['10.57.0.0/24'],
+      mfa_enabled: true,
+      defaultMfaFlowId: defaultFlowId,
+    };
+    await createRegularLocation(browser, network);
+    const locationId = await getLocationId(request, network.name);
+    const groupId = await getGroupId(request, groupName);
+    await addLocationMfaOverride(page, locationId, overrideFlowId, groupId);
+
+    const assignments = await getLocationAssignments(request, locationId);
+    expect(assignments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: defaultTitle,
+          is_default: true,
+          groups: [],
+        }),
+        expect.objectContaining({
+          title: overrideTitle,
+          is_default: false,
+          groups: [{ id: groupId, name: groupName }],
+        }),
+      ]),
+    );
+
+    const memberPubkey = await apiCreateDevice(
+      request,
+      member.username,
+      'mfa-override-member-device',
+    );
+    await clientMfaConnect(
+      request,
+      {
+        locationId,
+        pubkey: memberPubkey,
+        protocol: 'multi-step',
+        method: MfaMethod.EMAIL,
+      },
+      [MfaMethod.EMAIL],
+    );
+
+    const nonMemberPubkey = await apiCreateDevice(
+      request,
+      nonMember.username,
+      'mfa-override-non-member-device',
+    );
+    await clientMfaConnect(
+      request,
+      {
+        locationId,
+        pubkey: nonMemberPubkey,
+        protocol: 'multi-step',
+        method: MfaMethod.TOTP,
+      },
+      [MfaMethod.TOTP],
+    );
   });
 
   test('Enforce a TOTP then Email flow over Edge', async ({ page, browser, request }) => {
