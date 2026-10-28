@@ -36,13 +36,19 @@ export const waitForProxy = async (api: APIRequestContext): Promise<void> => {
     .toBe(200);
 };
 
-export const apiCreateMfaLocation = async (admin: APIRequestContext): Promise<number> => {
-  const flow = await admin.post(coreUrl('/mfa-flow'), {
+export const apiCreateMfaFlow = async (admin: APIRequestContext): Promise<number> => {
+  const response = await admin.post(coreUrl('/mfa-flow'), {
     data: { title: 'Internal MFA', steps: [{ methods: INTERNAL_METHODS }] },
   });
-  expect(flow.status()).toBe(201);
-  const { id: flowId } = await flow.json();
+  expect(response.status()).toBe(201);
+  return (await response.json()).id;
+};
 
+export const apiCreateMfaLocation = async (
+  admin: APIRequestContext,
+  existingFlowId?: number,
+): Promise<number> => {
+  const flowId = existingFlowId ?? (await apiCreateMfaFlow(admin));
   const location = await admin.post(coreUrl('/network'), {
     data: {
       name: 'mfa-location',
@@ -88,6 +94,7 @@ export const apiCreateDevice = async (
 export const clientMfaStart = (
   api: APIRequestContext,
   device: ClientDevice,
+  selectedMethods: MfaMethod[] = [device.method],
 ): Promise<APIResponse> =>
   device.protocol === 'legacy'
     ? api.post(proxyUrl('/client-mfa/start'), {
@@ -101,7 +108,7 @@ export const clientMfaStart = (
         data: {
           location_id: device.locationId,
           pubkey: device.pubkey,
-          selected_methods: [device.method],
+          selected_methods: selectedMethods,
         },
       });
 
@@ -112,11 +119,24 @@ export const clientMfaStepStart = (
 ): Promise<APIResponse> =>
   api.post(proxyUrl('/mfa-flow/step-start'), { data: { token, method } });
 
+export const clientMfaStartStep = async (
+  api: APIRequestContext,
+  token: string,
+  method: MfaMethod,
+): Promise<string> => {
+  const response = await clientMfaStepStart(api, token, method);
+  expect(response.status()).toBe(200);
+  const { started } = await response.json();
+  expect(started?.step_attempt_id).toBeTruthy();
+  return started.step_attempt_id;
+};
+
 export const clientMfaConnect = async (
   api: APIRequestContext,
   device: ClientDevice,
+  selectedMethods?: MfaMethod[],
 ): Promise<MfaAttempt> => {
-  const start = await clientMfaStart(api, device);
+  const start = await clientMfaStart(api, device, selectedMethods);
   expect(start.status()).toBe(200);
   const body = await start.json();
   if (device.protocol === 'legacy') {
@@ -142,6 +162,27 @@ export const clientMfaFinish = (
           submission: { Code: { code } },
         },
       });
+
+export type ClientMfaFinishResult =
+  | { kind: 'Advanced'; nextStep: number; presharedKey?: string }
+  | { kind: 'Completed'; presharedKey: string };
+
+export const clientMfaFinishResult = async (
+  response: APIResponse,
+): Promise<ClientMfaFinishResult> => {
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  const outcome = body.result?.outcome;
+  const presharedKey = body.preshared_key ?? outcome?.Completed?.preshared_key;
+
+  if (outcome?.Advanced) {
+    return { kind: 'Advanced', nextStep: outcome.Advanced.next_step, presharedKey };
+  }
+  if (outcome?.Completed) {
+    return { kind: 'Completed', presharedKey };
+  }
+  throw new Error('Unexpected MFA flow finish result.');
+};
 
 // A multi-step client gets the key inside the completed step result.
 export const presharedKey = async (

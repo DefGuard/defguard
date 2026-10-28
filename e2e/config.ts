@@ -1,4 +1,5 @@
 import { table } from 'console';
+
 import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
@@ -46,6 +47,11 @@ export const routes = {
     addDestination: '/acl/add-destination',
   },
   locations: '/locations',
+  mfa: {
+    list: '/mfa',
+    addFlow: '/mfa/add-flow',
+    editFlow: (id: number | string) => `/mfa-flow/${id}/edit`,
+  },
   enrollment: '/enrollment',
   network_devices: '/network-devices',
   openid_apps: '/openid',
