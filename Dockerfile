@@ -25,6 +25,7 @@ COPY migrations migrations
 RUN cargo chef prepare --bin defguard --recipe-path recipe.json
 
 FROM chef AS builder
+ARG VERGEN_GIT_SHA
 ARG DEFGUARD_BUILD_VERSION
 ENV DEFGUARD_BUILD_VERSION=$DEFGUARD_BUILD_VERSION
 
@@ -49,7 +50,11 @@ COPY crates crates
 COPY tools tools
 COPY proto proto
 COPY migrations migrations
-RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
+# A worktree's .git pointer targets metadata outside the build context.
+RUN if [ -f .git ] && [ -z "${VERGEN_GIT_SHA:-}" ]; then \
+        export VERGEN_GIT_SHA=unknown; \
+    fi && \
+    cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
 FROM public.ecr.aws/docker/library/debian:13-slim AS runtime
