@@ -8,7 +8,7 @@ use defguard_common::{
         Id,
         models::{
             Settings, SettingsEssentials,
-            settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+            settings::{SettingsPatch, update_current_settings},
         },
     },
     types::proxy::ProxyControlMessage,
@@ -164,6 +164,11 @@ pub(crate) async fn update_settings(
     let licensed_before = is_business_license_active();
 
     data.uuid = before.uuid;
+    data.default_admin_id = before.default_admin_id;
+    data.ldap_sync_status = before.ldap_sync_status;
+    data.invalidate_ldap_sync_status(&before);
+    data.set_secret_key(before.secret_key().map(str::to_owned));
+    data.openid_signing_key_der = before.openid_signing_key_der.clone();
     data.smtp.password = data.smtp.password.or(before.smtp.password.clone());
     data.smtp.oauth_client_secret = data
         .smtp
@@ -338,24 +343,8 @@ pub async fn patch_settings(
     let license = data.license.clone();
     let licensed_before = is_business_license_active();
 
-    // update LDAP sync status if relevant settings have been changed
-    if let Some(ldap_enabled) = data.ldap_enabled
-        && !ldap_enabled
-    {
-        settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
-    }
-    if let Some(ldap_authority) = data.ldap_is_authoritative
-        && settings.ldap_is_authoritative != ldap_authority
-    {
-        settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
-    }
-    if let Some(ldap_sync_groups) = &data.ldap_sync_groups
-        && &settings.ldap_sync_groups != ldap_sync_groups
-    {
-        settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
-    }
-
     settings.apply(data);
+    settings.invalidate_ldap_sync_status(&before);
     settings.validate_against(&before)?;
 
     // clone for event
