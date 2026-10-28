@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard:${CORE_IMAGE_TAG:-${IMAGE_TAG}}
     environment:
       DEFGUARD_COOKIE_INSECURE: true
       DEFGUARD_COOKIE_DOMAIN: localhost
@@ -36,7 +36,7 @@ services:
       start_period: 5s
 
   edge:
-    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard-proxy:${EDGE_IMAGE_TAG:-${IMAGE_TAG}}
     ports:
       # REST API
       - "8080:8080"
@@ -47,7 +47,7 @@ services:
       RUST_BACKTRACE: 1
 
   gateway:
-    image: ghcr.io/defguard/gateway:${IMAGE_TAG}
+    image: ghcr.io/defguard/gateway:${GATEWAY_IMAGE_TAG:-${IMAGE_TAG}}
     ports:
       - "50066:50066"
     environment:
@@ -55,3 +55,6 @@ services:
       RUST_BACKTRACE: 1
     cap_add:
       - NET_ADMIN
+
+  mailpit:
+    image: axllent/mailpit:latest
