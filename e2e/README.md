@@ -8,10 +8,25 @@
 
 ## How to run
 
-If needed, specifiy image tag by setting `IMAGE_TAG` variable:
+Set `IMAGE_TAG` to select the default tag for all E2E images. Optional component-specific tags override it and otherwise fall back to `IMAGE_TAG`. For example, use a locally built Core image with the `dev` Edge and Gateway images:
 
 ```bash
-export IMAGE_TAG=release-1.5-alpha
+export IMAGE_TAG=dev
+export CORE_IMAGE_TAG=local
+```
+
+Set `EDGE_IMAGE_TAG` or `GATEWAY_IMAGE_TAG` the same way when those components need different tags.
+
+Build the local Core image from the repository root. A bare build in a worktree uses `+unknown`; when Git metadata is readable, vergen uses the current commit SHA:
+
+```bash
+docker build -t ghcr.io/defguard/defguard:local .
+```
+
+To pass the current commit explicitly, use:
+
+```bash
+docker build --build-arg VERGEN_GIT_SHA=$(git rev-parse HEAD) -t ghcr.io/defguard/defguard:local .
 ```
 
 If port 5432 is already in use on the host, publish the test database on another port by setting `E2E_DB_PORT`:
@@ -20,7 +35,13 @@ If port 5432 is already in use on the host, publish the test database on another
 export E2E_DB_PORT=15432
 ```
 
-Pull Docker images:
+Pull Docker images. If using the locally built Core image, omit `core`:
+
+```bash
+docker compose --file ../docker-compose.e2e.yaml pull db edge gateway mailpit
+```
+
+Otherwise, pull all images:
 
 ```bash
 docker compose --file ../docker-compose.e2e.yaml pull
