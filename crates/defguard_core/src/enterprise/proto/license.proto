@@ -33,6 +33,7 @@ enum LicenseFeature {
   LICENSE_FEATURE_ACL_ALLOWED_IPS = 3;    // ACL-derived AllowedIPs computation
   LICENSE_FEATURE_COMPONENT_HA = 4;       // component high availability
   LICENSE_FEATURE_GROUP_MTU_OVERRIDE = 5; // group MTU override
+  LICENSE_FEATURE_FIDO2 = 6;              // FIDO2 security keys
 }
 
 message LicenseMetadata {

@@ -213,7 +213,7 @@ pub(crate) fn license_error_response(field: &str, code: &str) -> ApiResponse {
 ///
 /// Gates compose additively on top of the per-method prerequisites in
 /// [`check_method_prerequisites`]: multi-step needs Business, OIDC needs Business as well as a
-/// configured provider, and FIDO2 needs Enterprise.
+/// configured provider, and FIDO2 needs the `Fido2` license feature.
 #[must_use]
 fn check_flow_license_gates(step_methods: &[Vec<VpnClientMfaMethod>]) -> Option<ApiResponse> {
     // Keep these write-side gates in sync with `flow_unavailable_reason`, which reports saved-flow

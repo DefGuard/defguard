@@ -42,6 +42,8 @@ fn test_map_license_features() {
         ]
     );
 
+    assert_eq!(map_license_features(&[6]), vec![LicenseFeature::Fido2]);
+
     // unspecified (0) and unknown future values are dropped, recognized ones kept
     assert_eq!(
         map_license_features(&[0, 2, 99]),
