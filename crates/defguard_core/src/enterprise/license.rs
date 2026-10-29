@@ -165,6 +165,7 @@ pub enum LicenseFeature {
     AclAllowedIps,
     ComponentHa,
     GroupMTUOverride,
+    Fido2,
 }
 
 impl TryFrom<LicenseFeatureProto> for LicenseFeature {
@@ -177,6 +178,7 @@ impl TryFrom<LicenseFeatureProto> for LicenseFeature {
             LicenseFeatureProto::AclAllowedIps => Ok(Self::AclAllowedIps),
             LicenseFeatureProto::ComponentHa => Ok(Self::ComponentHa),
             LicenseFeatureProto::GroupMtuOverride => Ok(Self::GroupMTUOverride),
+            LicenseFeatureProto::Fido2 => Ok(Self::Fido2),
             LicenseFeatureProto::Unspecified => {
                 Err(LicenseError::DecodeError("Unspecified license feature"))
             }

@@ -527,6 +527,7 @@ export const LicenseFeature = {
   ComponentHa: 'ComponentHa',
   GroupMTUOverride: 'GroupMTUOverride',
   MfaFlow: 'MfaFlow',
+  Fido2: 'Fido2',
 } as const;
 
 export type LicenseFeatureValue = (typeof LicenseFeature)[keyof typeof LicenseFeature];
