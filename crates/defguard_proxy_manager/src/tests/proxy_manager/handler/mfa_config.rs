@@ -1,22 +1,29 @@
 use defguard_common::{
     db::{
         Id,
-        models::{MFAMethod, Session, SessionState, User, WebAuthn, webauthn::AuthenticatorKind},
+        models::{
+            MFAMethod, Session, SessionState, User, WebAuthn,
+            settings::{Settings, update_current_settings},
+            webauthn::AuthenticatorKind,
+        },
     },
     testing::smtp::configure_working_smtp,
 };
 use defguard_core::events::ApiEventType;
-use defguard_proto::{client_types::MfaMethod, proxy::core_response};
+use defguard_proto::{
+    client_types::MfaMethod,
+    proxy::{CoreErrorCode, core_response},
+};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
 use super::support::{
-    assert_error_response, complete_proxy_handshake, create_polling_token, create_user_with_device,
-    generate_totp_code, register_webauthn_key, send_code_mfa_setup_finish,
-    send_code_mfa_setup_start, send_mfa_config_authorize, send_mfa_config_end,
-    send_mfa_config_send_code, send_mfa_config_start, setup_user_totp_mfa,
+    assert_error_response, assert_error_response_full, complete_proxy_handshake,
+    create_polling_token, create_user_with_device, generate_totp_code, register_webauthn_key,
+    send_code_mfa_setup_finish, send_code_mfa_setup_start, send_mfa_config_authorize,
+    send_mfa_config_end, send_mfa_config_send_code, send_mfa_config_start, setup_user_totp_mfa,
     totp_code_from_base32_secret,
 };
 use crate::tests::common::HandlerTestContext;
@@ -402,4 +409,47 @@ async fn start_authorized_session(
         "a valid TOTP code must authorize the session"
     );
     session_token
+}
+
+#[sqlx::test]
+async fn test_email_setup_reports_smtp_disabled_during_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let _smtp = configure_working_smtp(&context.pool).await;
+    let smtp_settings = Settings::get_current_settings().smtp.clone();
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+    let polling_token = create_polling_token(&context.pool, device.id).await;
+    let session_token = start_authorized_session(
+        &mut context,
+        &polling_token,
+        &device.wireguard_pubkey,
+        &user,
+    )
+    .await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp.server = None;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+    let failed = send_code_mfa_setup_start(&mut context, &session_token, MfaMethod::Email).await;
+    let (status, _, code) = assert_error_response_full(&failed);
+    assert_eq!(status, tonic::Code::Internal);
+    assert_eq!(code, CoreErrorCode::SmtpNotConfigured);
+
+    let mut settings = Settings::get_current_settings();
+    settings.smtp = smtp_settings;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+    let retried = send_code_mfa_setup_start(&mut context, &session_token, MfaMethod::Email).await;
+    assert!(matches!(
+        retried.payload,
+        Some(core_response::Payload::CodeMfaSetupStartResponse(_))
+    ));
+    context.finish().await.expect_server_finished().await;
 }
