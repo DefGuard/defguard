@@ -22,6 +22,7 @@ import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
+import { AuthCardEmptyState } from './components/AuthCardEmptyState/AuthCardEmptyState';
 import { BiometricDevices } from './components/BiometricDevices/BiometricDevices';
 import { FactorRow } from './components/FactorRow/FactorRow';
 import { WebauthnRow } from './components/WebauthnRow/WebauthnRow';
@@ -323,6 +324,12 @@ export const ProfileAuthCard = () => {
               <WebauthnRow securityKey={key} username={user.username} key={key.id} />
             ))}
           </div>
+        )}
+        {!hasPasskeys && (
+          <AuthCardEmptyState
+            text={m.profile_auth_card_passkeys_empty()}
+            testId="passkeys-empty"
+          />
         )}
       </div>
       <BiometricDevices />

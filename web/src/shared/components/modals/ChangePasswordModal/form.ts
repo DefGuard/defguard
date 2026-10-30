@@ -76,21 +76,18 @@ const createSchema = (isAdmin: boolean) =>
             error: m.form_error_required(),
           },
         ),
-      password: z.string().trim().min(1, m.form_error_required()),
-      repeat: z
-        .string()
-        .trim()
-        .refine(
-          (repeatValue) => {
-            if (isAdmin) {
-              return true;
-            }
-            return repeatValue.length > 0;
-          },
-          {
-            error: m.form_error_required(),
-          },
-        ),
+      password: z.string().min(1, m.form_error_required()),
+      repeat: z.string().refine(
+        (repeatValue) => {
+          if (isAdmin) {
+            return true;
+          }
+          return repeatValue.length > 0;
+        },
+        {
+          error: m.form_error_required(),
+        },
+      ),
     })
     .superRefine(({ password, repeat }, ctx) => {
       const passwordIssues = refinePasswordField(password);

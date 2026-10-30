@@ -7,7 +7,7 @@ use defguard_common::{
         models::{
             OAuth2AuthorizedApp, Settings, User,
             oauth2client::OAuth2Client,
-            settings::{OPENID_KEY_SIZE, update_current_settings},
+            settings::{OPENID_KEY_SIZE, set_settings, update_current_settings},
         },
     },
     testing::smtp::MockSmtpServer,
@@ -608,7 +608,11 @@ async fn test_openid_flow_fails_when_rsa_key_is_missing_and_hmac_is_not_forced(
 
     let mut settings = Settings::get_current_settings();
     settings.openid_signing_key_der = None;
-    update_current_settings(&pool, settings).await.unwrap();
+    sqlx::query("UPDATE settings SET openid_signing_key_der = NULL")
+        .execute(&pool)
+        .await
+        .unwrap();
+    set_settings(Some(settings));
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
     let provider_metadata =

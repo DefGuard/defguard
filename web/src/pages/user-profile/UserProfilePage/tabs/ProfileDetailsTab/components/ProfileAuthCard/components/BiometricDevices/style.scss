@@ -10,6 +10,10 @@
     }
   }
 
+  &.empty > .top > p {
+    padding-bottom: var(--spacing-lg);
+  }
+
   .device {
     display: flex;
     flex-flow: row nowrap;
