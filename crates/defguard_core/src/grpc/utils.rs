@@ -230,6 +230,8 @@ pub async fn build_device_config_response(
         configs,
         instance: Some(instance_info.into()),
         token,
+        identity_state: None,
+        possession_challenge: None,
     })
 }
 

@@ -40,6 +40,7 @@ async fn poll_with_device_info(
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token.to_owned(),
+                possession_response: None,
             },
         )),
     });
@@ -66,6 +67,7 @@ async fn poll_client_traffic_policy(context: &mut HandlerTestContext, token: &st
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token.to_owned(),
+                possession_response: None,
             },
         )),
     });
@@ -196,6 +198,7 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_response: None,
             },
         )),
     });
@@ -347,7 +350,10 @@ async fn test_polling_requires_business_license(_: PgPoolOptions, options: PgCon
         id: 11,
         device_info: None,
         payload: Some(core_request::Payload::InstanceInfo(
-            client_types::InstanceInfoRequest { token: token_str },
+            client_types::InstanceInfoRequest {
+                token: token_str,
+                possession_response: None,
+            },
         )),
     });
 
@@ -375,6 +381,7 @@ async fn test_polling_invalid_token_returns_error(_: PgPoolOptions, options: PgC
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: "this-token-does-not-exist-00000000".to_owned(),
+                possession_response: None,
             },
         )),
     });
@@ -412,7 +419,10 @@ async fn test_polling_inactive_user_returns_error(_: PgPoolOptions, options: PgC
         id: 13,
         device_info: None,
         payload: Some(core_request::Payload::InstanceInfo(
-            client_types::InstanceInfoRequest { token: token_str },
+            client_types::InstanceInfoRequest {
+                token: token_str,
+                possession_response: None,
+            },
         )),
     });
 
@@ -446,6 +456,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_response: None,
             },
         )),
     });
@@ -471,6 +482,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_response: None,
             },
         )),
     });

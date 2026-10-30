@@ -325,6 +325,7 @@ impl EnrollmentServer {
                 final_page_content,
                 instance: Some(instance_info.into()),
                 settings: Some(enrollment_settings),
+                attestation_request: None,
             };
             debug!("Response {response:?}");
 
@@ -1078,6 +1079,8 @@ impl EnrollmentServer {
             configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
+            identity_state: None,
+            possession_challenge: None,
         };
 
         // Prepare event context and push the event
@@ -1482,6 +1485,8 @@ mod test {
 
         let request = EnrollmentStartRequest {
             token: token.id.clone(),
+            proposed_wireguard_pubkey: None,
+            device_identity: None,
         };
         let device_info = DeviceInfo {
             ip_address: "127.0.0.1".to_owned(),

@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_identity\" SET \"device_id\" = $2,\"backend\" = $3,\"public_key_der\" = $4,\"key_fingerprint\" = $5,\"ek_fingerprint\" = $6,\"apple_key_id\" = $7,\"apple_sign_count\" = $8,\"attestation_status\" = $9,\"error_code\" = $10,\"capabilities\" = $11,\"attestation_evidence\" = $12,\"created_at\" = $13,\"attested_at\" = $14,\"last_possession_verified_at\" = $15 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "device_identity_backend",
+            "kind": {
+              "Enum": [
+                "tpm",
+                "apple_app_attest"
+              ]
+            }
+          }
+        },
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Text",
+        "Int8",
+        {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "device_identity_error_code",
+            "kind": {
+              "Enum": [
+                "unavailable",
+                "temporarily_unavailable",
+                "timeout",
+                "rate_limited",
+                "permission_denied",
+                "unsupported",
+                "identity_lost",
+                "invalid_challenge",
+                "backend_failure",
+                "invalid_evidence",
+                "challenge_expired"
+              ]
+            }
+          }
+        },
+        "Jsonb",
+        "Bytea",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db66ba10fc3afba80b7b7ffd8745fb6c93cee5ad8fbffe44af7470cca4996bb4"
+}

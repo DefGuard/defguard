@@ -67,6 +67,7 @@ async fn test_legacy_device_config_includes_internal_mode_with_fido2(
             name: "Legacy MFA Test Device".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id),
+            attestation_response: None,
         })),
     });
 
@@ -636,6 +637,7 @@ async fn test_legacy_start_rejects_partial_internal_set_with_generic_update_mess
             name: "Partial MFA Test Device".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id),
+            attestation_response: None,
         })),
     });
 
