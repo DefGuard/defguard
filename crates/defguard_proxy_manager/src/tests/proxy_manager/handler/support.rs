@@ -444,6 +444,8 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
         payload: Some(core_request::Payload::EnrollmentStart(
             EnrollmentStartRequest {
                 token: token_id.to_owned(),
+                proposed_wireguard_pubkey: None,
+                device_identity: None,
             },
         )),
     });

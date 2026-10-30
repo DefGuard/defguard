@@ -75,6 +75,7 @@ async fn test_new_device_creates_device_and_returns_configs(
             name: "My Laptop".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -140,6 +141,7 @@ async fn test_new_device_stores_reported_client_info(_: PgPoolOptions, options: 
             name: "My Laptop".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
@@ -190,6 +192,7 @@ async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConn
             name: "Polling Test Laptop".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -250,6 +253,7 @@ async fn test_new_device_omits_multi_step_location_for_legacy_client(
             name: "Legacy Laptop".to_owned(),
             pubkey: legacy_pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -283,6 +287,7 @@ async fn test_new_device_omits_multi_step_location_for_legacy_client(
             name: "Capable Laptop".to_owned(),
             pubkey: capable_pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -357,6 +362,7 @@ async fn test_new_device_sends_single_step_location_on_free_tier(
             name: "Free Tier Laptop".to_owned(),
             pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -633,6 +639,7 @@ async fn test_new_device_sends_gateway_device_created_event(
             name: "My Tablet".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -666,6 +673,7 @@ async fn test_new_device_invalid_token_returns_error(_: PgPoolOptions, options: 
             name: "Ghost Device".to_owned(),
             pubkey: "FSIvPElWY3B9ipeksb7L2OXy/wwZJjNATVpndIGOm6g=".to_owned(),
             token: Some("nonexistent-token-0000000000000000".to_owned()),
+            attestation_response: None,
         })),
     });
 
@@ -1444,6 +1452,8 @@ async fn test_activate_externally_managed_user_skips_password(
         payload: Some(core_request::Payload::EnrollmentStart(
             EnrollmentStartRequest {
                 token: token.id.clone(),
+                proposed_wireguard_pubkey: None,
+                device_identity: None,
             },
         )),
     });
@@ -1549,6 +1559,7 @@ async fn test_enrollment_config_includes_acl_allowed_ips(
             name: "ACL Test Device".to_owned(),
             pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
@@ -1598,6 +1609,7 @@ async fn test_enrollment_config_carries_client_mtu(_: PgPoolOptions, options: Pg
             name: "MTU Test Device".to_owned(),
             pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".to_owned(),
             token: Some(token.id.clone()),
+            attestation_response: None,
         })),
     });
 
