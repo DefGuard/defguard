@@ -38,8 +38,13 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
 
   await page.getByTestId('continue').click();
 
-  if (network.mfa_enabled) {
-    await page.getByTestId('toggle-mfa').click();
+  if (network.mfa_enabled || network.defaultMfaFlowId !== undefined) {
+    await page.getByTestId('location-mfa-enabled-toggle').click();
+  }
+  if (network.defaultMfaFlowId !== undefined) {
+    await page
+      .getByTestId(`location-mfa-flow-option-${network.defaultMfaFlowId}`)
+      .click();
   }
   await page.getByTestId('finish').click();
 

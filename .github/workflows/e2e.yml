@@ -98,6 +98,7 @@ jobs:
         working-directory: ./e2e
         env:
           DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
+          DEFGUARD_BUSINESS_LICENSE_KEY: ${{ secrets.DEFGUARD_BUSINESS_LICENSE_KEY }}
         run: pnpm test --shard=${{ matrix.shard }}/8
 
       - name: Stop compose
