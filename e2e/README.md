@@ -35,6 +35,8 @@ If port 5432 is already in use on the host, publish the test database on another
 export E2E_DB_PORT=15432
 ```
 
+Set `DEFGUARD_LICENSE_KEY` to an Enterprise key to seed the snapshot for Enterprise-tier tests. `DEFGUARD_BUSINESS_LICENSE_KEY` is optional; it enables the Business-tier MFA tests, which skip when the key is not provided.
+
 Pull Docker images. If using the locally built Core image, omit `core`:
 
 ```bash
