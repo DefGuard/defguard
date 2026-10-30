@@ -1,6 +1,7 @@
+pub use defguard_common::db::models::device_client_info::OsType;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
 
 /// Device posture check policy. Defines the security requirements a client
@@ -15,17 +16,6 @@ pub struct DevicePosture<I = NoId> {
     pub min_desktop_client_version: Option<String>,
     pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, sqlx::Type)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-#[sqlx(type_name = "os_type", rename_all = "lowercase")]
-pub enum OsType {
-    Windows,
-    Macos,
-    Linux,
-    Ios,
-    Android,
 }
 
 /// Per-OS security rule row belonging to a [`DevicePosture`] policy.

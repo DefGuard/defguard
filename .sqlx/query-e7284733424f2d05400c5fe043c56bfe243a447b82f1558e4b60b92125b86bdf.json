@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT device_id, client_version, os_type \"os_type: OsType\", os_version, os_edition, updated_at FROM device_client_info WHERE device_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "client_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "client_version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "os_type: OsType",
+        "type_info": {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "os_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_version"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "os_edition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "os_edition"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "e7284733424f2d05400c5fe043c56bfe243a447b82f1558e4b60b92125b86bdf"
+}

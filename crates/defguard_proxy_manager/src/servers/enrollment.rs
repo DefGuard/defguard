@@ -33,6 +33,7 @@ use defguard_core::{
         GatewayCommand, InstanceInfo,
         client_version::{
             ClientFeature, client_registration_source, should_omit_location_for_device,
+            store_reported_client_info,
         },
         should_prevent_mfa_location_usage,
         utils::{build_device_config_response, parse_client_ip_agent, to_wire_device_config},
@@ -1038,6 +1039,7 @@ impl EnrollmentServer {
         })?;
 
         info!("Device {} remote configuration done.", device.name);
+        store_reported_client_info(&self.pool, device.id, req_device_info.as_ref()).await;
 
         let openid_provider = OpenIdProvider::get_current(&self.pool)
             .await
@@ -1121,6 +1123,7 @@ impl EnrollmentServer {
             ));
         }
 
+        store_reported_client_info(&self.pool, device.id, device_info.as_ref()).await;
         let token = new_polling_token(&self.pool, &device).await?;
         build_device_config_response(&self.pool, device, Some(token), device_info).await
     }

@@ -41,6 +41,7 @@ hyper-util.workspace = true
 ipnetwork.workspace = true
 jsonwebkey.workspace = true
 jsonwebtoken.workspace = true
+prost.workspace = true
 rand.workspace = true
 rsa.workspace = true
 webauthn-authenticator-rs = { workspace = true, features = ["softpasskey"] }

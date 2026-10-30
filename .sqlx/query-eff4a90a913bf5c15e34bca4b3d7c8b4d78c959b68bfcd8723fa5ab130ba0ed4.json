@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO device_client_info AS d (device_id, client_version, os_type, os_version, os_edition, updated_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (device_id) DO UPDATE SET client_version = EXCLUDED.client_version, os_type = EXCLUDED.os_type, os_version = EXCLUDED.os_version, os_edition = EXCLUDED.os_edition, updated_at = EXCLUDED.updated_at WHERE (d.client_version, d.os_type, d.os_version, d.os_edition) IS DISTINCT FROM (EXCLUDED.client_version, EXCLUDED.os_type, EXCLUDED.os_version, EXCLUDED.os_edition)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eff4a90a913bf5c15e34bca4b3d7c8b4d78c959b68bfcd8723fa5ab130ba0ed4"
+}

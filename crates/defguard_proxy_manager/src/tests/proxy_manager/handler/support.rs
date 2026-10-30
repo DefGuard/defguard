@@ -39,7 +39,7 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types::{
-        ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+        ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest, ClientPlatformInfo,
         CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
         EnrollmentStartRequest, MfaConfigAuthorizeRequest, MfaConfigEndRequest,
         MfaConfigFido2ChallengeRequest, MfaConfigSendCodeRequest, MfaConfigStartRequest, MfaMethod,
@@ -53,6 +53,7 @@ use defguard_proto::{
 use ed25519_dalek::{Signer, SigningKey};
 use getrandom::{SysRng, rand_core::UnwrapErr};
 use ipnetwork::IpNetwork;
+use prost::Message;
 use sqlx::PgPool;
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
@@ -175,6 +176,15 @@ pub(crate) fn make_device_info() -> DeviceInfo {
         user_agent: Some("test-client/1.0".to_owned()),
         version: None,
         platform: None,
+    }
+}
+
+/// Return a `DeviceInfo` with the version and platform headers that a real client sends.
+pub(crate) fn make_client_device_info(version: &str, platform: &ClientPlatformInfo) -> DeviceInfo {
+    DeviceInfo {
+        version: Some(version.to_owned()),
+        platform: Some(BASE64_STANDARD.encode(platform.encode_to_vec())),
+        ..make_device_info()
     }
 }
 
