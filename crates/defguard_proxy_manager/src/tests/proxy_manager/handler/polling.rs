@@ -254,17 +254,18 @@ async fn test_polling_stores_reported_client_info(_: PgPoolOptions, options: PgC
         Some(make_client_device_info("2.3.0", &platform)),
     )
     .await;
+    let stored = stored_client_info(&context.pool, device.id)
+        .await
+        .expect("client info should be stored");
     let mut expected = DeviceClientInfo {
         device_id: device.id,
         client_version: Some("2.3.0".to_owned()),
         os_type: OsType::Android,
         os_version: "15".to_owned(),
         os_edition: None,
+        updated_at: stored.updated_at,
     };
-    assert_eq!(
-        stored_client_info(&context.pool, device.id).await.as_ref(),
-        Some(&expected)
-    );
+    assert_eq!(stored, expected);
 
     platform.version = "16".to_owned();
     poll_with_device_info(
@@ -273,11 +274,13 @@ async fn test_polling_stores_reported_client_info(_: PgPoolOptions, options: PgC
         Some(make_client_device_info("2.3.0", &platform)),
     )
     .await;
+    let stored = stored_client_info(&context.pool, device.id)
+        .await
+        .expect("client info should be stored");
+    assert!(stored.updated_at > expected.updated_at);
     expected.os_version = "16".to_owned();
-    assert_eq!(
-        stored_client_info(&context.pool, device.id).await.as_ref(),
-        Some(&expected)
-    );
+    expected.updated_at = stored.updated_at;
+    assert_eq!(stored, expected);
 
     poll_with_device_info(&mut context, &token, None).await;
     let unknown_os = client_types::ClientPlatformInfo {
@@ -310,15 +313,19 @@ async fn test_polling_stores_reported_client_info(_: PgPoolOptions, options: PgC
         Some(make_client_device_info("2.0.6", &pre_2_1_desktop)),
     )
     .await;
+    let stored = stored_client_info(&context.pool, device.id)
+        .await
+        .expect("client info should be stored");
     assert_eq!(
-        stored_client_info(&context.pool, device.id).await,
-        Some(DeviceClientInfo {
+        stored,
+        DeviceClientInfo {
             device_id: device.id,
             client_version: Some("2.0.6".to_owned()),
             os_type: OsType::Linux,
             os_version: "24.4.0".to_owned(),
             os_edition: None,
-        })
+            updated_at: stored.updated_at,
+        }
     );
 
     clear_test_license();

@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
 
@@ -37,21 +38,23 @@ pub struct DeviceClientInfo {
     pub os_type: OsType,
     pub os_version: String,
     pub os_edition: Option<String>,
+    pub updated_at: NaiveDateTime,
 }
 
 impl DeviceClientInfo {
-    /// Clients report on every poll, so an unchanged report skips the write.
+    /// Clients report on every poll, so an unchanged report skips the write and keeps the
+    /// stored `updated_at`.
     pub async fn upsert<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
         query!(
             "INSERT INTO device_client_info AS d \
-            (device_id, client_version, os_type, os_version, os_edition) \
-            VALUES ($1, $2, $3, $4, $5) \
+            (device_id, client_version, os_type, os_version, os_edition, updated_at) \
+            VALUES ($1, $2, $3, $4, $5, $6) \
             ON CONFLICT (device_id) DO UPDATE SET client_version = EXCLUDED.client_version, \
             os_type = EXCLUDED.os_type, os_version = EXCLUDED.os_version, \
-            os_edition = EXCLUDED.os_edition \
+            os_edition = EXCLUDED.os_edition, updated_at = EXCLUDED.updated_at \
             WHERE (d.client_version, d.os_type, d.os_version, d.os_edition) \
             IS DISTINCT FROM (EXCLUDED.client_version, EXCLUDED.os_type, EXCLUDED.os_version, \
             EXCLUDED.os_edition)",
@@ -60,6 +63,7 @@ impl DeviceClientInfo {
             &self.os_type as &OsType,
             self.os_version,
             self.os_edition,
+            self.updated_at,
         )
         .execute(executor)
         .await?;
@@ -73,7 +77,7 @@ impl DeviceClientInfo {
         query_as!(
             Self,
             "SELECT device_id, client_version, os_type \"os_type: OsType\", os_version, \
-            os_edition \
+            os_edition, updated_at \
             FROM device_client_info WHERE device_id = $1",
             device_id
         )
@@ -84,28 +88,14 @@ impl DeviceClientInfo {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::{
-        PgPool,
-        postgres::{PgConnectOptions, PgPoolOptions},
-        query_scalar,
-    };
+    use chrono::DateTime;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::{DeviceClientInfo, OsType};
     use crate::db::{
-        Id,
         models::{Device, DeviceType, User},
         setup_pool,
     };
-
-    async fn row_version(pool: &PgPool, device_id: Id) -> String {
-        query_scalar!(
-            "SELECT xmin::text \"xmin!\" FROM device_client_info WHERE device_id = $1",
-            device_id
-        )
-        .fetch_one(pool)
-        .await
-        .unwrap()
-    }
 
     #[sqlx::test]
     async fn test_upsert_writes_only_changed_reports(_: PgPoolOptions, options: PgConnectOptions) {
@@ -133,22 +123,37 @@ mod tests {
         .await
         .unwrap();
 
+        let first_report_at = DateTime::from_timestamp(1_800_000_000, 0)
+            .unwrap()
+            .naive_utc();
+        let later_report_at = DateTime::from_timestamp(1_800_000_060, 0)
+            .unwrap()
+            .naive_utc();
         let mut report = DeviceClientInfo {
             device_id: device.id,
             client_version: Some("2.3.0".to_owned()),
             os_type: OsType::Linux,
             os_version: "24.4.0".to_owned(),
             os_edition: None,
+            updated_at: first_report_at,
         };
         report.upsert(&pool).await.unwrap();
-        let first_write = row_version(&pool, device.id).await;
+        let first_write = DeviceClientInfo::find_by_device_id(&pool, device.id)
+            .await
+            .unwrap();
+        assert_eq!(first_write.as_ref(), Some(&report));
 
+        report.updated_at = later_report_at;
         report.upsert(&pool).await.unwrap();
-        assert_eq!(row_version(&pool, device.id).await, first_write);
+        assert_eq!(
+            DeviceClientInfo::find_by_device_id(&pool, device.id)
+                .await
+                .unwrap(),
+            first_write
+        );
 
         report.os_version = "26.4.0".to_owned();
         report.upsert(&pool).await.unwrap();
-        assert_ne!(row_version(&pool, device.id).await, first_write);
         assert_eq!(
             DeviceClientInfo::find_by_device_id(&pool, device.id)
                 .await

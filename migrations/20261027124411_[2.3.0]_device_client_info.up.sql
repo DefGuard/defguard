@@ -3,5 +3,6 @@ CREATE TABLE device_client_info (
     client_version text NULL,
     os_type os_type NOT NULL,
     os_version text NOT NULL,
-    os_edition text NULL
+    os_edition text NULL,
+    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

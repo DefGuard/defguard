@@ -1,4 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
+use chrono::Utc;
 use defguard_common::db::{
     Id,
     models::{
@@ -103,6 +104,7 @@ pub async fn store_reported_client_info(pool: &PgPool, device_id: Id, info: Opti
         os_type,
         os_version: platform.version,
         os_edition: platform.edition,
+        updated_at: Utc::now().naive_utc(),
     };
     if let Err(err) = report.upsert(pool).await {
         error!("Failed to store client info for device {device_id}: {err}");

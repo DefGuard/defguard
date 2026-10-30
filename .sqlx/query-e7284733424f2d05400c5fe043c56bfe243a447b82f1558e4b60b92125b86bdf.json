@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device_id, client_version, os_type \"os_type: OsType\", os_version, os_edition FROM device_client_info WHERE device_id = $1",
+  "query": "SELECT device_id, client_version, os_type \"os_type: OsType\", os_version, os_edition, updated_at FROM device_client_info WHERE device_id = $1",
   "describe": {
     "columns": [
       {
@@ -70,6 +70,17 @@
             "name": "os_edition"
           }
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_client_info",
+            "name": "updated_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -82,8 +93,9 @@
       true,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "2f46175c0dd949f54b69ea8b2f24e2c223807b154f84e0bf5dc4d01bd95e3d76"
+  "hash": "e7284733424f2d05400c5fe043c56bfe243a447b82f1558e4b60b92125b86bdf"
 }

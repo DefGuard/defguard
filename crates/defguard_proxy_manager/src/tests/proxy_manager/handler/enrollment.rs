@@ -149,17 +149,20 @@ async fn test_new_device_stores_reported_client_info(_: PgPoolOptions, options: 
         .await
         .unwrap()
         .expect("device should exist in DB after NewDevice");
+    let stored = DeviceClientInfo::find_by_device_id(&context.pool, device.id)
+        .await
+        .unwrap()
+        .expect("client info should be stored after NewDevice");
     assert_eq!(
-        DeviceClientInfo::find_by_device_id(&context.pool, device.id)
-            .await
-            .unwrap(),
-        Some(DeviceClientInfo {
+        stored,
+        DeviceClientInfo {
             device_id: device.id,
             client_version: Some("2.3.0".to_owned()),
             os_type: OsType::Windows,
             os_version: "10.0.26100".to_owned(),
             os_edition: Some("Windows 11 Pro".to_owned()),
-        })
+            updated_at: stored.updated_at,
+        }
     );
 
     context.finish().await.expect_server_finished().await;
