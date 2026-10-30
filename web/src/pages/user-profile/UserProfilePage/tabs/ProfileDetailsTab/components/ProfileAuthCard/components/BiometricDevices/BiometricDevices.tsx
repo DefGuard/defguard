@@ -1,5 +1,6 @@
 import './style.scss';
 import { Link } from '@tanstack/react-router';
+import clsx from 'clsx';
 import { Fragment, useMemo } from 'react';
 import { m } from '../../../../../../../../../paraglide/messages';
 import { Divider } from '../../../../../../../../../shared/defguard-ui/components/Divider/Divider';
@@ -7,6 +8,7 @@ import { Icon } from '../../../../../../../../../shared/defguard-ui/components/I
 import { ThemeSpacing } from '../../../../../../../../../shared/defguard-ui/types';
 import { useUserProfile } from '../../../../../../hooks/useUserProfilePage';
 import { UserProfileTab } from '../../../../../types';
+import { AuthCardEmptyState } from '../AuthCardEmptyState/AuthCardEmptyState';
 
 export const BiometricDevices = () => {
   const devices = useUserProfile((s) => s.devices);
@@ -15,12 +17,12 @@ export const BiometricDevices = () => {
     [devices],
   );
 
-  if (biometricDevices.length === 0) return null;
+  const isEmpty = biometricDevices.length === 0;
 
   return (
     <>
       <Divider spacing={ThemeSpacing.Xl} />
-      <div className="biometric-devices section">
+      <div className={clsx('biometric-devices', 'section', { empty: isEmpty })}>
         <div className="top">
           <p className="section-title">{m.profile_auth_card_biometric_title()}</p>
           <Link
@@ -45,6 +47,12 @@ export const BiometricDevices = () => {
             )}
           </Fragment>
         ))}
+        {isEmpty && (
+          <AuthCardEmptyState
+            text={m.profile_auth_card_biometric_empty()}
+            testId="biometric-empty"
+          />
+        )}
       </div>
     </>
   );

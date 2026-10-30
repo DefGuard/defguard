@@ -1,0 +1,17 @@
+.auth-card-empty-state {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: var(--spacing-lg);
+
+  .icon {
+    flex: none;
+    user-select: none;
+  }
+
+  p {
+    font: var(--t-body-sm-400);
+    color: var(--fg-muted);
+  }
+}

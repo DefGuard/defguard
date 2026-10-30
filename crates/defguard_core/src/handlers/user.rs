@@ -126,7 +126,7 @@ pub fn check_password_strength(password: &str) -> Result<(), ValidationError> {
     if !(8..=128).contains(&password.len()) {
         return Err(ValidationError("Incorrect password length".into()));
     }
-    if !password.chars().any(|c| c.is_ascii_punctuation()) {
+    if !password.chars().any(|c| !c.is_ascii_alphanumeric()) {
         return Err(ValidationError("No special characters in password".into()));
     }
     if !password.chars().any(|c| c.is_ascii_digit()) {
@@ -2230,5 +2230,14 @@ mod test {
         assert_err!(check_username(
             "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         ));
+    }
+
+    #[test]
+    fn test_password_special_characters() {
+        assert_ok!(check_password_strength("Abcdefg1!"));
+        assert_ok!(check_password_strength("Abcdefg1 x"));
+        assert_ok!(check_password_strength("Testą1234"));
+
+        assert_err!(check_password_strength("Abcdefg12"));
     }
 }

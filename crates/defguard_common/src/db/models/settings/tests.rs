@@ -652,6 +652,55 @@ async fn test_initialize_runtime_defaults_keeps_valid_defguard_url(
 }
 
 #[sqlx::test]
+async fn test_update_current_settings_preserves_signing_keys(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool).await.unwrap();
+    Settings::initialize_runtime_defaults(&pool).await.unwrap();
+
+    let before = Settings::get_current_settings();
+    let secret_key = before
+        .secret_key()
+        .expect("JWT signing key should exist")
+        .to_owned();
+    let openid_signing_key_der = before
+        .openid_signing_key_der
+        .clone()
+        .expect("OIDC signing key should exist");
+
+    let mut new_settings = before;
+    new_settings.set_secret_key(None);
+    new_settings.openid_signing_key_der = None;
+    update_current_settings(&pool, new_settings).await.unwrap();
+
+    let current = Settings::get_current_settings();
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+    assert_eq!(
+        current.secret_key(),
+        Some(secret_key.as_str()),
+        "global JWT signing key should be preserved"
+    );
+    assert_eq!(
+        from_db.secret_key(),
+        Some(secret_key.as_str()),
+        "database JWT signing key should be preserved"
+    );
+    assert_eq!(
+        current.openid_signing_key_der.as_ref(),
+        Some(&openid_signing_key_der),
+        "global OIDC signing key should be preserved"
+    );
+    assert_eq!(
+        from_db.openid_signing_key_der.as_ref(),
+        Some(&openid_signing_key_der),
+        "database OIDC signing key should be preserved"
+    );
+}
+
+#[sqlx::test]
 async fn test_initialize_runtime_defaults_generates_openid_signing_key(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -754,4 +803,36 @@ fn test_validate_accepts_other_ldap_enrollment_token_attrs() {
             "{attr:?} must be usable as the enrollment token attribute"
         );
     }
+}
+
+#[test]
+fn test_invalidate_ldap_sync_status() {
+    let before = Settings {
+        ldap_enabled: true,
+        ldap_sync_status: LdapSyncStatus::InSync,
+        ..Default::default()
+    };
+
+    let mut unchanged = before.clone();
+    unchanged.instance_name = "Changed".into();
+    unchanged.invalidate_ldap_sync_status(&before);
+    assert_eq!(unchanged.ldap_sync_status, LdapSyncStatus::InSync);
+
+    let mut disabled = before.clone();
+    disabled.ldap_enabled = false;
+    disabled.invalidate_ldap_sync_status(&before);
+    assert_eq!(disabled.ldap_sync_status, LdapSyncStatus::OutOfSync);
+
+    let mut authority_changed = before.clone();
+    authority_changed.ldap_is_authoritative = true;
+    authority_changed.invalidate_ldap_sync_status(&before);
+    assert_eq!(
+        authority_changed.ldap_sync_status,
+        LdapSyncStatus::OutOfSync
+    );
+
+    let mut groups_changed = before.clone();
+    groups_changed.ldap_sync_groups = vec!["group".into()];
+    groups_changed.invalidate_ldap_sync_status(&before);
+    assert_eq!(groups_changed.ldap_sync_status, LdapSyncStatus::OutOfSync);
 }

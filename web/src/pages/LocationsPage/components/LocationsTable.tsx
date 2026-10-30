@@ -40,6 +40,7 @@ import {
 } from '../../../shared/query';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
 import {
+  canUseBusinessFeature,
   canUseEnterpriseFeature,
   type LicenseCheckResult,
   licenseActionCheck,
@@ -173,7 +174,7 @@ export const LocationsTable = () => {
         minSize: 100,
         cell: (info) => (
           <TableCell className="cell-with-check-icons">
-            {info.getValue() ? (
+            {info.getValue() && canUseBusinessFeature(license).result ? (
               <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
             ) : (
               <Icon icon="disabled" />
