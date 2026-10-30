@@ -10,7 +10,7 @@ CREATE TYPE device_identity_error_code AS ENUM (
 CREATE TYPE challenge_purpose AS ENUM ('attestation', 'possession');
 
 CREATE TABLE device_identity (
-    id uuid PRIMARY KEY,
+    id bigserial PRIMARY KEY,
     device_id bigint NOT NULL UNIQUE REFERENCES device(id) ON DELETE CASCADE,
     backend device_identity_backend NOT NULL,
     public_key_der bytea NULL,
@@ -45,10 +45,10 @@ CREATE TABLE device_identity (
 );
 
 CREATE TABLE device_identity_challenge (
-    id uuid PRIMARY KEY,
+    id bigserial PRIMARY KEY,
     purpose challenge_purpose NOT NULL,
     device_id bigint NULL REFERENCES device(id) ON DELETE CASCADE,
-    identity_id uuid NULL,
+    identity_id bigint NULL,
     enrollment_token_id text NULL REFERENCES token(id) ON DELETE CASCADE,
     data bytea NOT NULL,
     credential_blob bytea NULL,

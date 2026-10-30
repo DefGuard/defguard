@@ -3,14 +3,13 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use uuid::Uuid;
 
 use super::{
     DeviceAttestationStatus, DeviceIdentity, DeviceIdentityBackend, DeviceIdentityChallenge,
     DeviceIdentityChallengePurpose, DeviceIdentityErrorCode,
 };
 use crate::db::{
-    Id,
+    Id, NoId,
     models::{Device, DeviceType, User},
     setup_pool,
 };
@@ -40,16 +39,17 @@ async fn device(pool: &PgPool, name: &str) -> Device<Id> {
     .unwrap()
 }
 
-async fn identity(pool: &PgPool, device_id: Id, backend: DeviceIdentityBackend) -> DeviceIdentity {
-    sqlx::query_as(
-        "INSERT INTO device_identity (id, device_id, backend) VALUES ($1, $2, $3) RETURNING *",
-    )
-    .bind(Uuid::new_v4())
-    .bind(device_id)
-    .bind(backend)
-    .fetch_one(pool)
-    .await
-    .unwrap()
+async fn identity(
+    pool: &PgPool,
+    device_id: Id,
+    backend: DeviceIdentityBackend,
+) -> DeviceIdentity<Id> {
+    sqlx::query_as("INSERT INTO device_identity (device_id, backend) VALUES ($1, $2) RETURNING *")
+        .bind(device_id)
+        .bind(backend)
+        .fetch_one(pool)
+        .await
+        .unwrap()
 }
 
 fn assert_constraint(error: sqlx::Error, name: &str) {
@@ -79,7 +79,7 @@ async fn test_device_identity_defaults_and_backend_roundtrips(
         assert!(row.last_possession_verified_at.is_none());
         assert!(row.error_code.is_none());
 
-        let updated: DeviceIdentity = sqlx::query_as(
+        let updated: DeviceIdentity<Id> = sqlx::query_as(
             "UPDATE device_identity SET public_key_der = $2, key_fingerprint = $3, \
              capabilities = $4, attestation_evidence = $5, attestation_status = $6, \
              attested_at = created_at, error_code = $7, \
@@ -122,8 +122,7 @@ async fn test_device_identity_constraints(_: PgPoolOptions, options: PgConnectOp
     let target_device = device(&pool, "constraints").await;
     let row = identity(&pool, target_device.id, DeviceIdentityBackend::Tpm).await;
     let duplicate =
-        sqlx::query("INSERT INTO device_identity (id, device_id, backend) VALUES ($1, $2, 'tpm')")
-            .bind(Uuid::new_v4())
+        sqlx::query("INSERT INTO device_identity (device_id, backend) VALUES ($1, 'tpm')")
             .bind(target_device.id)
             .execute(&pool)
             .await
@@ -183,20 +182,20 @@ async fn test_device_identity_challenge_roundtrip_and_device_binding(
     let first = device(&pool, "first").await;
     let second = device(&pool, "second").await;
     let identity = identity(&pool, first.id, DeviceIdentityBackend::Tpm).await;
-    let challenge_id = Uuid::new_v4();
-    let challenge: DeviceIdentityChallenge = sqlx::query_as(
+    let challenge: DeviceIdentityChallenge<Id> = sqlx::query_as(
         "INSERT INTO device_identity_challenge \
-         (id, purpose, device_id, identity_id, data, expires_at) \
-         VALUES ($1, 'possession', $2, $3, $4, (now() AT TIME ZONE 'UTC') + interval '5 minutes') \
+         (purpose, device_id, identity_id, data, expires_at) \
+         VALUES ('possession', $1, $2, $3, (now() AT TIME ZONE 'UTC') + interval '5 minutes') \
          RETURNING *",
     )
-    .bind(challenge_id)
     .bind(first.id)
     .bind(identity.id)
     .bind(vec![0u8, 255, 128])
     .fetch_one(&pool)
     .await
     .unwrap();
+    let challenge_id = challenge.id;
+    assert!(challenge_id > 0);
     assert_eq!(
         challenge.purpose,
         DeviceIdentityChallengePurpose::Possession
@@ -215,7 +214,7 @@ async fn test_device_identity_challenge_roundtrip_and_device_binding(
         .unwrap_err();
     assert_constraint(error, "device_identity_challenge_identity_device_fkey");
 
-    let consumed: DeviceIdentityChallenge = sqlx::query_as(
+    let consumed: DeviceIdentityChallenge<Id> = sqlx::query_as(
         "UPDATE device_identity_challenge SET consumed_at = created_at WHERE id = $1 RETURNING *",
     )
     .bind(challenge_id)
@@ -261,14 +260,15 @@ async fn test_device_identity_enrollment_challenge_constraints(
     .execute(&pool)
     .await
     .unwrap();
-    let challenge_id = Uuid::new_v4();
-    let challenge: DeviceIdentityChallenge = sqlx::query_as(
+    let challenge: DeviceIdentityChallenge<Id> = sqlx::query_as(
         "INSERT INTO device_identity_challenge \
-         (id, purpose, enrollment_token_id, data, credential_blob, encrypted_secret, activation_secret_hash, expires_at) \
-         VALUES ($1, 'attestation', $2, $3, $4, $5, $6, (now() AT TIME ZONE 'UTC') + interval '5 minutes') \
+         (purpose, enrollment_token_id, data, credential_blob, encrypted_secret, activation_secret_hash, expires_at) \
+         VALUES ('attestation', $1, $2, $3, $4, $5, (now() AT TIME ZONE 'UTC') + interval '5 minutes') \
          RETURNING *",
-    ).bind(challenge_id).bind(token).bind(vec![0u8, 255]).bind(vec![1u8, 255])
+    ).bind(token).bind(vec![0u8, 255]).bind(vec![1u8, 255])
         .bind(vec![2u8, 128]).bind(vec![3u8; 32]).fetch_one(&pool).await.unwrap();
+    let challenge_id = challenge.id;
+    assert!(challenge_id > 0);
     assert_eq!(
         challenge.purpose,
         DeviceIdentityChallengePurpose::Attestation
@@ -363,4 +363,82 @@ async fn test_device_identity_migration_is_reversible(_: PgPoolOptions, options:
         .unwrap();
     assert!(preserved);
     transaction.rollback().await.unwrap();
+}
+
+#[sqlx::test]
+async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let device = device(&pool, "model-crud").await;
+    let original = identity(&pool, device.id, DeviceIdentityBackend::Tpm).await;
+    let original_id = original.id;
+    let unsaved: DeviceIdentity<NoId> = original.clone().as_noid();
+    original.delete(&pool).await.unwrap();
+    let mut saved = unsaved.save(&pool).await.unwrap();
+    assert!(saved.id > original_id);
+    assert!(DeviceIdentity::find_by_id(&pool, saved.id).await.unwrap() == Some(saved.clone()));
+
+    saved.capabilities = Some(json!({"algorithms": [{"id": 65535}]}));
+    saved.error_code = Some(DeviceIdentityErrorCode::Timeout);
+    saved.save(&pool).await.unwrap();
+    assert!(DeviceIdentity::find_by_id(&pool, saved.id).await.unwrap() == Some(saved.clone()));
+    assert_eq!(DeviceIdentity::count(&pool).await.unwrap(), 1);
+    assert!(DeviceIdentity::all(&pool).await.unwrap() == vec![saved.clone()]);
+    assert!(DeviceIdentity::all_paginated(&pool, 1, 0).await.unwrap() == vec![saved.clone()]);
+
+    let challenge = DeviceIdentityChallenge {
+        id: NoId,
+        purpose: DeviceIdentityChallengePurpose::Possession,
+        device_id: Some(device.id),
+        identity_id: Some(saved.id),
+        enrollment_token_id: None,
+        data: vec![0, 255, 128],
+        credential_blob: None,
+        encrypted_secret: None,
+        activation_secret_hash: None,
+        created_at: saved.created_at,
+        expires_at: saved.created_at + chrono::TimeDelta::minutes(5),
+        consumed_at: None,
+    };
+    let mut challenge = challenge.save(&pool).await.unwrap();
+    assert!(challenge.id > 0);
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
+            .await
+            .unwrap()
+            == Some(challenge.clone())
+    );
+    challenge.consumed_at = Some(challenge.created_at);
+    challenge.save(&pool).await.unwrap();
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
+            .await
+            .unwrap()
+            == Some(challenge.clone())
+    );
+    assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 1);
+    assert!(DeviceIdentityChallenge::all(&pool).await.unwrap() == vec![challenge.clone()]);
+    assert!(
+        DeviceIdentityChallenge::all_paginated(&pool, 1, 0)
+            .await
+            .unwrap()
+            == vec![challenge.clone()]
+    );
+    let challenge_id = challenge.id;
+    challenge.delete(&pool).await.unwrap();
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, challenge_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
+    let identity_id = saved.id;
+    saved.delete(&pool).await.unwrap();
+    assert!(
+        DeviceIdentity::find_by_id(&pool, identity_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(DeviceIdentity::count(&pool).await.unwrap(), 0);
 }

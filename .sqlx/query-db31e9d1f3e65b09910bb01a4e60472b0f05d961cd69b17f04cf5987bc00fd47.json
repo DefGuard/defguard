@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_identity_challenge\" SET \"purpose\" = $2,\"device_id\" = $3,\"identity_id\" = $4,\"enrollment_token_id\" = $5,\"data\" = $6,\"credential_blob\" = $7,\"encrypted_secret\" = $8,\"activation_secret_hash\" = $9,\"created_at\" = $10,\"expires_at\" = $11,\"consumed_at\" = $12 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "attestation",
+                "possession"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Int8",
+        "Text",
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db31e9d1f3e65b09910bb01a4e60472b0f05d961cd69b17f04cf5987bc00fd47"
+}

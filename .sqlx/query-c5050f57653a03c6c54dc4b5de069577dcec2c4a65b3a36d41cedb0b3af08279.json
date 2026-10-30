@@ -1,0 +1,237 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"device_id\",\"backend\" \"backend: _\",\"public_key_der\",\"key_fingerprint\",\"ek_fingerprint\",\"apple_key_id\",\"apple_sign_count\",\"attestation_status\" \"attestation_status: _\",\"error_code\" \"error_code?: _\",\"capabilities\" \"capabilities: _\",\"attestation_evidence\",\"created_at\",\"attested_at\",\"last_possession_verified_at\" FROM \"device_identity\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "backend: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_identity_backend",
+            "kind": {
+              "Enum": [
+                "tpm",
+                "apple_app_attest"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "backend"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "public_key_der",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "public_key_der"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "key_fingerprint",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "key_fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ek_fingerprint",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "ek_fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "apple_key_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "apple_sign_count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "apple_sign_count"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "error_code?: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_identity_error_code",
+            "kind": {
+              "Enum": [
+                "unavailable",
+                "temporarily_unavailable",
+                "timeout",
+                "rate_limited",
+                "permission_denied",
+                "unsupported",
+                "identity_lost",
+                "invalid_challenge",
+                "backend_failure",
+                "invalid_evidence",
+                "challenge_expired"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "error_code"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "capabilities: _",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "capabilities"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "attestation_evidence",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "attestation_evidence"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "attested_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "last_possession_verified_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "last_possession_verified_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c5050f57653a03c6c54dc4b5de069577dcec2c4a65b3a36d41cedb0b3af08279"
+}
