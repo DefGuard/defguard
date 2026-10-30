@@ -9,6 +9,7 @@ import {
   clientMfaConnect,
   clientMfaFinish,
   clientMfaFinishResult,
+  clientMfaStart,
   clientMfaStartStep,
   MfaMethod,
   waitForProxy,
@@ -36,6 +37,7 @@ import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 
 const EMAIL_CODE_PERIOD = 300;
+const MFA_START_REJECTION_METHOD_NOT_IN_STEP = 1;
 const coreUrl = (path: string) => testsConfig.CORE_BASE_URL + path;
 
 test.use({ trace: 'off' });
@@ -182,65 +184,6 @@ test.describe('MFA flows', () => {
     dockerRestart();
   });
 
-  test('Create, edit, reorder, list, and delete a flow', async ({
-    page,
-    browser,
-    request,
-  }) => {
-    const title = 'e2e-flow-crud';
-    await setupSMTP(browser);
-    await loginBasic(page, defaultUserAdmin);
-    expect(
-      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
-    ).toBe(200);
-    await createMfaFlow(page, title, [['totp']]);
-
-    const flowId = await getFlowId(request, title);
-    const initialResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
-    expect(initialResponse.status()).toBe(200);
-    expect((await initialResponse.json()).steps.map((step) => step.methods)).toEqual([
-      ['totp'],
-    ]);
-
-    const row = page.getByTestId(`mfa-flow-row-${flowId}`);
-    await expect(row).toBeVisible();
-    await expect(row).toContainText(title);
-
-    await openMfaFlowEdit(page, flowId);
-    await addMfaFlowStep(page, 'email');
-    await changeMfaFlowStepMethod(page, 1, 'totp', 'email');
-    await changeMfaFlowStepMethod(page, 2, 'email', 'totp');
-    await expect(page.getByTestId('remove-mfa-method-1-email')).toBeVisible();
-    await expect(page.getByTestId('remove-mfa-method-2-totp')).toBeVisible();
-    await reorderMfaFlowSteps(page, 2, 1);
-    await expect(page.getByTestId('remove-mfa-method-1-totp')).toBeVisible();
-    await expect(page.getByTestId('remove-mfa-method-2-email')).toBeVisible();
-    await saveMfaFlow(page);
-
-    const updatedResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
-    expect(updatedResponse.status()).toBe(200);
-    expect((await updatedResponse.json()).steps.map((step) => step.methods)).toEqual([
-      ['totp'],
-      ['email'],
-    ]);
-    await expect(row).toBeVisible();
-
-    const listResponse = await request.get(coreUrl('/mfa-flow'));
-    expect(listResponse.status()).toBe(200);
-    const listedFlows: { id: number; title: string; step_count: number }[] =
-      await listResponse.json();
-    expect(listedFlows.find((flow) => flow.id === flowId)?.step_count).toBe(2);
-
-    await deleteMfaFlow(page, flowId);
-    await expect(row).not.toBeVisible();
-    const deletedResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
-    expect(deletedResponse.status()).toBe(404);
-    const remainingFlows: { id: number }[] = await (
-      await request.get(coreUrl('/mfa-flow'))
-    ).json();
-    expect(remainingFlows.some((flow) => flow.id === flowId)).toBe(false);
-  });
-
   test('Assign a default flow on the edit page and enforce it over Edge', async ({
     page,
     browser,
@@ -331,8 +274,12 @@ test.describe('MFA flows', () => {
       await createUser(browser, member, [groupName]);
       await createUser(browser, nonMember);
       const { secret: memberTotp } = await enableTOTP(browser, member);
-      await enableEmailMFA(browser, member, memberTotp);
-      await enableTOTP(browser, nonMember);
+      const { secret: memberEmailSecret } = await enableEmailMFA(
+        browser,
+        member,
+        memberTotp,
+      );
+      const { secret: nonMemberTotp } = await enableTOTP(browser, nonMember);
 
       expect(
         await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
@@ -383,7 +330,7 @@ test.describe('MFA flows', () => {
         member.username,
         'mfa-override-member-device',
       );
-      await clientMfaConnect(
+      const memberAttempt = await clientMfaConnect(
         request,
         {
           locationId,
@@ -393,21 +340,44 @@ test.describe('MFA flows', () => {
         },
         [MfaMethod.EMAIL],
       );
-
-      const nonMemberPubkey = await apiCreateDevice(
-        request,
-        nonMember.username,
-        'mfa-override-non-member-device',
+      const { otp: memberEmailCode } = await TOTP.generate(memberEmailSecret, {
+        digits: 6,
+        period: EMAIL_CODE_PERIOD,
+      });
+      const memberResult = await clientMfaFinishResult(
+        await clientMfaFinish(request, memberAttempt, memberEmailCode),
       );
-      await clientMfaConnect(
+      expect(memberResult.kind).toBe('Completed');
+      if (memberResult.kind !== 'Completed')
+        throw new Error('Group override Email flow did not complete.');
+      expect(memberResult.presharedKey).toBeTruthy();
+
+      const memberTotpPubkey = await apiCreateDevice(
+        request,
+        member.username,
+        'mfa-override-member-totp-device',
+      );
+      const refusedTotpStart = await clientMfaStart(
         request,
         {
           locationId,
-          pubkey: nonMemberPubkey,
+          pubkey: memberTotpPubkey,
           protocol: 'multi-step',
           method: MfaMethod.TOTP,
         },
         [MfaMethod.TOTP],
+      );
+      expect(refusedTotpStart.status()).toBe(200);
+      const refusedTotpBody = await refusedTotpStart.json();
+      expect(refusedTotpBody.outcome?.Rejected?.rejections).toEqual([
+        { step: 0, reason: MFA_START_REJECTION_METHOD_NOT_IN_STEP },
+      ]);
+
+      await enforceTOTPFlowOverEdge(
+        request,
+        nonMember.username,
+        locationId,
+        nonMemberTotp,
       );
     });
   });
@@ -583,58 +553,132 @@ test.describe('MFA flows', () => {
     });
   });
 
-  test('Enforce a TOTP then Email flow over Edge', async ({ page, browser, request }) => {
-    const testUser: User = { ...testUserTemplate, username: 'mfa-flow-user' };
-    await createUser(browser, testUser);
-    const { secret: totpSecret } = await enableTOTP(browser, testUser);
-    const { secret: emailSecret } = await enableEmailMFA(browser, testUser, totpSecret);
-    expect(
-      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
-    ).toBe(200);
-    await waitForProxy(request);
-    await loginBasic(page, defaultUserAdmin);
+  test.describe('Licensed flow capabilities', () => {
+    test.skip(!seedLicenseKey, 'Requires a Business or Enterprise license.');
 
-    const title = 'e2e-totp-email-flow';
-    await createMfaFlow(page, title, [['totp'], ['email']]);
-    const flowId = await getFlowId(request, title);
-    const locationId = await apiCreateMfaLocation(request, flowId);
-    const pubkey = await apiCreateDevice(request, testUser.username, 'mfa-flow-device');
-    const device = {
-      locationId,
-      pubkey,
-      protocol: 'multi-step' as const,
-      method: MfaMethod.TOTP,
-    };
-    const attempt = await clientMfaConnect(request, device, [
-      MfaMethod.TOTP,
-      MfaMethod.EMAIL,
-    ]);
-
-    const { otp: totpCode } = await TOTP.generate(totpSecret);
-    const firstResponse = await clientMfaFinish(request, attempt, totpCode);
-    const firstResult = await clientMfaFinishResult(firstResponse);
-    expect(firstResult.kind).toBe('Advanced');
-    if (firstResult.kind !== 'Advanced') throw new Error('MFA flow did not advance.');
-    expect(firstResult.nextStep).toBe(1);
-    expect(firstResult.presharedKey).toBeUndefined();
-
-    const stepAttemptId = await clientMfaStartStep(
-      request,
-      attempt.token,
-      MfaMethod.EMAIL,
-    );
-    const { otp: emailCode } = await TOTP.generate(emailSecret, {
-      digits: 6,
-      period: EMAIL_CODE_PERIOD,
+    test.beforeEach(async ({ request }) => {
+      if (!enterpriseLicenseKey && businessLicenseKey) {
+        await setLicense(request, businessLicenseKey, 'Business');
+      }
     });
-    const secondResponse = await clientMfaFinish(
+
+    test('Create, edit, reorder, list, and delete a flow', async ({
+      page,
+      browser,
       request,
-      { token: attempt.token, stepAttemptId },
-      emailCode,
-    );
-    const secondResult = await clientMfaFinishResult(secondResponse);
-    expect(secondResult.kind).toBe('Completed');
-    if (secondResult.kind !== 'Completed') throw new Error('MFA flow did not complete.');
-    expect(secondResult.presharedKey).toBeTruthy();
+    }) => {
+      const title = 'e2e-flow-crud';
+      await setupSMTP(browser);
+      await loginBasic(page, defaultUserAdmin);
+      expect(
+        await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+      ).toBe(200);
+      await createMfaFlow(page, title, [['totp']]);
+
+      const flowId = await getFlowId(request, title);
+      const initialResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
+      expect(initialResponse.status()).toBe(200);
+      expect((await initialResponse.json()).steps.map((step) => step.methods)).toEqual([
+        ['totp'],
+      ]);
+
+      const row = page.getByTestId(`mfa-flow-row-${flowId}`);
+      await expect(row).toBeVisible();
+      await expect(row).toContainText(title);
+
+      await openMfaFlowEdit(page, flowId);
+      await addMfaFlowStep(page, 'email');
+      await changeMfaFlowStepMethod(page, 1, 'totp', 'email');
+      await changeMfaFlowStepMethod(page, 2, 'email', 'totp');
+      await expect(page.getByTestId('remove-mfa-method-1-email')).toBeVisible();
+      await expect(page.getByTestId('remove-mfa-method-2-totp')).toBeVisible();
+      await reorderMfaFlowSteps(page, 2, 1);
+      await expect(page.getByTestId('remove-mfa-method-1-totp')).toBeVisible();
+      await expect(page.getByTestId('remove-mfa-method-2-email')).toBeVisible();
+      await saveMfaFlow(page);
+
+      const updatedResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
+      expect(updatedResponse.status()).toBe(200);
+      expect((await updatedResponse.json()).steps.map((step) => step.methods)).toEqual([
+        ['totp'],
+        ['email'],
+      ]);
+      await expect(row).toBeVisible();
+
+      const listResponse = await request.get(coreUrl('/mfa-flow'));
+      expect(listResponse.status()).toBe(200);
+      const listedFlows: { id: number; title: string; step_count: number }[] =
+        await listResponse.json();
+      expect(listedFlows.find((flow) => flow.id === flowId)?.step_count).toBe(2);
+
+      await deleteMfaFlow(page, flowId);
+      await expect(row).not.toBeVisible();
+      const deletedResponse = await request.get(coreUrl(`/mfa-flow/${flowId}`));
+      expect(deletedResponse.status()).toBe(404);
+      const remainingFlows: { id: number }[] = await (
+        await request.get(coreUrl('/mfa-flow'))
+      ).json();
+      expect(remainingFlows.some((flow) => flow.id === flowId)).toBe(false);
+    });
+
+    test('Enforce a TOTP then Email flow over Edge', async ({
+      page,
+      browser,
+      request,
+    }) => {
+      const testUser: User = { ...testUserTemplate, username: 'mfa-flow-user' };
+      await createUser(browser, testUser);
+      const { secret: totpSecret } = await enableTOTP(browser, testUser);
+      const { secret: emailSecret } = await enableEmailMFA(browser, testUser, totpSecret);
+      expect(
+        await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+      ).toBe(200);
+      await waitForProxy(request);
+      await loginBasic(page, defaultUserAdmin);
+
+      const title = 'e2e-totp-email-flow';
+      await createMfaFlow(page, title, [['totp'], ['email']]);
+      const flowId = await getFlowId(request, title);
+      const locationId = await apiCreateMfaLocation(request, flowId);
+      const pubkey = await apiCreateDevice(request, testUser.username, 'mfa-flow-device');
+      const device = {
+        locationId,
+        pubkey,
+        protocol: 'multi-step' as const,
+        method: MfaMethod.TOTP,
+      };
+      const attempt = await clientMfaConnect(request, device, [
+        MfaMethod.TOTP,
+        MfaMethod.EMAIL,
+      ]);
+
+      const { otp: totpCode } = await TOTP.generate(totpSecret);
+      const firstResponse = await clientMfaFinish(request, attempt, totpCode);
+      const firstResult = await clientMfaFinishResult(firstResponse);
+      expect(firstResult.kind).toBe('Advanced');
+      if (firstResult.kind !== 'Advanced') throw new Error('MFA flow did not advance.');
+      expect(firstResult.nextStep).toBe(1);
+      expect(firstResult.presharedKey).toBeUndefined();
+
+      const stepAttemptId = await clientMfaStartStep(
+        request,
+        attempt.token,
+        MfaMethod.EMAIL,
+      );
+      const { otp: emailCode } = await TOTP.generate(emailSecret, {
+        digits: 6,
+        period: EMAIL_CODE_PERIOD,
+      });
+      const secondResponse = await clientMfaFinish(
+        request,
+        { token: attempt.token, stepAttemptId },
+        emailCode,
+      );
+      const secondResult = await clientMfaFinishResult(secondResponse);
+      expect(secondResult.kind).toBe('Completed');
+      if (secondResult.kind !== 'Completed')
+        throw new Error('MFA flow did not complete.');
+      expect(secondResult.presharedKey).toBeTruthy();
+    });
   });
 });
