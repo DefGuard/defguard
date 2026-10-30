@@ -1,7 +1,7 @@
-import { APIRequestContext, expect, test } from '@playwright/test';
+import { APIRequestContext, APIResponse, expect, test } from '@playwright/test';
 import { TOTP } from 'totp-generator';
 
-import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import {
   apiCreateDevice,
@@ -13,6 +13,7 @@ import {
   MfaMethod,
   waitForProxy,
 } from '../utils/api/clientMfa';
+import { expectLicenseTier, setLicense } from '../utils/api/settings';
 import { apiLogin } from '../utils/api/users';
 import { createUser } from '../utils/controllers/createUser';
 import { createGroup } from '../utils/controllers/groups';
@@ -36,6 +37,66 @@ import { dockerRestart } from '../utils/docker';
 
 const EMAIL_CODE_PERIOD = 300;
 const coreUrl = (path: string) => testsConfig.CORE_BASE_URL + path;
+
+test.use({ trace: 'off' });
+
+const businessLicenseKey = process.env.DEFGUARD_BUSINESS_LICENSE_KEY?.trim();
+const enterpriseLicenseKey = process.env.DEFGUARD_LICENSE_KEY?.trim();
+const seedLicenseKey = enterpriseLicenseKey || businessLicenseKey;
+const seedLicenseTier = enterpriseLicenseKey ? 'Enterprise' : 'Business';
+
+type MfaFlowMethodValue = 'totp' | 'email';
+type MfaFlowAssignmentInput = {
+  flow_id: number;
+  is_default: boolean;
+  group_ids: number[];
+};
+
+const createMfaFlowViaApi = async (
+  request: APIRequestContext,
+  title: string,
+  steps: MfaFlowMethodValue[][],
+): Promise<number> => {
+  const response = await request.post(coreUrl('/mfa-flow'), {
+    data: { title, steps: steps.map((methods) => ({ methods })) },
+  });
+  expect(response.status()).toBe(201);
+  return (await response.json()).id;
+};
+
+const mfaLocationData = (mfa_flows: MfaFlowAssignmentInput[]) => ({
+  name: 'mfa-location',
+  address: '10.99.0.1/24',
+  endpoint: '192.168.4.14',
+  port: 51830,
+  allowed_ips: '10.99.0.0/24',
+  dns: null,
+  mtu: 1420,
+  fwmark: 0,
+  allowed_ips_from_acl: false,
+  allow_all_groups: true,
+  allowed_groups: [],
+  keepalive_interval: 25,
+  peer_disconnect_threshold: 300,
+  acl_enabled: false,
+  acl_default_allow: false,
+  mfa_enabled: true,
+  service_location_mode: 'disabled',
+  posture_checks: [],
+  mfa_flows,
+});
+
+const expectLicenseError = async (
+  response: APIResponse,
+  field: string,
+  code: string,
+): Promise<void> => {
+  expect(response.status()).toBe(403);
+  const body: { error: string; fields: { field: string; code: string }[] } =
+    await response.json();
+  expect(body.error).toBe('license_required');
+  expect(body.fields).toContainEqual({ field, code });
+};
 
 const getFlowId = async (request: APIRequestContext, title: string) => {
   const response = await request.get(coreUrl('/mfa-flow'));
@@ -245,107 +306,281 @@ test.describe('MFA flows', () => {
     await enforceTOTPFlowOverEdge(request, testUser.username, locationId, secret);
   });
 
-  test('Apply a group override on Edge and fall back to the default flow', async ({
-    page,
-    browser,
-    request,
-  }) => {
-    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires an Enterprise license.');
+  test.describe('Enterprise tier boundaries', () => {
+    test.skip(!enterpriseLicenseKey, 'Requires DEFGUARD_LICENSE_KEY.');
 
-    const groupName = 'e2e-mfa-override-group';
-    const member: User = {
-      ...testUserTemplate,
-      username: 'mfa-override-member',
-      mail: 'mfa-override-member@test.com',
-      phone: '123456780',
-    };
-    const nonMember: User = {
-      ...testUserTemplate,
-      username: 'mfa-override-non-member',
-      mail: 'mfa-override-non-member@test.com',
-      phone: '123456781',
-    };
-    await createGroup(browser, groupName);
-    await createUser(browser, member, [groupName]);
-    await createUser(browser, nonMember);
-    const { secret: memberTotp } = await enableTOTP(browser, member);
-    await enableEmailMFA(browser, member, memberTotp);
-    await enableTOTP(browser, nonMember);
-
-    expect(
-      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
-    ).toBe(200);
-    await waitForProxy(request);
-    await loginBasic(page, defaultUserAdmin);
-
-    const defaultTitle = 'e2e-group-default-totp-flow';
-    const overrideTitle = 'e2e-group-override-email-flow';
-    await createMfaFlow(page, defaultTitle, [['totp']]);
-    const defaultFlowId = await getFlowId(request, defaultTitle);
-    await createMfaFlow(page, overrideTitle, [['email']]);
-    const overrideFlowId = await getFlowId(request, overrideTitle);
-
-    const network: NetworkForm = {
-      name: 'e2e-group-override-location',
-      address: '10.57.0.1/24',
-      endpoint: '192.168.4.17',
-      port: '51833',
-      allowed_ips: ['10.57.0.0/24'],
-      mfa_enabled: true,
-      defaultMfaFlowId: defaultFlowId,
-    };
-    await createRegularLocation(browser, network);
-    const locationId = await getLocationId(request, network.name);
-    const groupId = await getGroupId(request, groupName);
-    await addLocationMfaOverride(page, locationId, overrideFlowId, groupId);
-
-    const assignments = await getLocationAssignments(request, locationId);
-    expect(assignments).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          title: defaultTitle,
-          is_default: true,
-          groups: [],
-        }),
-        expect.objectContaining({
-          title: overrideTitle,
-          is_default: false,
-          groups: [{ id: groupId, name: groupName }],
-        }),
-      ]),
-    );
-
-    const memberPubkey = await apiCreateDevice(
+    test('Apply a group override on Edge and fall back to the default flow', async ({
+      page,
+      browser,
       request,
-      member.username,
-      'mfa-override-member-device',
-    );
-    await clientMfaConnect(
+    }) => {
+      const groupName = 'e2e-mfa-override-group';
+      const member: User = {
+        ...testUserTemplate,
+        username: 'mfa-override-member',
+        mail: 'mfa-override-member@test.com',
+        phone: '123456780',
+      };
+      const nonMember: User = {
+        ...testUserTemplate,
+        username: 'mfa-override-non-member',
+        mail: 'mfa-override-non-member@test.com',
+        phone: '123456781',
+      };
+      await createGroup(browser, groupName);
+      await createUser(browser, member, [groupName]);
+      await createUser(browser, nonMember);
+      const { secret: memberTotp } = await enableTOTP(browser, member);
+      await enableEmailMFA(browser, member, memberTotp);
+      await enableTOTP(browser, nonMember);
+
+      expect(
+        await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+      ).toBe(200);
+      await expectLicenseTier(request, 'Enterprise');
+      await waitForProxy(request);
+      await loginBasic(page, defaultUserAdmin);
+
+      const defaultTitle = 'e2e-group-default-totp-flow';
+      const overrideTitle = 'e2e-group-override-email-flow';
+      await createMfaFlow(page, defaultTitle, [['totp']]);
+      const defaultFlowId = await getFlowId(request, defaultTitle);
+      await createMfaFlow(page, overrideTitle, [['email']]);
+      const overrideFlowId = await getFlowId(request, overrideTitle);
+
+      const network: NetworkForm = {
+        name: 'e2e-group-override-location',
+        address: '10.57.0.1/24',
+        endpoint: '192.168.4.17',
+        port: '51833',
+        allowed_ips: ['10.57.0.0/24'],
+        mfa_enabled: true,
+        defaultMfaFlowId: defaultFlowId,
+      };
+      await createRegularLocation(browser, network);
+      const locationId = await getLocationId(request, network.name);
+      const groupId = await getGroupId(request, groupName);
+      await addLocationMfaOverride(page, locationId, overrideFlowId, groupId);
+
+      const assignments = await getLocationAssignments(request, locationId);
+      expect(assignments).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: defaultTitle,
+            is_default: true,
+            groups: [],
+          }),
+          expect.objectContaining({
+            title: overrideTitle,
+            is_default: false,
+            groups: [{ id: groupId, name: groupName }],
+          }),
+        ]),
+      );
+
+      const memberPubkey = await apiCreateDevice(
+        request,
+        member.username,
+        'mfa-override-member-device',
+      );
+      await clientMfaConnect(
+        request,
+        {
+          locationId,
+          pubkey: memberPubkey,
+          protocol: 'multi-step',
+          method: MfaMethod.EMAIL,
+        },
+        [MfaMethod.EMAIL],
+      );
+
+      const nonMemberPubkey = await apiCreateDevice(
+        request,
+        nonMember.username,
+        'mfa-override-non-member-device',
+      );
+      await clientMfaConnect(
+        request,
+        {
+          locationId,
+          pubkey: nonMemberPubkey,
+          protocol: 'multi-step',
+          method: MfaMethod.TOTP,
+        },
+        [MfaMethod.TOTP],
+      );
+    });
+  });
+
+  test.describe('Free tier boundaries', () => {
+    test('Free rejects multi-step and additional flows', async ({
+      page,
+      browser,
       request,
-      {
+    }) => {
+      await setupSMTP(browser);
+      await setLicense(request, null, null);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.mfa.addFlow);
+      await page.getByTestId('field-title').fill('e2e-free-ui-multi-step');
+      await page.getByTestId('add-mfa-step').click();
+      await page.getByTestId('add-mfa-step-method-totp').click();
+      await expect(page.getByTestId('add-mfa-step')).toHaveCount(0);
+
+      const multiStepResponse = await request.post(coreUrl('/mfa-flow'), {
+        data: {
+          title: 'e2e-free-api-multi-step',
+          steps: [{ methods: ['totp'] }, { methods: ['email'] }],
+        },
+      });
+      await expectLicenseError(multiStepResponse, 'steps', 'business_license_required');
+
+      await saveMfaFlow(page);
+      await page.getByTestId('add-mfa-flow').click();
+      await expect(page.locator('#upgrade-business-modal')).toBeVisible();
+      await expect(page).toHaveURL(routes.base + routes.mfa.list);
+
+      const additionalFlowResponse = await request.post(coreUrl('/mfa-flow'), {
+        data: { title: 'e2e-free-api-additional-flow', steps: [{ methods: ['totp'] }] },
+      });
+      await expectLicenseError(
+        additionalFlowResponse,
+        'flow',
+        'additional_flow_business_license_required',
+      );
+    });
+
+    test.describe('Multiple-assignment boundary', () => {
+      test.skip(!seedLicenseKey, 'Requires a license to prepare multiple flows.');
+
+      test('Free rejects multiple location flow assignments', async ({
+        page,
+        request,
+      }) => {
+        await setLicense(request, seedLicenseKey ?? '', seedLicenseTier);
+
+        const defaultFlowId = await createMfaFlowViaApi(
+          request,
+          'e2e-free-assignment-default',
+          [['totp']],
+        );
+        const secondFlowId = await createMfaFlowViaApi(
+          request,
+          'e2e-free-assignment-second',
+          [['totp']],
+        );
+        const locationId = await apiCreateMfaLocation(request, defaultFlowId);
+
+        await setLicense(request, null, null);
+        await loginBasic(page, defaultUserAdmin);
+        await page.goto(`${routes.base}${routes.locations}/${locationId}/edit`);
+        await expect(page.getByTestId('location-mfa-add-override')).toBeDisabled();
+
+        const updateResponse = await request.put(coreUrl(`/network/${locationId}`), {
+          data: mfaLocationData([
+            { flow_id: defaultFlowId, is_default: true, group_ids: [] },
+            { flow_id: secondFlowId, is_default: false, group_ids: [] },
+          ]),
+        });
+        expect(updateResponse.status()).toBe(200);
+        expect(await getLocationAssignments(request, locationId)).toHaveLength(1);
+
+        const createResponse = await request.post(coreUrl('/network'), {
+          data: {
+            ...mfaLocationData([
+              { flow_id: defaultFlowId, is_default: true, group_ids: [] },
+              { flow_id: secondFlowId, is_default: false, group_ids: [] },
+            ]),
+            name: 'e2e-free-rejected-assignment-location',
+            address: '10.98.0.1/24',
+            allowed_ips: '10.98.0.0/24',
+            port: 51831,
+          },
+        });
+        await expectLicenseError(
+          createResponse,
+          'mfa_flows',
+          'multiple_mfa_flows_not_allowed',
+        );
+        await expectDefaultFlowAssignment(
+          request,
+          locationId,
+          'e2e-free-assignment-default',
+        );
+      });
+    });
+  });
+
+  test.describe('Business tier boundaries', () => {
+    test.skip(!businessLicenseKey, 'Requires DEFGUARD_BUSINESS_LICENSE_KEY.');
+
+    test('Business allows multi-step flows and their default assignment', async ({
+      page,
+      browser,
+      request,
+    }) => {
+      await setLicense(request, businessLicenseKey ?? '', 'Business');
+      await setupSMTP(browser);
+      await loginBasic(page, defaultUserAdmin);
+
+      const uiFlowTitle = 'e2e-business-ui-multi-step';
+      await createMfaFlow(page, uiFlowTitle, [['totp'], ['email']]);
+      const uiFlowId = await getFlowId(request, uiFlowTitle);
+      const uiFlowResponse = await request.get(coreUrl(`/mfa-flow/${uiFlowId}`));
+      expect((await uiFlowResponse.json()).steps.map((step) => step.methods)).toEqual([
+        ['totp'],
+        ['email'],
+      ]);
+
+      const apiFlowTitle = 'e2e-business-api-multi-step';
+      const apiFlowId = await createMfaFlowViaApi(request, apiFlowTitle, [
+        ['totp'],
+        ['email'],
+      ]);
+      const locationId = await apiCreateMfaLocation(request, apiFlowId);
+      await expectDefaultFlowAssignment(request, locationId, apiFlowTitle);
+    });
+
+    test('Business rejects group-scoped assignments in the UI and API', async ({
+      page,
+      browser,
+      request,
+    }) => {
+      await setLicense(request, businessLicenseKey ?? '', 'Business');
+
+      const defaultFlowId = await createMfaFlowViaApi(
+        request,
+        'e2e-business-assignment-default',
+        [['totp']],
+      );
+      const overrideFlowId = await createMfaFlowViaApi(
+        request,
+        'e2e-business-assignment-override',
+        [['totp']],
+      );
+      const locationId = await apiCreateMfaLocation(request, defaultFlowId);
+      const groupName = 'e2e-business-mfa-group';
+      await createGroup(browser, groupName);
+      const groupId = await getGroupId(request, groupName);
+
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(`${routes.base}${routes.locations}/${locationId}/edit`);
+      await expect(page.getByTestId('location-mfa-add-override')).toBeDisabled();
+
+      const response = await request.put(coreUrl(`/network/${locationId}`), {
+        data: mfaLocationData([
+          { flow_id: defaultFlowId, is_default: true, group_ids: [] },
+          { flow_id: overrideFlowId, is_default: false, group_ids: [groupId] },
+        ]),
+      });
+      await expectLicenseError(response, 'mfa_flows', 'group_assignment_not_allowed');
+      expect(await getLocationAssignments(request, locationId)).toHaveLength(1);
+      await expectDefaultFlowAssignment(
+        request,
         locationId,
-        pubkey: memberPubkey,
-        protocol: 'multi-step',
-        method: MfaMethod.EMAIL,
-      },
-      [MfaMethod.EMAIL],
-    );
-
-    const nonMemberPubkey = await apiCreateDevice(
-      request,
-      nonMember.username,
-      'mfa-override-non-member-device',
-    );
-    await clientMfaConnect(
-      request,
-      {
-        locationId,
-        pubkey: nonMemberPubkey,
-        protocol: 'multi-step',
-        method: MfaMethod.TOTP,
-      },
-      [MfaMethod.TOTP],
-    );
+        'e2e-business-assignment-default',
+      );
+    });
   });
 
   test('Enforce a TOTP then Email flow over Edge', async ({ page, browser, request }) => {
