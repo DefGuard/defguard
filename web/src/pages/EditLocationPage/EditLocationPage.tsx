@@ -979,6 +979,7 @@ const EditLocationForm = ({
                   {(field) => (
                     <Toggle
                       active={field.state.value}
+                      testId="location-mfa-enabled-toggle"
                       onClick={() => {
                         setOpenMfaDefaultPicker(!field.state.value);
                         setMfaFlowError(undefined);
@@ -1121,6 +1122,7 @@ const EditLocationForm = ({
               submitProps={{
                 loading: isSubmitting,
                 disabled: isDefault,
+                testId: 'save-location',
                 onClick: () => {
                   form.handleSubmit();
                 },

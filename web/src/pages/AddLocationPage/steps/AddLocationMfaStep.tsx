@@ -81,6 +81,7 @@ export const AddLocationMfaStep = () => {
       <SizedBox height={ThemeSpacing.Xl} />
       <Radio
         active={!mfaEnabled}
+        testId="location-mfa-disabled-toggle"
         onClick={() => {
           setMfaEnabledState(false);
           setFlowError(undefined);
@@ -91,6 +92,7 @@ export const AddLocationMfaStep = () => {
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
         active={mfaEnabled}
+        testId="location-mfa-enabled-toggle"
         onClick={() => {
           setMfaEnabledState(true);
           setFlowError(undefined);

@@ -94,7 +94,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
         header: m.mfa_flows_table_title(),
         minSize: 350,
         cell: (info) => (
-          <TableCell>
+          <TableCell data-testid={`mfa-flow-row-${info.row.original.id}`}>
             <span>{info.getValue()}</span>
             {isPresent(info.row.original.unavailable_reason) && (
               <TooltipProvider>
@@ -156,6 +156,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
               items: [
                 {
                   text: m.controls_edit(),
+                  testId: `edit-mfa-flow-${flow.id}`,
                   icon: 'edit',
                   onClick: () => {
                     void navigate({
@@ -170,6 +171,7 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
               items: [
                 {
                   text: m.controls_delete(),
+                  testId: `delete-mfa-flow-${flow.id}`,
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
@@ -199,7 +201,9 @@ export const MfaFlowsTable = ({ flows, addButtonProps }: Props) => {
             },
           ];
 
-          return <TableEditCell menuItems={menuItems} />;
+          return (
+            <TableEditCell menuItems={menuItems} testId={`mfa-flow-actions-${flow.id}`} />
+          );
         },
       }),
     ],

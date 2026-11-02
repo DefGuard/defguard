@@ -14,13 +14,13 @@ export const setupSMTP = async (browser: Browser) => {
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.settings.smtp);
-  await page.getByTestId('smtp-card-basic-configure').click();
+  await page.getByTestId('smtp-card-none-configure').click();
   await page.getByTestId('field-smtp_server').waitFor({ state: 'visible' });
-  await page.getByTestId('field-smtp_server').fill('testServer.com');
-  await page.getByTestId('field-smtp_port').fill('543');
-  await page.getByTestId('field-smtp_user').fill('testuser');
-  await page.getByTestId('field-smtp_password').fill('test');
+  await page.getByTestId('field-smtp_server').fill('mailpit');
+  await page.getByTestId('field-smtp_port').fill('1025');
   await page.getByTestId('field-smtp_sender').fill('test@test.com');
+  await page.getByTestId('field-smtp_encryption').click();
+  await page.locator('.select-floating [role="listitem"]').first().click();
   const saveButton = await page.getByTestId('submit');
   if (await saveButton.isEnabled()) {
     await saveButton.click();
