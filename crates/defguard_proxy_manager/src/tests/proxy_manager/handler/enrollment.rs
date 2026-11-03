@@ -1452,7 +1452,7 @@ async fn test_activate_externally_managed_user_skips_password(
         payload: Some(core_request::Payload::EnrollmentStart(
             EnrollmentStartRequest {
                 token: token.id.clone(),
-                proposed_wireguard_pubkey: None,
+                wireguard_key: None,
                 device_identity: None,
             },
         )),

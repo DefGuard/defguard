@@ -158,7 +158,7 @@ impl EnrollmentServer {
         &self,
         _enrollment: &Token,
         _identity: &DeviceIdentity,
-        _proposed_wireguard_pubkey: Option<&str>,
+        _wireguard_key: Option<&str>,
     ) -> Result<AttestationRequest, Status> {
         Err(Status::unimplemented(
             "Device attestation challenge generation is not implemented",
@@ -219,7 +219,7 @@ impl EnrollmentServer {
                     self.start_device_attestation(
                         &enrollment,
                         identity,
-                        request.proposed_wireguard_pubkey.as_deref(),
+                        request.wireguard_key.as_deref(),
                     )
                 })
                 .transpose()?;
@@ -1530,7 +1530,7 @@ mod test {
 
         let request = EnrollmentStartRequest {
             token: token.id.clone(),
-            proposed_wireguard_pubkey: None,
+            wireguard_key: None,
             device_identity: None,
         };
         let device_info = DeviceInfo {

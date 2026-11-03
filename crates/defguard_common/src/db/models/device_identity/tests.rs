@@ -185,7 +185,7 @@ fn test_device_identity_enrollment_state_roundtrip() {
         let state = DeviceAttestationState {
             challenge_id: "challenge".into(),
             data: vec![0, 255, 128],
-            proposed_wireguard_pubkey: "wg-key".into(),
+            wireguard_key: "wg-key".into(),
             backend,
         };
         let encoded = serde_cbor::to_vec(&state).unwrap();

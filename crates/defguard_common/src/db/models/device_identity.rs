@@ -37,7 +37,7 @@ pub enum DeviceIdentityChallengePurpose {
 pub struct DeviceAttestationState {
     pub challenge_id: String,
     pub data: Vec<u8>,
-    pub proposed_wireguard_pubkey: String,
+    pub wireguard_key: String,
     pub backend: DeviceAttestationChallenge,
 }
 

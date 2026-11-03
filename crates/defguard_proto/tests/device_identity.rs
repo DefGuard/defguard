@@ -17,7 +17,7 @@ fn test_device_identity_requests_roundtrip_in_core_envelopes() {
     let requests = [
         core_request::Payload::EnrollmentStart(EnrollmentStartRequest {
             token: "enrollment-token".into(),
-            proposed_wireguard_pubkey: Some("wireguard-key".into()),
+            wireguard_key: Some("wireguard-key".into()),
             device_identity: Some(
                 enrollment_start_request::DeviceIdentity::AttestationIdentity(
                     AttestationIdentity {
