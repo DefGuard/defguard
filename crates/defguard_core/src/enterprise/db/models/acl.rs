@@ -1156,7 +1156,8 @@ impl AclRule<Id> {
         query_as!(
             Device,
             "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
             WHERE r.rule_id = $1 AND r.allow AND d.configured",
@@ -1176,7 +1177,8 @@ impl AclRule<Id> {
         query_as!(
             Device,
             "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
             WHERE r.rule_id = $1 AND r.allow = false AND d.configured",
@@ -1523,7 +1525,8 @@ impl AclRuleInfo<Id> {
             query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
-                device_type \"device_type: DeviceType\", configured \
+                device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
+                attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
@@ -1555,7 +1558,8 @@ impl AclRuleInfo<Id> {
             query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, \
-                device_type \"device_type: DeviceType\", configured \
+                device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
+                attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
