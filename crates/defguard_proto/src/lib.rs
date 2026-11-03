@@ -28,6 +28,11 @@ mod generated {
                     tonic::include_proto!("defguard.enterprise.firewall.v2");
                 }
             }
+            pub mod monitor {
+                pub mod v2 {
+                    tonic::include_proto!("defguard.enterprise.monitor.v2");
+                }
+            }
             pub mod posture {
                 pub mod v2 {
                     tonic::include_proto!("defguard.enterprise.posture.v2");
@@ -63,6 +68,9 @@ pub mod enterprise {
     pub mod firewall {
         pub use crate::generated::defguard::enterprise::firewall::v2::*;
     }
+    pub mod monitor {
+        pub use crate::generated::defguard::enterprise::monitor::v2::*;
+    }
     pub mod posture {
         pub use crate::generated::defguard::enterprise::posture::v2::*;
     }
@@ -81,7 +89,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, User, WireguardNetwork,
+            ConnectionDirection, ConnectionStatus, Device, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -122,6 +130,24 @@ impl Serialize for MfaMethod {
                 serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
             }
             Self::Fido2 => serializer.serialize_unit_variant("MfaMethod", 5, "Fido2"),
+        }
+    }
+}
+
+impl From<enterprise::monitor::Direction> for ConnectionDirection {
+    fn from(direction: enterprise::monitor::Direction) -> Self {
+        match direction {
+            enterprise::monitor::Direction::Inbound => Self::Inbound,
+            enterprise::monitor::Direction::Outbound => Self::Outbound,
+        }
+    }
+}
+
+impl From<enterprise::monitor::Status> for ConnectionStatus {
+    fn from(status: enterprise::monitor::Status) -> Self {
+        match status {
+            enterprise::monitor::Status::Allowed => Self::Allowed,
+            enterprise::monitor::Status::Blocked => Self::Blocked,
         }
     }
 }

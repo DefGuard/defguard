@@ -4225,7 +4225,7 @@ async fn test_sync_matches_imported_user_with_escaped_dn(
                 if before.id == imported.id && after.id == imported.id
         )));
     }
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 }
 
 #[sqlx::test]
@@ -4307,7 +4307,7 @@ async fn test_sync_matches_migrated_user_with_escaped_dn(
                 if before.id == *id && after.id == *id
         )));
     }
-    assert!(ldap_conn.test_client.get_events().is_empty());
+    assert_eq!(ldap_conn.test_client.get_events(), []);
 }
 
 #[sqlx::test]
