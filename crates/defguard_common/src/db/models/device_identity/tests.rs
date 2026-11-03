@@ -212,30 +212,24 @@ fn test_device_identity_enrollment_state_roundtrip() {
 #[sqlx::test]
 async fn test_device_identity_migration_is_reversible(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let mut row = device(&pool, "migration").await;
-    row.identity_backend = Some(DeviceIdentityBackend::Tpm);
-    row.identity_public_key_der = Some(vec![0, 255, 128]);
-    row.attestation_status = DeviceAttestationStatus::Attested;
-    row.attested_at = Some(row.created);
-    row.save(&pool).await.unwrap();
+    let row = device(&pool, "migration").await;
     let mut tx = pool.begin().await.unwrap();
     sqlx::raw_sql(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../migrations/20261103092021_[2.3.0]_simplify_device_identity.down.sql"
+        "/../../migrations/20261030123121_[2.3.0]_device_identity.down.sql"
     )))
     .execute(&mut *tx)
     .await
     .unwrap();
-    let key: Vec<u8> =
-        sqlx::query_scalar("SELECT public_key_der FROM device_identity WHERE device_id = $1")
-            .bind(row.id)
+    let table: Option<String> =
+        sqlx::query_scalar("SELECT to_regclass('device_identity_challenge')::text")
             .fetch_one(&mut *tx)
             .await
             .unwrap();
-    assert_eq!(key, vec![0, 255, 128]);
+    assert!(table.is_none());
     sqlx::raw_sql(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../migrations/20261103092021_[2.3.0]_simplify_device_identity.up.sql"
+        "/../../migrations/20261030123121_[2.3.0]_device_identity.up.sql"
     )))
     .execute(&mut *tx)
     .await
