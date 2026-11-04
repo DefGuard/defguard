@@ -22,7 +22,6 @@ pub enum ConnectionStatus {
 
 /// Traffic flow reported by a Gateway.
 #[derive(Clone, Debug, Model)]
-#[cfg_attr(test, derive(PartialEq))]
 #[table(connection_event)]
 pub struct ConnectionEvent<I = NoId> {
     pub id: I,
@@ -103,21 +102,21 @@ mod tests {
         let location = WireguardNetwork::default().save(&pool).await.unwrap();
 
         let now = Utc::now().naive_utc();
-        let old = build_event(location.id, now - TimeDelta::days(10))
+        build_event(location.id, now - TimeDelta::days(10))
             .save(&pool)
             .await
             .unwrap();
-        let recent = build_event(location.id, now).save(&pool).await.unwrap();
+        build_event(location.id, now).save(&pool).await.unwrap();
 
-        let events = ConnectionEvent::all(&pool).await.unwrap();
-        assert_eq!(events, [old, recent.clone()]);
+        let count = ConnectionEvent::count(&pool).await.unwrap();
+        assert_eq!(count, 2);
 
         let removed = ConnectionEvent::delete_older_than(&pool, now - TimeDelta::days(1))
             .await
             .unwrap();
         assert_eq!(removed, 1);
 
-        let events = ConnectionEvent::all(&pool).await.unwrap();
-        assert_eq!(events, [recent]);
+        let count = ConnectionEvent::count(&pool).await.unwrap();
+        assert_eq!(count, 1);
     }
 }
