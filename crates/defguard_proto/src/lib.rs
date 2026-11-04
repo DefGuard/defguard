@@ -84,7 +84,11 @@ pub mod common {
     pub use crate::generated::defguard::common::v2::*;
 }
 
-use client_types::MfaMethod;
+use self::{
+    client_types::MfaMethod,
+    enterprise::monitor::{Direction, Status as ConnStatus},
+    proxy::{CoreError, CoreErrorCode},
+};
 use defguard_common::{
     db::{
         Id,
@@ -96,7 +100,6 @@ use defguard_common::{
     },
     gateway_types::{FirewallConfig, WireguardPeer},
 };
-use proxy::{CoreError, CoreErrorCode};
 use serde::Serialize;
 use tonic::{Code, Status};
 
@@ -134,20 +137,20 @@ impl Serialize for MfaMethod {
     }
 }
 
-impl From<enterprise::monitor::Direction> for ConnectionDirection {
-    fn from(direction: enterprise::monitor::Direction) -> Self {
+impl From<Direction> for ConnectionDirection {
+    fn from(direction: Direction) -> Self {
         match direction {
-            enterprise::monitor::Direction::Inbound => Self::Inbound,
-            enterprise::monitor::Direction::Outbound => Self::Outbound,
+            Direction::Inbound => Self::Inbound,
+            Direction::Outbound => Self::Outbound,
         }
     }
 }
 
-impl From<enterprise::monitor::Status> for ConnectionStatus {
-    fn from(status: enterprise::monitor::Status) -> Self {
+impl From<ConnStatus> for ConnectionStatus {
+    fn from(status: ConnStatus) -> Self {
         match status {
-            enterprise::monitor::Status::Allowed => Self::Allowed,
-            enterprise::monitor::Status::Blocked => Self::Blocked,
+            ConnStatus::Allowed => Self::Allowed,
+            ConnStatus::Blocked => Self::Blocked,
         }
     }
 }

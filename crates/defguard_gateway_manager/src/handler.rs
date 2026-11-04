@@ -555,8 +555,7 @@ impl GatewayHandler {
                     return Ok(());
                 }
                 Ok(Some(received)) => {
-                    debug!("Received message from Gateway");
-                    debug!("Message from Gateway {uri}");
+                    debug!("Received message from Gateway {uri}");
 
                     match received.payload {
                         Some(core_request::Payload::ConfigRequest(())) => {
@@ -631,7 +630,7 @@ impl GatewayHandler {
                             }
 
                             let Some(event) = try_proto_into_connection_event(
-                                event,
+                                &event,
                                 self.gateway.location_id,
                                 self.gateway.id,
                             ) else {
@@ -826,7 +825,7 @@ fn ip_addr_from_bytes(bytes: &[u8]) -> Option<IpAddr> {
 
 /// Convert connection event coming from gRPC client into a database model.
 fn try_proto_into_connection_event(
-    proto_event: monitor::ConnectionEvent,
+    proto_event: &monitor::ConnectionEvent,
     location_id: Id,
     gateway_id: Id,
 ) -> Option<ConnectionEvent> {

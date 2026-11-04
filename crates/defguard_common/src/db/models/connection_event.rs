@@ -2,18 +2,18 @@ use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
 use model_derive::Model;
-use sqlx::{PgExecutor, query};
+use sqlx::{PgExecutor, Type, query};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Type)]
 #[sqlx(type_name = "connection_direction", rename_all = "lowercase")]
 pub enum ConnectionDirection {
     Inbound,
     Outbound,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Type)]
 #[sqlx(type_name = "connection_status", rename_all = "lowercase")]
 pub enum ConnectionStatus {
     Allowed,
@@ -21,7 +21,8 @@ pub enum ConnectionStatus {
 }
 
 /// Traffic flow reported by a Gateway.
-#[derive(Clone, Debug, Model, PartialEq)]
+#[derive(Clone, Debug, Model)]
+#[cfg_attr(test, derive(PartialEq))]
 #[table(connection_event)]
 pub struct ConnectionEvent<I = NoId> {
     pub id: I,
@@ -109,7 +110,7 @@ mod tests {
         let recent = build_event(location.id, now).save(&pool).await.unwrap();
 
         let events = ConnectionEvent::all(&pool).await.unwrap();
-        assert_eq!(events, vec![old, recent.clone()]);
+        assert_eq!(events, [old, recent.clone()]);
 
         let removed = ConnectionEvent::delete_older_than(&pool, now - TimeDelta::days(1))
             .await
@@ -117,6 +118,6 @@ mod tests {
         assert_eq!(removed, 1);
 
         let events = ConnectionEvent::all(&pool).await.unwrap();
-        assert_eq!(events, vec![recent]);
+        assert_eq!(events, [recent]);
     }
 }

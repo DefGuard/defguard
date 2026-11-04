@@ -1,3 +1,5 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 #[sqlx::test]
 async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -21,9 +23,12 @@ async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: Pg
     assert_eq!(event.direction, ConnectionDirection::Outbound);
     assert_eq!(event.status, ConnectionStatus::Blocked);
     assert_eq!(event.protocol, 6);
-    assert_eq!(event.source_ip, parse_test_ip("10.10.0.2"));
+    assert_eq!(event.source_ip, IpAddr::V4(Ipv4Addr::new(10, 10, 0, 2)));
     assert_eq!(event.source_port, Some(54321));
-    assert_eq!(event.destination_ip, parse_test_ip("2001:db8::1"));
+    assert_eq!(
+        event.destination_ip,
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1))
+    );
     assert_eq!(event.destination_port, Some(443));
     assert_eq!(event.rule_id, Some(7));
     assert_eq!(event.upload_bytes, 1024);

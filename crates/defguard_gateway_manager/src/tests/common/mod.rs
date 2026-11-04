@@ -3,6 +3,7 @@ use std::{
     env::temp_dir,
     fs::remove_file,
     io,
+    net::{Ipv4Addr, Ipv6Addr},
     path::PathBuf,
     process,
     sync::{
@@ -836,6 +837,10 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
 }
 
 pub(crate) fn build_connection_event() -> monitor::ConnectionEvent {
+    let source_ip_addr = Ipv4Addr::new(10, 10, 0, 2).octets().to_vec();
+    let destination_ip_addr = Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1)
+        .octets()
+        .to_vec();
     monitor::ConnectionEvent {
         timestamp: Some(Timestamp {
             seconds: 1_700_000_000,
@@ -844,13 +849,9 @@ pub(crate) fn build_connection_event() -> monitor::ConnectionEvent {
         direction: monitor::Direction::Outbound.into(),
         status: monitor::Status::Blocked.into(),
         protocol: 6,
-        source_ip_addr: vec![10, 10, 0, 2],
+        source_ip_addr,
         source_port: Some(54321),
-        destination_ip_addr: "2001:db8::1"
-            .parse::<std::net::Ipv6Addr>()
-            .unwrap()
-            .octets()
-            .to_vec(),
+        destination_ip_addr,
         destination_port: Some(443),
         rule_id: Some(7),
         upload_bytes: 1024,
