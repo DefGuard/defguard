@@ -10,6 +10,7 @@ import './style.scss';
 import { getPostureCheckVersionValues } from '../PostureChecksPage/types';
 import { AddPostureCheckClientVersionStep } from './steps/AddPostureCheckClientVersionStep';
 import { AddPostureCheckDetailsStep } from './steps/AddPostureCheckDetailsStep';
+import { AddPostureCheckDeviceAttestationStep } from './steps/AddPostureCheckDeviceAttestationStep';
 import { AddPostureCheckOperatingSystemsStep } from './steps/AddPostureCheckOperatingSystemsStep';
 import { AddPostureCheckSummaryStep } from './steps/AddPostureCheckSummaryStep';
 import { AddPostureCheckWizardStep, type AddPostureCheckWizardStepValue } from './types';
@@ -43,6 +44,9 @@ export const AddPostureCheckWizardPage = () => {
       [AddPostureCheckWizardStep.ClientVersion]: (
         <AddPostureCheckClientVersionStep versionValues={versionValues} />
       ),
+      [AddPostureCheckWizardStep.DeviceAttestation]: (
+        <AddPostureCheckDeviceAttestationStep />
+      ),
       [AddPostureCheckWizardStep.Details]: <AddPostureCheckDetailsStep />,
       [AddPostureCheckWizardStep.Summary]: <AddPostureCheckSummaryStep />,
     }),
@@ -63,16 +67,22 @@ export const AddPostureCheckWizardPage = () => {
         order: 1,
         description: m.posture_checks_wizard_step_client_version_description(),
       },
+      [AddPostureCheckWizardStep.DeviceAttestation]: {
+        id: AddPostureCheckWizardStep.DeviceAttestation,
+        label: m.posture_checks_wizard_step_device_attestation(),
+        order: 2,
+        description: m.posture_checks_wizard_step_device_attestation_description(),
+      },
       [AddPostureCheckWizardStep.Details]: {
         id: AddPostureCheckWizardStep.Details,
         label: m.posture_checks_wizard_step_details(),
-        order: 2,
+        order: 3,
         description: m.posture_checks_wizard_step_details_description(),
       },
       [AddPostureCheckWizardStep.Summary]: {
         id: AddPostureCheckWizardStep.Summary,
         label: m.posture_checks_wizard_step_summary(),
-        order: 3,
+        order: 4,
         description: m.posture_checks_wizard_step_summary_description(),
       },
     }),

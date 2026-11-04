@@ -191,6 +191,10 @@ pub(crate) async fn enable_linux_posture_for_location(pool: &PgPool, location_id
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await

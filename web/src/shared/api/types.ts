@@ -1067,6 +1067,10 @@ export interface ApiDevicePosture {
   min_desktop_client_version: string | null;
   min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
+  desktop_attestation: boolean;
+  desktop_manual_verification: boolean;
+  mobile_attestation: boolean;
+  mobile_manual_verification: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
 }
@@ -1077,6 +1081,10 @@ export interface EditDevicePostureRequest {
   min_desktop_client_version: string | null;
   min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
+  desktop_attestation: boolean;
+  desktop_manual_verification: boolean;
+  mobile_attestation: boolean;
+  mobile_manual_verification: boolean;
   os_rules: EditDevicePostureOsRule[];
 }
 

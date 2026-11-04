@@ -131,6 +131,10 @@ async fn save_linux_policy(
         min_desktop_client_version: min_desktop_client_version.map(str::to_owned),
         min_mobile_client_version: None,
         allow_prerelease_client,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -177,6 +181,10 @@ async fn save_windows_os_version_policy(
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -216,6 +224,10 @@ async fn save_macos_policy(pool: &PgPool, location_id: Id) {
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -261,6 +273,10 @@ async fn save_windows_policy(
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -304,6 +320,10 @@ async fn save_android_policy(
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -343,6 +363,10 @@ async fn save_desktop_mobile_client_version_policy(pool: &PgPool, location_id: I
         min_desktop_client_version: Some("2.1".into()),
         min_mobile_client_version: Some("1.7.0".into()),
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(pool)
     .await
@@ -510,6 +534,10 @@ async fn fail_os_version_too_old_regression(_: PgPoolOptions, options: PgConnect
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -701,6 +729,10 @@ async fn pass_kernel_version_meets_minimum(_: PgPoolOptions, options: PgConnectO
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -752,6 +784,10 @@ async fn pass_device_integrity_ok(_: PgPoolOptions, options: PgConnectOptions) {
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -808,6 +844,10 @@ async fn fail_os_not_in_policy(_: PgPoolOptions, options: PgConnectOptions) {
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -1075,6 +1115,10 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -1104,6 +1148,10 @@ async fn fail_multi_policy_and_logic(_: PgPoolOptions, options: PgConnectOptions
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -1250,6 +1298,10 @@ async fn fail_kernel_version_too_old(_: PgPoolOptions, options: PgConnectOptions
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await
@@ -1304,6 +1356,10 @@ async fn fail_device_integrity_required(_: PgPoolOptions, options: PgConnectOpti
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: true,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
     }
     .save(&pool)
     .await

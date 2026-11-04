@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\" FROM \"device_posture\"",
+  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_manual_verification\",\"mobile_attestation\",\"mobile_manual_verification\" FROM \"device_posture\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -68,10 +68,56 @@
             "name": "allow_prerelease_client"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "desktop_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "desktop_manual_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_manual_verification"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "mobile_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "mobile_manual_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_manual_verification"
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -79,8 +125,12 @@
       true,
       true,
       true,
+      false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "1446a8c2f9f5736e10c760c6c7952b2ba704d7f8d14c9a9004d4c882d6e410b2"
+  "hash": "9a4bcdb196b7bf3a3b0de50ed83d374597451b04fad7181d742c9ce065f46e93"
 }

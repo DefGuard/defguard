@@ -148,6 +148,10 @@ describe('edit location posture-checks section state', () => {
       min_desktop_client_version: '2.0',
       min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
+      desktop_attestation: false,
+      desktop_manual_verification: false,
+      mobile_attestation: false,
+      mobile_manual_verification: false,
       locations: [],
       os_rules: [
         {
@@ -205,6 +209,10 @@ describe('edit location posture-checks section state', () => {
       min_desktop_client_version: null,
       min_mobile_client_version: null,
       allow_prerelease_client: false,
+      desktop_attestation: false,
+      desktop_manual_verification: false,
+      mobile_attestation: false,
+      mobile_manual_verification: false,
       locations: [],
       os_rules: [
         {
@@ -245,6 +253,10 @@ describe('edit location posture-checks section state', () => {
         min_desktop_client_version: '2.0',
         min_mobile_client_version: '1.7.0',
         allow_prerelease_client: false,
+        desktop_attestation: false,
+        desktop_manual_verification: false,
+        mobile_attestation: false,
+        mobile_manual_verification: false,
         locations: [],
         os_rules: [
           {

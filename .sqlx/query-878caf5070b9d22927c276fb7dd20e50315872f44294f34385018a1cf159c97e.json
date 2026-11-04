@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\" FROM \"device_posture\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_manual_verification\",\"mobile_attestation\",\"mobile_manual_verification\" FROM \"device_posture\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -68,10 +68,55 @@
             "name": "allow_prerelease_client"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "desktop_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "desktop_manual_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_manual_verification"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "mobile_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "mobile_manual_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_manual_verification"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -81,8 +126,12 @@
       true,
       true,
       true,
+      false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "73973b19976e939a3f4dfb503235f5e457d02748a42f97e958ca641dcec64697"
+  "hash": "878caf5070b9d22927c276fb7dd20e50315872f44294f34385018a1cf159c97e"
 }

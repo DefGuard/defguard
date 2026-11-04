@@ -33,6 +33,17 @@
   }
 }
 
+.add-posture-check-device-attestation-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+
+  .device-attestation-track {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 .add-posture-check-details-step {
   display: flex;
   flex-direction: column;

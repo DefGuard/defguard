@@ -3,6 +3,7 @@ import { PostureCheckOs, type PostureCheckOsValue } from '../PostureChecksPage/t
 export const AddPostureCheckWizardStep = {
   OperatingSystems: 'operating-systems',
   ClientVersion: 'client-version',
+  DeviceAttestation: 'device-attestation',
   Details: 'details',
   Summary: 'summary',
 } as const;
@@ -13,6 +14,7 @@ export type AddPostureCheckWizardStepValue =
 export const addPostureCheckWizardStepOrder: AddPostureCheckWizardStepValue[] = [
   AddPostureCheckWizardStep.OperatingSystems,
   AddPostureCheckWizardStep.ClientVersion,
+  AddPostureCheckWizardStep.DeviceAttestation,
   AddPostureCheckWizardStep.Details,
   AddPostureCheckWizardStep.Summary,
 ];

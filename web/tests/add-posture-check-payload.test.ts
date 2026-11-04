@@ -42,6 +42,10 @@ describe('add posture check payload', () => {
         allowPrereleaseClient: false,
         configuredOperatingSystems: [PostureCheckOs.Windows, PostureCheckOs.Linux],
         description: null,
+        desktopAttestation: false,
+        desktopManualVerification: false,
+        mobileAttestation: false,
+        mobileManualVerification: false,
         minimumDesktopClientVersion: null,
         minimumMobileClientVersion: null,
         name: 'Any version policy',
@@ -59,6 +63,10 @@ describe('add posture check payload', () => {
       min_desktop_client_version: null,
       min_mobile_client_version: null,
       allow_prerelease_client: false,
+      desktop_attestation: false,
+      desktop_manual_verification: false,
+      mobile_attestation: false,
+      mobile_manual_verification: false,
       os_rules: [
         {
           os_type: 'windows',
@@ -83,6 +91,10 @@ describe('add posture check payload', () => {
         allowPrereleaseClient: true,
         configuredOperatingSystems: [],
         description: 'Split client requirements',
+        desktopAttestation: false,
+        desktopManualVerification: false,
+        mobileAttestation: false,
+        mobileManualVerification: false,
         minimumDesktopClientVersion: '2.1',
         minimumMobileClientVersion: '1.7.0',
         name: 'Client version policy',
@@ -94,7 +106,56 @@ describe('add posture check payload', () => {
       min_desktop_client_version: '2.1',
       min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
+      desktop_attestation: false,
+      desktop_manual_verification: false,
+      mobile_attestation: false,
+      mobile_manual_verification: false,
       os_rules: [],
+    });
+  });
+  it('sends device attestation and ownership verification flags', () => {
+    expect(
+      buildAddPostureCheckRequest({
+        allowPrereleaseClient: false,
+        configuredOperatingSystems: [],
+        description: null,
+        desktopAttestation: true,
+        desktopManualVerification: true,
+        mobileAttestation: true,
+        mobileManualVerification: false,
+        minimumDesktopClientVersion: null,
+        minimumMobileClientVersion: null,
+        name: 'Attestation policy',
+        operatingSystemState: emptyOperatingSystemState,
+      }),
+    ).toMatchObject({
+      desktop_attestation: true,
+      desktop_manual_verification: true,
+      mobile_attestation: true,
+      mobile_manual_verification: false,
+    });
+  });
+
+  it('drops ownership verification when attestation is disabled', () => {
+    expect(
+      buildAddPostureCheckRequest({
+        allowPrereleaseClient: false,
+        configuredOperatingSystems: [],
+        description: null,
+        desktopAttestation: false,
+        desktopManualVerification: true,
+        mobileAttestation: false,
+        mobileManualVerification: true,
+        minimumDesktopClientVersion: null,
+        minimumMobileClientVersion: null,
+        name: 'Attestation policy',
+        operatingSystemState: emptyOperatingSystemState,
+      }),
+    ).toMatchObject({
+      desktop_attestation: false,
+      desktop_manual_verification: false,
+      mobile_attestation: false,
+      mobile_manual_verification: false,
     });
   });
 });

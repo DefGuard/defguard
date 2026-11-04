@@ -16,6 +16,10 @@ pub struct DevicePosture<I = NoId> {
     pub min_desktop_client_version: Option<String>,
     pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
+    pub desktop_attestation: bool,
+    pub desktop_manual_verification: bool,
+    pub mobile_attestation: bool,
+    pub mobile_manual_verification: bool,
 }
 
 /// Per-OS security rule row belonging to a [`DevicePosture`] policy.
