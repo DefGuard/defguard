@@ -74,7 +74,7 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
             .await
             .expect("failed to load device network info")
             .expect("expected device network info for modified device");
-    network_device.wireguard_ips = vec![parse_test_ip("10.10.0.21")];
+    network_device.wireguard_ips = vec![IpAddr::V4(Ipv4Addr::new(10, 10, 0, 21))];
     network_device
         .update(&context.pool)
         .await
