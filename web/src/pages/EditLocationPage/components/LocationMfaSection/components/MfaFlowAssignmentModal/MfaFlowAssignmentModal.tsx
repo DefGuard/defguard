@@ -11,6 +11,7 @@ import {
 import { SelectionSection } from '../../../../../../shared/components/SelectionSection/SelectionSection';
 import type { SelectionOption } from '../../../../../../shared/components/SelectionSection/type';
 import { Button } from '../../../../../../shared/defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { FieldError } from '../../../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Modal } from '../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
@@ -139,6 +140,14 @@ export const MfaFlowAssignmentModalContent = ({
             options={groupOptions ?? []}
             selection={groupIds}
             onChange={handleGroupChange}
+            renderItem={({ option, active, onClick }) => (
+              <Checkbox
+                active={active}
+                text={option.label}
+                onClick={onClick}
+                testId={`location-mfa-override-group-${option.id}`}
+              />
+            )}
             searchPlaceholder={m.controls_search()}
             visibleItemsLimit={10}
           />
@@ -168,12 +177,14 @@ export const MfaFlowAssignmentModalContent = ({
           {editsGroups && !onGroupStep ? (
             <Button
               text={m.controls_continue()}
+              testId="location-mfa-assignment-continue"
               disabled={flowId === undefined}
               onClick={() => setOnGroupStep(true)}
             />
           ) : (
             <Button
               text={m.controls_submit()}
+              testId="location-mfa-assignment-save"
               disabled={flowId === undefined}
               onClick={handleSubmit}
             />

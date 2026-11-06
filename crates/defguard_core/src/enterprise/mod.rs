@@ -58,7 +58,7 @@ pub fn is_oidc_mfa_available(openid_provider_present: bool) -> bool {
 pub fn is_mfa_method_licensed(method: VpnClientMfaMethod) -> bool {
     match method {
         VpnClientMfaMethod::Oidc => is_business_license_active(),
-        VpnClientMfaMethod::Fido2 => has_enterprise_access(None),
+        VpnClientMfaMethod::Fido2 => has_enterprise_access(Some(LicenseFeature::Fido2)),
         _ => true,
     }
 }
@@ -272,6 +272,13 @@ mod test {
         let cases = [
             (None, free.clone()),
             (Some(make_license(LicenseTier::Business, Vec::new())), free),
+            (
+                Some(make_license(
+                    LicenseTier::Business,
+                    vec![LicenseFeature::Fido2],
+                )),
+                VpnClientMfaMethod::CONFIG_SETUP.to_vec(),
+            ),
             (
                 Some(make_license(LicenseTier::Enterprise, Vec::new())),
                 VpnClientMfaMethod::CONFIG_SETUP.to_vec(),
