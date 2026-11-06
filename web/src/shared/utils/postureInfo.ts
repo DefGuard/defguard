@@ -7,7 +7,7 @@ type OsDetailRow = {
   value: string | string[];
 };
 
-type OsSection = {
+export type OsSection = {
   icon: (typeof IconKind)[keyof typeof IconKind];
   name: string;
   rows: OsDetailRow[];
@@ -149,6 +149,41 @@ export const getDefguardSection = (posture: ApiDevicePosture): OsSection | null 
 
   return { icon: IconKind.Defguard, name: 'Defguard', rows };
 };
+
+const formatState = (enabled: boolean): string =>
+  enabled ? m.state_enabled() : m.state_disabled();
+
+const getAttestationSection = (
+  icon: OsSection['icon'],
+  name: string,
+  attestation: boolean,
+  manualVerification: boolean,
+): OsSection => ({
+  icon,
+  name,
+  rows: [
+    { label: m.posture_checks_drawer_attestation(), value: formatState(attestation) },
+    {
+      label: m.posture_checks_drawer_verification(),
+      value: formatState(manualVerification),
+    },
+  ],
+});
+
+export const buildAttestationSections = (posture: ApiDevicePosture): OsSection[] => [
+  getAttestationSection(
+    IconKind.Desktop,
+    m.posture_checks_drawer_desktop_attestation(),
+    posture.desktop_attestation,
+    posture.desktop_manual_verification,
+  ),
+  getAttestationSection(
+    IconKind.Mobile,
+    m.posture_checks_drawer_mobile_attestation(),
+    posture.mobile_attestation,
+    posture.mobile_manual_verification,
+  ),
+];
 
 export const buildOsSections = (posture: ApiDevicePosture): OsSection[] => {
   const sections: OsSection[] = [];

@@ -8,14 +8,14 @@
 }
 
 .posture-check-drawer-body {
+  --label-column: 149px;
+  --section-indent: 28px;
+
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--spacing-xl);
-}
-
-.drawer-block {
-  padding: var(--spacing-xl) 0;
+  box-sizing: border-box;
+  padding: var(--spacing-xl);
 }
 
 .drawer-description {
@@ -24,59 +24,64 @@
   white-space: pre-wrap;
 }
 
-.drawer-os-section,
+.drawer-section,
 .drawer-locations {
-  .os-name {
+  .section-name {
     font: var(--t-body-sm-500);
     color: var(--fg-neutral);
   }
 }
 
-.drawer-os-section {
+.drawer-section {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  flex-flow: column;
+  row-gap: var(--spacing-md);
 
-  .os-header {
+  .section-header {
     display: flex;
+    flex-flow: row;
     align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: flex-start;
+    column-gap: var(--spacing-sm);
   }
 
-  .os-rows {
+  .section-rows {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding-left: 28px;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+    box-sizing: border-box;
+    padding-left: var(--section-indent);
   }
 
-  .os-row {
+  .section-row {
     display: flex;
+    flex-flow: row;
     align-items: center;
+    justify-content: flex-start;
 
-    &:has(.os-row-value-list) {
+    &:has(.section-row-value-list) {
       align-items: flex-start;
     }
 
-    .os-row-label {
-      flex: 0 0 119px;
+    .section-row-label {
+      flex: 0 0 var(--label-column);
       font: var(--t-body-xs-500);
       color: var(--fg-disabled);
     }
 
-    .os-row-value {
+    .section-row-value {
       font: var(--t-body-sm-400);
       color: var(--fg-default);
       flex: 1;
     }
 
-    .os-row-value-list {
+    .section-row-value-list {
       display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
+      flex-flow: column;
+      row-gap: var(--spacing-sm);
       flex: 1;
 
-      .os-row-value {
+      .section-row-value {
         flex: unset;
       }
     }
@@ -94,9 +99,11 @@
 
   .locations-label {
     display: flex;
+    flex-flow: row;
     align-items: center;
-    gap: var(--spacing-sm);
-    width: 119px;
+    justify-content: flex-start;
+    column-gap: var(--spacing-sm);
+    flex: 0 0 calc(var(--section-indent) + var(--label-column) - var(--spacing-md));
   }
 
   .locations-value {
