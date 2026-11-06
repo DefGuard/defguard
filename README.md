@@ -21,12 +21,37 @@ For detailed security information see the [secure-by-design documentation](https
 
 ## Core Capabilities
 
-- 🌐 **WireGuard VPN** — multiple locations with per-location access control, MFA per connection, self-service device setup, kernel and userspace support
-- 👥 **Identity & Access Management** — internal OIDC provider for SSO, external OIDC (Google, Microsoft, custom), LDAP/AD sync, remote enrollment, user self-service
-- 🔑 **Multi-Factor Authentication** — TOTP, WebAuthn/FIDO2, email tokens, biometric via mobile app
-- 🛡️ **Firewall** — allow/deny rules per VPN location by user or group, applied in real time
-- 📋 **Activity Log** — audit log with filtering and search; real-time SIEM streaming (Enterprise)
-- 🔗 **Integrations** — webhooks and REST API
+- 🌐 **WireGuard VPN**
+  - **Locations**: multiple locations with per-location access control, MFA per connection, self-service device setup, kernel and userspace support
+  - **Multi-location DNS**: each connected location applies its own resolvers and domains side by side
+  - **Custom MTU**: an MTU set by the admin that the client apps apply
+  - **Gateway on VyOS**: Defguard Gateway runs as a container on VyOS
+- 🔑 **Multi-Factor Authentication**
+  - **FIDO2 Hardware Keys** (Enterprise): hardware security keys such as YubiKey as an MFA factor for the VPN connection, registered in the desktop client and used on desktop and over NFC on mobile
+  - **MFA Flows** (Business): ordered MFA steps, each accepting a choice of factors, with the tunnel established only after the last step succeeds; one flow can be reused across locations
+  - **Group-level MFA Overrides** (Enterprise): different MFA flows for specific groups on the same VPN location, on top of the location's default flow
+  - **Factors**: TOTP, email tokens, biometric via the mobile app, external SSO (Business)
+  - **MFA Setup in the Desktop Client**: users without MFA set it up when they first connect to a protected location, without re-enrolling
+- 👥 **Identity & Access Management**
+  - **SSO & Directories**: internal OIDC provider for SSO, external OIDC (Google, Microsoft, custom), LDAP/AD sync, remote enrollment, user self-service
+  - **Windows Auto-provisioning**: a bulk action writes each user's enrollment token to an Active Directory field
+- 🛡️ **Access Control**
+  - **Firewall**: group-based firewall policies with support for OPNsense, pfSense, Linux and MikroTik
+  - **Device Posture** (Enterprise): checks a device must pass before it connects, set per location: client and OS version, security updates, Active Directory membership, antivirus, disk encryption
+  - **Allowed IPs from Firewall Rules** (Enterprise): each user's WireGuard config lists only the subnets their firewall rules allow
+  - **Firewall Bulk Actions**: manage rules, destinations and aliases in bulk
+- 💻 **Clients**
+  - **Desktop Client**: Windows, macOS and Linux app with multiple instances and locations, a tray mode and live configuration sync (Business)
+  - **Mobile Client**: redesigned iOS and Android app that works in MFA flows both as a factor and as a connecting client
+  - **Always-on & Pre-logon VPN** (Enterprise): Always-on VPN on Windows and Linux, connected at boot by a background service, and pre-logon VPN on Windows
+  - **Command-line Client**: connect, disconnect and check status from the terminal, with MFA and JSON output, for headless machines and scripts
+  - **Group Traffic Policies** (Enterprise): no limitations, disable all traffic or force all traffic, set per group instead of only globally
+- 📋 **Audit & Integrations**
+  - **Activity Log**: audit log with filtering and search; real-time SIEM streaming (Enterprise)
+  - **Integrations**: webhooks and REST API
+
+
+Explore all features in the [Product overview](https://defguard.net/enterprise-wireguard-vpn/).
 
 ## Clients
 
@@ -64,7 +89,7 @@ Comprehensive documentation is available at: https://docs.defguard.net
 
 ## Video guides
 
-Visit out YouTube channel to see our [video guides](https://www.youtube.com/playlist?list=PLVR33X0CUHUcoyLshs9S8VbsGgggouCAW).
+Visit out YouTube channel to see our [video guides](https://www.youtube.com/@defguard
 
 ## Community
 
