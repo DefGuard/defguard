@@ -1146,11 +1146,12 @@ impl ProxyHandler {
                 )
                 .await
                 {
-                    Ok(PostureCheckOutcome::Approved { preshared_key }) => {
-                        Some(core_response::Payload::DevicePostureCheck(
-                            DevicePostureCheckResponse { preshared_key },
-                        ))
-                    }
+                    Ok(PostureCheckOutcome::Approved { preshared_key }) => Some(
+                        core_response::Payload::DevicePostureCheck(DevicePostureCheckResponse {
+                            possession_challenge: None,
+                            preshared_key,
+                        }),
+                    ),
                     Ok(PostureCheckOutcome::Rejected { failed_checks }) => Some(
                         core_response::Payload::DevicePostureRejected(DevicePostureRejection {
                             failed_posture_checks: failed_checks,

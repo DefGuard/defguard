@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_identity_challenge\" SET \"purpose\" = $2,\"device_id\" = $3,\"location_id\" = $4,\"data\" = $5,\"created_at\" = $6,\"expires_at\" = $7,\"consumed_at\" = $8 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "polling",
+                "posture_connection"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9ae234ed3ea640cb10fc4b200e0c0ce442037ad11006bae569d4ac9d98718e69"
+}

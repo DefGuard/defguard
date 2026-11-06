@@ -113,6 +113,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
     let outcome = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
@@ -197,6 +198,7 @@ async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
     server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
@@ -289,6 +291,7 @@ async fn test_posture_check_requires_a_token(_: PgPoolOptions, options: PgConnec
         let err = server
             .handle_posture_check(
                 DevicePostureCheckRequest {
+                    possession_response: None,
                     location_id: location.id,
                     pubkey: device.wireguard_pubkey.clone(),
                     device_posture_data: Some(passing_linux_posture_data()),
@@ -331,6 +334,7 @@ async fn test_posture_check_rejects_unknown_token(_: PgPoolOptions, options: PgC
     let err = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
@@ -399,6 +403,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
     let err = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: victim.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
@@ -448,6 +453,7 @@ async fn test_posture_check_rejects_mfa_enabled_location(
     let Err(err) = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: "irrelevant".to_owned(),
                 device_posture_data: None,
@@ -487,6 +493,7 @@ async fn test_posture_check_without_postures_approves_with_empty_preshared_key(
     let outcome = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
@@ -540,6 +547,7 @@ async fn test_posture_check_without_postures_rejects_device_not_assigned_to_loca
     let Err(status) = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey,
                 device_posture_data: None,
@@ -583,6 +591,7 @@ async fn test_posture_check_without_postures_still_rejects_inactive_user(
     let status = match server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
@@ -628,6 +637,7 @@ async fn test_posture_check_pass_emits_posture_check_passed_event(
     match server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data.clone()),
@@ -711,6 +721,7 @@ async fn test_posture_check_failure_revokes_active_session(
     let rejected_checks = match server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data.clone()),
@@ -1008,6 +1019,7 @@ async fn test_session_revocation_survives_unavailable_side_effect_consumers(
     let outcome = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_response: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data),
@@ -1984,6 +1996,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -2127,6 +2140,7 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -2234,6 +2248,7 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey: pubkey.clone(),
                 posture_data: None,
@@ -2350,6 +2365,7 @@ async fn test_mfa_flow_start_returns_initial_attempt(_: PgPoolOptions, options: 
     let outcome = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2395,6 +2411,7 @@ async fn test_mfa_flow_start_rejection_does_not_create_session(
     let outcome = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2432,6 +2449,7 @@ async fn test_mfa_flow_step_start_returns_typed_attempt(
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2519,6 +2537,7 @@ async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey,
                 posture_data: None,
@@ -2581,6 +2600,7 @@ async fn test_mfa_flow_remote_rejects_non_mobile_step(_: PgPoolOptions, options:
     let start = server
         .mfa_flow_start(
             MfaFlowStartRequest {
+                possession_response: None,
                 location_id,
                 pubkey,
                 posture_data: None,

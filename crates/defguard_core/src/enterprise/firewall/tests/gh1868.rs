@@ -30,6 +30,11 @@ async fn setup_user_and_device(
     let user = user.save(pool).await.unwrap();
 
     let device = Device {
+        identity_backend: None,
+        identity_public_key_der: None,
+        attestation_status: Default::default(),
+        attested_at: None,
+        apple_sign_count: None,
         id: NoId,
         name: format!("device-{}", user.id),
         user_id: user.id,

@@ -53,6 +53,7 @@ async fn send_flow_start(
         id,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::MfaFlowStart(MfaFlowStartRequest {
+            possession_response: None,
             location_id,
             pubkey: pubkey.to_owned(),
             posture_data: None,

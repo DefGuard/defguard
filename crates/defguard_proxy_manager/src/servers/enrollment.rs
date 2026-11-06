@@ -45,11 +45,14 @@ use defguard_core::{
         TemplateLocation, enrollment_admin_notification, mfa_activation_mail, new_device_added_mail,
     },
 };
-use defguard_proto::client_types::{
-    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
-    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
-    NewDevice, RegisterMobileAuthRequest,
+use defguard_proto::{
+    client_types::{
+        ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+        CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
+        EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
+        MfaMethod, NewDevice, RegisterMobileAuthRequest, enrollment_start_request::DeviceIdentity,
+    },
+    device_identity::{AttestationRequest, AttestationResponse, IdentityState},
 };
 use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
@@ -151,6 +154,28 @@ impl EnrollmentServer {
         self.bidi_event_tx.send(event)
     }
 
+    fn start_device_attestation(
+        &self,
+        _enrollment: &Token,
+        _identity: &DeviceIdentity,
+        _wireguard_key: Option<&str>,
+    ) -> Result<AttestationRequest, Status> {
+        Err(Status::unimplemented(
+            "Device attestation challenge generation is not implemented",
+        ))
+    }
+
+    fn verify_device_attestation(
+        &self,
+        _enrollment: &Token,
+        _response: &AttestationResponse,
+        _wireguard_pubkey: &str,
+    ) -> Result<IdentityState, Status> {
+        Err(Status::unimplemented(
+            "Device attestation verification is not implemented",
+        ))
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn start_enrollment(
         &self,
@@ -186,6 +211,18 @@ impl EnrollmentServer {
                 "User {}({:?}) is active, proceeding with enrollment",
                 user.username, user.id
             );
+
+            let attestation_request = request
+                .device_identity
+                .as_ref()
+                .map(|identity| {
+                    self.start_device_attestation(
+                        &enrollment,
+                        identity,
+                        request.wireguard_key.as_deref(),
+                    )
+                })
+                .transpose()?;
 
             let mut transaction = self.pool.begin().await.map_err(|err| {
                 error!("Failed to begin a transaction for enrollment: {err}");
@@ -325,6 +362,7 @@ impl EnrollmentServer {
                 final_page_content,
                 instance: Some(instance_info.into()),
                 settings: Some(enrollment_settings),
+                attestation_request,
             };
             debug!("Response {response:?}");
 
@@ -716,6 +754,14 @@ impl EnrollmentServer {
             request.pubkey, user.username, user.id
         );
 
+        let identity_state = request
+            .attestation_response
+            .as_ref()
+            .map(|response| {
+                self.verify_device_attestation(&enrollment_token, response, &request.pubkey)
+            })
+            .transpose()?;
+
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
@@ -1078,6 +1124,8 @@ impl EnrollmentServer {
             configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
+            identity_state,
+            possession_challenge: None,
         };
 
         // Prepare event context and push the event
@@ -1482,6 +1530,8 @@ mod test {
 
         let request = EnrollmentStartRequest {
             token: token.id.clone(),
+            wireguard_key: None,
+            device_identity: None,
         };
         let device_info = DeviceInfo {
             ip_address: "127.0.0.1".to_owned(),

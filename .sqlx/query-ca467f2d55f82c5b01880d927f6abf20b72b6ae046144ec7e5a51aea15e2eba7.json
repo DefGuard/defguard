@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"purpose\" \"purpose: _\",\"device_id\",\"location_id\",\"data\",\"created_at\",\"expires_at\",\"consumed_at\" FROM \"device_identity_challenge\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purpose: _",
+        "type_info": {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "polling",
+                "posture_connection"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "purpose"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "location_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "data",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "data"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "consumed_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "consumed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ca467f2d55f82c5b01880d927f6abf20b72b6ae046144ec7e5a51aea15e2eba7"
+}

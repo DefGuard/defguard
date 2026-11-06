@@ -271,6 +271,11 @@ fn api_message(event: ApiEventType) -> EventLoggerMessage {
 fn api_event_cases() -> Vec<EventTestCase> {
     let user = User::new("testuser", Some("pass"), "Last", "First", "e@e", None).with_id(1);
     let device = Device {
+        identity_backend: None,
+        identity_public_key_der: None,
+        attestation_status: Default::default(),
+        attested_at: None,
+        apple_sign_count: None,
         id: 2,
         name: "d2".into(),
         wireguard_pubkey: "pk".into(),

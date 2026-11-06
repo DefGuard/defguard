@@ -4,6 +4,7 @@ use defguard_common::db::{
 };
 use defguard_proto::{
     client_types::{InstanceInfoRequest, InstanceInfoResponse},
+    device_identity::PossessionResponse,
     proxy::DeviceInfo,
 };
 use sqlx::PgPool;
@@ -50,6 +51,16 @@ impl PollingServer {
         Ok(token)
     }
 
+    fn verify_device_possession(
+        &self,
+        _device: &Device<Id>,
+        _response: &PossessionResponse,
+    ) -> Result<(), Status> {
+        Err(Status::unimplemented(
+            "Device identity possession verification is not implemented",
+        ))
+    }
+
     /// Prepares instance info for polling requests. Enterprise only.
     #[instrument(skip_all)]
     pub async fn info(
@@ -88,6 +99,10 @@ impl PollingServer {
                 user.username, user.id
             );
             return Err(Status::permission_denied("user inactive"));
+        }
+
+        if let Some(response) = request.possession_response.as_ref() {
+            self.verify_device_possession(&device, response)?;
         }
 
         store_reported_client_info(&self.pool, device.id, device_info.as_ref()).await;
