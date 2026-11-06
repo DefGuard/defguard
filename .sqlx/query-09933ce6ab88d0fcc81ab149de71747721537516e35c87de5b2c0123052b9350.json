@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow = false AND d.configured",
+  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
   "describe": {
     "columns": [
       {
@@ -100,6 +100,41 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -115,8 +150,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "660bd0146db2168c27775429cd3557040f57dae496d43dea49289f9a5d907129"
+  "hash": "09933ce6ab88d0fcc81ab149de71747721537516e35c87de5b2c0123052b9350"
 }

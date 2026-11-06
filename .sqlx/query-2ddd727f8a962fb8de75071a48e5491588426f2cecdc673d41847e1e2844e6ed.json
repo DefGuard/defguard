@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured FROM device d JOIN \"user\" u ON d.user_id = u.id WHERE u.is_active AND d.device_type = 'user'::device_type AND d.user_id = $1 ORDER BY d.id ASC",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\",\"attestation_status\" \"attestation_status: _\",\"attested_at\" FROM \"device\"",
   "describe": {
     "columns": [
       {
@@ -60,18 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "description",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "description"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
-        "name": "device_type: DeviceType",
+        "name": "device_type: _",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -91,6 +80,17 @@
         }
       },
       {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "description"
+          }
+        }
+      },
+      {
         "ordinal": 7,
         "name": "configured",
         "type_info": "Bool",
@@ -100,12 +100,45 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -113,10 +146,12 @@
       false,
       false,
       false,
+      false,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "b51c57865a5585c28061462655fbcd5a6f22b46090aff2bfe2af5f04cee4fcb4"
+  "hash": "2ddd727f8a962fb8de75071a48e5491588426f2cecdc673d41847e1e2844e6ed"
 }

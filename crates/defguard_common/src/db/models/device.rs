@@ -20,6 +20,7 @@ use crate::{
         Id, NoId,
         models::{
             ModelError, WireguardNetwork,
+            device_identity::DeviceAttestationStatus,
             mfa_flow::MfaFlowStep,
             user::User,
             vpn_client_session::{VpnClientSession, VpnClientSessionState},
@@ -104,6 +105,10 @@ pub struct Device<I = NoId> {
     /// Such a device is already added to all its networks, but is still missing something,
     /// for example its public key.
     pub configured: bool,
+    #[model(enum)]
+    #[serde(default)]
+    pub attestation_status: DeviceAttestationStatus,
+    pub attested_at: Option<NaiveDateTime>,
 }
 
 impl fmt::Display for Device<NoId> {
@@ -145,6 +150,8 @@ impl Distribution<Device> for Standard {
                 .r#gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 20)),
             configured: rng.r#gen(),
+            attestation_status: DeviceAttestationStatus::NotAttested,
+            attested_at: None,
         }
     }
 }
@@ -653,6 +660,8 @@ impl Device {
             device_type,
             description,
             configured,
+            attestation_status: DeviceAttestationStatus::NotAttested,
+            attested_at: None,
         }
     }
 }
@@ -675,7 +684,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-            d.device_type  \"device_type: DeviceType\", configured \
+            d.device_type  \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at \
             FROM device d \
             JOIN wireguard_network_device wnd ON d.id = wnd.device_id \
             WHERE $1 = ANY(wnd.wireguard_ips) AND wnd.wireguard_network_id = $2",
@@ -693,7 +702,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -709,7 +718,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -723,7 +732,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
@@ -888,7 +897,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
         )
@@ -908,7 +917,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE device_type = $1 ORDER BY name \
             LIMIT $2 OFFSET $3",
             device_type as DeviceType,
@@ -945,7 +954,7 @@ impl Device<Id> {
         query_as!(
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE device_type = $1 \
             AND id IN \
             (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \

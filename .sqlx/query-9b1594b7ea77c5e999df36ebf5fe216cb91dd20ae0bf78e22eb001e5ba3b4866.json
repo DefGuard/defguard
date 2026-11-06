@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
+  "query": "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", d.configured, d.attestation_status \"attestation_status: _\", d.attested_at FROM device d JOIN vpn_client_session s ON d.id = s.device_id WHERE s.state = 'connected' AND s.location_id = $1 AND d.device_type = $2",
   "describe": {
     "columns": [
       {
@@ -100,11 +100,57 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -115,8 +161,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "21a3c5d3ea54a1b78bb6012e59c49216864fb05871f92a87110e99a05ace14ee"
+  "hash": "9b1594b7ea77c5e999df36ebf5fe216cb91dd20ae0bf78e22eb001e5ba3b4866"
 }

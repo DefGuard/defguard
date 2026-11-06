@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".username = $2",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device WHERE device_type = $1 AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -100,12 +100,57 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Text"
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        },
+        "Int8"
       ]
     },
     "nullable": [
@@ -116,8 +161,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "1f84d16de620fbc5dcee228d28bc35818e9a647dafae48b87c1651f4f9ca7f09"
+  "hash": "09db7dd6f9f5f36d5c666ead403182c3f71127be6ad1ce6c78252f17ea3294d6"
 }

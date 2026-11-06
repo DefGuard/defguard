@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = $1 AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) ORDER BY name",
+  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".username = $2",
   "describe": {
     "columns": [
       {
@@ -100,22 +100,47 @@
             "name": "configured"
           }
         }
-      }
-    ],
-    "parameters": {
-      "Left": [
-        {
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
           "Custom": {
-            "name": "device_type",
+            "name": "device_attestation_status",
             "kind": {
               "Enum": [
-                "user",
-                "network"
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
               ]
             }
           }
         },
-        "Int8"
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
       ]
     },
     "nullable": [
@@ -126,8 +151,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "56e835feea4f834510c020e111d06585092b9f160b8c8bdf34610de0c4d2cf52"
+  "hash": "acaeaec834a0ca8df63c60e660bc30b3d04b00ad4b1a10b93f3e1bf4377e5875"
 }
