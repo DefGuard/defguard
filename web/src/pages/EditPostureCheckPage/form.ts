@@ -15,6 +15,10 @@ export type EditPostureCheckFormValues = {
   allowPrereleaseClient: boolean;
   configuredOperatingSystems: PostureCheckOsValue[];
   description: string | null;
+  desktopAttestation: boolean;
+  desktopManualVerification: boolean;
+  mobileAttestation: boolean;
+  mobileManualVerification: boolean;
   locations: Set<number>;
   minimumDesktopClientVersion: string | null;
   minimumMobileClientVersion: string | null;
@@ -127,6 +131,10 @@ export const getInitialEditPostureCheckFormValues = (
     allowPrereleaseClient: postureCheck.allow_prerelease_client,
     configuredOperatingSystems: postureCheck.os_rules.map((rule) => rule.os_type),
     description: postureCheck.description,
+    desktopAttestation: postureCheck.desktop_attestation,
+    desktopManualVerification: postureCheck.desktop_manual_verification,
+    mobileAttestation: postureCheck.mobile_attestation,
+    mobileManualVerification: postureCheck.mobile_manual_verification,
     locations: new Set(postureCheck.locations),
     minimumDesktopClientVersion: postureCheck.min_desktop_client_version,
     minimumMobileClientVersion: postureCheck.min_mobile_client_version,
@@ -166,6 +174,10 @@ export const normalizeEditPostureCheckEnforcementFields = (
   const {
     allowPrereleaseClient,
     configuredOperatingSystems,
+    desktopAttestation,
+    desktopManualVerification,
+    mobileAttestation,
+    mobileManualVerification,
     minimumDesktopClientVersion,
     minimumMobileClientVersion,
     operatingSystemState,
@@ -174,6 +186,10 @@ export const normalizeEditPostureCheckEnforcementFields = (
   return {
     allowPrereleaseClient,
     configuredOperatingSystems,
+    desktopAttestation,
+    desktopManualVerification,
+    mobileAttestation,
+    mobileManualVerification,
     minimumDesktopClientVersion,
     minimumMobileClientVersion,
     operatingSystemState,

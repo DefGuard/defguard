@@ -15,6 +15,7 @@ import {
   ContextualHelpKey,
   ContextualHelpSidebar,
 } from '../../shared/components/ContextualHelp';
+import { DeviceAttestationSettings } from '../../shared/components/DeviceAttestationSettings/DeviceAttestationSettings';
 import { EditHeader } from '../../shared/components/EditHeader/EditHeader';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
@@ -23,6 +24,7 @@ import { Page } from '../../shared/components/Page/Page';
 import {
   PostureCheckDefguardSection,
   type PostureCheckEditorLocationOption,
+  type PostureCheckEditorValues,
   PostureCheckGeneralSection,
   PostureCheckLocationsSection,
   PostureCheckOperatingSystemsSection,
@@ -92,10 +94,10 @@ const EditPostureCheckForm = ({
         allowPrereleaseClient: nextValues.allowPrereleaseClient,
         configuredOperatingSystems: nextValues.configuredOperatingSystems,
         description: nextValues.description,
-        desktopAttestation: postureCheck.desktop_attestation,
-        desktopManualVerification: postureCheck.desktop_manual_verification,
-        mobileAttestation: postureCheck.mobile_attestation,
-        mobileManualVerification: postureCheck.mobile_manual_verification,
+        desktopAttestation: nextValues.desktopAttestation,
+        desktopManualVerification: nextValues.desktopManualVerification,
+        mobileAttestation: nextValues.mobileAttestation,
+        mobileManualVerification: nextValues.mobileManualVerification,
         minimumDesktopClientVersion: nextValues.minimumDesktopClientVersion,
         minimumMobileClientVersion: nextValues.minimumMobileClientVersion,
         name: nextValues.name,
@@ -153,10 +155,10 @@ const EditPostureCheckForm = ({
     saveMutation.mutate(values);
   };
 
-  const updateValues = (
-    updater: (current: EditPostureCheckFormValues) => EditPostureCheckFormValues,
+  const updateEditorValues = (
+    updater: (current: PostureCheckEditorValues) => PostureCheckEditorValues,
   ) => {
-    setValues((current) => updater(current));
+    setValues((current) => ({ ...current, ...updater(current) }));
   };
 
   const saveDisabled =
@@ -170,7 +172,7 @@ const EditPostureCheckForm = ({
       }}
     >
       <EditPageFormSection label={m.posture_checks_edit_general()}>
-        <PostureCheckGeneralSection values={values} updateValues={updateValues} />
+        <PostureCheckGeneralSection values={values} updateValues={updateEditorValues} />
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_operating_systems()}>
         <InfoBanner
@@ -183,21 +185,49 @@ const EditPostureCheckForm = ({
           asCards={false}
           values={values}
           versionValues={versionValues}
-          updateValues={updateValues}
+          updateValues={updateEditorValues}
         />
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_defguard()}>
         <PostureCheckDefguardSection
           values={values}
           versionValues={versionValues}
-          updateValues={updateValues}
+          updateValues={updateEditorValues}
+        />
+      </EditPageFormSection>
+      <EditPageFormSection label={m.posture_checks_edit_device_attestation()}>
+        <DeviceAttestationSettings
+          desktopAttestation={values.desktopAttestation}
+          desktopManualVerification={values.desktopManualVerification}
+          mobileAttestation={values.mobileAttestation}
+          mobileManualVerification={values.mobileManualVerification}
+          onDesktopAttestationChange={(value) => {
+            setValues((current) => ({
+              ...current,
+              desktopAttestation: value,
+              desktopManualVerification: value && current.desktopManualVerification,
+            }));
+          }}
+          onDesktopManualVerificationChange={(value) => {
+            setValues((current) => ({ ...current, desktopManualVerification: value }));
+          }}
+          onMobileAttestationChange={(value) => {
+            setValues((current) => ({
+              ...current,
+              mobileAttestation: value,
+              mobileManualVerification: value && current.mobileManualVerification,
+            }));
+          }}
+          onMobileManualVerificationChange={(value) => {
+            setValues((current) => ({ ...current, mobileManualVerification: value }));
+          }}
         />
       </EditPageFormSection>
       <EditPageFormSection label={m.posture_checks_edit_locations()}>
         <PostureCheckLocationsSection
           locationOptions={assignedLocationOptions}
           values={values}
-          updateValues={updateValues}
+          updateValues={updateEditorValues}
         />
       </EditPageFormSection>
       <EditPageControls
