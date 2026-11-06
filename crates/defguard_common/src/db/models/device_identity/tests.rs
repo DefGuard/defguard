@@ -58,6 +58,20 @@ async fn test_device_identity_defaults_and_backend_roundtrips(
         assert!(row.identity_backend.is_none());
         assert!(row.identity_public_key_der.is_none());
         assert!(row.attested_at.is_none());
+        row.attestation_status = DeviceAttestationStatus::AttestationFailed;
+        row.save(&pool).await.unwrap();
+        assert_eq!(
+            Device::find_by_id(&pool, row.id)
+                .await
+                .unwrap()
+                .unwrap()
+                .attestation_status,
+            DeviceAttestationStatus::AttestationFailed
+        );
+        assert_eq!(
+            serde_json::to_value(row.attestation_status).unwrap(),
+            "attestation_failed"
+        );
         row.identity_backend = Some(backend);
         row.identity_public_key_der = Some(vec![0, 255, 128]);
         row.attestation_status = DeviceAttestationStatus::Attested;

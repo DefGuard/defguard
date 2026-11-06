@@ -1,6 +1,6 @@
 CREATE TYPE device_identity_backend AS ENUM ('tpm', 'apple_app_attest');
 CREATE TYPE device_attestation_status AS ENUM (
-    'not_attested', 'attested', 'unrecognized', 'attested_manually'
+    'not_attested', 'attested', 'unrecognized', 'attested_manually', 'attestation_failed'
 );
 
 ALTER TABLE device

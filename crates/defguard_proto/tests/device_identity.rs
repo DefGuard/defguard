@@ -4,9 +4,10 @@ use defguard_proto::{
         enrollment_start_request,
     },
     device_identity::{
-        AttestationIdentity, AttestationResponse, IdentityState, PossessionChallenge,
-        PossessionResponse, Signature, SignatureAlgorithm, TpmAttestationIdentity,
-        TpmAttestationResponse, attestation_identity, attestation_response, possession_response,
+        AttestationIdentity, AttestationResponse, AttestationStatus, IdentityState,
+        PossessionChallenge, PossessionResponse, Signature, SignatureAlgorithm,
+        TpmAttestationIdentity, TpmAttestationResponse, attestation_identity, attestation_response,
+        possession_response,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -71,6 +72,7 @@ fn test_device_identity_state_and_challenge_roundtrip_in_core_response() {
         payload: Some(core_response::Payload::DeviceConfig(DeviceConfigResponse {
             identity_state: Some(IdentityState {
                 identity_id: "identity".into(),
+                attestation_status: AttestationStatus::AttestationFailed as i32,
                 key_fingerprint: vec![0, 255, 128],
                 ..Default::default()
             }),

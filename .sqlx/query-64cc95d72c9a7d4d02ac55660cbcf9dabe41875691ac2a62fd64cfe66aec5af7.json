@@ -54,7 +54,8 @@
                 "not_attested",
                 "attested",
                 "unrecognized",
-                "attested_manually"
+                "attested_manually",
+                "attestation_failed"
               ]
             }
           }

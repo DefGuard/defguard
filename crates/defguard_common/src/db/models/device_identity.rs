@@ -24,6 +24,7 @@ pub enum DeviceAttestationStatus {
     Attested,
     Unrecognized,
     AttestedManually,
+    AttestationFailed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Type)]
