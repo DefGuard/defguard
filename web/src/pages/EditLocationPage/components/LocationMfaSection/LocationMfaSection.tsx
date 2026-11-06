@@ -210,6 +210,7 @@ export const LocationMfaSection = ({
                     />
                   }
                   editLabel={m.location_mfa_default_flow_edit()}
+                  editTestId="location-mfa-default-flow-edit"
                   onEdit={() => openEditor({ kind: 'default' })}
                 />
                 {hasUnavailableFlow && (
@@ -243,6 +244,7 @@ export const LocationMfaSection = ({
           <Button
             variant="outlined"
             text={m.location_mfa_overrides_add()}
+            testId="location-mfa-add-override"
             disabled={overridesLocked || allFlowsAssigned}
             onClick={() => openEditor({ kind: 'override' })}
           />

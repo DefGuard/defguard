@@ -87,13 +87,22 @@ jobs:
               exit 1
             fi
 
-            # Only a push to dev, release/**, or stable/** starts CI, so this gate also rejects a draft from a feature branch.
+            # CI can be started by hand on any branch, so a green run alone does not prove the branch is a release branch.
+            if [[ ! $GITHUB_REF_NAME =~ ^(dev|release/.+|stable/.+)$ ]]; then
+              echo "::error::A draft must come from dev, release/**, or stable/**, not $GITHUB_REF_NAME"
+              exit 1
+            fi
+
+            # Only the newest run of each workflow counts, so a green manual run replaces a failed push run.
+            # Manual runs count only for the CI workflows; release.yml runs are themselves workflow_dispatch runs.
             CI_PROBLEMS=$(gh api --method GET "repos/$GH_REPO/actions/runs" -f head_sha="$GITHUB_SHA" \
-              -f branch="$GITHUB_REF_NAME" -f event=push -F per_page=100 --jq '.workflow_runs |
+              -f branch="$GITHUB_REF_NAME" -F per_page=100 --jq '[".github/workflows/ci.yml", ".github/workflows/current.yml"] as $ci |
+                [.workflow_runs[] | select(.event == "push" or (.event == "workflow_dispatch" and (.path | IN($ci[]))))] |
+                group_by(.path) | map(max_by(.run_started_at)) |
                 (.[] | select(.conclusion != "success" and .conclusion != "skipped") | "\(.path): \(.conclusion // .status) \(.html_url)"),
-                ([".github/workflows/ci.yml", ".github/workflows/current.yml"] - map(.path) | .[] | "\(.): no run")')
+                ($ci - map(.path) | .[] | "\(.): no run")')
             if [[ -n $CI_PROBLEMS ]]; then
-              echo "::error::CI for $GITHUB_SHA on $GITHUB_REF_NAME is not green. A push that changes only *.md or LICENSE files starts no CI run."
+              echo "::error::CI for $GITHUB_SHA on $GITHUB_REF_NAME is not green. A push that changes only *.md or LICENSE files, or a branch rename, starts no CI run; start one with: gh workflow run ci.yml --ref $GITHUB_REF_NAME && gh workflow run current.yml --ref $GITHUB_REF_NAME"
               echo "$CI_PROBLEMS"
               exit 1
             fi

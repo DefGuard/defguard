@@ -58,6 +58,7 @@ import {
   getNetworkDevicesQueryOptions,
   getUsersOverviewQueryOptions,
 } from '../../shared/query';
+import { splitCsv } from '../../shared/utils/csv';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 import emptyDestinationIconSrc from './assets/empty-destinations-icon.png';
@@ -472,11 +473,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
             const aliasHasProtocol = selectedAliasesList.some(
               (a) => a.protocols.length > 0,
             );
-            if (
-              !vals.any_address &&
-              vals.addresses.trim().length === 0 &&
-              !aliasHasAddress
-            ) {
+            if (!vals.any_address && vals.addresses.length === 0 && !aliasHasAddress) {
               ctx.addIssue({
                 path: ['addresses'],
                 code: 'custom',
@@ -522,6 +519,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
     if (isPresent(initialRule)) {
       return {
         ...omit(initialRule, ['id', 'state', 'expires', 'parent_id']),
+        addresses: splitCsv(initialRule.addresses),
         aliases: new Set(initialRule.aliases),
         destinations: new Set(initialRule.destinations),
         protocols: new Set(initialRule.protocols),
@@ -539,6 +537,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
       return {
         ...omit(duplicate, ['id', 'state', 'expires', 'parent_id']),
         name: m.acl_duplicate_name({ name: duplicate.name }),
+        addresses: splitCsv(duplicate.addresses),
         aliases: new Set(duplicate.aliases),
         destinations: new Set(duplicate.destinations),
         protocols: new Set(duplicate.protocols),
@@ -553,7 +552,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
 
     return {
       name: '',
-      addresses: '',
+      addresses: [],
       ports: '',
       aliases: new Set(),
       destinations: new Set(),
@@ -612,6 +611,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
       if (isPresent(initialRule)) {
         await editRule({
           ...toSend,
+          addresses: toSend.addresses.join(','),
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
           destinations: Array.from(toSend.destinations),
@@ -620,6 +620,7 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
       } else {
         await addRule({
           ...toSend,
+          addresses: toSend.addresses.join(','),
           protocols: Array.from(toSend.protocols),
           aliases: Array.from(toSend.aliases),
           destinations: Array.from(toSend.destinations),
@@ -850,10 +851,9 @@ const Content = ({ rule: initialRule, duplicate, tab }: Props) => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         <form.AppField name="addresses">
                           {(field) => (
-                            <field.FormTextarea
+                            <field.FormMultiSelect
                               label={m.acl_form_addresses_label()}
                               helper={m.acl_helper_addresses()}
-                              notNull
                             />
                           )}
                         </form.AppField>

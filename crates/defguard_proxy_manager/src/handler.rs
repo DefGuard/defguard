@@ -722,8 +722,8 @@ impl ProxyHandler {
                         Some(core_response::Payload::CodeMfaSetupStartResponse(response))
                     }
                     Err(err) => {
-                        error!("MFA setup start error {err}");
-                        Some(core_response::Payload::CoreError(err.into()))
+                        error!("MFA setup start error {err:?}");
+                        Some(core_response::Payload::CoreError(err))
                     }
                 }
             }

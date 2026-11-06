@@ -53,6 +53,7 @@ use defguard_proto::{
         MfaMethod, NewDevice, RegisterMobileAuthRequest, enrollment_start_request::DeviceIdentity,
     },
     device_identity::{AttestationRequest, AttestationResponse, IdentityState},
+    proxy::{CoreError, CoreErrorCode},
 };
 use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
@@ -1185,27 +1186,28 @@ impl EnrollmentServer {
     pub(crate) async fn mfa_setup_start(
         &self,
         request: CodeMfaSetupStartRequest,
-    ) -> Result<CodeMfaSetupStartResponse, Status> {
+    ) -> Result<CodeMfaSetupStartResponse, CoreError> {
         debug!("Starting MFA setup");
         let method = request.method();
         if !licensed_mfa_setup_methods().contains(&method.into()) {
             warn!("Refusing to start {method} MFA setup; the active license does not allow it");
-            return Err(Status::invalid_argument("Method not supported".to_owned()));
+            return Err(CoreError::invalid_argument("Method not supported"));
         }
         let (mut token, is_enrollment) = self
             .validate_mfa_setup_session(Some(&request.token))
             .await?;
-        let mut user = token.fetch_user(&self.pool).await?;
+        let mut user = token.fetch_user(&self.pool).await.map_err(Status::from)?;
         // Enrollment cannot configure an already enrolled user; MFA configuration can.
         if is_enrollment && user.is_enrolled() {
-            return Err(Status::permission_denied("User is already enrolled"));
+            return Err(Status::permission_denied("User is already enrolled").into());
         }
         match method {
             MfaMethod::Email => {
                 let settings = Settings::get_current_settings();
                 if !settings.smtp_configured() {
                     error!("Unable to start email MFA setup; SMTP is not configured");
-                    return Err(Status::internal("SMTP not configured".to_owned()));
+                    return Err(CoreError::internal("SMTP not configured")
+                        .with_code(CoreErrorCode::SmtpNotConfigured));
                 }
                 user.new_email_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to create email secret");
@@ -1250,14 +1252,17 @@ impl EnrollmentServer {
                 })
             }
             MfaMethod::Fido2 => {
-                let challenge = token.start_fido2_setup(&self.pool, &user).await?;
+                let challenge = token
+                    .start_fido2_setup(&self.pool, &user)
+                    .await
+                    .map_err(Status::from)?;
                 info!("Started FIDO2 setup for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: None,
                     fido2_creation_challenge: Some(challenge),
                 })
             }
-            _ => Err(Status::invalid_argument("Method not supported".to_owned())),
+            _ => Err(CoreError::invalid_argument("Method not supported")),
         }
     }
 

@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - "*.md"
       - "LICENSE"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

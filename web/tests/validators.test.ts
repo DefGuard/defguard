@@ -535,12 +535,33 @@ describe('aclDestinationValidator', () => {
   // Helper function to test validator
   const isValid = (value: string): boolean => {
     try {
-      schema.parse(value);
+      schema.parse([value]);
       return true;
     } catch {
       return false;
     }
   };
+
+  describe('Multiple chips', () => {
+    it('should accept empty list', () => {
+      expect(schema.safeParse([]).success).toBe(true);
+    });
+
+    it('should accept list of valid entries', () => {
+      expect(
+        schema.safeParse([
+          '10.0.0.1',
+          '10.0.0.0/24',
+          '10.0.1.1-10.0.1.9',
+          '2001:db8::/64',
+        ]).success,
+      ).toBe(true);
+    });
+
+    it('should reject list with an invalid entry', () => {
+      expect(schema.safeParse(['10.0.0.1', '10.0.0.10-10.0.0.1']).success).toBe(false);
+    });
+  });
 
   describe('Single IP addresses', () => {
     it('should accept valid IPv4 address', () => {

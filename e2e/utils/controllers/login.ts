@@ -63,6 +63,8 @@ export const loginRecoveryCodes = async (
   await page.getByTestId('field-password').fill(userInfo.password);
   await page.getByTestId('sign-in').click();
   await page.locator('a:has-text("Use recovery codes instead")').click();
+  await waitForRoute(page, routes.auth.recovery);
+  await page.getByTestId('submit-recovery-code').waitFor({ state: 'visible' });
   await page.getByTestId('field-code').waitFor({ state: 'visible' });
   await page.getByTestId('field-code').clear();
   await page.getByTestId('field-code').fill(code.trim());
