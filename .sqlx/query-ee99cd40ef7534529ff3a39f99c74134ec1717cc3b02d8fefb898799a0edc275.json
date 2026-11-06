@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE device_type = 'network'::device_type AND configured AND wireguard_network_id = $1",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\",\"identity_backend\" \"identity_backend?: _\",\"identity_public_key_der\",\"attestation_status\" \"attestation_status: _\",\"attested_at\",\"apple_sign_count\",\"tpm_ek_public\",\"tpm_ek_certificate_chain_der\" \"tpm_ek_certificate_chain_der?: _\",\"apple_key_id\" FROM \"device\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -60,18 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "description",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "description"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
-        "name": "device_type: DeviceType",
+        "name": "device_type: _",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -87,6 +76,17 @@
           "Table": {
             "table": "device",
             "name": "device_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "description"
           }
         }
       },
@@ -178,6 +178,39 @@
             "name": "apple_sign_count"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tpm_ek_certificate_chain_der?: _",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "apple_key_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -191,15 +224,18 @@
       false,
       false,
       false,
-      true,
-      false,
       false,
       true,
+      false,
+      true,
       true,
       false,
+      true,
+      true,
+      true,
       true,
       true
     ]
   },
-  "hash": "9067aebb06a7c374d43334aa2e7b1b9aff90d620d133623b7e9689c9b01d697e"
+  "hash": "ee99cd40ef7534529ff3a39f99c74134ec1717cc3b02d8fefb898799a0edc275"
 }

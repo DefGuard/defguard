@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count FROM device WHERE device_type = $1 ORDER BY name",
+  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE device_type = 'network'::device_type AND configured AND wireguard_network_id = $1",
   "describe": {
     "columns": [
       {
@@ -178,21 +178,44 @@
             "name": "apple_sign_count"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tpm_ek_certificate_chain_der",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "apple_key_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        {
-          "Custom": {
-            "name": "device_type",
-            "kind": {
-              "Enum": [
-                "user",
-                "network"
-              ]
-            }
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -208,8 +231,11 @@
       true,
       false,
       true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "a666e489e14d5949f8022d58a8e9040e0a23e2345b83a485a79a3b4df3a9e1ff"
+  "hash": "b31190947a0cbddeeabcaba56615a7610929d4554238c20327a1a0669bdfab3b"
 }

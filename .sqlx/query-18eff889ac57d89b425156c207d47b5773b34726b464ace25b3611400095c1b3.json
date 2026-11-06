@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device WHERE device_type = $1 AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -178,10 +178,54 @@
             "name": "apple_sign_count"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tpm_ek_certificate_chain_der",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "apple_key_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        },
         "Int8"
       ]
     },
@@ -198,8 +242,11 @@
       true,
       false,
       true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "1dc87e2e4481677966139b70d307f08eb471696f3e2559ae3d23282463cbd085"
+  "hash": "18eff889ac57d89b425156c207d47b5773b34726b464ace25b3611400095c1b3"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\",\"identity_backend\" \"identity_backend?: _\",\"identity_public_key_der\",\"attestation_status\" \"attestation_status: _\",\"attested_at\",\"apple_sign_count\" FROM \"device\" LIMIT $1 OFFSET $2",
+  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,18 @@
       },
       {
         "ordinal": 5,
-        "name": "device_type: _",
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "device_type: DeviceType",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -76,17 +87,6 @@
           "Table": {
             "table": "device",
             "name": "device_type"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
-        "name": "description",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "description"
           }
         }
       },
@@ -178,11 +178,43 @@
             "name": "apple_sign_count"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tpm_ek_certificate_chain_der",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "apple_key_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -192,15 +224,18 @@
       false,
       false,
       false,
+      true,
       false,
+      false,
+      true,
       true,
       false,
       true,
       true,
-      false,
+      true,
       true,
       true
     ]
   },
-  "hash": "030334c94f83df7d58489cf7f2937917c125aa738e444c72000150b81261aad5"
+  "hash": "0db132a74f6ecaed252128e939363a7a78f4b8622047a30a73683f530120e3bc"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count FROM device WHERE user_id = $1 and device_type = 'user'::device_type ORDER BY id",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device WHERE device_type = $1 ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -178,11 +178,54 @@
             "name": "apple_sign_count"
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tpm_ek_certificate_chain_der",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "apple_key_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -198,8 +241,11 @@
       true,
       false,
       true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "22e9d78a6dcd434f3776fec7ab6818ef6f93ce6fa8e7a3894babe428db32df9b"
+  "hash": "f2e7fd0a04093e1163549a6a943792c10cd3c8dde8fab238a4dae77a32e479b5"
 }

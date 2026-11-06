@@ -9,7 +9,10 @@ ALTER TABLE device
     DROP COLUMN identity_public_key_der,
     DROP COLUMN attestation_status,
     DROP COLUMN attested_at,
-    DROP COLUMN apple_sign_count;
+    DROP COLUMN apple_sign_count,
+    DROP COLUMN tpm_ek_public,
+    DROP COLUMN tpm_ek_certificate_chain_der,
+    DROP COLUMN apple_key_id;
 DROP TYPE challenge_purpose;
 DROP TYPE device_attestation_status;
 DROP TYPE device_identity_backend;

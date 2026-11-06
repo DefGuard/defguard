@@ -8,18 +8,32 @@ ALTER TABLE device
     ADD COLUMN identity_public_key_der bytea NULL,
     ADD COLUMN attestation_status device_attestation_status NOT NULL DEFAULT 'not_attested',
     ADD COLUMN attested_at timestamp without time zone NULL,
-    ADD COLUMN apple_sign_count bigint NULL;
+    ADD COLUMN apple_sign_count bigint NULL,
+    ADD COLUMN tpm_ek_public bytea NULL,
+    ADD COLUMN tpm_ek_certificate_chain_der bytea[] NULL,
+    ADD COLUMN apple_key_id text NULL;
 
 ALTER TABLE device
     ADD CONSTRAINT device_identity_backend_fields CHECK (
-        (identity_backend IS NOT NULL OR (identity_public_key_der IS NULL AND apple_sign_count IS NULL))
-        AND (apple_sign_count IS NULL OR identity_backend = 'apple_app_attest')
+        (identity_backend IS NOT NULL OR (
+            identity_public_key_der IS NULL AND apple_sign_count IS NULL
+            AND tpm_ek_public IS NULL AND tpm_ek_certificate_chain_der IS NULL AND apple_key_id IS NULL
+        ))
+        AND ((tpm_ek_public IS NULL AND tpm_ek_certificate_chain_der IS NULL) OR identity_backend = 'tpm')
+        AND ((apple_sign_count IS NULL AND apple_key_id IS NULL) OR identity_backend = 'apple_app_attest')
     ),
     ADD CONSTRAINT device_identity_apple_counter_range
         CHECK (apple_sign_count IS NULL OR apple_sign_count BETWEEN 0 AND 4294967295),
     ADD CONSTRAINT device_identity_attested_key CHECK (
         attestation_status NOT IN ('attested', 'attested_manually')
-        OR (identity_backend IS NOT NULL AND identity_public_key_der IS NOT NULL AND attested_at IS NOT NULL)
+        OR (
+            identity_backend IS NOT NULL AND identity_public_key_der IS NOT NULL AND attested_at IS NOT NULL
+            AND (
+                attestation_status = 'attested_manually'
+                OR (identity_backend = 'tpm' AND tpm_ek_public IS NOT NULL AND tpm_ek_certificate_chain_der IS NOT NULL)
+                OR (identity_backend = 'apple_app_attest' AND apple_key_id IS NOT NULL)
+            )
+        )
     );
 
 ALTER TABLE token ADD COLUMN attestation_state bytea NULL;

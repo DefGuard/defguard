@@ -1200,7 +1200,7 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 }
                 defguard_core::events::EnrollmentEvent::EnrollmentDeviceAdded { device } => (
                     EventType::EnrollmentDeviceAdded,
-                    serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).ok(),
+                    serde_json::to_value(EnrollmentDeviceAddedMetadata { device: *device }).ok(),
                 ),
             };
             (module, event_type, description, metadata)

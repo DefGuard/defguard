@@ -113,6 +113,13 @@ pub struct Device<I = NoId> {
     pub attestation_status: DeviceAttestationStatus,
     pub attested_at: Option<NaiveDateTime>,
     pub apple_sign_count: Option<i64>,
+    /// Marshalled TPMT_PUBLIC of the EK used during verified attestation.
+    pub tpm_ek_public: Option<Vec<u8>>,
+    /// DER certificates starting with the EK certificate.
+    #[model(option_ref)]
+    pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
+    /// App Attest key identifier associated with the verified identity public key.
+    pub apple_key_id: Option<String>,
 }
 
 impl fmt::Display for Device<NoId> {
@@ -159,6 +166,9 @@ impl Distribution<Device> for Standard {
             attestation_status: DeviceAttestationStatus::NotAttested,
             attested_at: None,
             apple_sign_count: None,
+            tpm_ek_public: None,
+            tpm_ek_certificate_chain_der: None,
+            apple_key_id: None,
         }
     }
 }
@@ -672,6 +682,9 @@ impl Device {
             attestation_status: DeviceAttestationStatus::NotAttested,
             attested_at: None,
             apple_sign_count: None,
+            tpm_ek_public: None,
+            tpm_ek_certificate_chain_der: None,
+            apple_key_id: None,
         }
     }
 }
@@ -695,7 +708,8 @@ impl Device<Id> {
             Self,
             "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
             d.device_type  \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device d \
             JOIN wireguard_network_device wnd ON d.id = wnd.device_id \
             WHERE $1 = ANY(wnd.wireguard_ips) AND wnd.wireguard_network_id = $2",
@@ -714,7 +728,8 @@ impl Device<Id> {
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -731,7 +746,8 @@ impl Device<Id> {
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -746,7 +762,8 @@ impl Device<Id> {
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
@@ -912,7 +929,8 @@ impl Device<Id> {
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
         )
@@ -933,7 +951,8 @@ impl Device<Id> {
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device WHERE device_type = $1 ORDER BY name \
             LIMIT $2 OFFSET $3",
             device_type as DeviceType,
@@ -971,7 +990,8 @@ impl Device<Id> {
             Self,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
             device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-            attestation_status \"attestation_status: _\", attested_at, apple_sign_count \
+            attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
+            tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
             FROM device WHERE device_type = $1 \
             AND id IN \
             (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \

@@ -276,6 +276,9 @@ fn api_event_cases() -> Vec<EventTestCase> {
         attestation_status: Default::default(),
         attested_at: None,
         apple_sign_count: None,
+        tpm_ek_public: None,
+        tpm_ek_certificate_chain_der: None,
+        apple_key_id: None,
         id: 2,
         name: "d2".into(),
         wireguard_pubkey: "pk".into(),
@@ -1334,7 +1337,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             message: bidi_msg(
                 BidiStreamEventType::Enrollment(Box::new(
                     CoreEnrollmentEvent::EnrollmentDeviceAdded {
-                        device: device.clone(),
+                        device: Box::new(device.clone()),
                     },
                 )),
                 None,
