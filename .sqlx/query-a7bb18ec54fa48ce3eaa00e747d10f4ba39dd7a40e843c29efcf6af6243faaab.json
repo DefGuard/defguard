@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = $1 ORDER BY name",
+  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at FROM device d JOIN \"user\" u ON d.user_id = u.id WHERE u.is_active AND d.device_type = 'user'::device_type ORDER BY d.id ASC",
   "describe": {
     "columns": [
       {
@@ -100,22 +100,45 @@
             "name": "configured"
           }
         }
-      }
-    ],
-    "parameters": {
-      "Left": [
-        {
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
           "Custom": {
-            "name": "device_type",
+            "name": "device_attestation_status",
             "kind": {
               "Enum": [
-                "user",
-                "network"
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
               ]
             }
           }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
         }
-      ]
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
     },
     "nullable": [
       false,
@@ -125,8 +148,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "b81a45f3c325cc4e3c4b7c4877a293d148081ee8707acc63aabbb6e6ec0abc6a"
+  "hash": "a7bb18ec54fa48ce3eaa00e747d10f4ba39dd7a40e843c29efcf6af6243faaab"
 }

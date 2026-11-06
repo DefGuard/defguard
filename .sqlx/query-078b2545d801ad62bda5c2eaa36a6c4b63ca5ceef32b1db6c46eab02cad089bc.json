@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE device_type = 'network'::device_type AND configured AND wireguard_network_id = $1",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device WHERE device_type = $1 ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -100,11 +100,56 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -115,8 +160,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "f946b5af07deecd30171260b8b760c27581ac94753f81a529b7814c23748d3db"
+  "hash": "078b2545d801ad62bda5c2eaa36a6c4b63ca5ceef32b1db6c46eab02cad089bc"
 }

@@ -106,6 +106,8 @@ async fn create_test_user_with_devices<R: Rng>(
             wireguard_pubkey: String::default(),
             created: NaiveDateTime::default(),
             configured: true,
+            attestation_status: Default::default(),
+            attested_at: None,
         };
         let device = device.save(pool).await.unwrap();
 
@@ -183,6 +185,8 @@ async fn create_test_users_and_devices(
                 wireguard_pubkey: String::default(),
                 created: NaiveDateTime::default(),
                 configured: true,
+                attestation_status: Default::default(),
+                attested_at: None,
             };
             let device = device.save(pool).await.unwrap();
 
@@ -358,6 +362,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
                 wireguard_pubkey: String::default(),
                 created: NaiveDateTime::default(),
                 configured: true,
+                attestation_status: Default::default(),
+                attested_at: None,
             };
             let device = device.save(&pool).await.unwrap();
 
@@ -419,6 +425,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
@@ -431,6 +439,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
@@ -443,6 +453,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
 
@@ -717,6 +729,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
                 wireguard_pubkey: String::default(),
                 created: NaiveDateTime::default(),
                 configured: true,
+                attestation_status: Default::default(),
+                attested_at: None,
             };
             let device = device.save(&pool).await.unwrap();
 
@@ -782,6 +796,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
@@ -794,6 +810,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
@@ -806,6 +824,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
 
@@ -1091,6 +1111,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 wireguard_pubkey: String::default(),
                 created: NaiveDateTime::default(),
                 configured: true,
+                attestation_status: Default::default(),
+                attested_at: None,
             };
             let device = device.save(&pool).await.unwrap();
 
@@ -1159,6 +1181,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
@@ -1171,6 +1195,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
@@ -1183,6 +1209,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
 
@@ -2489,6 +2517,8 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                 wireguard_pubkey: String::default(),
                 created: NaiveDateTime::default(),
                 configured: true,
+                attestation_status: Default::default(),
+                attested_at: None,
             };
             let device = device.save(&pool).await.unwrap();
 

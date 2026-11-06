@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = $1 ORDER BY name LIMIT $2 OFFSET $3",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device WHERE id in (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $1) AND device_type = $2",
   "describe": {
     "columns": [
       {
@@ -100,10 +100,46 @@
             "name": "configured"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "attestation_status: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attestation_status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attested_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "attested_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         {
           "Custom": {
             "name": "device_type",
@@ -114,9 +150,7 @@
               ]
             }
           }
-        },
-        "Int8",
-        "Int8"
+        }
       ]
     },
     "nullable": [
@@ -127,8 +161,10 @@
       false,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "266cbdce48f82432dfeafe895d8890d4591eac8851eb8001121badc2c9915e17"
+  "hash": "bb298285ecb2e3336a6143489ce49fcd0219ae35e050cc08c7198fb5bc8429f9"
 }
