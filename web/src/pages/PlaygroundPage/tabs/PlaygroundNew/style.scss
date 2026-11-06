@@ -10,3 +10,18 @@
   flex-flow: column;
   row-gap: var(--spacing-2xl);
 }
+
+#display-grid-test {
+  .display-grid {
+    --columns: 2fr 3fr;
+
+    p {
+      font: var(--t-body-primary-400);
+      color: var(--fg-default);
+    }
+
+    .value {
+      font: var(--t-body-primary-500);
+    }
+  }
+}

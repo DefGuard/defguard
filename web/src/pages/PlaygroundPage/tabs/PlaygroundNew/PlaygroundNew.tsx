@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { Fragment } from 'react/jsx-runtime';
 import { m } from '../../../../paraglide/messages';
 import { Card } from '../../../../shared/components/Card/Card';
+import {
+  DisplayGrid,
+  DisplayGridCell,
+  DisplayGridRow,
+} from '../../../../shared/components/DisplayGrid/DisplayGrid';
 import { PolicyOsCard } from '../../../../shared/components/policyPostures/PolicyOsCard/PolicyOsCard';
 import { SystemSelector } from '../../../../shared/components/SystemSelector/SystemSelector';
 import { PolicyOsVariant } from '../../../../shared/components/SystemSelector/types';
@@ -115,6 +120,27 @@ export const PlaygroundNew = () => {
             </Helper>
           }
         />
+      </Card>
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <Card id="display-grid-test">
+        <DisplayGrid icon="devices" label="Device attestation impact">
+          <DisplayGridRow>
+            <DisplayGridCell>
+              <p>Currently attested devices</p>
+            </DisplayGridCell>
+            <DisplayGridCell>
+              <p className="value">125</p>
+            </DisplayGridCell>
+          </DisplayGridRow>
+          <DisplayGridRow>
+            <DisplayGridCell>
+              <p>Not attested</p>
+            </DisplayGridCell>
+            <DisplayGridCell>
+              <p className="value">125</p>
+            </DisplayGridCell>
+          </DisplayGridRow>
+        </DisplayGrid>
       </Card>
       <SizedBox height={ThemeSpacing.Xl3} />
       <Card id="date-input-test">

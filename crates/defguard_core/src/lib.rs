@@ -123,8 +123,8 @@ use crate::{
             check_enterprise_info,
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
-                get_device_posture, get_device_posture_versions, list_device_postures,
-                set_locations_for_posture, update_device_posture,
+                get_device_attestation_stats, get_device_posture, get_device_posture_versions,
+                list_device_postures, set_locations_for_posture, update_device_posture,
             },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
@@ -620,6 +620,10 @@ pub fn build_webapp(
         "/api/v1",
         Router::new()
             .route("/device-posture/versions", get(get_device_posture_versions))
+            .route(
+                "/device-posture/attestation-stats",
+                get(get_device_attestation_stats),
+            )
             .route(
                 "/device-posture",
                 get(list_device_postures).post(create_device_posture),

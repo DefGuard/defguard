@@ -42,6 +42,31 @@
     display: flex;
     flex-direction: column;
   }
+
+  .attestation-impact {
+    padding-left: calc(36px + var(--spacing-xl));
+  }
+
+  .interactive-block.variant-checkbox {
+    --interaction-col-size: calc(36px + var(--spacing-xl) - var(--spacing-md));
+
+    & > .interactive > .icon-track {
+      align-items: center;
+      justify-content: flex-start;
+    }
+  }
+
+  .impact-chips {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--spacing-sm);
+
+    & > .chips {
+      display: flex;
+      flex-flow: row wrap;
+      gap: var(--spacing-sm);
+    }
+  }
 }
 
 .add-posture-check-details-step {

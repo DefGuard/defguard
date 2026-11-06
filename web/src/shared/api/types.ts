@@ -1095,6 +1095,17 @@ export interface DevicePostureOsVersionCatalog {
   android: number[];
 }
 
+export interface DeviceAttestationCounts {
+  devices: number;
+  attested_devices: number;
+  verified_devices: number;
+}
+
+export interface DeviceAttestationStats {
+  desktop: DeviceAttestationCounts;
+  mobile: DeviceAttestationCounts;
+}
+
 export interface DevicePostureVersionMetadata {
   os_versions: DevicePostureOsVersionCatalog;
   linux_kernel_versions: number[];

@@ -3,8 +3,8 @@ use defguard_core::{
     enterprise::{
         db::models::device_posture::{DevicePosture, DevicePostureSnapshot},
         handlers::device_posture::{
-            ApiDevicePosture, ApiOsRule, AssignLocationsData, DevicePostureVersionMetadata,
-            EditDevicePosture,
+            ApiDevicePosture, ApiOsRule, AssignLocationsData, DeviceAttestationStats,
+            DevicePostureVersionMetadata, EditDevicePosture,
         },
         license::{get_cached_license, set_cached_license},
         posture::version_list::{
@@ -147,6 +147,18 @@ async fn test_device_posture_enterprise_license_required(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     set_cached_license(saved);
+}
+
+#[sqlx::test]
+async fn test_device_attestation_stats(_: PgPoolOptions, options: PgConnectOptions) {
+    let (client, _) = setup(options).await;
+
+    let response = client
+        .get("/api/v1/device-posture/attestation-stats")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let _: DeviceAttestationStats = response.json().await;
 }
 
 #[sqlx::test]
