@@ -39,7 +39,18 @@ export const enableTOTP = async (
   const recovery = recoveryString.split('\n').filter((line) => line.trim());
 
   await page.getByTestId('confirm-code-save').click();
+  const saveMfaResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      response.url().endsWith('/api/v1/auth/mfa'),
+  );
   await page.getByTestId('finish-recovery-codes').click();
+  const saveMfaResponse = await saveMfaResponsePromise;
+  if (!saveMfaResponse.ok()) {
+    throw new Error(
+      `Saving TOTP MFA setup failed with status ${saveMfaResponse.status()}`,
+    );
+  }
 
   await context.close();
   return {

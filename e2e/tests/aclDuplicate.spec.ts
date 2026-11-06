@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
 import {
@@ -15,6 +15,12 @@ import {
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
+
+const fieldChips = (page: Page, field: string) =>
+  page
+    .locator('.multi-select')
+    .filter({ has: page.getByTestId(`field-${field}`) })
+    .locator('.chip');
 
 test.describe('ACL duplicate', () => {
   test.beforeEach(() => {
@@ -40,7 +46,7 @@ test.describe('ACL duplicate', () => {
 
     await page.waitForURL(routes.base + routes.firewall.addAlias + '**');
     await expect(page.getByTestId('field-name')).toHaveValue(ALIAS_COPY_NAME);
-    await expect(page.getByTestId('field-addresses')).toHaveValue('10.10.0.0/24');
+    await expect(fieldChips(page, 'addresses')).toHaveText(['10.10.0.0/24']);
     await expect(page.getByTestId('field-ports')).toHaveValue('443');
 
     await page.locator('button[type="submit"]').click();
@@ -125,9 +131,7 @@ test.describe('ACL duplicate', () => {
 
     await page.waitForURL(routes.base + routes.firewall.addDestination + '**');
     await expect(page.getByTestId('field-name')).toHaveValue(DESTINATION_COPY_NAME);
-    await expect(page.getByLabel('IPv4/IPv6 CIDR ranges or addresses')).toHaveValue(
-      '10.20.0.0/24',
-    );
+    await expect(fieldChips(page, 'addresses')).toHaveText(['10.20.0.0/24']);
     await expect(page.getByTestId('field-ports')).toHaveValue('443');
 
     await page.locator('button[type="submit"]').click();
@@ -229,9 +233,7 @@ test.describe('ACL duplicate', () => {
 
     await page.waitForURL(routes.base + routes.firewall.addRule + '**');
     await expect(page.getByTestId('field-name')).toHaveValue(RULE_COPY_NAME);
-    await expect(page.getByLabel('IPv4/IPv6 CIDR ranges or addresses')).toHaveValue(
-      '10.30.0.0/24',
-    );
+    await expect(fieldChips(page, 'addresses')).toHaveText(['10.30.0.0/24']);
     await expect(page.getByTestId('field-ports')).toHaveValue('80');
 
     await page.locator('button[type="submit"]').click();

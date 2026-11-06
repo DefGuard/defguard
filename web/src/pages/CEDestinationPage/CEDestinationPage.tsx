@@ -27,6 +27,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { splitCsv } from '../../shared/utils/csv';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 
 type Props = {
@@ -46,7 +47,7 @@ const formSchema = z
     any_protocol: z.boolean(),
   })
   .superRefine((values, ctx) => {
-    if (!values.any_address && values.addresses.trim().length === 0) {
+    if (!values.any_address && values.addresses.length === 0) {
       ctx.addIssue({
         code: 'custom',
         continue: true,
@@ -118,6 +119,7 @@ export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
     if (isPresent(destination)) {
       return {
         ...omit(destination, ['id', 'state', 'rules']),
+        addresses: splitCsv(destination.addresses),
         protocols: new Set(destination.protocols),
       };
     }
@@ -126,6 +128,7 @@ export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
       return {
         ...omit(duplicate, ['id', 'state', 'rules']),
         name: m.acl_duplicate_name({ name: duplicate.name }),
+        addresses: splitCsv(duplicate.addresses),
         protocols: new Set(duplicate.protocols),
       };
     }
@@ -136,7 +139,7 @@ export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
       any_address: true,
       any_port: true,
       any_protocol: true,
-      addresses: '',
+      addresses: [],
       protocols: new Set(),
     };
   }, [destination, duplicate]);
@@ -153,6 +156,7 @@ export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
 
       const payload = {
         ...toSend,
+        addresses: toSend.addresses.join(','),
         protocols: Array.from(toSend.protocols),
       };
 
@@ -230,9 +234,8 @@ export const CEDestinationPage = ({ destination, duplicate, tab }: Props) => {
                   <SizedBox height={ThemeSpacing.Lg} />
                   <form.AppField name="addresses">
                     {(field) => (
-                      <field.FormTextarea
+                      <field.FormMultiSelect
                         required
-                        placeholder={m.acl_form_addresses_placeholder()}
                         label={m.acl_form_addresses_label()}
                         helper={m.acl_helper_addresses()}
                       />

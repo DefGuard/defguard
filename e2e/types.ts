@@ -70,6 +70,7 @@ export type NetworkForm = {
   allowed_ips?: string[];
   dns?: string;
   mfa_enabled?: boolean;
+  defaultMfaFlowId?: number;
 };
 
 export type DeviceForm = {

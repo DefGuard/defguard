@@ -245,9 +245,9 @@ const parseAclDestinations = (value: string): ParsedAclDestinationToken[] | null
 };
 
 export const aclDestinationValidator = z
-  .string()
+  .array(z.string())
   .refine(
-    (value: string) => parseAclDestinations(value) !== null,
+    (value: string[]) => parseAclDestinations(value.join(',')) !== null,
     m.form_error_invalid(),
   );
 
