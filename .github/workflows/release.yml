@@ -228,7 +228,7 @@ jobs:
           submodules: recursive
 
       - name: Install NodeJS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
 
@@ -422,7 +422,7 @@ jobs:
             deb_arch: amd64
             rust_target: x86_64-unknown-linux-gnu
     container:
-      image: ubuntu:22.04
+      image: ubuntu:26.04@sha256:6a06111c3b0a8600feadb270aec771dc239bf407b25625f93f44ab00e11f4d3c
       env:
         DEBIAN_FRONTEND: noninteractive
         HOME: /root
@@ -442,7 +442,7 @@ jobs:
           submodules: recursive
 
       - name: Install NodeJS
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
 
