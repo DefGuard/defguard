@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import path from 'path';
 
-const defguardPath = __dirname.split('e2e')[0];
+const defguardPath = path.resolve(__dirname, '..', '..');
 
 const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
 const dockerCompose = `docker compose -f ${dockerFilePath}`;

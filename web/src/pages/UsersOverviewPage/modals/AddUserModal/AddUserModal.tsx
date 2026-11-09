@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -11,21 +11,15 @@ import {
   refinePasswordField,
 } from '../../../../shared/components/modals/ChangePasswordModal/form';
 import { SelectionSection } from '../../../../shared/components/SelectionSection/SelectionSection';
-import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
@@ -35,6 +29,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../shared/patterns';
 import { removeEmptyStrings } from '../../../../shared/utils/removeEmptyStrings';
+import { EnrollmentTokenContent } from '../../components/EnrollmentTokenContent/EnrollmentTokenContent';
 import { useAddUserModal } from './useAddUserModal';
 
 export const AddUserModal = () => {
@@ -76,137 +71,21 @@ export const AddUserModal = () => {
 const EnrollmentStep = () => {
   const enrollResponse = useAddUserModal((s) => s.enrollResponse);
   const user = useAddUserModal((s) => s.user as User);
-  const [sendEmail, setSendEmail] = useState(false);
   const appInfo = useApp((s) => s.appInfo);
-
-  const formSchema = useMemo(
-    () =>
-      z
-        .object({
-          email: z.string(),
-        })
-        .superRefine((values, ctx) => {
-          if (sendEmail) {
-            const result = z
-              .email(m.form_error_email())
-              .min(1, m.form_error_required())
-              .safeParse(values.email);
-            if (!result.success) {
-              ctx.addIssue({
-                code: 'custom',
-                path: ['email'],
-                message: result.error.issues[0]?.message ?? m.form_error_required(),
-              });
-            }
-          }
-        }),
-    [sendEmail],
-  );
-
-  const form = useAppForm({
-    defaultValues: {
-      email: user?.email ?? '',
-    },
-    validationLogic: formChangeLogic,
-    validators: {
-      onSubmit: formSchema,
-      onChange: formSchema,
-    },
-    onSubmit: async ({ value }) => {
-      await api.user.startEnrollment({
-        username: user.username,
-        send_enrollment_notification: true,
-        email: value.email,
-      });
-      useAddUserModal.setState({
-        isOpen: false,
-      });
-    },
-  });
-
-  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
-  useEffect(() => {
-    if (!form.state.isPristine) {
-      form.validateAllFields('change');
-    }
-  }, [sendEmail]);
 
   if (!isPresent(enrollResponse)) return null;
 
   return (
-    <>
-      <div className="enrollment-info">
-        <AppText font={TextStyle.TBodySm500}>
-          {m.modal_add_user_enrollment_details()}
-        </AppText>
-        <SizedBox height={ThemeSpacing.Xs} />
-        <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-          {m.modal_add_user_enrollment_explain()}
-        </AppText>
-      </div>
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <CopyField
-        copyTooltip={m.misc_clipboard_copy()}
-        label={m.modal_add_user_enrollment_form_label_instance_url()}
-        data-testid="activation-url-field"
-        text={enrollResponse.enrollment_url}
-      />
-      <SizedBox height={ThemeSpacing.Xl} />
-      <CopyField
-        label={m.modal_add_user_enrollment_form_label_token()}
-        copyTooltip={m.misc_clipboard_copy()}
-        data-testid="activation-token-field"
-        text={enrollResponse.enrollment_token}
-      />
-      {appInfo.smtp_enabled && (
-        <form
-          onSubmit={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <SizedBox height={ThemeSpacing.Xl3} />
-          <form.AppForm>
-            <Checkbox
-              text={m.modal_add_user_enrollment_form_label_send()}
-              active={sendEmail}
-              onClick={() => {
-                setSendEmail((s) => !s);
-              }}
-            />
-            <SizedBox height={ThemeSpacing.Xl} />
-            <form.AppField name="email">
-              {(field) => (
-                <field.FormInput
-                  required={sendEmail}
-                  disabled={!sendEmail}
-                  label={m.form_label_email()}
-                  helper={m.form_helper_email()}
-                />
-              )}
-            </form.AppField>
-          </form.AppForm>
-        </form>
-      )}
-      <ModalControls
-        submitProps={{
-          text: sendEmail ? m.controls_send_email() : m.controls_complete(),
-          loading: isSubmitting,
-          onClick: () => {
-            if (sendEmail) {
-              form.handleSubmit();
-            } else {
-              useAddUserModal.setState({
-                isOpen: false,
-              });
-            }
-          },
-        }}
-      />
-    </>
+    <EnrollmentTokenContent
+      user={user}
+      appInfo={appInfo}
+      enrollmentResponse={enrollResponse}
+      onClose={() => {
+        useAddUserModal.setState({
+          isOpen: false,
+        });
+      }}
+    />
   );
 };
 

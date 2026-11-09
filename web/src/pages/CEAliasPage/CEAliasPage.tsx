@@ -29,6 +29,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { splitCsv } from '../../shared/utils/csv';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 
 const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protocol];
@@ -127,7 +128,7 @@ type FormFields = z.infer<typeof formSchema>;
 const anyComponentDefined = (fields: FormFields): boolean => {
   return (
     fields.ports.trim().length > 0 ||
-    fields.addresses.trim().length > 0 ||
+    fields.addresses.length > 0 ||
     fields.protocols.size > 0
   );
 };
@@ -147,7 +148,7 @@ const FormContent = ({
     if (isPresent(alias)) {
       return {
         name: alias.name,
-        addresses: alias.addresses,
+        addresses: splitCsv(alias.addresses),
         ports: alias.ports,
         protocols: new Set(alias.protocols),
       };
@@ -155,14 +156,14 @@ const FormContent = ({
     if (isPresent(duplicate)) {
       return {
         name: m.acl_duplicate_name({ name: duplicate.name }),
-        addresses: duplicate.addresses,
+        addresses: splitCsv(duplicate.addresses),
         ports: duplicate.ports,
         protocols: new Set(duplicate.protocols),
       };
     }
     return {
       name: '',
-      addresses: '',
+      addresses: [],
       ports: '',
       protocols: new Set(),
     };
@@ -192,6 +193,7 @@ const FormContent = ({
     onSubmit: async ({ value }) => {
       const toSend: AddAclAliasRequest = {
         ...cloneDeep(value),
+        addresses: value.addresses.join(','),
         protocols: Array.from(value.protocols),
       };
 
@@ -235,8 +237,7 @@ const FormContent = ({
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="addresses">
             {(field) => (
-              <field.FormInput
-                notNull
+              <field.FormMultiSelect
                 label={m.acl_form_addresses_label()}
                 helper={m.acl_helper_addresses()}
               />

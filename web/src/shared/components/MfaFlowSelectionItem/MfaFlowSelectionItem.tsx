@@ -45,6 +45,7 @@ const MfaFlowSelectionItem = ({
       className={clsx('mfa-flow-selection-item', { active })}
       role="button"
       tabIndex={0}
+      data-testid={`location-mfa-flow-option-${option.id}`}
       data-active={active}
       onClick={onClick}
     >

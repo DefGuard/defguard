@@ -279,6 +279,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         device_type: DeviceType::User,
         description: None,
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let location = sample_location();
     let timestamp = Utc::now().naive_utc();
