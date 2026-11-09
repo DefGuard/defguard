@@ -47,6 +47,8 @@ pub struct ConnectionEvent<I = NoId> {
     pub upload_bytes: i64,
     /// Bytes received by the VPN device.
     pub download_bytes: i64,
+    /// Number of packets of this kind (aggregation).
+    pub count: i64,
 }
 
 impl ConnectionEvent<Id> {
@@ -93,6 +95,7 @@ mod tests {
             rule_id: None,
             upload_bytes: 1,
             download_bytes: 2,
+            count: 1,
         }
     }
 

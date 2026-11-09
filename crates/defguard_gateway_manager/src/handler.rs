@@ -854,6 +854,7 @@ fn try_proto_into_connection_event(
         rule_id: proto_event.rule_id,
         upload_bytes: i64::try_from(proto_event.upload_bytes).ok()?,
         download_bytes: i64::try_from(proto_event.download_bytes).ok()?,
+        count: i64::try_from(proto_event.count).ok()?,
     })
 }
 

@@ -33,6 +33,7 @@ async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: Pg
     assert_eq!(event.rule_id, Some(7));
     assert_eq!(event.upload_bytes, 1024);
     assert_eq!(event.download_bytes, 2048);
+    assert_eq!(event.count, 1);
 
     context.finish().await.expect_server_finished().await;
 }

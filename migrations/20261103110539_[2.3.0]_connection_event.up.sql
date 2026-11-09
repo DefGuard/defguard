@@ -26,7 +26,8 @@ CREATE TABLE connection_event (
     -- No foreign key: ACL rules may be deleted, and events must outlive them.
     rule_id bigint NULL,
     upload_bytes bigint NOT NULL,
-    download_bytes bigint NOT NULL
+    download_bytes bigint NOT NULL,
+    count bigint NOT NULL
 );
 
 -- Rows arrive roughly in timestamp order, so BRIN is enough for purging old events.

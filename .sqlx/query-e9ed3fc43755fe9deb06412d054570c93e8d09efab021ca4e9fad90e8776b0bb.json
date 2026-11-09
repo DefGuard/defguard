@@ -1,11 +1,22 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"connection_event\" SET \"location_id\" = $2,\"gateway_id\" = $3,\"timestamp\" = $4,\"direction\" = $5,\"status\" = $6,\"protocol\" = $7,\"source_ip\" = $8,\"source_port\" = $9,\"destination_ip\" = $10,\"destination_port\" = $11,\"rule_id\" = $12,\"upload_bytes\" = $13,\"download_bytes\" = $14 WHERE id = $1",
+  "query": "INSERT INTO \"connection_event\" (\"location_id\",\"gateway_id\",\"timestamp\",\"direction\",\"status\",\"protocol\",\"source_ip\",\"source_port\",\"destination_ip\",\"destination_port\",\"rule_id\",\"upload_bytes\",\"download_bytes\",\"count\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "id"
+          }
+        }
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8",
         "Int8",
         "Timestamp",
@@ -38,10 +49,13 @@
         "Int4",
         "Int8",
         "Int8",
+        "Int8",
         "Int8"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "69f6fecf641234fde4f148bf364e0ad20d9efce50c5893581b804ef681a833aa"
+  "hash": "e9ed3fc43755fe9deb06412d054570c93e8d09efab021ca4e9fad90e8776b0bb"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"gateway_id\",\"timestamp\",\"direction\" \"direction: _\",\"status\" \"status: _\",\"protocol\",\"source_ip\" \"source_ip: IpAddr\",\"source_port\",\"destination_ip\" \"destination_ip: IpAddr\",\"destination_port\",\"rule_id\",\"upload_bytes\",\"download_bytes\" FROM \"connection_event\"",
+  "query": "SELECT id, \"location_id\",\"gateway_id\",\"timestamp\",\"direction\" \"direction: _\",\"status\" \"status: _\",\"protocol\",\"source_ip\" \"source_ip: IpAddr\",\"source_port\",\"destination_ip\" \"destination_ip: IpAddr\",\"destination_port\",\"rule_id\",\"upload_bytes\",\"download_bytes\",\"count\" FROM \"connection_event\"",
   "describe": {
     "columns": [
       {
@@ -176,6 +176,17 @@
             "name": "download_bytes"
           }
         }
+      },
+      {
+        "ordinal": 14,
+        "name": "count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "count"
+          }
+        }
       }
     ],
     "parameters": {
@@ -195,8 +206,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "e5ec1dd0b25e7b29779ca1da4372184907c006f95822091a5a74d7139463c86d"
+  "hash": "3c38bca58969a75be2a690100e9cffca00a42859fffc68f3ab06e8b2e144bdc5"
 }

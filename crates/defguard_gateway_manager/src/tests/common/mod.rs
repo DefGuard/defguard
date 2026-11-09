@@ -856,6 +856,7 @@ pub(crate) fn build_connection_event() -> monitor::ConnectionEvent {
         rule_id: Some(7),
         upload_bytes: 1024,
         download_bytes: 2048,
+        count: 1,
     }
 }
 
