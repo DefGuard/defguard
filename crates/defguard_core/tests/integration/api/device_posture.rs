@@ -149,6 +149,7 @@ async fn test_device_posture_enterprise_license_required(
     set_cached_license(saved);
 }
 
+// TODO: only checks the response shape; seed devices with each attestation status and assert the counts.
 #[sqlx::test]
 async fn test_device_attestation_stats(_: PgPoolOptions, options: PgConnectOptions) {
     let (client, _) = setup(options).await;
