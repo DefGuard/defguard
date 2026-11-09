@@ -95,9 +95,9 @@ const createDefaultState = (versionValues: PostureCheckVersionValues): StoreValu
   configuredOperatingSystems: [],
   description: null,
   desktopAttestation: false,
-  desktopManualVerification: false,
+  desktopVerification: false,
   mobileAttestation: false,
-  mobileManualVerification: false,
+  mobileVerification: false,
   minimumDesktopClientVersion: getCurrentVersionOrAny(versionValues.defguardDesktop),
   minimumMobileClientVersion: getCurrentVersionOrAny(versionValues.defguardMobile),
   name: '',
@@ -111,9 +111,9 @@ interface StoreValues {
   allowPrereleaseClient: boolean;
   description: string | null;
   desktopAttestation: boolean;
-  desktopManualVerification: boolean;
+  desktopVerification: boolean;
   mobileAttestation: boolean;
-  mobileManualVerification: boolean;
+  mobileVerification: boolean;
   minimumDesktopClientVersion: PostureCheckDefguardVersionValue;
   minimumMobileClientVersion: PostureCheckDefguardVersionValue;
   name: string;
@@ -131,9 +131,9 @@ interface Store extends StoreValues {
   setDescription: (value: string | null) => void;
   setAllowPrereleaseClient: (value: boolean) => void;
   setDesktopAttestation: (value: boolean) => void;
-  setDesktopManualVerification: (value: boolean) => void;
+  setDesktopVerification: (value: boolean) => void;
   setMobileAttestation: (value: boolean) => void;
-  setMobileManualVerification: (value: boolean) => void;
+  setMobileVerification: (value: boolean) => void;
   setMinimumDesktopClientVersion: (value: PostureCheckDefguardVersionValue) => void;
   setMinimumMobileClientVersion: (value: PostureCheckDefguardVersionValue) => void;
   setName: (value: string) => void;
@@ -238,21 +238,21 @@ export const useAddPostureCheckWizardStore = create<Store>()((set, get) => ({
     set(
       value
         ? { desktopAttestation: true }
-        : { desktopAttestation: false, desktopManualVerification: false },
+        : { desktopAttestation: false, desktopVerification: false },
     );
   },
-  setDesktopManualVerification: (value) => {
-    set({ desktopManualVerification: value });
+  setDesktopVerification: (value) => {
+    set({ desktopVerification: value });
   },
   setMobileAttestation: (value) => {
     set(
       value
         ? { mobileAttestation: true }
-        : { mobileAttestation: false, mobileManualVerification: false },
+        : { mobileAttestation: false, mobileVerification: false },
     );
   },
-  setMobileManualVerification: (value) => {
-    set({ mobileManualVerification: value });
+  setMobileVerification: (value) => {
+    set({ mobileVerification: value });
   },
   setMinimumDesktopClientVersion: (value) => {
     set({ minimumDesktopClientVersion: value });

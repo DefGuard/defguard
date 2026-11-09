@@ -452,9 +452,9 @@ fn api_event_cases() -> Vec<EventTestCase> {
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
     };
     let posture_snapshot = DevicePostureSnapshot {
         device_posture: posture.clone(),
@@ -470,9 +470,9 @@ fn api_event_cases() -> Vec<EventTestCase> {
             min_mobile_client_version: None,
             allow_prerelease_client: true,
             desktop_attestation: false,
-            desktop_manual_verification: false,
+            desktop_verification: false,
             mobile_attestation: false,
-            mobile_manual_verification: false,
+            mobile_verification: false,
         },
         os_rules: Vec::new(),
         location_ids: Vec::new(),

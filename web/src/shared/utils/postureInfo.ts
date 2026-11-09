@@ -175,13 +175,13 @@ export const buildAttestationSections = (posture: ApiDevicePosture): OsSection[]
     IconKind.Desktop,
     m.posture_checks_drawer_desktop_attestation(),
     posture.desktop_attestation,
-    posture.desktop_manual_verification,
+    posture.desktop_verification,
   ),
   getAttestationSection(
     IconKind.Mobile,
     m.posture_checks_drawer_mobile_attestation(),
     posture.mobile_attestation,
-    posture.mobile_manual_verification,
+    posture.mobile_verification,
   ),
 ];
 

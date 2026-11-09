@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_manual_verification\",\"mobile_attestation\",\"mobile_manual_verification\" FROM \"device_posture\"",
+  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_verification\",\"mobile_attestation\",\"mobile_verification\" FROM \"device_posture\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -82,12 +82,12 @@
       },
       {
         "ordinal": 7,
-        "name": "desktop_manual_verification",
+        "name": "desktop_verification",
         "type_info": "Bool",
         "origin": {
           "Table": {
             "table": "device_posture",
-            "name": "desktop_manual_verification"
+            "name": "desktop_verification"
           }
         }
       },
@@ -104,18 +104,21 @@
       },
       {
         "ordinal": 9,
-        "name": "mobile_manual_verification",
+        "name": "mobile_verification",
         "type_info": "Bool",
         "origin": {
           "Table": {
             "table": "device_posture",
-            "name": "mobile_manual_verification"
+            "name": "mobile_verification"
           }
         }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -130,5 +133,5 @@
       false
     ]
   },
-  "hash": "779ce0763bfc93787f0ccab3a885510eda454ad9b9e4041b3701ef14c31a9666"
+  "hash": "0b930c269b493b5876cae37fa9256d3c831cb9b61085d275b7da54363505ecdc"
 }

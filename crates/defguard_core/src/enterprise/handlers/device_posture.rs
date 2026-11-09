@@ -252,9 +252,9 @@ pub struct ApiDevicePosture {
     pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
     pub desktop_attestation: bool,
-    pub desktop_manual_verification: bool,
+    pub desktop_verification: bool,
     pub mobile_attestation: bool,
-    pub mobile_manual_verification: bool,
+    pub mobile_verification: bool,
     pub os_rules: Vec<ApiOsRule>,
     /// IDs of VPN locations this policy is assigned to.
     pub locations: Vec<Id>,
@@ -270,9 +270,9 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
             min_mobile_client_version: p.min_mobile_client_version,
             allow_prerelease_client: p.allow_prerelease_client,
             desktop_attestation: p.desktop_attestation,
-            desktop_manual_verification: p.desktop_manual_verification,
+            desktop_verification: p.desktop_verification,
             mobile_attestation: p.mobile_attestation,
-            mobile_manual_verification: p.mobile_manual_verification,
+            mobile_verification: p.mobile_verification,
             os_rules: Vec::new(),
             locations: Vec::new(),
         }
@@ -360,11 +360,11 @@ pub struct EditDevicePosture {
     #[serde(default)]
     pub desktop_attestation: bool,
     #[serde(default)]
-    pub desktop_manual_verification: bool,
+    pub desktop_verification: bool,
     #[serde(default)]
     pub mobile_attestation: bool,
     #[serde(default)]
-    pub mobile_manual_verification: bool,
+    pub mobile_verification: bool,
     #[serde(default)]
     pub os_rules: Vec<ApiOsRule>,
 }
@@ -719,9 +719,9 @@ pub async fn create_device_posture(
         min_mobile_client_version,
         allow_prerelease_client,
         desktop_attestation,
-        desktop_manual_verification,
+        desktop_verification,
         mobile_attestation,
-        mobile_manual_verification,
+        mobile_verification,
         os_rules,
     } = data;
 
@@ -735,9 +735,9 @@ pub async fn create_device_posture(
         min_mobile_client_version,
         allow_prerelease_client,
         desktop_attestation,
-        desktop_manual_verification,
+        desktop_verification,
         mobile_attestation,
-        mobile_manual_verification,
+        mobile_verification,
     }
     .save(&mut *tx)
     .await?;
@@ -870,7 +870,7 @@ pub async fn list_device_postures(
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
         "SELECT id, name, description, min_desktop_client_version, \
          min_mobile_client_version, allow_prerelease_client, desktop_attestation, \
-         desktop_manual_verification, mobile_attestation, mobile_manual_verification \
+         desktop_verification, mobile_attestation, mobile_verification \
          FROM device_posture dp WHERE 1=1 ",
     );
     apply_device_posture_filters(&mut query_builder, &filters);
@@ -1004,9 +1004,9 @@ pub async fn update_device_posture(
         min_mobile_client_version,
         allow_prerelease_client,
         desktop_attestation,
-        desktop_manual_verification,
+        desktop_verification,
         mobile_attestation,
-        mobile_manual_verification,
+        mobile_verification,
         os_rules,
     } = data;
 
@@ -1018,9 +1018,9 @@ pub async fn update_device_posture(
         min_mobile_client_version,
         allow_prerelease_client,
         desktop_attestation,
-        desktop_manual_verification,
+        desktop_verification,
         mobile_attestation,
-        mobile_manual_verification,
+        mobile_verification,
     };
 
     let mut tx = appstate.pool.begin().await?;
@@ -1168,9 +1168,9 @@ pub async fn duplicate_device_posture(
         min_mobile_client_version: original.min_mobile_client_version.clone(),
         allow_prerelease_client: original.allow_prerelease_client,
         desktop_attestation: original.desktop_attestation,
-        desktop_manual_verification: original.desktop_manual_verification,
+        desktop_verification: original.desktop_verification,
         mobile_attestation: original.mobile_attestation,
-        mobile_manual_verification: original.mobile_manual_verification,
+        mobile_verification: original.mobile_verification,
     }
     .save(&mut *tx)
     .await?;

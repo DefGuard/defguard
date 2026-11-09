@@ -33,9 +33,9 @@ fn make_edit(name: &str) -> EditDevicePosture {
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     }
 }
@@ -211,9 +211,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         min_mobile_client_version: None,
         allow_prerelease_client: true,
         desktop_attestation: true,
-        desktop_manual_verification: true,
+        desktop_verification: true,
         mobile_attestation: true,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     };
     let response = client
@@ -232,9 +232,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(created.min_mobile_client_version.is_none());
     assert!(created.allow_prerelease_client);
     assert!(created.desktop_attestation);
-    assert!(created.desktop_manual_verification);
+    assert!(created.desktop_verification);
     assert!(created.mobile_attestation);
-    assert!(!created.mobile_manual_verification);
+    assert!(!created.mobile_verification);
     assert_eq!(created.locations, [] as [i64; 0]);
     let id = created.id;
 
@@ -248,9 +248,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
                 min_mobile_client_version: None,
                 allow_prerelease_client: true,
                 desktop_attestation: true,
-                desktop_manual_verification: true,
+                desktop_verification: true,
                 mobile_attestation: true,
-                mobile_manual_verification: false,
+                mobile_verification: false,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -282,9 +282,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     };
     let response = client
@@ -300,9 +300,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(updated.min_mobile_client_version.is_none());
     assert!(!updated.allow_prerelease_client);
     assert!(!updated.desktop_attestation);
-    assert!(!updated.desktop_manual_verification);
+    assert!(!updated.desktop_verification);
     assert!(!updated.mobile_attestation);
-    assert!(!updated.mobile_manual_verification);
+    assert!(!updated.mobile_verification);
 
     client.verify_api_events(&[ApiEventType::DevicePostureUpdated {
         before: DevicePostureSnapshot {
@@ -314,9 +314,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
                 min_mobile_client_version: None,
                 allow_prerelease_client: true,
                 desktop_attestation: true,
-                desktop_manual_verification: true,
+                desktop_verification: true,
                 mobile_attestation: true,
-                mobile_manual_verification: false,
+                mobile_verification: false,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -330,9 +330,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
                 min_mobile_client_version: None,
                 allow_prerelease_client: false,
                 desktop_attestation: false,
-                desktop_manual_verification: false,
+                desktop_verification: false,
                 mobile_attestation: false,
-                mobile_manual_verification: false,
+                mobile_verification: false,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -356,9 +356,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
                 min_mobile_client_version: None,
                 allow_prerelease_client: false,
                 desktop_attestation: false,
-                desktop_manual_verification: false,
+                desktop_verification: false,
                 mobile_attestation: false,
-                mobile_manual_verification: false,
+                mobile_verification: false,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -385,9 +385,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: true,
-        mobile_manual_verification: true,
+        mobile_verification: true,
         os_rules: Vec::new(),
     };
     let response = client
@@ -423,12 +423,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         original.allow_prerelease_client
     );
     assert_eq!(copy.desktop_attestation, original.desktop_attestation);
-    assert_eq!(
-        copy.desktop_manual_verification,
-        original.desktop_manual_verification
-    );
+    assert_eq!(copy.desktop_verification, original.desktop_verification);
     assert!(copy.mobile_attestation);
-    assert!(copy.mobile_manual_verification);
+    assert!(copy.mobile_verification);
     assert_eq!(copy.locations, [] as [i64; 0]);
 
     client.verify_api_events(&[ApiEventType::DevicePostureDuplicated {
@@ -441,9 +438,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
                 min_mobile_client_version: None,
                 allow_prerelease_client: false,
                 desktop_attestation: false,
-                desktop_manual_verification: false,
+                desktop_verification: false,
                 mobile_attestation: true,
-                mobile_manual_verification: true,
+                mobile_verification: true,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -457,9 +454,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
                 min_mobile_client_version: None,
                 allow_prerelease_client: false,
                 desktop_attestation: false,
-                desktop_manual_verification: false,
+                desktop_verification: false,
                 mobile_attestation: true,
-                mobile_manual_verification: true,
+                mobile_verification: true,
             },
             os_rules: Vec::new(),
             location_ids: Vec::new(),
@@ -496,9 +493,9 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     };
     let response = client
@@ -516,9 +513,9 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     };
     let response = client
@@ -536,9 +533,9 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
         min_mobile_client_version: Some(DESKTOP_CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: Vec::new(),
     };
     let response = client
@@ -621,9 +618,9 @@ async fn test_device_posture_list_filters_os_and_defguard(
         min_mobile_client_version: Some(MOBILE_CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: true,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: Some(windows_version),
@@ -653,9 +650,9 @@ async fn test_device_posture_list_filters_os_and_defguard(
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: Some(windows_version),
@@ -739,9 +736,9 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: Some(windows_version),
@@ -808,9 +805,9 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: None,
@@ -844,9 +841,9 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![ApiOsRule::Linux {
             min_kernel_version: None,
             disk_encryption_required: Some(true),
@@ -887,9 +884,9 @@ async fn test_device_posture_os_rules_duplicate_copies(
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: None,
@@ -956,9 +953,9 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![ApiOsRule::Windows {
             min_os_version: Some(7),
             disk_encryption_required: None,
@@ -983,9 +980,9 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![
             ApiOsRule::Windows {
                 min_os_version: None,
@@ -1019,9 +1016,9 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_mobile_client_version: None,
         allow_prerelease_client: false,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
         os_rules: vec![ApiOsRule::Linux {
             min_kernel_version: Some(4),
             disk_encryption_required: None,

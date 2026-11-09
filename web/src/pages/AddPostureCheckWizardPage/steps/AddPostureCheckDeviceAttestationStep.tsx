@@ -11,25 +11,25 @@ export const AddPostureCheckDeviceAttestationStep = () => {
     back,
     next,
     desktopAttestation,
-    desktopManualVerification,
+    desktopVerification,
     mobileAttestation,
-    mobileManualVerification,
+    mobileVerification,
     setDesktopAttestation,
-    setDesktopManualVerification,
+    setDesktopVerification,
     setMobileAttestation,
-    setMobileManualVerification,
+    setMobileVerification,
   } = useAddPostureCheckWizardStore(
     useShallow((s) => ({
       back: s.back,
       next: s.next,
       desktopAttestation: s.desktopAttestation,
-      desktopManualVerification: s.desktopManualVerification,
+      desktopVerification: s.desktopVerification,
       mobileAttestation: s.mobileAttestation,
-      mobileManualVerification: s.mobileManualVerification,
+      mobileVerification: s.mobileVerification,
       setDesktopAttestation: s.setDesktopAttestation,
-      setDesktopManualVerification: s.setDesktopManualVerification,
+      setDesktopVerification: s.setDesktopVerification,
       setMobileAttestation: s.setMobileAttestation,
-      setMobileManualVerification: s.setMobileManualVerification,
+      setMobileVerification: s.setMobileVerification,
     })),
   );
 
@@ -37,13 +37,13 @@ export const AddPostureCheckDeviceAttestationStep = () => {
     <WizardCard className="add-posture-check-device-attestation-step">
       <DeviceAttestationSettings
         desktopAttestation={desktopAttestation}
-        desktopManualVerification={desktopManualVerification}
+        desktopVerification={desktopVerification}
         mobileAttestation={mobileAttestation}
-        mobileManualVerification={mobileManualVerification}
+        mobileVerification={mobileVerification}
         onDesktopAttestationChange={setDesktopAttestation}
-        onDesktopManualVerificationChange={setDesktopManualVerification}
+        onDesktopVerificationChange={setDesktopVerification}
         onMobileAttestationChange={setMobileAttestation}
-        onMobileManualVerificationChange={setMobileManualVerification}
+        onMobileVerificationChange={setMobileVerification}
       />
       <Controls>
         <Button text={m.controls_back()} variant="outlined" onClick={back} />

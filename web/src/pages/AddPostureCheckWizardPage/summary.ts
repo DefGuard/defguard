@@ -141,9 +141,9 @@ export const buildClientSummarySection = (
 
 export const buildDeviceAttestationSummarySection = (
   desktopAttestation: boolean,
-  desktopManualVerification: boolean,
+  desktopVerification: boolean,
   mobileAttestation: boolean,
-  mobileManualVerification: boolean,
+  mobileVerification: boolean,
 ): SummarySection | null => {
   if (!desktopAttestation && !mobileAttestation) {
     return null;
@@ -156,7 +156,7 @@ export const buildDeviceAttestationSummarySection = (
       text: m.posture_checks_wizard_summary_device_attestation_desktop(),
       emphasized: true,
     });
-    if (desktopManualVerification) {
+    if (desktopVerification) {
       lines.push({
         text: m.posture_checks_wizard_summary_device_attestation_desktop_ownership(),
       });
@@ -168,7 +168,7 @@ export const buildDeviceAttestationSummarySection = (
       text: m.posture_checks_wizard_summary_device_attestation_mobile(),
       emphasized: true,
     });
-    if (mobileManualVerification) {
+    if (mobileVerification) {
       lines.push({
         text: m.posture_checks_wizard_summary_device_attestation_mobile_ownership(),
       });

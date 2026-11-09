@@ -43,9 +43,9 @@ describe('add posture check payload', () => {
         configuredOperatingSystems: [PostureCheckOs.Windows, PostureCheckOs.Linux],
         description: null,
         desktopAttestation: false,
-        desktopManualVerification: false,
+        desktopVerification: false,
         mobileAttestation: false,
-        mobileManualVerification: false,
+        mobileVerification: false,
         minimumDesktopClientVersion: null,
         minimumMobileClientVersion: null,
         name: 'Any version policy',
@@ -64,9 +64,9 @@ describe('add posture check payload', () => {
       min_mobile_client_version: null,
       allow_prerelease_client: false,
       desktop_attestation: false,
-      desktop_manual_verification: false,
+      desktop_verification: false,
       mobile_attestation: false,
-      mobile_manual_verification: false,
+      mobile_verification: false,
       os_rules: [
         {
           os_type: 'windows',
@@ -92,9 +92,9 @@ describe('add posture check payload', () => {
         configuredOperatingSystems: [],
         description: 'Split client requirements',
         desktopAttestation: false,
-        desktopManualVerification: false,
+        desktopVerification: false,
         mobileAttestation: false,
-        mobileManualVerification: false,
+        mobileVerification: false,
         minimumDesktopClientVersion: '2.1',
         minimumMobileClientVersion: '1.7.0',
         name: 'Client version policy',
@@ -107,9 +107,9 @@ describe('add posture check payload', () => {
       min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       desktop_attestation: false,
-      desktop_manual_verification: false,
+      desktop_verification: false,
       mobile_attestation: false,
-      mobile_manual_verification: false,
+      mobile_verification: false,
       os_rules: [],
     });
   });
@@ -120,9 +120,9 @@ describe('add posture check payload', () => {
         configuredOperatingSystems: [],
         description: null,
         desktopAttestation: true,
-        desktopManualVerification: true,
+        desktopVerification: true,
         mobileAttestation: true,
-        mobileManualVerification: false,
+        mobileVerification: false,
         minimumDesktopClientVersion: null,
         minimumMobileClientVersion: null,
         name: 'Attestation policy',
@@ -130,9 +130,9 @@ describe('add posture check payload', () => {
       }),
     ).toMatchObject({
       desktop_attestation: true,
-      desktop_manual_verification: true,
+      desktop_verification: true,
       mobile_attestation: true,
-      mobile_manual_verification: false,
+      mobile_verification: false,
     });
   });
 
@@ -143,9 +143,9 @@ describe('add posture check payload', () => {
         configuredOperatingSystems: [],
         description: null,
         desktopAttestation: false,
-        desktopManualVerification: true,
+        desktopVerification: true,
         mobileAttestation: false,
-        mobileManualVerification: true,
+        mobileVerification: true,
         minimumDesktopClientVersion: null,
         minimumMobileClientVersion: null,
         name: 'Attestation policy',
@@ -153,9 +153,9 @@ describe('add posture check payload', () => {
       }),
     ).toMatchObject({
       desktop_attestation: false,
-      desktop_manual_verification: false,
+      desktop_verification: false,
       mobile_attestation: false,
-      mobile_manual_verification: false,
+      mobile_verification: false,
     });
   });
 });

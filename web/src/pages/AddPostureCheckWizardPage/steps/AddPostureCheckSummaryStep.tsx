@@ -38,13 +38,9 @@ export const AddPostureCheckSummaryStep = () => {
     (s) => s.allowPrereleaseClient,
   );
   const desktopAttestation = useAddPostureCheckWizardStore((s) => s.desktopAttestation);
-  const desktopManualVerification = useAddPostureCheckWizardStore(
-    (s) => s.desktopManualVerification,
-  );
+  const desktopVerification = useAddPostureCheckWizardStore((s) => s.desktopVerification);
   const mobileAttestation = useAddPostureCheckWizardStore((s) => s.mobileAttestation);
-  const mobileManualVerification = useAddPostureCheckWizardStore(
-    (s) => s.mobileManualVerification,
-  );
+  const mobileVerification = useAddPostureCheckWizardStore((s) => s.mobileVerification);
   const name = useAddPostureCheckWizardStore((s) => s.name);
   const operatingSystemState = useAddPostureCheckWizardStore(
     (s) => s.operatingSystemState,
@@ -56,9 +52,9 @@ export const AddPostureCheckSummaryStep = () => {
     configuredOperatingSystems,
     description,
     desktopAttestation,
-    desktopManualVerification,
+    desktopVerification,
     mobileAttestation,
-    mobileManualVerification,
+    mobileVerification,
     minimumDesktopClientVersion,
     minimumMobileClientVersion,
     name,
@@ -67,9 +63,9 @@ export const AddPostureCheckSummaryStep = () => {
 
   const deviceAttestationSection = buildDeviceAttestationSummarySection(
     desktopAttestation,
-    desktopManualVerification,
+    desktopVerification,
     mobileAttestation,
-    mobileManualVerification,
+    mobileVerification,
   );
 
   const sections = [

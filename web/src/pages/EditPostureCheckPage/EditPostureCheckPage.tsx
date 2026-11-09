@@ -95,9 +95,9 @@ const EditPostureCheckForm = ({
         configuredOperatingSystems: nextValues.configuredOperatingSystems,
         description: nextValues.description,
         desktopAttestation: nextValues.desktopAttestation,
-        desktopManualVerification: nextValues.desktopManualVerification,
+        desktopVerification: nextValues.desktopVerification,
         mobileAttestation: nextValues.mobileAttestation,
-        mobileManualVerification: nextValues.mobileManualVerification,
+        mobileVerification: nextValues.mobileVerification,
         minimumDesktopClientVersion: nextValues.minimumDesktopClientVersion,
         minimumMobileClientVersion: nextValues.minimumMobileClientVersion,
         name: nextValues.name,
@@ -198,28 +198,28 @@ const EditPostureCheckForm = ({
       <EditPageFormSection label={m.posture_checks_edit_device_attestation()}>
         <DeviceAttestationSettings
           desktopAttestation={values.desktopAttestation}
-          desktopManualVerification={values.desktopManualVerification}
+          desktopVerification={values.desktopVerification}
           mobileAttestation={values.mobileAttestation}
-          mobileManualVerification={values.mobileManualVerification}
+          mobileVerification={values.mobileVerification}
           onDesktopAttestationChange={(value) => {
             setValues((current) => ({
               ...current,
               desktopAttestation: value,
-              desktopManualVerification: value && current.desktopManualVerification,
+              desktopVerification: value && current.desktopVerification,
             }));
           }}
-          onDesktopManualVerificationChange={(value) => {
-            setValues((current) => ({ ...current, desktopManualVerification: value }));
+          onDesktopVerificationChange={(value) => {
+            setValues((current) => ({ ...current, desktopVerification: value }));
           }}
           onMobileAttestationChange={(value) => {
             setValues((current) => ({
               ...current,
               mobileAttestation: value,
-              mobileManualVerification: value && current.mobileManualVerification,
+              mobileVerification: value && current.mobileVerification,
             }));
           }}
-          onMobileManualVerificationChange={(value) => {
-            setValues((current) => ({ ...current, mobileManualVerification: value }));
+          onMobileVerificationChange={(value) => {
+            setValues((current) => ({ ...current, mobileVerification: value }));
           }}
         />
       </EditPageFormSection>

@@ -45,9 +45,9 @@ describe('posture checks page helpers', () => {
       min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       desktop_attestation: false,
-      desktop_manual_verification: false,
+      desktop_verification: false,
       mobile_attestation: false,
-      mobile_manual_verification: false,
+      mobile_verification: false,
       locations: [2],
       os_rules: [
         {
@@ -105,9 +105,9 @@ describe('posture checks page helpers', () => {
       min_mobile_client_version: null,
       allow_prerelease_client: false,
       desktop_attestation: false,
-      desktop_manual_verification: false,
+      desktop_verification: false,
       mobile_attestation: false,
-      mobile_manual_verification: false,
+      mobile_verification: false,
       locations: [],
       os_rules: [
         {
@@ -256,9 +256,9 @@ describe('posture checks page helpers', () => {
       min_mobile_client_version: '1.7.0',
       allow_prerelease_client: true,
       desktop_attestation: true,
-      desktop_manual_verification: true,
+      desktop_verification: true,
       mobile_attestation: true,
-      mobile_manual_verification: false,
+      mobile_verification: false,
       locations: [9, 3],
       os_rules: [
         {
@@ -286,9 +286,9 @@ describe('posture checks page helpers', () => {
       configuredOperatingSystems: ['android', 'windows'],
       description: 'Existing policy',
       desktopAttestation: true,
-      desktopManualVerification: true,
+      desktopVerification: true,
       mobileAttestation: true,
-      mobileManualVerification: false,
+      mobileVerification: false,
       locations: [3, 9],
       minimumDesktopClientVersion: '2.0',
       minimumMobileClientVersion: '1.7.0',

@@ -3014,9 +3014,9 @@ async fn save_linux_posture_policy(pool: &PgPool, location_id: Id) {
         min_mobile_client_version: None,
         allow_prerelease_client: true,
         desktop_attestation: false,
-        desktop_manual_verification: false,
+        desktop_verification: false,
         mobile_attestation: false,
-        mobile_manual_verification: false,
+        mobile_verification: false,
     }
     .save(pool)
     .await

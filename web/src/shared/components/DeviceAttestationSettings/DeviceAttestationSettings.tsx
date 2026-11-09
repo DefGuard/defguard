@@ -15,24 +15,24 @@ import { getDeviceAttestationStatsQueryOptions } from '../../query';
 
 export type DeviceAttestationSettingsProps = {
   desktopAttestation: boolean;
-  desktopManualVerification: boolean;
+  desktopVerification: boolean;
   mobileAttestation: boolean;
-  mobileManualVerification: boolean;
+  mobileVerification: boolean;
   onDesktopAttestationChange: (value: boolean) => void;
-  onDesktopManualVerificationChange: (value: boolean) => void;
+  onDesktopVerificationChange: (value: boolean) => void;
   onMobileAttestationChange: (value: boolean) => void;
-  onMobileManualVerificationChange: (value: boolean) => void;
+  onMobileVerificationChange: (value: boolean) => void;
 };
 
 export const DeviceAttestationSettings = ({
   desktopAttestation,
-  desktopManualVerification,
+  desktopVerification,
   mobileAttestation,
-  mobileManualVerification,
+  mobileVerification,
   onDesktopAttestationChange,
-  onDesktopManualVerificationChange,
+  onDesktopVerificationChange,
   onMobileAttestationChange,
-  onMobileManualVerificationChange,
+  onMobileVerificationChange,
 }: DeviceAttestationSettingsProps) => {
   const { data: stats } = useSuspenseQuery(getDeviceAttestationStatsQueryOptions);
 
@@ -43,9 +43,9 @@ export const DeviceAttestationSettings = ({
         description={m.cmp_device_attestation_settings_desktop_description()}
         counts={stats.desktop}
         attestation={desktopAttestation}
-        manualVerification={desktopManualVerification}
+        manualVerification={desktopVerification}
         onAttestationChange={onDesktopAttestationChange}
-        onManualVerificationChange={onDesktopManualVerificationChange}
+        onManualVerificationChange={onDesktopVerificationChange}
       />
       <Divider spacing={ThemeSpacing.Xl2} />
       <DeviceAttestationSection
@@ -53,9 +53,9 @@ export const DeviceAttestationSettings = ({
         description={m.cmp_device_attestation_settings_mobile_description()}
         counts={stats.mobile}
         attestation={mobileAttestation}
-        manualVerification={mobileManualVerification}
+        manualVerification={mobileVerification}
         onAttestationChange={onMobileAttestationChange}
-        onManualVerificationChange={onMobileManualVerificationChange}
+        onManualVerificationChange={onMobileVerificationChange}
       />
     </div>
   );
