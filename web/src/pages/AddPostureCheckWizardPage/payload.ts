@@ -16,6 +16,10 @@ type BuildAddPostureCheckRequestInput = {
   allowPrereleaseClient: boolean;
   configuredOperatingSystems: PostureCheckOsValue[];
   description: string | null;
+  desktopAttestation: boolean;
+  desktopVerification: boolean;
+  mobileAttestation: boolean;
+  mobileVerification: boolean;
   minimumDesktopClientVersion: PostureCheckDefguardVersionValue;
   minimumMobileClientVersion: PostureCheckDefguardVersionValue;
   name: string;
@@ -89,6 +93,10 @@ export const buildAddPostureCheckRequest = (
   min_desktop_client_version: input.minimumDesktopClientVersion,
   min_mobile_client_version: input.minimumMobileClientVersion,
   allow_prerelease_client: input.allowPrereleaseClient,
+  desktop_attestation: input.desktopAttestation,
+  desktop_verification: input.desktopAttestation && input.desktopVerification,
+  mobile_attestation: input.mobileAttestation,
+  mobile_verification: input.mobileAttestation && input.mobileVerification,
   os_rules: input.configuredOperatingSystems.map((operatingSystem) =>
     buildOperatingSystemRule(
       operatingSystem,

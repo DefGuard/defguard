@@ -138,3 +138,46 @@ export const buildClientSummarySection = (
     lines,
   };
 };
+
+export const buildDeviceAttestationSummarySection = (
+  desktopAttestation: boolean,
+  desktopVerification: boolean,
+  mobileAttestation: boolean,
+  mobileVerification: boolean,
+): SummarySection | null => {
+  if (!desktopAttestation && !mobileAttestation) {
+    return null;
+  }
+
+  const lines: SummaryLine[] = [];
+
+  if (desktopAttestation) {
+    lines.push({
+      text: m.posture_checks_wizard_summary_device_attestation_desktop(),
+      emphasized: true,
+    });
+    if (desktopVerification) {
+      lines.push({
+        text: m.posture_checks_wizard_summary_device_attestation_desktop_ownership(),
+      });
+    }
+  }
+
+  if (mobileAttestation) {
+    lines.push({
+      text: m.posture_checks_wizard_summary_device_attestation_mobile(),
+      emphasized: true,
+    });
+    if (mobileVerification) {
+      lines.push({
+        text: m.posture_checks_wizard_summary_device_attestation_mobile_ownership(),
+      });
+    }
+  }
+
+  return {
+    icon: 'lock-closed',
+    label: m.posture_checks_wizard_summary_device_attestation_label(),
+    lines,
+  };
+};

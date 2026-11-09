@@ -10,12 +10,14 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { closeAddPostureCheckWizard } from '../navigation';
 import { buildAddPostureCheckRequest } from '../payload';
 import {
   buildClientSummarySection,
+  buildDeviceAttestationSummarySection,
   buildOperatingSystemSummarySection,
 } from '../summary';
 import { useAddPostureCheckWizardStore } from '../useAddPostureCheckWizardStore';
@@ -35,6 +37,10 @@ export const AddPostureCheckSummaryStep = () => {
   const allowPrereleaseClient = useAddPostureCheckWizardStore(
     (s) => s.allowPrereleaseClient,
   );
+  const desktopAttestation = useAddPostureCheckWizardStore((s) => s.desktopAttestation);
+  const desktopVerification = useAddPostureCheckWizardStore((s) => s.desktopVerification);
+  const mobileAttestation = useAddPostureCheckWizardStore((s) => s.mobileAttestation);
+  const mobileVerification = useAddPostureCheckWizardStore((s) => s.mobileVerification);
   const name = useAddPostureCheckWizardStore((s) => s.name);
   const operatingSystemState = useAddPostureCheckWizardStore(
     (s) => s.operatingSystemState,
@@ -45,11 +51,22 @@ export const AddPostureCheckSummaryStep = () => {
     allowPrereleaseClient,
     configuredOperatingSystems,
     description,
+    desktopAttestation,
+    desktopVerification,
+    mobileAttestation,
+    mobileVerification,
     minimumDesktopClientVersion,
     minimumMobileClientVersion,
     name,
     operatingSystemState,
   });
+
+  const deviceAttestationSection = buildDeviceAttestationSummarySection(
+    desktopAttestation,
+    desktopVerification,
+    mobileAttestation,
+    mobileVerification,
+  );
 
   const sections = [
     ...configuredOperatingSystems.map((operatingSystem) =>
@@ -63,6 +80,7 @@ export const AddPostureCheckSummaryStep = () => {
       minimumMobileClientVersion,
       allowPrereleaseClient,
     ),
+    ...(isPresent(deviceAttestationSection) ? [deviceAttestationSection] : []),
   ];
 
   return (

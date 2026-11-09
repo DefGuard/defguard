@@ -12,11 +12,16 @@ import { DrawerModal } from '../../../shared/defguard-ui/components/DrawerModal/
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon/icon-types';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import {
   getDevicePostureQueryOptions,
   getLocationsQueryOptions,
 } from '../../../shared/query';
-import { buildOsSections } from '../../../shared/utils/postureInfo';
+import {
+  buildAttestationSections,
+  buildOsSections,
+  type OsSection,
+} from '../../../shared/utils/postureInfo';
 import { buildPostureCheckMenuItems } from '../postureCheckMenu';
 import { buildFilteredLocationOptions, type PostureCheckRow } from '../postureChecks';
 
@@ -69,6 +74,7 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     .map((loc) => loc.label);
 
   const osSections = buildOsSections(postureCheck);
+  const attestationSections = buildAttestationSections(postureCheck);
 
   const menuItems = buildPostureCheckMenuItems({
     row,
@@ -85,47 +91,24 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
       <div className="posture-check-drawer-body">
         {postureCheck?.description && (
           <>
-            <p className="drawer-block drawer-description">{postureCheck.description}</p>
-            <Divider />
+            <p className="drawer-description">{postureCheck.description}</p>
+            <Divider spacing={ThemeSpacing.Xl} />
           </>
         )}
 
         {osSections.map((section, idx) => (
           <Fragment key={section.name}>
-            {idx > 0 && <Divider />}
-            <div className="drawer-block drawer-os-section">
-              <div className="os-header">
-                <Icon icon={section.icon} />
-                <span className="os-name">{section.name}</span>
-              </div>
-              <div className="os-rows">
-                {section.rows.map((detail) => (
-                  <div key={detail.label} className="os-row">
-                    <span className="os-row-label">{detail.label}</span>
-                    {Array.isArray(detail.value) ? (
-                      <div className="os-row-value-list">
-                        {detail.value.map((item) => (
-                          <span key={item} className="os-row-value">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="os-row-value">{detail.value}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            {idx > 0 && <Divider spacing={ThemeSpacing.Lg} />}
+            <DrawerSection section={section} />
           </Fragment>
         ))}
 
-        {(osSections.length > 0 || postureCheck?.description) && <Divider />}
+        {osSections.length > 0 && <Divider spacing={ThemeSpacing.Lg} />}
 
-        <div className="drawer-block drawer-locations">
+        <div className="drawer-locations">
           <div className="locations-label">
             <Icon icon={IconKind.LocationTracking} />
-            <span className="os-name">Locations</span>
+            <span className="section-name">Locations</span>
           </div>
           <div className="locations-value">
             {assignedLocationNames.length > 0 ? (
@@ -139,6 +122,13 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
             )}
           </div>
         </div>
+
+        {attestationSections.map((section) => (
+          <Fragment key={section.name}>
+            <Divider spacing={ThemeSpacing.Lg} />
+            <DrawerSection section={section} />
+          </Fragment>
+        ))}
       </div>
 
       <div className="posture-check-drawer-footer">
@@ -155,6 +145,33 @@ const PostureCheckDrawerContent = ({ row, onClose }: ContentProps) => {
     </>
   );
 };
+
+const DrawerSection = ({ section }: { section: OsSection }) => (
+  <div className="drawer-section">
+    <div className="section-header">
+      <Icon icon={section.icon} />
+      <span className="section-name">{section.name}</span>
+    </div>
+    <div className="section-rows">
+      {section.rows.map((detail) => (
+        <div key={detail.label} className="section-row">
+          <span className="section-row-label">{detail.label}</span>
+          {Array.isArray(detail.value) ? (
+            <div className="section-row-value-list">
+              {detail.value.map((item) => (
+                <span key={item} className="section-row-value">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="section-row-value">{detail.value}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 type Props = {
   selectedRow: PostureCheckRow | null;

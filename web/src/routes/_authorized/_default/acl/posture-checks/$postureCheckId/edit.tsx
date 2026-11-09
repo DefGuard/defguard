@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { EditPostureCheckPage } from '../../../../../../pages/EditPostureCheckPage/EditPostureCheckPage';
 import {
+  getDeviceAttestationStatsQueryOptions,
   getDevicePostureQueryOptions,
   getDevicePostureVersionMetadataQueryOptions,
   getLocationsQueryOptions,
@@ -16,6 +17,7 @@ export const Route = createFileRoute(
       context.queryClient.fetchQuery(getDevicePostureQueryOptions(postureCheckId)),
       context.queryClient.fetchQuery(getDevicePostureVersionMetadataQueryOptions),
       context.queryClient.fetchQuery(getLocationsQueryOptions),
+      context.queryClient.fetchQuery(getDeviceAttestationStatsQueryOptions),
     ]);
   },
   component: EditPostureCheckPage,

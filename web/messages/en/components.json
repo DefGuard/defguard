@@ -60,5 +60,18 @@
   "cmp_contextual_help_faq": "FAQ",
   "cmp_contextual_help_related_docs": "Related documentation",
   "cmp_contextual_help_best_practices": "Best practices",
-  "cmp_location_mfa_step_helper": "One selected factor in a step must be verified. Steps are completed in order."
+  "cmp_location_mfa_step_helper": "One selected factor in a step must be verified. Steps are completed in order.",
+  "cmp_device_attestation_settings_desktop_title": "Desktop Device Attestation",
+  "cmp_device_attestation_settings_desktop_description": "Only devices with a successfully attested hardware TPM or Apple Security Enclave will be allowed to connect. Enabling this policy automatically activates device verification in supported desktop clients.",
+  "cmp_device_attestation_settings_mobile_title": "Mobile Device Attestation",
+  "cmp_device_attestation_settings_mobile_description": "Only devices with a successfully verified hardware-backed security environment (Android Keystore or Apple Secure Enclave) will be allowed to connect. Enabling this policy automatically activates mobile device verification in supported clients.",
+  "cmp_device_attestation_settings_ownership_title": "Manual device verification",
+  "cmp_device_attestation_settings_ownership_description": "Manual device verification adds an extra layer of security by requiring the user and administrator to confirm matching verification codes. This verifies device ownership in addition to TPM validation.",
+  "cmp_device_attestation_settings_impact_label": "Device attestation impact",
+  "cmp_device_attestation_settings_impact_attested": "Currently attested devices",
+  "cmp_device_attestation_settings_impact_not_attested": "Not attested",
+  "cmp_device_attestation_settings_ownership_impact_label": "Device ownership verification impact",
+  "cmp_device_attestation_settings_ownership_impact_verified": "Currently verified",
+  "cmp_device_attestation_settings_ownership_impact_unverified": "Unverified",
+  "cmp_device_attestation_settings_ownership_warning": "Enabling device ownership verification will require all currently unverified devices to complete manual verification before they can access protected resources."
 }
