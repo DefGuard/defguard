@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\" FROM \"device_posture\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_verification\",\"mobile_attestation\",\"mobile_verification\" FROM \"device_posture\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -68,6 +68,50 @@
             "name": "allow_prerelease_client"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "desktop_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "desktop_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "desktop_verification"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "mobile_attestation",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_attestation"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "mobile_verification",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "device_posture",
+            "name": "mobile_verification"
+          }
+        }
       }
     ],
     "parameters": {
@@ -82,8 +126,12 @@
       true,
       true,
       true,
+      false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "916f406babef80b4db8787376331924880a8f37d1517b162f556bce1f1fc66d8"
+  "hash": "0b930c269b493b5876cae37fa9256d3c831cb9b61085d275b7da54363505ecdc"
 }

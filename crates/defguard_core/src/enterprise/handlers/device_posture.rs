@@ -251,6 +251,10 @@ pub struct ApiDevicePosture {
     pub min_desktop_client_version: Option<String>,
     pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
+    pub desktop_attestation: bool,
+    pub desktop_verification: bool,
+    pub mobile_attestation: bool,
+    pub mobile_verification: bool,
     pub os_rules: Vec<ApiOsRule>,
     /// IDs of VPN locations this policy is assigned to.
     pub locations: Vec<Id>,
@@ -265,6 +269,10 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
             min_desktop_client_version: p.min_desktop_client_version,
             min_mobile_client_version: p.min_mobile_client_version,
             allow_prerelease_client: p.allow_prerelease_client,
+            desktop_attestation: p.desktop_attestation,
+            desktop_verification: p.desktop_verification,
+            mobile_attestation: p.mobile_attestation,
+            mobile_verification: p.mobile_verification,
             os_rules: Vec::new(),
             locations: Vec::new(),
         }
@@ -325,6 +333,21 @@ impl Default for DevicePostureVersionMetadata {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeviceAttestationCounts {
+    pub devices: i32,
+    pub attested_devices: i32,
+    pub verified_devices: i32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeviceAttestationStats {
+    pub desktop: DeviceAttestationCounts,
+    pub mobile: DeviceAttestationCounts,
+}
+
 /// Request body for creating or updating a device posture check policy.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -334,6 +357,14 @@ pub struct EditDevicePosture {
     pub min_desktop_client_version: Option<String>,
     pub min_mobile_client_version: Option<String>,
     pub allow_prerelease_client: bool,
+    #[serde(default)]
+    pub desktop_attestation: bool,
+    #[serde(default)]
+    pub desktop_verification: bool,
+    #[serde(default)]
+    pub mobile_attestation: bool,
+    #[serde(default)]
+    pub mobile_verification: bool,
     #[serde(default)]
     pub os_rules: Vec<ApiOsRule>,
 }
@@ -687,6 +718,10 @@ pub async fn create_device_posture(
         min_desktop_client_version,
         min_mobile_client_version,
         allow_prerelease_client,
+        desktop_attestation,
+        desktop_verification,
+        mobile_attestation,
+        mobile_verification,
         os_rules,
     } = data;
 
@@ -699,6 +734,10 @@ pub async fn create_device_posture(
         min_desktop_client_version,
         min_mobile_client_version,
         allow_prerelease_client,
+        desktop_attestation,
+        desktop_verification,
+        mobile_attestation,
+        mobile_verification,
     }
     .save(&mut *tx)
     .await?;
@@ -754,6 +793,45 @@ pub async fn get_device_posture_versions(_admin: AdminRole, session: SessionInfo
     ))
 }
 
+/// Get device attestation and ownership verification counts
+// TODO: counts are static placeholders until device attestation results are stored in core.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/api/v1/device-posture/attestation-stats",
+    tag = "device posture",
+    responses(
+        (status = 200, description = "Desktop and mobile device attestation and ownership verification counts.", body = DeviceAttestationStats),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+))]
+pub async fn get_device_attestation_stats(_admin: AdminRole, session: SessionInfo) -> ApiResult {
+    debug!(
+        "User {} fetching device attestation stats",
+        session.user.username
+    );
+
+    Ok(ApiResponse::json(
+        DeviceAttestationStats {
+            desktop: DeviceAttestationCounts {
+                devices: 500,
+                attested_devices: 125,
+                verified_devices: 30,
+            },
+            mobile: DeviceAttestationCounts {
+                devices: 200,
+                attested_devices: 80,
+                verified_devices: 10,
+            },
+        },
+        StatusCode::OK,
+    ))
+}
+
 /// List device posture check policies
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
@@ -791,7 +869,8 @@ pub async fn list_device_postures(
     let mut conn = appstate.pool.acquire().await?;
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
         "SELECT id, name, description, min_desktop_client_version, \
-         min_mobile_client_version, allow_prerelease_client \
+         min_mobile_client_version, allow_prerelease_client, desktop_attestation, \
+         desktop_verification, mobile_attestation, mobile_verification \
          FROM device_posture dp WHERE 1=1 ",
     );
     apply_device_posture_filters(&mut query_builder, &filters);
@@ -924,6 +1003,10 @@ pub async fn update_device_posture(
         min_desktop_client_version,
         min_mobile_client_version,
         allow_prerelease_client,
+        desktop_attestation,
+        desktop_verification,
+        mobile_attestation,
+        mobile_verification,
         os_rules,
     } = data;
 
@@ -934,6 +1017,10 @@ pub async fn update_device_posture(
         min_desktop_client_version,
         min_mobile_client_version,
         allow_prerelease_client,
+        desktop_attestation,
+        desktop_verification,
+        mobile_attestation,
+        mobile_verification,
     };
 
     let mut tx = appstate.pool.begin().await?;
@@ -1080,6 +1167,10 @@ pub async fn duplicate_device_posture(
         min_desktop_client_version: original.min_desktop_client_version.clone(),
         min_mobile_client_version: original.min_mobile_client_version.clone(),
         allow_prerelease_client: original.allow_prerelease_client,
+        desktop_attestation: original.desktop_attestation,
+        desktop_verification: original.desktop_verification,
+        mobile_attestation: original.mobile_attestation,
+        mobile_verification: original.mobile_verification,
     }
     .save(&mut *tx)
     .await?;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"device_posture\" (\"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "query": "INSERT INTO \"device_posture\" (\"name\",\"description\",\"min_desktop_client_version\",\"min_mobile_client_version\",\"allow_prerelease_client\",\"desktop_attestation\",\"desktop_verification\",\"mobile_attestation\",\"mobile_verification\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -21,6 +21,10 @@
         "Text",
         "Text",
         "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
         "Bool"
       ]
     },
@@ -28,5 +32,5 @@
       false
     ]
   },
-  "hash": "999aa6ea5ae0e80457b250222cba3790c8dd5b342ac75b7819fd2b83994d7146"
+  "hash": "6e1ec1700a1062258b3601d67dfbe8f2c12d869d55e503c2d3dcf1e8b47da08e"
 }

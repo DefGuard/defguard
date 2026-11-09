@@ -1068,6 +1068,10 @@ export interface ApiDevicePosture {
   min_desktop_client_version: string | null;
   min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
+  desktop_attestation: boolean;
+  desktop_verification: boolean;
+  mobile_attestation: boolean;
+  mobile_verification: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
 }
@@ -1078,6 +1082,10 @@ export interface EditDevicePostureRequest {
   min_desktop_client_version: string | null;
   min_mobile_client_version: string | null;
   allow_prerelease_client: boolean;
+  desktop_attestation: boolean;
+  desktop_verification: boolean;
+  mobile_attestation: boolean;
+  mobile_verification: boolean;
   os_rules: EditDevicePostureOsRule[];
 }
 
@@ -1086,6 +1094,17 @@ export interface DevicePostureOsVersionCatalog {
   macos: number[];
   ios: number[];
   android: number[];
+}
+
+export interface DeviceAttestationCounts {
+  devices: number;
+  attested_devices: number;
+  verified_devices: number;
+}
+
+export interface DeviceAttestationStats {
+  desktop: DeviceAttestationCounts;
+  mobile: DeviceAttestationCounts;
 }
 
 export interface DevicePostureVersionMetadata {

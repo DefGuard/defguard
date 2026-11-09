@@ -9,6 +9,7 @@
     flex-flow: row;
     align-items: center;
     justify-content: center;
+    padding-bottom: var(--spacing-4xl);
 
     & > .content-tack {
       width: 100%;

@@ -11,6 +11,10 @@ describe('posture check drawer info', () => {
       min_desktop_client_version: null,
       min_mobile_client_version: null,
       allow_prerelease_client: false,
+      desktop_attestation: false,
+      desktop_verification: false,
+      mobile_attestation: false,
+      mobile_verification: false,
       locations: [],
       os_rules: [
         {
