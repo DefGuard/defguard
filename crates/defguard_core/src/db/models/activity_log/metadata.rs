@@ -733,7 +733,7 @@ mod tests {
 
     #[test]
     fn test_device_identity_internal_fields_are_omitted_from_enrollment_metadata() {
-        let mut device = Device::new(
+        let device = Device::new(
             "enrollment-device".into(),
             "wg-public-key".into(),
             1,
@@ -742,14 +742,12 @@ mod tests {
             true,
         )
         .with_id(42);
-        device.identity_public_key_der = Some(vec![1, 2, 3]);
-        device.apple_sign_count = Some(123);
-        device.tpm_ek_public = Some(vec![4, 5, 6]);
-        device.tpm_ek_certificate_chain_der = Some(vec![vec![7, 8, 9]]);
-        device.apple_key_id = Some("private-apple-key-id".into());
         let value = serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).unwrap();
         let device = value["device"].as_object().unwrap();
         for field in [
+            "backend",
+            "public_key_der",
+            "identity_backend",
             "identity_public_key_der",
             "apple_sign_count",
             "tpm_ek_public",

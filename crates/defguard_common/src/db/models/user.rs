@@ -1033,9 +1033,7 @@ impl User<Id> {
         query_as!(
             Device,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, \
-                attestation_status \"attestation_status: _\", attested_at, apple_sign_count, \
-                tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE user_id = $1 and device_type = 'user'::device_type \
             ORDER BY id",
             self.id

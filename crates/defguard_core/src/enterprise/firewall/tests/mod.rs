@@ -98,14 +98,8 @@ async fn create_test_user_with_devices<R: Rng>(
 
     for device_number in 1u8..=2 {
         let device = Device {
-            identity_backend: None,
-            identity_public_key_der: None,
             attestation_status: Default::default(),
             attested_at: None,
-            apple_sign_count: None,
-            tpm_ek_public: None,
-            tpm_ek_certificate_chain_der: None,
-            apple_key_id: None,
             id: NoId,
             name: format!("device-{}-{device_number}", user.id),
             user_id: user.id,
@@ -183,14 +177,8 @@ async fn create_test_users_and_devices(
         // Create 2 devices per user
         for device_num in 1..3 {
             let device = Device {
-                identity_backend: None,
-                identity_public_key_der: None,
                 attestation_status: Default::default(),
                 attested_at: None,
-                apple_sign_count: None,
-                tpm_ek_public: None,
-                tpm_ek_certificate_chain_der: None,
-                apple_key_id: None,
                 id: NoId,
                 name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
@@ -366,14 +354,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         // Create 2 devices per user
         for device_num in 1..3 {
             let device = Device {
-                identity_backend: None,
-                identity_public_key_der: None,
                 attestation_status: Default::default(),
                 attested_at: None,
-                apple_sign_count: None,
-                tpm_ek_public: None,
-                tpm_ek_certificate_chain_der: None,
-                apple_key_id: None,
                 id: NoId,
                 name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
@@ -435,14 +417,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create some network devices
     let network_device_1 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-1".into(),
         user_id: user_1.id, // Owned by user 1
@@ -455,14 +431,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
     let network_device_2 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-2".into(),
         user_id: user_2.id, // Owned by user 2
@@ -475,14 +445,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
     let network_device_3 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-3".into(),
         user_id: user_3.id, // Owned by user 3
@@ -757,14 +721,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         // Create 2 devices per user
         for device_num in 1..3 {
             let device = Device {
-                identity_backend: None,
-                identity_public_key_der: None,
                 attestation_status: Default::default(),
                 attested_at: None,
-                apple_sign_count: None,
-                tpm_ek_public: None,
-                tpm_ek_certificate_chain_der: None,
-                apple_key_id: None,
                 id: NoId,
                 name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
@@ -830,14 +788,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create some network devices
     let network_device_1 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-1".into(),
         user_id: user_1.id, // Owned by user 1
@@ -850,14 +802,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
     let network_device_2 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-2".into(),
         user_id: user_2.id, // Owned by user 2
@@ -870,14 +816,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
     let network_device_3 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-3".into(),
         user_id: user_3.id, // Owned by user 3
@@ -1163,14 +1103,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         // Create 2 devices per user
         for device_num in 1..3 {
             let device = Device {
-                identity_backend: None,
-                identity_public_key_der: None,
                 attestation_status: Default::default(),
                 attested_at: None,
-                apple_sign_count: None,
-                tpm_ek_public: None,
-                tpm_ek_certificate_chain_der: None,
-                apple_key_id: None,
                 id: NoId,
                 name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
@@ -1239,14 +1173,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create some network devices
     let network_device_1 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-1".into(),
         user_id: user_1.id, // Owned by user 1
@@ -1259,14 +1187,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
 
     let network_device_2 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-2".into(),
         user_id: user_2.id, // Owned by user 2
@@ -1279,14 +1201,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
 
     let network_device_3 = Device {
-        identity_backend: None,
-        identity_public_key_der: None,
         attestation_status: Default::default(),
         attested_at: None,
-        apple_sign_count: None,
-        tpm_ek_public: None,
-        tpm_ek_certificate_chain_der: None,
-        apple_key_id: None,
         id: NoId,
         name: "network-device-3".into(),
         user_id: user_3.id, // Owned by user 3
@@ -2593,14 +2509,8 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
         // Create 2 devices per user
         for device_num in 1..3 {
             let device = Device {
-                identity_backend: None,
-                identity_public_key_der: None,
                 attestation_status: Default::default(),
                 attested_at: None,
-                apple_sign_count: None,
-                tpm_ek_public: None,
-                tpm_ek_certificate_chain_der: None,
-                apple_key_id: None,
                 id: NoId,
                 name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,

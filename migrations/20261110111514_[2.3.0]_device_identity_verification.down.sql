@@ -3,15 +3,6 @@ DROP TABLE device_attestation_state;
 ALTER TABLE vpn_client_mfa_session
     DROP CONSTRAINT vpn_client_mfa_session_identity_context,
     DROP COLUMN possession_verified;
-ALTER TABLE device
-    DROP CONSTRAINT device_identity_backend_fields,
-    DROP CONSTRAINT device_identity_apple_counter_range,
-    DROP CONSTRAINT device_identity_attested_key,
-    DROP COLUMN identity_backend,
-    DROP COLUMN identity_public_key_der,
-    DROP COLUMN apple_sign_count,
-    DROP COLUMN tpm_ek_public,
-    DROP COLUMN tpm_ek_certificate_chain_der,
-    DROP COLUMN apple_key_id;
+DROP TABLE device_identity;
 DROP TYPE challenge_purpose;
 DROP TYPE device_identity_backend;

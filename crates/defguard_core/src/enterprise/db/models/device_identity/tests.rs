@@ -3,6 +3,7 @@ use defguard_common::db::{
     Id, NoId,
     models::{
         Device, DeviceType, User, WireguardNetwork,
+        device_identity::DeviceAttestationStatus,
         vpn_client_mfa_session::{VpnClientMfaSession, VpnMfaFlowKind},
         vpn_client_session::VpnClientMfaMethod,
     },
@@ -14,8 +15,9 @@ use sqlx::{
 };
 
 use super::{
-    DeviceAttestationChallenge, DeviceAttestationPayload, DeviceAttestationState,
-    DeviceIdentityChallenge, DeviceIdentityChallengePurpose,
+    DeviceAttestationChallenge, DeviceAttestationPayload, DeviceAttestationState, DeviceIdentity,
+    DeviceIdentityBackend, DeviceIdentityChallenge, DeviceIdentityChallengePurpose,
+    DeviceIdentityError,
 };
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
 
@@ -802,5 +804,247 @@ async fn test_mfa_possession_is_bound_to_session_generation_and_cascades_on_rest
             .await
             .unwrap()
             .is_none()
+    );
+}
+
+fn identity_for_device(device_id: Id, backend: DeviceIdentityBackend) -> DeviceIdentity {
+    DeviceIdentity {
+        device_id,
+        backend,
+        public_key_der: vec![0, 255, 128],
+        apple_sign_count: (backend == DeviceIdentityBackend::AppleAppAttest).then_some(0),
+        tpm_ek_public: (backend == DeviceIdentityBackend::Tpm).then_some(vec![1, 2, 3]),
+        tpm_ek_certificate_chain_der: (backend == DeviceIdentityBackend::Tpm)
+            .then_some(vec![vec![4, 5, 6]]),
+        apple_key_id: (backend == DeviceIdentityBackend::AppleAppAttest)
+            .then_some("apple-key-id".into()),
+    }
+}
+
+#[sqlx::test]
+async fn test_device_identity_roundtrip_status_and_cascade(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    for (name, backend) in [
+        ("identity-tpm", DeviceIdentityBackend::Tpm),
+        ("identity-apple", DeviceIdentityBackend::AppleAppAttest),
+    ] {
+        let row = device(&pool, name).await;
+        assert!(
+            DeviceIdentity::find_by_device_id(&pool, row.id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let mut identity = identity_for_device(row.id, backend);
+        let mut connection = pool.acquire().await.unwrap();
+        let saved_device = identity
+            .save_verified(
+                &mut connection,
+                DeviceAttestationStatus::Attested,
+                row.created,
+            )
+            .await
+            .unwrap();
+        assert!(
+            DeviceIdentity::find_by_device_id(&pool, row.id)
+                .await
+                .unwrap()
+                == Some(identity.clone())
+        );
+        let updated = Device::find_by_id(&pool, row.id).await.unwrap().unwrap();
+        assert_eq!(saved_device, updated);
+        assert_eq!(
+            updated.attestation_status,
+            DeviceAttestationStatus::Attested
+        );
+        assert_eq!(updated.attested_at, Some(row.created));
+        if backend == DeviceIdentityBackend::AppleAppAttest {
+            identity.apple_sign_count = Some(4_294_967_295);
+            identity
+                .save_verified(
+                    &mut connection,
+                    DeviceAttestationStatus::Attested,
+                    row.created,
+                )
+                .await
+                .unwrap();
+            assert!(
+                DeviceIdentity::find_by_device_id(&pool, row.id)
+                    .await
+                    .unwrap()
+                    == Some(identity)
+            );
+            for count in [-1i64, 4_294_967_296] {
+                assert_constraint(
+                    sqlx::query(
+                        "UPDATE device_identity SET apple_sign_count = $1 WHERE device_id = $2",
+                    )
+                    .bind(count)
+                    .bind(row.id)
+                    .execute(&pool)
+                    .await
+                    .unwrap_err(),
+                    "device_identity_apple_counter_range",
+                );
+            }
+        } else {
+            assert_constraint(
+                sqlx::query(
+                    "UPDATE device_identity SET apple_key_id = 'apple-key' WHERE device_id = $1",
+                )
+                .bind(row.id)
+                .execute(&pool)
+                .await
+                .unwrap_err(),
+                "device_identity_backend_fields",
+            );
+        }
+        row.delete(&pool).await.unwrap();
+        assert!(
+            DeviceIdentity::find_by_device_id(&pool, updated.id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+}
+
+#[sqlx::test]
+async fn test_device_identity_validation_preserves_device_status(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let row = device(&pool, "identity-validation").await;
+    let mut invalid = vec![];
+    let mut empty_key = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    empty_key.public_key_der.clear();
+    invalid.push(empty_key);
+    let mut missing_ek = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    missing_ek.tpm_ek_public = None;
+    invalid.push(missing_ek);
+    let mut missing_chain = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    missing_chain.tpm_ek_certificate_chain_der = None;
+    invalid.push(missing_chain);
+    let mut mixed = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    mixed.apple_key_id = Some("apple-key".into());
+    invalid.push(mixed);
+    let mut missing_apple_key = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
+    missing_apple_key.apple_key_id = None;
+    invalid.push(missing_apple_key);
+    let mut mixed = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
+    mixed.tpm_ek_public = Some(vec![1]);
+    invalid.push(mixed);
+    for count in [-1i64, 4_294_967_296] {
+        let mut apple = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
+        apple.apple_sign_count = Some(count);
+        invalid.push(apple);
+    }
+    let mut connection = pool.acquire().await.unwrap();
+    for identity in invalid {
+        assert!(matches!(
+            identity
+                .save_verified(
+                    &mut connection,
+                    DeviceAttestationStatus::Attested,
+                    row.created
+                )
+                .await,
+            Err(DeviceIdentityError::InvalidState(_))
+        ));
+    }
+    let identity = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    assert!(matches!(
+        identity
+            .save_verified(
+                &mut connection,
+                DeviceAttestationStatus::NotAttested,
+                row.created
+            )
+            .await,
+        Err(DeviceIdentityError::InvalidState(_))
+    ));
+    assert_eq!(
+        Device::find_by_id(&pool, row.id).await.unwrap(),
+        Some(row.clone())
+    );
+    assert!(
+        DeviceIdentity::find_by_device_id(&pool, row.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let orphan = identity_for_device(row.id + 1, DeviceIdentityBackend::Tpm);
+    assert!(matches!(
+        orphan
+            .save_verified(
+                &mut connection,
+                DeviceAttestationStatus::Attested,
+                row.created
+            )
+            .await,
+        Err(DeviceIdentityError::DeviceNotFound)
+    ));
+}
+
+#[sqlx::test]
+async fn test_device_identity_manual_approval_and_transaction_rollback(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let row = device(&pool, "identity-transaction").await;
+    let mut identity = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
+    identity.tpm_ek_public = None;
+    identity.tpm_ek_certificate_chain_der = None;
+    let mut transaction = pool.begin().await.unwrap();
+    identity
+        .save_verified(
+            &mut transaction,
+            DeviceAttestationStatus::AttestedManually,
+            row.created,
+        )
+        .await
+        .unwrap();
+    assert!(
+        DeviceIdentity::find_by_device_id(&mut *transaction, row.id)
+            .await
+            .unwrap()
+            == Some(identity.clone())
+    );
+    transaction.rollback().await.unwrap();
+    assert!(
+        DeviceIdentity::find_by_device_id(&pool, row.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        Device::find_by_id(&pool, row.id).await.unwrap(),
+        Some(row.clone())
+    );
+    let mut connection = pool.acquire().await.unwrap();
+    identity
+        .save_verified(
+            &mut connection,
+            DeviceAttestationStatus::AttestedManually,
+            row.created,
+        )
+        .await
+        .unwrap();
+    let updated = Device::find_by_id(&pool, row.id).await.unwrap().unwrap();
+    assert_eq!(
+        updated.attestation_status,
+        DeviceAttestationStatus::AttestedManually
+    );
+    assert_eq!(updated.attested_at, Some(row.created));
+    assert!(
+        DeviceIdentity::find_by_device_id(&pool, row.id)
+            .await
+            .unwrap()
+            == Some(identity)
     );
 }

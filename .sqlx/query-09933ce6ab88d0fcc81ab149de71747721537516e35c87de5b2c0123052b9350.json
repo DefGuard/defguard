@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, identity_backend \"identity_backend?: _\", identity_public_key_der, attestation_status \"attestation_status: _\", attested_at, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device WHERE device_type = $1 ORDER BY name LIMIT $2 OFFSET $3",
+  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
   "describe": {
     "columns": [
       {
@@ -103,38 +103,6 @@
       },
       {
         "ordinal": 8,
-        "name": "identity_backend?: _",
-        "type_info": {
-          "Custom": {
-            "name": "device_identity_backend",
-            "kind": {
-              "Enum": [
-                "tpm",
-                "apple_app_attest"
-              ]
-            }
-          }
-        },
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "identity_backend"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
-        "name": "identity_public_key_der",
-        "type_info": "Bytea",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "identity_public_key_der"
-          }
-        }
-      },
-      {
-        "ordinal": 10,
         "name": "attestation_status: _",
         "type_info": {
           "Custom": {
@@ -158,7 +126,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "attested_at",
         "type_info": "Timestamp",
         "origin": {
@@ -167,66 +135,10 @@
             "name": "attested_at"
           }
         }
-      },
-      {
-        "ordinal": 12,
-        "name": "apple_sign_count",
-        "type_info": "Int8",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "apple_sign_count"
-          }
-        }
-      },
-      {
-        "ordinal": 13,
-        "name": "tpm_ek_public",
-        "type_info": "Bytea",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "tpm_ek_public"
-          }
-        }
-      },
-      {
-        "ordinal": 14,
-        "name": "tpm_ek_certificate_chain_der",
-        "type_info": "ByteaArray",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "tpm_ek_certificate_chain_der"
-          }
-        }
-      },
-      {
-        "ordinal": 15,
-        "name": "apple_key_id",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "apple_key_id"
-          }
-        }
       }
     ],
     "parameters": {
       "Left": [
-        {
-          "Custom": {
-            "name": "device_type",
-            "kind": {
-              "Enum": [
-                "user",
-                "network"
-              ]
-            }
-          }
-        },
-        "Int8",
         "Int8"
       ]
     },
@@ -239,15 +151,9 @@
       true,
       false,
       false,
-      true,
-      true,
       false,
-      true,
-      true,
-      true,
-      true,
       true
     ]
   },
-  "hash": "d611974358a87459b72ccfbf28126a2b99735173b6f82e6f0a55426b1d03788c"
+  "hash": "09933ce6ab88d0fcc81ab149de71747721537516e35c87de5b2c0123052b9350"
 }

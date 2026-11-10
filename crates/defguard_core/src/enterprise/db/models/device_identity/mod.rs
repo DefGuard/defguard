@@ -1,8 +1,157 @@
 use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{Id, NoId, models::vpn_client_mfa_session::VpnClientMfaSession};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, device_identity::DeviceAttestationStatus,
+        vpn_client_mfa_session::VpnClientMfaSession,
+    },
+};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, FromRow, PgConnection, Type};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Type)]
+#[sqlx(type_name = "device_identity_backend", rename_all = "snake_case")]
+pub enum DeviceIdentityBackend {
+    Tpm,
+    AppleAppAttest,
+}
+
+/// Hardware identity material loaded explicitly for attestation and possession verification.
+#[derive(Clone, PartialEq, FromRow)]
+pub struct DeviceIdentity {
+    pub device_id: Id,
+    pub backend: DeviceIdentityBackend,
+    pub public_key_der: Vec<u8>,
+    pub apple_sign_count: Option<i64>,
+    pub tpm_ek_public: Option<Vec<u8>>,
+    pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
+    pub apple_key_id: Option<String>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DeviceIdentityError {
+    #[error("Invalid device identity: {0}")]
+    InvalidState(&'static str),
+    #[error("Device not found")]
+    DeviceNotFound,
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
+}
+
+impl DeviceIdentity {
+    pub async fn find_by_device_id<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        device_id: Id,
+    ) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as("SELECT * FROM device_identity WHERE device_id = $1")
+            .bind(device_id)
+            .fetch_optional(executor)
+            .await
+    }
+
+    /// Persists approved identity material and the device's attestation status in one transaction.
+    /// Call after cryptographic verification or explicit manual approval.
+    pub async fn save_verified(
+        &self,
+        connection: &mut PgConnection,
+        status: DeviceAttestationStatus,
+        attested_at: NaiveDateTime,
+    ) -> Result<Device<Id>, DeviceIdentityError> {
+        self.validate(status)?;
+        let mut transaction = connection.begin().await?;
+        let device: Option<Id> =
+            sqlx::query_scalar("SELECT id FROM device WHERE id = $1 FOR UPDATE")
+                .bind(self.device_id)
+                .fetch_optional(&mut *transaction)
+                .await?;
+        if device.is_none() {
+            return Err(DeviceIdentityError::DeviceNotFound);
+        }
+        sqlx::query(
+            "INSERT INTO device_identity \
+             (device_id, backend, public_key_der, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7) \
+             ON CONFLICT (device_id) DO UPDATE SET backend = EXCLUDED.backend, \
+             public_key_der = EXCLUDED.public_key_der, apple_sign_count = EXCLUDED.apple_sign_count, \
+             tpm_ek_public = EXCLUDED.tpm_ek_public, \
+             tpm_ek_certificate_chain_der = EXCLUDED.tpm_ek_certificate_chain_der, \
+             apple_key_id = EXCLUDED.apple_key_id",
+        )
+        .bind(self.device_id)
+        .bind(self.backend)
+        .bind(&self.public_key_der)
+        .bind(self.apple_sign_count)
+        .bind(&self.tpm_ek_public)
+        .bind(&self.tpm_ek_certificate_chain_der)
+        .bind(&self.apple_key_id)
+        .execute(&mut *transaction)
+        .await?;
+        let device = sqlx::query_as(
+            "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 RETURNING *",
+        )
+        .bind(status)
+        .bind(attested_at)
+        .bind(self.device_id)
+        .fetch_one(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        Ok(device)
+    }
+
+    fn validate(&self, status: DeviceAttestationStatus) -> Result<(), DeviceIdentityError> {
+        if !matches!(
+            status,
+            DeviceAttestationStatus::Attested | DeviceAttestationStatus::AttestedManually
+        ) {
+            return Err(DeviceIdentityError::InvalidState(
+                "expected an attested status",
+            ));
+        }
+        if self.public_key_der.is_empty() {
+            return Err(DeviceIdentityError::InvalidState(
+                "identity public key is empty",
+            ));
+        }
+        match self.backend {
+            DeviceIdentityBackend::Tpm => {
+                if self.apple_sign_count.is_some() || self.apple_key_id.is_some() {
+                    return Err(DeviceIdentityError::InvalidState(
+                        "TPM identity contains Apple provenance",
+                    ));
+                }
+                if status == DeviceAttestationStatus::Attested
+                    && (self.tpm_ek_public.is_none() || self.tpm_ek_certificate_chain_der.is_none())
+                {
+                    return Err(DeviceIdentityError::InvalidState(
+                        "TPM attestation requires EK provenance",
+                    ));
+                }
+            }
+            DeviceIdentityBackend::AppleAppAttest => {
+                if self.tpm_ek_public.is_some() || self.tpm_ek_certificate_chain_der.is_some() {
+                    return Err(DeviceIdentityError::InvalidState(
+                        "Apple identity contains TPM provenance",
+                    ));
+                }
+                if self
+                    .apple_sign_count
+                    .is_some_and(|count| !(0..=4_294_967_295).contains(&count))
+                {
+                    return Err(DeviceIdentityError::InvalidState(
+                        "Apple counter is outside the unsigned 32-bit range",
+                    ));
+                }
+                if status == DeviceAttestationStatus::Attested && self.apple_key_id.is_none() {
+                    return Err(DeviceIdentityError::InvalidState(
+                        "Apple attestation requires a key ID",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
 
 /// Stores a pending device attestation challenge for an enrollment session.
 #[derive(Clone, PartialEq, FromRow)]
