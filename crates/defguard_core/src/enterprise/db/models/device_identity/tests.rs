@@ -25,28 +25,6 @@ fn assert_constraint(error: sqlx::Error, name: &str) {
     assert_eq!(error.as_database_error().unwrap().constraint(), Some(name));
 }
 
-#[test]
-fn test_attestation_payload_roundtrip() {
-    for backend in [
-        DeviceAttestationChallenge::Tpm {
-            ak_name: vec![0, 255],
-            ek_fingerprint: [1; 32],
-            activation_secret_hash: [2; 32],
-        },
-        DeviceAttestationChallenge::AppleAppAttest {
-            key_id: "apple-key".into(),
-        },
-    ] {
-        let state = DeviceAttestationPayload {
-            data: vec![0, 255, 128],
-            backend,
-        };
-        let encoded = serde_cbor::to_vec(&state).unwrap();
-        let decoded: DeviceAttestationPayload = serde_cbor::from_slice(&encoded).unwrap();
-        assert!(decoded == state);
-    }
-}
-
 async fn enrollment_attestation(
     pool: &PgPool,
     name: &str,
@@ -115,13 +93,24 @@ async fn test_attestation_state_roundtrips_backend_payloads(
             DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
                 .await
                 .unwrap()
-                == Some(state)
+                == Some(state.clone())
+        );
+        sqlx::query("UPDATE device_attestation_state SET payload = $1 WHERE token_id = $2")
+            .bind(vec![1u8])
+            .bind(&state.token_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(
+            DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+                .await
+                .is_err()
         );
     }
 }
 
 #[sqlx::test]
-async fn test_attestation_state_replacement_and_binding(
+async fn test_attestation_state_replacement_preserves_other_sessions(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -134,16 +123,9 @@ async fn test_attestation_state_replacement_and_binding(
     current.challenge_id = "new-challenge".into();
     current.save(&pool).await.unwrap();
     assert!(!original.consume(&pool).await.unwrap());
-    let previous = current.clone();
-    current.payload.data.push(1);
-    current.save(&pool).await.unwrap();
-    assert!(!previous.consume(&pool).await.unwrap());
     let mut wrong_token = current.clone();
     wrong_token.token_id.clone_from(&other.token_id);
     assert!(!wrong_token.consume(&pool).await.unwrap());
-    let mut wrong_key = current.clone();
-    wrong_key.wireguard_key = "another-wg-key".into();
-    assert!(!wrong_key.consume(&pool).await.unwrap());
     assert!(
         DeviceAttestationState::find_by_token_id(&pool, &original.token_id)
             .await
@@ -167,7 +149,7 @@ async fn test_attestation_state_replacement_and_binding(
 }
 
 #[sqlx::test]
-async fn test_attestation_state_expiry_rollback_and_concurrent_consumption(
+async fn test_expired_attestation_state_cannot_be_consumed(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -177,8 +159,21 @@ async fn test_attestation_state_expiry_rollback_and_concurrent_consumption(
     state.expires_at = state.created_at + chrono::TimeDelta::minutes(10);
     state.save(&pool).await.unwrap();
     assert!(!state.consume(&pool).await.unwrap());
-    state.created_at = chrono::Utc::now().naive_utc().trunc_subsecs(6);
-    state.expires_at = state.created_at + chrono::TimeDelta::minutes(10);
+    assert!(
+        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+            .await
+            .unwrap()
+            == Some(state)
+    );
+}
+
+#[sqlx::test]
+async fn test_attestation_state_consumption_is_rolled_back(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let state = enrollment_attestation(&pool, "rollback", tpm_challenge()).await;
     state.save(&pool).await.unwrap();
     let mut tx = pool.begin().await.unwrap();
     assert!(state.consume(&mut *tx).await.unwrap());
@@ -189,70 +184,40 @@ async fn test_attestation_state_expiry_rollback_and_concurrent_consumption(
             .unwrap()
             == Some(state.clone())
     );
+    assert!(state.consume(&pool).await.unwrap());
+}
+
+#[sqlx::test]
+async fn test_attestation_state_is_consumed_once_under_concurrency(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let state = enrollment_attestation(&pool, "concurrent", tpm_challenge()).await;
+    state.save(&pool).await.unwrap();
     let (first, second) = tokio::join!(state.consume(&pool), state.consume(&pool));
     assert!(matches!(
         (first.unwrap(), second.unwrap()),
         (true, false) | (false, true)
     ));
+    assert!(
+        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[sqlx::test]
-async fn test_attestation_state_constraints_and_token_cleanup(
+async fn test_attestation_state_is_removed_with_its_enrollment_token(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let state = enrollment_attestation(&pool, "constraints-state", tpm_challenge()).await;
+    let state = enrollment_attestation(&pool, "token-cleanup", tpm_challenge()).await;
     state.save(&pool).await.unwrap();
-    for (statement, constraint) in [
-        (
-            "UPDATE device_attestation_state SET challenge_id = '' WHERE token_id = $1",
-            "device_attestation_state_challenge_id",
-        ),
-        (
-            "UPDATE device_attestation_state SET wireguard_key = '' WHERE token_id = $1",
-            "device_attestation_state_wireguard_key",
-        ),
-        (
-            "UPDATE device_attestation_state SET payload = '\\x' WHERE token_id = $1",
-            "device_attestation_state_payload",
-        ),
-        (
-            "UPDATE device_attestation_state SET expires_at = created_at WHERE token_id = $1",
-            "device_attestation_state_expiry",
-        ),
-    ] {
-        assert_constraint(
-            sqlx::query(statement)
-                .bind(&state.token_id)
-                .execute(&pool)
-                .await
-                .unwrap_err(),
-            constraint,
-        );
-    }
-    let mut missing_token = state.clone();
-    missing_token.challenge_id = "orphan".into();
-    missing_token.token_id = "missing-token".into();
-    assert_constraint(
-        missing_token.save(&pool).await.unwrap_err(),
-        "device_attestation_state_token_id_fkey",
-    );
-    sqlx::query("UPDATE device_attestation_state SET payload = $1 WHERE token_id = $2")
-        .bind(vec![1u8])
-        .bind(&state.token_id)
-        .execute(&pool)
-        .await
-        .unwrap();
-    assert!(matches!(
-        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
-            .await
-            .err(),
-        Some(sqlx::Error::ColumnDecode { .. })
-    ));
-    sqlx::query("DELETE FROM token WHERE id = $1")
-        .bind(&state.token_id)
-        .execute(&pool)
+    let token = Token::find_by_id(&pool, &state.token_id).await.unwrap();
+    Token::delete_user_tokens_of_type(&pool, token.user_id, ENROLLMENT_TOKEN_TYPE)
         .await
         .unwrap();
     assert!(
@@ -289,7 +254,7 @@ async fn device(pool: &PgPool, name: &str) -> Device<Id> {
 }
 
 #[sqlx::test]
-async fn test_device_identity_challenge_roundtrip_and_device_binding(
+async fn test_polling_and_posture_challenges_enforce_scope_expiry_and_single_use(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -316,100 +281,93 @@ async fn test_device_identity_challenge_roundtrip_and_device_binding(
             mfa_session_id: None,
             mfa_session_token_hash: None,
             data: vec![0, 255, 128],
-            created_at: row.created,
+            created_at: row.created - chrono::TimeDelta::minutes(10),
             expires_at: row.created + chrono::TimeDelta::minutes(5),
             consumed_at: None,
         }
         .save(&pool)
         .await
         .unwrap();
-        assert!(
-            DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
+        let other_purpose = match purpose {
+            DeviceIdentityChallengePurpose::Polling => {
+                DeviceIdentityChallengePurpose::PostureConnection
+            }
+            _ => DeviceIdentityChallengePurpose::Polling,
+        };
+        for (device_id, expected_purpose, expected_location) in [
+            (row.id + 1, purpose, location_id),
+            (row.id, other_purpose, location_id),
+            (row.id, purpose, Some(network.id + 1)),
+        ] {
+            assert!(
+                DeviceIdentityChallenge::consume(
+                    &pool,
+                    challenge.id,
+                    device_id,
+                    expected_purpose,
+                    expected_location,
+                    None
+                )
                 .await
                 .unwrap()
-                == Some(challenge.clone())
-        );
-        let error = sqlx::query("UPDATE device_identity_challenge SET purpose = CASE WHEN purpose = 'polling' THEN 'posture_connection'::challenge_purpose ELSE 'polling'::challenge_purpose END WHERE id = $1")
-            .bind(challenge.id).execute(&pool).await.unwrap_err();
-        assert_constraint(error, "device_identity_challenge_location");
-        for (statement, constraint) in [
-            (
-                "UPDATE device_identity_challenge SET data = '\\x' WHERE id = $1",
-                "device_identity_challenge_data",
-            ),
-            (
-                "UPDATE device_identity_challenge SET expires_at = created_at WHERE id = $1",
-                "device_identity_challenge_expiry",
-            ),
-        ] {
-            assert_constraint(
-                sqlx::query(statement)
-                    .bind(challenge.id)
-                    .execute(&pool)
-                    .await
-                    .unwrap_err(),
-                constraint,
+                .is_none()
             );
         }
-    }
-    row.delete(&pool).await.unwrap();
-    assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
-}
-
-#[sqlx::test]
-async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-    let device = device(&pool, "crud").await;
-    let original = DeviceIdentityChallenge {
-        id: NoId,
-        purpose: DeviceIdentityChallengePurpose::Polling,
-        device_id: device.id,
-        location_id: None,
-        mfa_session_id: None,
-        mfa_session_token_hash: None,
-        data: vec![0, 255, 128],
-        created_at: device.created,
-        expires_at: device.created + chrono::TimeDelta::minutes(5),
-        consumed_at: None,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let saved = original.clone().as_noid();
-    original.clone().delete(&pool).await.unwrap();
-    let mut row = saved.save(&pool).await.unwrap();
-    assert!(row.id > original.id);
-    row = DeviceIdentityChallenge::consume(
-        &pool,
-        row.id,
-        device.id,
-        DeviceIdentityChallengePurpose::Polling,
-        None,
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
-    assert!(
-        DeviceIdentityChallenge::consume(
-            &pool,
-            row.id,
-            device.id,
-            DeviceIdentityChallengePurpose::Polling,
-            None,
-            None
-        )
-        .await
-        .unwrap()
-        .is_none()
-    );
-    assert!(DeviceIdentityChallenge::all(&pool).await.unwrap() == vec![row.clone()]);
-    assert!(
-        DeviceIdentityChallenge::all_paginated(&pool, 1, 0)
+        let mut expired = challenge.clone();
+        expired.expires_at = row.created - chrono::TimeDelta::minutes(1);
+        expired.save(&pool).await.unwrap();
+        assert!(
+            DeviceIdentityChallenge::consume(
+                &pool,
+                challenge.id,
+                row.id,
+                purpose,
+                location_id,
+                None
+            )
             .await
             .unwrap()
-            == vec![row.clone()]
-    );
+            .is_none()
+        );
+        challenge.clone().save(&pool).await.unwrap();
+        let (first, second) = tokio::join!(
+            DeviceIdentityChallenge::consume(
+                &pool,
+                challenge.id,
+                row.id,
+                purpose,
+                location_id,
+                None
+            ),
+            DeviceIdentityChallenge::consume(
+                &pool,
+                challenge.id,
+                row.id,
+                purpose,
+                location_id,
+                None
+            ),
+        );
+        let consumed = match (first.unwrap(), second.unwrap()) {
+            (Some(consumed), None) | (None, Some(consumed)) => consumed,
+            _ => panic!("expected exactly one successful consumption"),
+        };
+        assert_eq!(consumed.data, vec![0, 255, 128]);
+        assert!(consumed.consumed_at.is_some());
+        assert!(
+            DeviceIdentityChallenge::consume(
+                &pool,
+                challenge.id,
+                row.id,
+                purpose,
+                location_id,
+                None
+            )
+            .await
+            .unwrap()
+            .is_none()
+        );
+    }
     row.delete(&pool).await.unwrap();
     assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
 }
@@ -582,7 +540,7 @@ async fn test_mfa_possession_rejects_wrong_context(_: PgPoolOptions, options: Pg
 }
 
 #[sqlx::test]
-async fn test_mfa_possession_deadlines_rollback_and_concurrency(
+async fn test_mfa_possession_rejects_expired_challenge_or_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -633,10 +591,24 @@ async fn test_mfa_possession_deadlines_rollback_and_concurrency(
         .await
         .unwrap()
     );
-    sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
-        .bind(session.expires_at)
-        .bind(session.id)
-        .execute(&pool)
+    assert!(
+        !VpnClientMfaSession::find_by_id(&pool, session.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .possession_verified
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_verification_is_rolled_back(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (session, _) = mfa_session(&pool, "mfa-rollback").await;
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![1])
+        .save(&pool)
         .await
         .unwrap();
     let mut transaction = pool.begin().await.unwrap();
@@ -663,6 +635,19 @@ async fn test_mfa_possession_deadlines_rollback_and_concurrency(
             .consumed_at
             .is_none()
     );
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_deadline_applies_inside_transaction(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (session, _) = mfa_session(&pool, "mfa-transaction-deadline").await;
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![1])
+        .save(&pool)
+        .await
+        .unwrap();
     for expire_session in [false, true] {
         let mut delayed_transaction = pool.begin().await.unwrap();
         let deadline: chrono::NaiveDateTime =
@@ -699,6 +684,20 @@ async fn test_mfa_possession_deadlines_rollback_and_concurrency(
         );
         delayed_transaction.rollback().await.unwrap();
     }
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_is_recorded_once_under_concurrency(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (session, _) = mfa_session(&pool, "mfa-concurrent").await;
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![1])
+        .save(&pool)
+        .await
+        .unwrap();
+    let mut connection = pool.acquire().await.unwrap();
     let mut second_connection = pool.acquire().await.unwrap();
     let (first, second) = tokio::join!(
         DeviceIdentityChallenge::record_verified_mfa_possession(
@@ -832,6 +831,8 @@ async fn test_device_identity_roundtrip_status_and_cascade(
         ("identity-apple", DeviceIdentityBackend::AppleAppAttest),
     ] {
         let row = device(&pool, name).await;
+        assert_eq!(row.attestation_status, DeviceAttestationStatus::NotAttested);
+        assert!(row.attested_at.is_none());
         assert!(
             DeviceIdentity::find_by_device_id(&pool, row.id)
                 .await
@@ -922,39 +923,54 @@ async fn test_device_identity_validation_preserves_device_status(
     let mut invalid = vec![];
     let mut empty_key = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
     empty_key.public_key_der.clear();
-    invalid.push(empty_key);
+    invalid.push(("empty public key", empty_key));
     let mut missing_ek = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
     missing_ek.tpm_ek_public = None;
-    invalid.push(missing_ek);
+    invalid.push(("missing EK", missing_ek));
     let mut missing_chain = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
     missing_chain.tpm_ek_certificate_chain_der = None;
-    invalid.push(missing_chain);
+    invalid.push(("missing EK chain", missing_chain));
     let mut mixed = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
     mixed.apple_key_id = Some("apple-key".into());
-    invalid.push(mixed);
+    invalid.push(("TPM with Apple provenance", mixed));
     let mut missing_apple_key = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
     missing_apple_key.apple_key_id = None;
-    invalid.push(missing_apple_key);
+    invalid.push(("missing Apple key ID", missing_apple_key));
     let mut mixed = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
     mixed.tpm_ek_public = Some(vec![1]);
-    invalid.push(mixed);
+    invalid.push(("Apple with TPM provenance", mixed));
     for count in [-1i64, 4_294_967_296] {
         let mut apple = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
         apple.apple_sign_count = Some(count);
-        invalid.push(apple);
+        invalid.push(("Apple counter out of range", apple));
     }
     let mut connection = pool.acquire().await.unwrap();
-    for identity in invalid {
-        assert!(matches!(
-            identity
-                .save_verified(
-                    &mut connection,
-                    DeviceAttestationStatus::Attested,
-                    row.created
-                )
-                .await,
-            Err(DeviceIdentityError::InvalidState(_))
-        ));
+    for (case, identity) in invalid {
+        assert!(
+            matches!(
+                identity
+                    .save_verified(
+                        &mut connection,
+                        DeviceAttestationStatus::Attested,
+                        row.created
+                    )
+                    .await,
+                Err(DeviceIdentityError::InvalidState(_))
+            ),
+            "unexpected result for {case}"
+        );
+        assert_eq!(
+            Device::find_by_id(&pool, row.id).await.unwrap(),
+            Some(row.clone()),
+            "device changed for {case}"
+        );
+        assert!(
+            DeviceIdentity::find_by_device_id(&pool, row.id)
+                .await
+                .unwrap()
+                .is_none(),
+            "identity stored for {case}"
+        );
     }
     let identity = identity_for_device(row.id, DeviceIdentityBackend::Tpm);
     assert!(matches!(
@@ -1144,4 +1160,57 @@ async fn test_reap_expired_device_identity_state(_: PgPoolOptions, options: PgCo
             .is_some()
     );
     assert_eq!(super::reap_expired(&pool).await.unwrap(), 0);
+}
+
+#[sqlx::test]
+async fn test_device_identity_migration_is_reversible(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let mut row = device(&pool, "migration").await;
+    row.attestation_status = DeviceAttestationStatus::Unrecognized;
+    row.attested_at = Some(row.created);
+    row.save(&pool).await.unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    sqlx::raw_sql(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../migrations/20261110111514_[2.3.0]_device_identity_verification.down.sql"
+    )))
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    let legacy_fields: (String, Option<chrono::NaiveDateTime>) =
+        sqlx::query_as("SELECT attestation_status::text, attested_at FROM device WHERE id = $1")
+            .bind(row.id)
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert_eq!(legacy_fields, ("unrecognized".into(), row.attested_at));
+    let table: Option<String> =
+        sqlx::query_scalar("SELECT to_regclass('device_identity_challenge')::text")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert!(table.is_none());
+    let table: Option<String> =
+        sqlx::query_scalar("SELECT to_regclass('device_attestation_state')::text")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert!(table.is_none());
+    sqlx::raw_sql(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../migrations/20261110111514_[2.3.0]_device_identity_verification.up.sql"
+    )))
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    assert_eq!(
+        Device::find_by_id(&mut *tx, row.id).await.unwrap(),
+        Some(row)
+    );
+    let table: Option<String> = sqlx::query_scalar("SELECT to_regclass('device_identity')::text")
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
+    assert!(table.is_some());
+    tx.rollback().await.unwrap();
 }

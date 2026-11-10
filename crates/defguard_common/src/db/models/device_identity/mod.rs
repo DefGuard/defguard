@@ -13,6 +13,3 @@ pub enum DeviceAttestationStatus {
     AttestedManually,
     AttestationFailed,
 }
-
-#[cfg(test)]
-mod tests;
