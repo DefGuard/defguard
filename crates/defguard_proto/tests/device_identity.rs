@@ -5,9 +5,9 @@ use defguard_proto::{
     },
     device_identity::{
         AttestationIdentity, AttestationResponse, AttestationStatus, IdentityState,
-        PossessionChallenge, PossessionResponse, Signature, SignatureAlgorithm,
+        PossessionChallenge, PossessionChallengeSolution, Signature, SignatureAlgorithm,
         TpmAttestationIdentity, TpmAttestationResponse, attestation_identity, attestation_response,
-        possession_response,
+        possession_challenge_solution,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -43,13 +43,15 @@ fn test_device_identity_requests_roundtrip_in_core_envelopes() {
         }),
         core_request::Payload::InstanceInfo(InstanceInfoRequest {
             token: "polling-token".into(),
-            possession_response: Some(PossessionResponse {
+            possession_challenge_solution: Some(PossessionChallengeSolution {
                 identity_id: "identity".into(),
                 challenge_id: "challenge".into(),
-                result: Some(possession_response::Result::Signature(Signature {
-                    algorithm: SignatureAlgorithm::EcdsaSha256 as i32,
-                    signature: vec![0, 255, 128],
-                })),
+                result: Some(possession_challenge_solution::Result::Signature(
+                    Signature {
+                        algorithm: SignatureAlgorithm::EcdsaSha256 as i32,
+                        signature: vec![0, 255, 128],
+                    },
+                )),
             }),
         }),
     ];
