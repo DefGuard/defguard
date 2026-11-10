@@ -370,5 +370,28 @@ impl DeviceIdentityChallenge<Id> {
     }
 }
 
+/// Deletes expired attestation states and possession challenges, including consumed challenges.
+pub async fn reap_expired(pool: &sqlx::PgPool) -> sqlx::Result<u64> {
+    let mut transaction = pool.begin().await?;
+    let challenges = sqlx::query(
+        "DELETE FROM device_identity_challenge WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
+    )
+    .execute(&mut *transaction)
+    .await?
+    .rows_affected();
+    let attestations = sqlx::query(
+        "DELETE FROM device_attestation_state WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
+    )
+    .execute(&mut *transaction)
+    .await?
+    .rows_affected();
+    transaction.commit().await?;
+    debug!(
+        challenges,
+        attestations, "Reaped expired device identity state"
+    );
+    Ok(challenges + attestations)
+}
+
 #[cfg(test)]
 mod tests;
