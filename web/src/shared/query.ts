@@ -376,3 +376,10 @@ export const getMigrationStateQueryOptions = queryOptions({
   queryKey: ['migration', 'state'],
   select: (resp) => resp.data,
 });
+
+export const getConnectionEventFilterOptionsQueryOptions = queryOptions({
+  queryFn: () => api.getConnectionEventFilterOptions().then((resp) => resp.data),
+  queryKey: ['connection-event', 'filter-options'],
+  // Locations, Gateways, rules and devices change rarely; avoid refetching every device often.
+  staleTime: 5 * 60 * 1000,
+});

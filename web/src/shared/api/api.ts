@@ -43,6 +43,9 @@ import type {
   ChangeWebhookStateRequest,
   CheckReservedParams,
   CheckReservedResponse,
+  ConnectionEvent,
+  ConnectionEventFilterOptions,
+  ConnectionEventRequestParams,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -646,6 +649,10 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
+  getConnectionEvents: (data?: ConnectionEventRequestParams) =>
+    fetchPage<ConnectionEvent>(`/connection_event`, data),
+  getConnectionEventFilterOptions: () =>
+    client.get<ConnectionEventFilterOptions>(`/connection_event/filter_options`),
   getActivityLogEvent: (id: number) =>
     client.get<ActivityLogEventDetails>(`/activity_log/${id}`),
   getLicenseInfo: () =>

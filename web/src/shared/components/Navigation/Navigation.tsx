@@ -70,6 +70,13 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_locations(),
         link: '/locations',
       },
+      {
+        id: 'traffic',
+        icon: 'device-ip',
+        label: m.cmp_nav_item_traffic(),
+        link: '/traffic',
+        licenseTier: LicenseTier.Enterprise,
+      },
     ],
   },
   {

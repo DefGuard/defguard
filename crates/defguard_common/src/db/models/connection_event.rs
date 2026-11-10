@@ -2,18 +2,23 @@ use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
 use model_derive::Model;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Copy, Debug, PartialEq, Type)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "connection_direction", rename_all = "lowercase")]
 pub enum ConnectionDirection {
     Inbound,
     Outbound,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Type)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "connection_status", rename_all = "lowercase")]
 pub enum ConnectionStatus {
     Allowed,

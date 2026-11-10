@@ -1828,3 +1828,85 @@ export interface UserListParams extends PaginationParams {
   sort_by?: UserSortKey;
   sort_order?: SortDirectionValue;
 }
+
+export const ConnectionDirection = {
+  Inbound: 'inbound',
+  Outbound: 'outbound',
+} as const;
+
+export type ConnectionDirectionValue =
+  (typeof ConnectionDirection)[keyof typeof ConnectionDirection];
+
+export const ConnectionStatus = {
+  Allowed: 'allowed',
+  Blocked: 'blocked',
+} as const;
+
+export type ConnectionStatusValue =
+  (typeof ConnectionStatus)[keyof typeof ConnectionStatus];
+
+/** Traffic flow reported by a Gateway. */
+export interface ConnectionEvent {
+  id: number;
+  timestamp: string;
+  direction: ConnectionDirectionValue;
+  status: ConnectionStatusValue;
+  /** IANA protocol number. */
+  protocol: number;
+  source_ip: string;
+  source_port: number | null;
+  destination_ip: string;
+  destination_port: number | null;
+  location_id: number;
+  location_name: string;
+  gateway_id: number;
+  /** Null if the Gateway has been deleted. */
+  gateway_name: string | null;
+  /** Null if the default policy applied. */
+  rule_id: number | null;
+  /** Null if no rule matched or the rule has been deleted. */
+  rule_name: string | null;
+  device_id: number | null;
+  device_name: string | null;
+  /** Bytes sent by the VPN device. */
+  upload_bytes: number;
+  /** Bytes received by the VPN device. */
+  download_bytes: number;
+  /** Number of aggregated packets. */
+  count: number;
+}
+
+export interface ConnectionEventFilterOption {
+  id: number;
+  name: string;
+  /** Disambiguates options sharing a name: location of a Gateway, owner of a device. */
+  context: string | null;
+}
+
+export interface ConnectionEventFilterOptions {
+  locations: ConnectionEventFilterOption[];
+  gateways: ConnectionEventFilterOption[];
+  rules: ConnectionEventFilterOption[];
+  devices: ConnectionEventFilterOption[];
+}
+
+export type ConnectionEventSortKey =
+  | 'timestamp'
+  | 'upload_bytes'
+  | 'download_bytes'
+  | 'count';
+
+export type ConnectionEventRequestParams = {
+  from?: string;
+  until?: string;
+  status?: ConnectionStatusValue[];
+  direction?: ConnectionDirectionValue[];
+  protocol?: number[];
+  location?: number[];
+  gateway?: number[];
+  rule?: number[];
+  device?: number[];
+  search?: string;
+  sort_by?: ConnectionEventSortKey;
+  sort_order?: SortDirectionValue;
+} & PaginationParams;
