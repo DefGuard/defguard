@@ -6,7 +6,6 @@ use defguard_common::db::{
     models::{
         Device, DeviceType, WireguardNetwork,
         connection_event::{ConnectionDirection, ConnectionEvent, ConnectionStatus},
-        device::WireguardNetworkDevice,
         gateway::Gateway,
     },
 };
@@ -94,10 +93,6 @@ async fn setup(client: &TestClient, pool: &PgPool, user_id: Id) -> Fixture {
     .save(pool)
     .await
     .unwrap();
-    WireguardNetworkDevice::new(network.id, device.id, vec![DEVICE_IP])
-        .insert(pool)
-        .await
-        .unwrap();
 
     Fixture {
         network,
@@ -113,11 +108,6 @@ fn event(
     minutes_ago: i64,
     direction: ConnectionDirection,
 ) -> ConnectionEvent<NoId> {
-    // The VPN device is the source of outbound and the destination of inbound traffic.
-    let (source_ip, destination_ip) = match direction {
-        ConnectionDirection::Outbound => (DEVICE_IP, REMOTE_IP),
-        ConnectionDirection::Inbound => (REMOTE_IP, DEVICE_IP),
-    };
     ConnectionEvent {
         id: NoId,
         location_id: fixture.network.id,
@@ -126,11 +116,12 @@ fn event(
         direction,
         status: ConnectionStatus::Allowed,
         protocol: 6,
-        source_ip,
+        source_ip: DEVICE_IP,
         source_port: Some(40000),
-        destination_ip,
+        destination_ip: REMOTE_IP,
         destination_port: Some(443),
         rule_id: None,
+        device_id: Some(fixture.device.id),
         upload_bytes: 10,
         download_bytes: 100,
         count: 3,

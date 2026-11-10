@@ -3,6 +3,15 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 #[sqlx::test]
 async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
+    // Source of the outbound test event.
+    let device = create_device_for_network(
+        &context,
+        context.network.id,
+        "laptop",
+        "laptop-pubkey",
+        "10.10.0.2",
+    )
+    .await;
 
     // Sent before the configuration handshake, so it must be ignored.
     context
@@ -31,6 +40,7 @@ async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: Pg
     );
     assert_eq!(event.destination_port, Some(443));
     assert_eq!(event.rule_id, Some(7));
+    assert_eq!(event.device_id, Some(device.id));
     assert_eq!(event.upload_bytes, 1024);
     assert_eq!(event.download_bytes, 2048);
     assert_eq!(event.count, 1);

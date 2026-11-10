@@ -25,6 +25,9 @@ CREATE TABLE connection_event (
     destination_port integer NULL,
     -- No foreign key: ACL rules may be deleted, and events must outlive them.
     rule_id bigint NULL,
+    -- VPN device matched by address on arrival; NULL if none matched.
+    -- No foreign key: events must outlive deleted devices.
+    device_id bigint NULL,
     upload_bytes bigint NOT NULL,
     download_bytes bigint NOT NULL,
     count bigint NOT NULL
@@ -34,3 +37,6 @@ CREATE TABLE connection_event (
 CREATE INDEX connection_event_timestamp_idx ON connection_event USING BRIN (timestamp);
 -- Serves ON DELETE CASCADE from wireguard_network and per-location queries.
 CREATE INDEX connection_event_location_id_timestamp_idx ON connection_event (location_id, timestamp);
+-- Serves per-device queries.
+CREATE INDEX connection_event_device_id_timestamp_idx ON connection_event (device_id, timestamp)
+    WHERE device_id IS NOT NULL;

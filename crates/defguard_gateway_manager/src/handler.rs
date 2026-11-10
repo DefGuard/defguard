@@ -640,7 +640,7 @@ impl GatewayHandler {
                                 );
                                 continue;
                             };
-                            if let Err(err) = event.save(&self.pool).await {
+                            if let Err(err) = event.save_with_device(&self.pool).await {
                                 error!(
                                     "Failed to store connection event from {}: {err}",
                                     self.gateway
@@ -852,6 +852,8 @@ fn try_proto_into_connection_event(
             .ok()?
             .map(i32::from),
         rule_id: proto_event.rule_id,
+        // Set by `save_with_device`.
+        device_id: None,
         upload_bytes: i64::try_from(proto_event.upload_bytes).ok()?,
         download_bytes: i64::try_from(proto_event.download_bytes).ok()?,
         count: i64::try_from(proto_event.count).ok()?,

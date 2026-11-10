@@ -21,22 +21,11 @@ use crate::{
     },
 };
 
-/// Resolves the VPN device taking part in a connection by matching its VPN addresses in the
-/// event's location. The device side is the source of outbound traffic and the destination of
-/// inbound traffic; the other side is only used as a fallback.
-const DEVICE_LATERAL_JOIN: &str = " LEFT JOIN LATERAL ( \
-        SELECT d.id device_id, d.name device_name \
-        FROM wireguard_network_device wnd JOIN device d ON d.id = wnd.device_id \
-        WHERE wnd.wireguard_network_id = ce.location_id \
-        AND (ce.source_ip = ANY(wnd.wireguard_ips) OR ce.destination_ip = ANY(wnd.wireguard_ips)) \
-        ORDER BY (ce.source_ip = ANY(wnd.wireguard_ips)) = (ce.direction = 'outbound') DESC \
-        LIMIT 1 \
-    ) dev ON TRUE ";
-
-/// Joins resolving names of the location, Gateway and ACL rule.
+/// Joins resolving names of the location, Gateway, ACL rule and device.
 const NAME_JOINS: &str = " JOIN wireguard_network wn ON wn.id = ce.location_id \
     LEFT JOIN gateway g ON g.id = ce.gateway_id \
-    LEFT JOIN aclrule r ON r.id = ce.rule_id ";
+    LEFT JOIN aclrule r ON r.id = ce.rule_id \
+    LEFT JOIN device d ON d.id = ce.device_id ";
 
 #[derive(Debug, Deserialize)]
 pub struct FilterParams {
@@ -65,11 +54,6 @@ impl FilterParams {
             .as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
-    }
-
-    /// Device resolution is costly, so only join it when a filter needs it.
-    fn needs_device(&self) -> bool {
-        !self.device.is_empty() || self.search_term().is_some()
     }
 }
 
@@ -127,8 +111,9 @@ pub struct ApiConnectionEvent {
     pub rule_id: Option<Id>,
     /// `None` if no rule matched or the rule has been deleted.
     pub rule_name: Option<String>,
-    /// VPN device taking part in the connection, if it could be resolved.
+    /// VPN device matched by address on arrival.
     pub device_id: Option<Id>,
+    /// `None` if no device matched or the device has been deleted.
     pub device_name: Option<String>,
     /// Bytes sent by the VPN device.
     pub upload_bytes: i64,
@@ -204,12 +189,12 @@ pub async fn list_connection_events(
 ) -> PaginatedApiResult<ApiConnectionEvent> {
     debug!("Fetching connection events with filters {filters:?} and pagination {pagination}");
 
-    // Pick one page of events first, so names and devices are resolved for that page only.
+    // Page first, then join names, so rows skipped by OFFSET are never joined.
     let mut query_builder = QueryBuilder::<Postgres>::new(
         "SELECT ce.id, ce.timestamp, ce.direction, ce.status, ce.protocol, \
         ce.source_ip, ce.source_port, ce.destination_ip, ce.destination_port, \
         ce.location_id, wn.name location_name, ce.gateway_id, g.name gateway_name, \
-        ce.rule_id, r.name rule_name, dev.device_id, dev.device_name, \
+        ce.rule_id, r.name rule_name, ce.device_id, d.name device_name, \
         ce.upload_bytes, ce.download_bytes, ce.count \
         FROM (SELECT ce.*",
     );
@@ -221,7 +206,7 @@ pub async fn list_connection_events(
         .push(" OFFSET ")
         .push_bind(i64::from(pagination.offset()))
         .push(") ce");
-    query_builder.push(NAME_JOINS).push(DEVICE_LATERAL_JOIN);
+    query_builder.push(NAME_JOINS);
     push_sorting(&mut query_builder, &sorting);
 
     let mut count_query_builder = QueryBuilder::new("SELECT COUNT(*)");
@@ -306,11 +291,9 @@ fn push_filtered_source(query_builder: &mut QueryBuilder<Postgres>, filters: &Fi
     let search_term = filters.search_term();
 
     query_builder.push(" FROM connection_event ce");
+    // Name joins are only needed for search.
     if search_term.is_some() {
         query_builder.push(NAME_JOINS);
-    }
-    if filters.needs_device() {
-        query_builder.push(DEVICE_LATERAL_JOIN);
     }
     query_builder.push(" WHERE TRUE");
 
@@ -330,12 +313,12 @@ fn push_filtered_source(query_builder: &mut QueryBuilder<Postgres>, filters: &Fi
     push_any(query_builder, "ce.location_id", &filters.location);
     push_any(query_builder, "ce.gateway_id", &filters.gateway);
     push_any(query_builder, "ce.rule_id", &filters.rule);
-    push_any(query_builder, "dev.device_id", &filters.device);
+    push_any(query_builder, "ce.device_id", &filters.device);
     if let Some(search_term) = search_term {
         query_builder
             .push(
                 " AND CONCAT_WS(' ', host(ce.source_ip), host(ce.destination_ip), wn.name, \
-                g.name, r.name, dev.device_name) ILIKE ",
+                g.name, r.name, d.name) ILIKE ",
             )
             .push_bind(format!("%{search_term}%"));
     }

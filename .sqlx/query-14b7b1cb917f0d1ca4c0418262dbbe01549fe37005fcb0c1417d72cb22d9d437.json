@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"gateway_id\",\"timestamp\",\"direction\" \"direction: _\",\"status\" \"status: _\",\"protocol\",\"source_ip\" \"source_ip: IpAddr\",\"source_port\",\"destination_ip\" \"destination_ip: IpAddr\",\"destination_port\",\"rule_id\",\"upload_bytes\",\"download_bytes\",\"count\" FROM \"connection_event\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"location_id\",\"gateway_id\",\"timestamp\",\"direction\" \"direction: _\",\"status\" \"status: _\",\"protocol\",\"source_ip\" \"source_ip: IpAddr\",\"source_port\",\"destination_ip\" \"destination_ip: IpAddr\",\"destination_port\",\"rule_id\",\"device_id\",\"upload_bytes\",\"download_bytes\",\"count\" FROM \"connection_event\"",
   "describe": {
     "columns": [
       {
@@ -157,6 +157,17 @@
       },
       {
         "ordinal": 12,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
         "name": "upload_bytes",
         "type_info": "Int8",
         "origin": {
@@ -167,7 +178,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "download_bytes",
         "type_info": "Int8",
         "origin": {
@@ -178,7 +189,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "count",
         "type_info": "Int8",
         "origin": {
@@ -190,10 +201,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -208,10 +216,11 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "1297b711e0f994003f520bef2377bff0290122f57cb12aed12511d415ef060cf"
+  "hash": "14b7b1cb917f0d1ca4c0418262dbbe01549fe37005fcb0c1417d72cb22d9d437"
 }
