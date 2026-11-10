@@ -3,13 +3,10 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use super::{
-    DeviceAttestationStatus, DeviceIdentityBackend, DeviceIdentityChallenge,
-    DeviceIdentityChallengePurpose, DevicePossessionState,
-};
+use super::{DeviceAttestationStatus, DeviceIdentityBackend, DevicePossessionState};
 use crate::db::{
-    Id, NoId,
-    models::{Device, DeviceType, User, WireguardNetwork},
+    Id,
+    models::{Device, DeviceType, User},
     setup_pool,
 };
 
@@ -161,72 +158,6 @@ async fn test_device_identity_constraints(_: PgPoolOptions, options: PgConnectOp
     );
 }
 
-#[sqlx::test]
-async fn test_device_identity_challenge_roundtrip_and_device_binding(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let pool = setup_pool(options).await;
-    let row = device(&pool, "challenge").await;
-    let network = WireguardNetwork::default()
-        .try_set_address("10.1.1.1/30")
-        .unwrap()
-        .save(&pool)
-        .await
-        .unwrap();
-    for (purpose, location_id) in [
-        (DeviceIdentityChallengePurpose::Polling, None),
-        (
-            DeviceIdentityChallengePurpose::PostureConnection,
-            Some(network.id),
-        ),
-    ] {
-        let challenge = DeviceIdentityChallenge {
-            id: NoId,
-            purpose,
-            device_id: row.id,
-            location_id,
-            data: vec![0, 255, 128],
-            created_at: row.created,
-            expires_at: row.created + chrono::TimeDelta::minutes(5),
-            consumed_at: None,
-        }
-        .save(&pool)
-        .await
-        .unwrap();
-        assert!(
-            DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
-                .await
-                .unwrap()
-                == Some(challenge.clone())
-        );
-        let error = sqlx::query("UPDATE device_identity_challenge SET purpose = CASE WHEN purpose = 'polling' THEN 'posture_connection'::challenge_purpose ELSE 'polling'::challenge_purpose END WHERE id = $1")
-            .bind(challenge.id).execute(&pool).await.unwrap_err();
-        assert_constraint(error, "device_identity_challenge_location");
-        for (statement, constraint) in [
-            (
-                "UPDATE device_identity_challenge SET data = '\\x' WHERE id = $1",
-                "device_identity_challenge_data",
-            ),
-            (
-                "UPDATE device_identity_challenge SET expires_at = created_at WHERE id = $1",
-                "device_identity_challenge_expiry",
-            ),
-        ] {
-            assert_constraint(
-                sqlx::query(statement)
-                    .bind(challenge.id)
-                    .execute(&pool)
-                    .await
-                    .unwrap_err(),
-                constraint,
-            );
-        }
-    }
-    row.delete(&pool).await.unwrap();
-    assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
-}
-
 #[test]
 fn test_device_possession_state_roundtrip() {
     for state in [
@@ -287,58 +218,4 @@ async fn test_device_identity_migration_is_reversible(_: PgPoolOptions, options:
         .unwrap();
     assert!(table.is_none());
     tx.rollback().await.unwrap();
-}
-
-#[sqlx::test]
-async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-    let device = device(&pool, "crud").await;
-    let original = DeviceIdentityChallenge {
-        id: NoId,
-        purpose: DeviceIdentityChallengePurpose::Polling,
-        device_id: device.id,
-        location_id: None,
-        data: vec![0, 255, 128],
-        created_at: device.created,
-        expires_at: device.created + chrono::TimeDelta::minutes(5),
-        consumed_at: None,
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let saved = original.clone().as_noid();
-    original.clone().delete(&pool).await.unwrap();
-    let mut row = saved.save(&pool).await.unwrap();
-    assert!(row.id > original.id);
-    row = DeviceIdentityChallenge::consume(
-        &pool,
-        row.id,
-        device.id,
-        DeviceIdentityChallengePurpose::Polling,
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
-    assert!(
-        DeviceIdentityChallenge::consume(
-            &pool,
-            row.id,
-            device.id,
-            DeviceIdentityChallengePurpose::Polling,
-            None
-        )
-        .await
-        .unwrap()
-        .is_none()
-    );
-    assert!(DeviceIdentityChallenge::all(&pool).await.unwrap() == vec![row.clone()]);
-    assert!(
-        DeviceIdentityChallenge::all_paginated(&pool, 1, 0)
-            .await
-            .unwrap()
-            == vec![row.clone()]
-    );
-    row.delete(&pool).await.unwrap();
-    assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
 }

@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
+use defguard_common::db::{Id, NoId};
+use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{FromRow, Type};
 
 /// Stores a pending device attestation challenge for an enrollment session.
 #[derive(Clone, PartialEq, FromRow)]
@@ -98,6 +100,52 @@ pub enum DeviceAttestationChallenge {
     AppleAppAttest {
         key_id: String,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Type)]
+#[sqlx(type_name = "challenge_purpose", rename_all = "snake_case")]
+pub enum DeviceIdentityChallengePurpose {
+    Polling,
+    PostureConnection,
+}
+
+#[derive(Clone, PartialEq, FromRow, Model)]
+#[table(device_identity_challenge)]
+pub struct DeviceIdentityChallenge<I = NoId> {
+    pub id: I,
+    #[model(enum)]
+    pub purpose: DeviceIdentityChallengePurpose,
+    pub device_id: Id,
+    pub location_id: Option<Id>,
+    /// Exact Core-encoded bytes include the nonce, key fingerprint and operation binding.
+    pub data: Vec<u8>,
+    pub created_at: NaiveDateTime,
+    pub expires_at: NaiveDateTime,
+    pub consumed_at: Option<NaiveDateTime>,
+}
+
+impl DeviceIdentityChallenge<Id> {
+    /// Atomically consumes a live challenge bound to the device, purpose and location.
+    pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
+        id: Id,
+        device_id: Id,
+        purpose: DeviceIdentityChallengePurpose,
+        location_id: Option<Id>,
+    ) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as(
+            "UPDATE device_identity_challenge SET consumed_at = (now() AT TIME ZONE 'UTC') \
+             WHERE id = $1 AND device_id = $2 AND purpose = $3 \
+             AND location_id IS NOT DISTINCT FROM $4 AND consumed_at IS NULL \
+             AND expires_at > (now() AT TIME ZONE 'UTC') RETURNING *",
+        )
+        .bind(id)
+        .bind(device_id)
+        .bind(purpose)
+        .bind(location_id)
+        .fetch_optional(executor)
+        .await
+    }
 }
 
 #[cfg(test)]
