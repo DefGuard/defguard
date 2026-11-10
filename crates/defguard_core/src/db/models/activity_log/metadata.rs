@@ -724,3 +724,44 @@ pub struct OidcDirectorySyncGroupMemberMetadata {
     pub group: Group<Id>,
     pub user: UserNoSecrets,
 }
+
+#[cfg(test)]
+mod tests {
+    use defguard_common::db::models::DeviceType;
+
+    use super::*;
+
+    #[test]
+    fn test_device_identity_internal_fields_are_omitted_from_enrollment_metadata() {
+        let mut device = Device::new(
+            "enrollment-device".into(),
+            "wg-public-key".into(),
+            1,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .with_id(42);
+        device.identity_public_key_der = Some(vec![1, 2, 3]);
+        device.apple_sign_count = Some(123);
+        device.tpm_ek_public = Some(vec![4, 5, 6]);
+        device.tpm_ek_certificate_chain_der = Some(vec![vec![7, 8, 9]]);
+        device.apple_key_id = Some("private-apple-key-id".into());
+        let value = serde_json::to_value(EnrollmentDeviceAddedMetadata { device }).unwrap();
+        let device = value["device"].as_object().unwrap();
+        for field in [
+            "identity_public_key_der",
+            "apple_sign_count",
+            "tpm_ek_public",
+            "tpm_ek_certificate_chain_der",
+            "apple_key_id",
+        ] {
+            assert!(
+                !device.contains_key(field),
+                "activity metadata exposes internal field {field}"
+            );
+        }
+        assert_eq!(device["id"], 42);
+        assert_eq!(device["name"], "enrollment-device");
+    }
+}

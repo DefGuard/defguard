@@ -89,7 +89,7 @@ impl From<DeviceType> for String {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, FromRow, Model, Serialize, PartialEq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Device<I = NoId> {
     #[cfg_attr(feature = "openapi", schema(value_type = i64))]
@@ -107,19 +107,42 @@ pub struct Device<I = NoId> {
     pub configured: bool,
     #[model(option)]
     pub identity_backend: Option<DeviceIdentityBackend>,
+    #[serde(skip)]
     pub identity_public_key_der: Option<Vec<u8>>,
     #[model(enum)]
     #[serde(default)]
     pub attestation_status: DeviceAttestationStatus,
     pub attested_at: Option<NaiveDateTime>,
+    #[serde(skip)]
     pub apple_sign_count: Option<i64>,
     /// Marshalled TPMT_PUBLIC of the EK used during verified attestation.
+    #[serde(skip)]
     pub tpm_ek_public: Option<Vec<u8>>,
     /// DER certificates starting with the EK certificate.
     #[model(option_ref)]
+    #[serde(skip)]
     pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
     /// App Attest key identifier associated with the verified identity public key.
+    #[serde(skip)]
     pub apple_key_id: Option<String>,
+}
+
+impl<I: fmt::Debug> fmt::Debug for Device<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Device")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("wireguard_pubkey", &self.wireguard_pubkey)
+            .field("user_id", &self.user_id)
+            .field("created", &self.created)
+            .field("device_type", &self.device_type)
+            .field("description", &self.description)
+            .field("configured", &self.configured)
+            .field("identity_backend", &self.identity_backend)
+            .field("attestation_status", &self.attestation_status)
+            .field("attested_at", &self.attested_at)
+            .finish_non_exhaustive()
+    }
 }
 
 impl fmt::Display for Device<NoId> {

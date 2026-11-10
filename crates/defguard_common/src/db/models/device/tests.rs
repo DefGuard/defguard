@@ -1505,3 +1505,110 @@ fn test_device_network_info_debug_redacts_preshared_key_and_skips_serialization(
     assert!(!serialized.contains("preshared_key"));
     assert!(!serialized.contains("device-network-secret"));
 }
+
+const INTERNAL_IDENTITY_FIELDS: [&str; 5] = [
+    "identity_public_key_der",
+    "apple_sign_count",
+    "tpm_ek_public",
+    "tpm_ek_certificate_chain_der",
+    "apple_key_id",
+];
+
+fn device_with_internal_identity_fields() -> Device<Id> {
+    let mut device = Device::new(
+        "serialization-device".into(),
+        "wg-public-key".into(),
+        1,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .with_id(42);
+    device.identity_backend = Some(DeviceIdentityBackend::Tpm);
+    device.attestation_status = DeviceAttestationStatus::Attested;
+    device.attested_at = Some(device.created);
+    device.identity_public_key_der = Some(vec![1, 2, 3]);
+    device.apple_sign_count = Some(123);
+    device.tpm_ek_public = Some(vec![4, 5, 6]);
+    device.tpm_ek_certificate_chain_der = Some(vec![vec![7, 8, 9]]);
+    device.apple_key_id = Some("private-apple-key-id".into());
+    device
+}
+
+#[test]
+fn test_device_identity_internal_fields_are_skipped_by_serde() {
+    let device = device_with_internal_identity_fields();
+    let info = DeviceInfo {
+        device: device.clone(),
+        network_info: Vec::new(),
+    };
+    for value in [
+        serde_json::to_value(&device).unwrap(),
+        serde_json::to_value(&info).unwrap(),
+    ] {
+        for field in INTERNAL_IDENTITY_FIELDS {
+            assert!(
+                value.get(field).is_none(),
+                "serialized internal field {field}"
+            );
+        }
+        assert_eq!(value["id"], 42);
+        assert_eq!(value["identity_backend"], "tpm");
+        assert_eq!(value["attestation_status"], "attested");
+        assert!(value["attested_at"].is_string());
+    }
+}
+
+#[test]
+fn test_device_identity_internal_fields_are_ignored_by_deserialization() {
+    let mut expected = device_with_internal_identity_fields();
+    let mut value = serde_json::to_value(&expected).unwrap();
+    for field in INTERNAL_IDENTITY_FIELDS {
+        value[field] = serde_json::json!({"untrusted": "payload"});
+    }
+    let decoded: Device<Id> = serde_json::from_value(value).unwrap();
+    expected.identity_public_key_der = None;
+    expected.apple_sign_count = None;
+    expected.tpm_ek_public = None;
+    expected.tpm_ek_certificate_chain_der = None;
+    expected.apple_key_id = None;
+    assert_eq!(decoded, expected);
+}
+
+#[test]
+fn test_device_identity_internal_fields_are_omitted_from_debug() {
+    let device = device_with_internal_identity_fields();
+    let info = DeviceInfo {
+        device: device.clone(),
+        network_info: Vec::new(),
+    };
+    for output in [format!("{device:?}"), format!("{info:?}")] {
+        for field in INTERNAL_IDENTITY_FIELDS {
+            assert!(
+                !output.contains(field),
+                "debug output contains internal field {field}"
+            );
+        }
+        assert!(!output.contains("private-apple-key-id"));
+        assert!(output.contains("serialization-device"));
+        assert!(output.contains("attestation_status: Attested"));
+    }
+}
+
+#[cfg(feature = "openapi")]
+#[test]
+fn test_device_identity_internal_fields_are_omitted_from_openapi() {
+    let schema = serde_json::to_value(<Device<Id> as utoipa::PartialSchema>::schema()).unwrap();
+    let properties = schema["properties"]
+        .as_object()
+        .expect("device schema properties");
+    for field in INTERNAL_IDENTITY_FIELDS {
+        assert!(
+            !properties.contains_key(field),
+            "OpenAPI exposes internal field {field}"
+        );
+    }
+    assert!(properties.contains_key("identity_backend"));
+    assert!(properties.contains_key("attestation_status"));
+    assert!(properties.contains_key("attested_at"));
+}
