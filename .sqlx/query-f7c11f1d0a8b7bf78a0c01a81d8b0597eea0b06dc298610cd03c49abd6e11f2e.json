@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT device_id, backend AS \"backend: DeviceIdentityBackend\", public_key_der, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device_identity WHERE device_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "backend: DeviceIdentityBackend",
+        "type_info": {
+          "Custom": {
+            "name": "device_identity_backend",
+            "kind": {
+              "Enum": [
+                "tpm",
+                "apple_app_attest"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "backend"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "public_key_der",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "public_key_der"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "apple_sign_count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "apple_sign_count"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tpm_ek_public",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "tpm_ek_public"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tpm_ek_certificate_chain_der",
+        "type_info": "ByteaArray",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "tpm_ek_certificate_chain_der"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "apple_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_identity",
+            "name": "apple_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f7c11f1d0a8b7bf78a0c01a81d8b0597eea0b06dc298610cd03c49abd6e11f2e"
+}
