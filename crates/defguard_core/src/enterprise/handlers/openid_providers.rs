@@ -3,12 +3,16 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use defguard_common::db::{
-    Id,
-    models::{
-        Settings, WireguardNetwork,
-        settings::{OpenIdUsernameHandling, update_current_settings},
+use chrono::NaiveDateTime;
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Settings, WireguardNetwork,
+            settings::{OpenIdUsernameHandling, update_current_settings},
+        },
     },
+    secret::SecretStringWrapper,
 };
 use rsa::{RsaPrivateKey, pkcs8::DecodePrivateKey};
 use serde_json::json;
@@ -19,10 +23,13 @@ use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    cert_settings::parse_cert,
     enterprise::{
+        client_assertion::client_assertion,
         db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
         directory_sync::test_directory_sync_connection,
     },
+    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
@@ -35,6 +42,8 @@ pub struct AddProviderData {
     pub kind: OpenIdProviderKind,
     pub client_id: String,
     pub client_secret: String,
+    pub client_certificate: Option<String>,
+    pub client_private_key: Option<String>,
     pub display_name: Option<String>,
     pub admin_email: Option<String>,
     pub google_service_account_email: Option<String>,
@@ -61,6 +70,8 @@ struct OpenIdProviderResponse {
     #[serde(flatten)]
     provider: OpenIdProvider<Id>,
     client_secret_set: bool,
+    client_certificate_set: bool,
+    client_certificate_expiry: Option<NaiveDateTime>,
     google_service_account_key_set: bool,
     okta_private_jwk_set: bool,
     jumpcloud_api_key_set: bool,
@@ -70,12 +81,62 @@ impl From<OpenIdProvider<Id>> for OpenIdProviderResponse {
     fn from(provider: OpenIdProvider<Id>) -> Self {
         Self {
             client_secret_set: !provider.client_secret.expose_secret().is_empty(),
+            client_certificate_set: provider.client_private_key.is_some(),
+            client_certificate_expiry: provider.client_certificate_expiry(),
             google_service_account_key_set: provider.google_service_account_key.is_some(),
             okta_private_jwk_set: provider.okta_private_jwk.is_some(),
             jumpcloud_api_key_set: provider.jumpcloud_api_key.is_some(),
             provider,
         }
     }
+}
+
+type ClientCredentials = (
+    SecretStringWrapper,
+    Option<String>,
+    Option<SecretStringWrapper>,
+);
+
+/// Pick the client credentials to store. A certificate or a key without its other half takes
+/// that half from `stored`.
+async fn client_credentials(
+    data: &AddProviderData,
+    stored: Option<&OpenIdProvider<Id>>,
+) -> Result<ClientCredentials, WebError> {
+    let supplied = |pem: &Option<String>| pem.clone().filter(|pem| !pem.trim().is_empty());
+    let cert = supplied(&data.client_certificate);
+    let key = supplied(&data.client_private_key);
+    if cert.is_none() && key.is_none() {
+        return Ok(match stored {
+            Some(provider) if data.client_secret.is_empty() => (
+                provider.client_secret.clone(),
+                provider.client_certificate.clone(),
+                provider.client_private_key.clone(),
+            ),
+            _ => (data.client_secret.clone().into(), None, None),
+        });
+    }
+    if !data.client_secret.is_empty() {
+        return Err(WebError::BadRequest(
+            "Provide either a client secret or a client certificate, not both".into(),
+        ));
+    }
+    let cert = cert
+        .or_else(|| stored.and_then(|provider| provider.client_certificate.clone()))
+        .ok_or(WebError::CertMissingCertPem)?;
+    let key = key
+        .or_else(|| {
+            stored
+                .and_then(|provider| provider.client_private_key.as_ref())
+                .map(|key| key.expose_secret().to_owned())
+        })
+        .ok_or(WebError::CertMissingKeyPem)?;
+    parse_cert(&cert, &key).await?;
+    // `parse_cert` accepts any key type, but only an RSA key can sign the client assertion.
+    client_assertion(&data.client_id, &cert, &key, &data.base_url)
+        .map_err(|_| WebError::CertInvalidCertOrKey)?;
+
+    Ok((String::new().into(), Some(cert), Some(key.into())))
 }
 
 /// Create an OpenID provider
@@ -109,6 +170,8 @@ pub(crate) async fn add_openid_provider(
         session.user.username, provider_data.name
     );
     let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
+    let (client_secret, client_certificate, client_private_key) =
+        client_credentials(&provider_data, None).await?;
 
     // The key is sent from the frontend only when user explicitly changes it, as we never send it
     // back. Check if the thing received from the frontend is a valid RSA private key (signaling
@@ -206,12 +269,12 @@ pub(crate) async fn add_openid_provider(
     };
 
     // Currently, we only support one OpenID provider at a time
-    let new_provider = OpenIdProvider::new(
+    let mut new_provider = OpenIdProvider::new(
         provider_data.name,
         provider_data.base_url,
         provider_data.kind,
         provider_data.client_id,
-        provider_data.client_secret.into(),
+        client_secret,
         provider_data.display_name,
         private_key,
         provider_data.google_service_account_email,
@@ -228,9 +291,10 @@ pub(crate) async fn add_openid_provider(
         provider_data.prefetch_users,
         provider_data.disable_password_management,
         user_groups,
-    )
-    .upsert(&appstate.pool)
-    .await?;
+    );
+    new_provider.client_certificate = client_certificate;
+    new_provider.client_private_key = client_private_key;
+    let new_provider = new_provider.upsert(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
@@ -414,6 +478,8 @@ pub(crate) async fn modify_openid_provider(
     let mut transaction = appstate.pool.begin().await?;
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(mut provider) = provider {
+        let (client_secret, client_certificate, client_private_key) =
+            client_credentials(&provider_data, Some(&provider)).await?;
         let private_key = match &provider_data.google_service_account_key {
             Some(key) => {
                 if RsaPrivateKey::from_pkcs8_pem(key).is_ok() {
@@ -491,9 +557,9 @@ pub(crate) async fn modify_openid_provider(
         provider.base_url = provider_data.base_url;
         provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
-        if !provider_data.client_secret.is_empty() {
-            provider.client_secret = provider_data.client_secret.into();
-        }
+        provider.client_secret = client_secret;
+        provider.client_certificate = client_certificate;
+        provider.client_private_key = client_private_key;
         provider.display_name = provider_data.display_name;
         provider.google_service_account_key = private_key;
         provider.google_service_account_email = provider_data.google_service_account_email;

@@ -1,5 +1,9 @@
 #![allow(deprecated)]
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::{
+    Engine,
+    prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
+};
+use defguard_certs::CertificateAuthority;
 use defguard_common::db::{
     Id,
     models::{
@@ -26,6 +30,10 @@ use defguard_proto::{
     },
 };
 use reqwest::Url;
+use rsa::{
+    RsaPrivateKey,
+    pkcs8::{EncodePrivateKey, LineEnding},
+};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 use tonic::Code;
@@ -107,6 +115,95 @@ async fn test_auth_callback_creates_new_user_on_first_login(
         Some(email),
         "enrollment token email mismatch"
     );
+
+    let requests = mock.token_requests.lock().unwrap().clone();
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].has_authorization);
+    assert!(!requests[0].form.contains_key("client_assertion"));
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_auth_callback_sends_client_assertion_when_provider_has_private_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let mut provider = create_oidc_provider(&context.pool, &mock).await;
+    // The mock does not verify the assertion, so any certificate and RSA key will do.
+    provider.client_certificate = Some(
+        CertificateAuthority::new("Defguard", "test@example.com", 1)
+            .unwrap()
+            .cert_pem()
+            .unwrap(),
+    );
+    provider.client_private_key = Some(
+        RsaPrivateKey::new(&mut rand::thread_rng(), 2048)
+            .unwrap()
+            .to_pkcs8_pem(LineEnding::LF)
+            .unwrap()
+            .to_string()
+            .into(),
+    );
+    provider.client_secret = String::new().into();
+    provider.save(&context.pool).await.unwrap();
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    let raw_nonce = "test-nonce-assertion";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 11,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code: make_oidc_code("assertion-user-sub", "assertionuser@example.com", raw_nonce),
+            nonce: raw_nonce.to_owned(),
+        })),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert!(
+        matches!(
+            response.payload,
+            Some(core_response::Payload::AuthCallback(_))
+        ),
+        "expected AuthCallback response"
+    );
+
+    let requests = mock.token_requests.lock().unwrap().clone();
+    assert_eq!(requests.len(), 1);
+    let request = &requests[0];
+    assert_eq!(
+        request
+            .form
+            .get("client_assertion_type")
+            .map(String::as_str),
+        Some("urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+    );
+    assert_eq!(request.form.get("client_id"), Some(&mock.client_id));
+    assert!(!request.form.contains_key("client_secret"));
+    assert!(!request.has_authorization);
+
+    let assertion = request
+        .form
+        .get("client_assertion")
+        .expect("token request has no client_assertion");
+    assert_eq!(
+        jsonwebtoken::decode_header(assertion).unwrap().alg,
+        jsonwebtoken::Algorithm::PS256
+    );
+    let claims: serde_json::Value = serde_json::from_slice(
+        &BASE64_URL_SAFE_NO_PAD
+            .decode(assertion.split('.').nth(1).unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(claims["aud"], format!("{}/token", mock.base_url));
+    assert_eq!(claims["iss"], mock.client_id);
+    assert_eq!(claims["sub"], mock.client_id);
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;

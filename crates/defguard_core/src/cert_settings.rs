@@ -40,7 +40,10 @@ pub enum CertSettingsError {
 }
 
 /// Parses an uploaded certificate, validates its key pair, and rejects invalid validity windows.
-async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, CertSettingsError> {
+pub(crate) async fn parse_cert(
+    cert_pem: &str,
+    key_pem: &str,
+) -> Result<CertificateInfo, CertSettingsError> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())

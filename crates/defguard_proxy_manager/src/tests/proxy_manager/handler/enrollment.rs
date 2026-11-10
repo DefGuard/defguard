@@ -1604,6 +1604,8 @@ async fn test_activate_oidc_user_with_password_management_disabled_skips_passwor
         prefetch_users: false,
         disable_password_management: true,
         directory_sync_user_groups: None,
+        client_certificate: None,
+        client_private_key: None,
     }
     .save(&context.pool)
     .await

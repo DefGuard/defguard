@@ -827,6 +827,14 @@ struct OidcProviderState {
     /// Base64Url(n) and Base64Url(e) of the RSA public key for the JWKS endpoint.
     jwks_n: String,
     jwks_e: String,
+    token_requests: Arc<Mutex<Vec<TokenRequest>>>,
+}
+
+#[derive(Clone)]
+pub(crate) struct TokenRequest {
+    pub(crate) form: HashMap<String, String>,
+    /// `client_secret` travels in the `Authorization` header.
+    pub(crate) has_authorization: bool,
 }
 
 /// A mock OpenID Connect provider that handles the three endpoints that
@@ -848,6 +856,7 @@ pub(crate) struct MockOidcProvider {
     pub(crate) client_id: String,
     /// OAuth2 / OIDC `client_secret`.
     pub(crate) client_secret: String,
+    pub(crate) token_requests: Arc<Mutex<Vec<TokenRequest>>>,
     server_task: JoinHandle<()>,
 }
 
@@ -881,12 +890,14 @@ impl MockOidcProvider {
         let client_id = "test-client".to_owned();
         let client_secret = "test-secret".to_owned();
 
+        let token_requests = Arc::new(Mutex::new(Vec::new()));
         let state = OidcProviderState {
             encoding_key: Arc::new(encoding_key),
             base_url: base_url.clone(),
             client_id: client_id.clone(),
             jwks_n,
             jwks_e,
+            token_requests: Arc::clone(&token_requests),
         };
 
         // build axum router
@@ -910,6 +921,7 @@ impl MockOidcProvider {
             base_url,
             client_id,
             client_secret,
+            token_requests,
             server_task,
         }
     }
@@ -954,8 +966,13 @@ async fn oidc_jwks(State(state): State<OidcProviderState>) -> Json<serde_json::V
 /// omitted. The nonce must not contain a colon.
 async fn oidc_token(
     State(state): State<OidcProviderState>,
+    headers: axum::http::HeaderMap,
     Form(params): Form<HashMap<String, String>>,
 ) -> Json<serde_json::Value> {
+    state.token_requests.lock().unwrap().push(TokenRequest {
+        form: params.clone(),
+        has_authorization: headers.contains_key(axum::http::header::AUTHORIZATION),
+    });
     let code = params.get("code").cloned().unwrap_or_default();
     // code format: "{sub}:{email}:{nonce}:{email_verified}"
     let mut parts = code.splitn(4, ':');

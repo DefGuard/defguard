@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"base_url\",\"kind\" \"kind: _\",\"client_id\",\"client_secret\" \"client_secret: _\",\"display_name\",\"google_service_account_key\" \"google_service_account_key?: _\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\",\"okta_private_jwk\" \"okta_private_jwk?: _\",\"okta_dirsync_client_id\",\"directory_sync_group_match\" \"directory_sync_group_match: _\",\"jumpcloud_api_key\" \"jumpcloud_api_key?: _\",\"prefetch_users\",\"disable_password_management\",\"directory_sync_user_groups\" \"directory_sync_user_groups?: _\" FROM \"openidprovider\"",
+  "query": "SELECT id, \"name\",\"base_url\",\"kind\" \"kind: _\",\"client_id\",\"client_secret\" \"client_secret: _\",\"display_name\",\"google_service_account_key\" \"google_service_account_key?: _\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\",\"okta_private_jwk\" \"okta_private_jwk?: _\",\"okta_dirsync_client_id\",\"directory_sync_group_match\" \"directory_sync_group_match: _\",\"jumpcloud_api_key\" \"jumpcloud_api_key?: _\",\"prefetch_users\",\"disable_password_management\",\"directory_sync_user_groups\" \"directory_sync_user_groups?: _\",\"client_certificate\",\"client_private_key\" \"client_private_key?: _\" FROM \"openidprovider\"",
   "describe": {
     "columns": [
       {
@@ -291,6 +291,28 @@
             "name": "directory_sync_user_groups"
           }
         }
+      },
+      {
+        "ordinal": 22,
+        "name": "client_certificate",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "openidprovider",
+            "name": "client_certificate"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "client_private_key?: _",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "openidprovider",
+            "name": "client_private_key"
+          }
+        }
       }
     ],
     "parameters": {
@@ -318,8 +340,10 @@
       true,
       false,
       false,
+      true,
+      true,
       true
     ]
   },
-  "hash": "167ce8254fc45970778500697df780cd51703b3512952117567bf21255827d63"
+  "hash": "b131a91159cbb7a8ceac0e295f3edf70218688b08446d01c176435073b77c04d"
 }
