@@ -2,8 +2,6 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "traffic_page_title": "Traffic Monitoring",
   "traffic_table_title": "Traffic Logs",
-  "traffic_empty_title": "No traffic recorded.",
-  "traffic_empty_subtitle": "Connections reported by Gateways will be displayed here.",
   "traffic_col_timestamp": "Timestamp",
   "traffic_col_status": "Status",
   "traffic_col_source": "Source",

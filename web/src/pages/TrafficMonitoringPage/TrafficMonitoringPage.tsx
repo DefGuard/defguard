@@ -56,6 +56,9 @@ const TrafficLogs = () => {
       }),
     placeholderData: keepPreviousData,
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
+    // Poll like Gateway status, so new traffic shows up without reloading.
+    refetchInterval: 30_000,
+    refetchOnReconnect: true,
   });
 
   const flatData = useMemo(

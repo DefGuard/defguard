@@ -25,7 +25,6 @@ import { TransferText } from '../../shared/components/TransferText/TransferText'
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { DateInput } from '../../shared/defguard-ui/components/DateInput/DateInput';
 import type { DateRange } from '../../shared/defguard-ui/components/DateInput/types';
-import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -372,13 +371,6 @@ export const TrafficLogsTable = ({
         onNextPage={onNextPage}
         loadingNextPage={loadingNextPage}
       />
-      {data.length === 0 && (
-        <EmptyStateFlexible
-          icon="log"
-          title={m.traffic_empty_title()}
-          subtitle={m.traffic_empty_subtitle()}
-        />
-      )}
     </>
   );
 };

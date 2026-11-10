@@ -279,6 +279,43 @@ async fn test_filter_and_sort_connection_events(_: PgPoolOptions, options: PgCon
 }
 
 #[sqlx::test]
+async fn test_search_connection_events(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_test_client(pool.clone()).await;
+    let fixture = setup(&client, &pool, state.test_user.id).await;
+
+    // From the fixture's device (10.1.1.2) to 192.168.5.5.
+    let known = save(&pool, event(&fixture, 2, ConnectionDirection::Outbound)).await;
+    // Between addresses that belong to no device.
+    let unknown = ConnectionEvent {
+        source_ip: "172.16.0.9".parse().unwrap(),
+        destination_ip: "2001:db8::53".parse().unwrap(),
+        device_id: None,
+        ..event(&fixture, 1, ConnectionDirection::Inbound)
+    };
+    let unknown = save(&pool, unknown).await;
+
+    for (search, expected) in [
+        // Full and partial source and destination addresses, IPv4 and IPv6.
+        ("10.1.1.2", vec![known.id]),
+        ("192.168.5.5", vec![known.id]),
+        ("172.16", vec![unknown.id]),
+        ("2001:db8::53", vec![unknown.id]),
+        // Device names, case-insensitive.
+        ("LaPtOp", vec![known.id]),
+        // Location and Gateway names.
+        ("network", vec![unknown.id, known.id]),
+        ("gateway", vec![unknown.id, known.id]),
+        // Surrounding whitespace is ignored.
+        ("%20laptop%20", vec![known.id]),
+        ("no-such-thing", vec![]),
+    ] {
+        let response = fetch(&client, &format!("search={search}")).await;
+        assert_eq!(ids(&response), expected, "search={search}");
+    }
+}
+
+#[sqlx::test]
 async fn test_connection_event_filter_options(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (client, state) = make_test_client(pool.clone()).await;

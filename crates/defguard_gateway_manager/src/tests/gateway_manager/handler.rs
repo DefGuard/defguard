@@ -9,7 +9,10 @@ use defguard_common::{
     gateway_event::GatewayCommand,
 };
 use defguard_core::events::GatewayConnectionEvent;
-use defguard_proto::gateway::{UpdateType, core_response};
+use defguard_proto::{
+    enterprise::monitor,
+    gateway::{UpdateType, core_response},
+};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
 

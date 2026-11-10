@@ -137,20 +137,28 @@ impl Serialize for MfaMethod {
     }
 }
 
-impl From<Direction> for ConnectionDirection {
-    fn from(direction: Direction) -> Self {
+/// Fails for `Unspecified`, which prost also uses for unknown values.
+impl TryFrom<Direction> for ConnectionDirection {
+    type Error = ();
+
+    fn try_from(direction: Direction) -> Result<Self, Self::Error> {
         match direction {
-            Direction::Inbound => Self::Inbound,
-            Direction::Outbound => Self::Outbound,
+            Direction::Unspecified => Err(()),
+            Direction::Inbound => Ok(Self::Inbound),
+            Direction::Outbound => Ok(Self::Outbound),
         }
     }
 }
 
-impl From<ConnStatus> for ConnectionStatus {
-    fn from(status: ConnStatus) -> Self {
+/// Fails for `Unspecified`, which prost also uses for unknown values.
+impl TryFrom<ConnStatus> for ConnectionStatus {
+    type Error = ();
+
+    fn try_from(status: ConnStatus) -> Result<Self, Self::Error> {
         match status {
-            ConnStatus::Allowed => Self::Allowed,
-            ConnStatus::Blocked => Self::Blocked,
+            ConnStatus::Unspecified => Err(()),
+            ConnStatus::Allowed => Ok(Self::Allowed),
+            ConnStatus::Blocked => Ok(Self::Blocked),
         }
     }
 }

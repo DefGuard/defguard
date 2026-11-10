@@ -68,6 +68,15 @@ async fn test_drops_malformed_connection_events(_: PgPoolOptions, options: PgCon
     context.mock_gateway().send_connection_event(event);
 
     let mut event = build_connection_event();
+    event.direction = monitor::Direction::Unspecified.into();
+    context.mock_gateway().send_connection_event(event);
+
+    // Unknown enum values are treated as unspecified.
+    let mut event = build_connection_event();
+    event.status = 7;
+    context.mock_gateway().send_connection_event(event);
+
+    let mut event = build_connection_event();
     event.source_port = None;
     context.mock_gateway().send_connection_event(event);
 

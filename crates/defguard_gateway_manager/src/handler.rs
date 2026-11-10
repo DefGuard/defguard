@@ -834,8 +834,8 @@ fn try_proto_into_connection_event(
         location_id,
         gateway_id,
         timestamp: proto_timestamp_to_naive(proto_event.timestamp?)?,
-        direction: proto_event.direction().into(),
-        status: proto_event.status().into(),
+        direction: proto_event.direction().try_into().ok()?,
+        status: proto_event.status().try_into().ok()?,
         protocol: u8::try_from(proto_event.protocol).ok()?.into(),
         source_ip: ip_addr_from_bytes(&proto_event.source_ip_addr)?,
         source_port: proto_event
