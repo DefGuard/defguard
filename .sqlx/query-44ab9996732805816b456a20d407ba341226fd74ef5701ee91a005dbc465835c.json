@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT recovery_codes FROM \"user\" WHERE id = $1",
+  "query": "SELECT id FROM device WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "recovery_codes",
-        "type_info": "TextArray",
+        "name": "id",
+        "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "\"user\"",
-            "name": "recovery_codes"
+            "table": "device",
+            "name": "id"
           }
         }
       }
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "0ad599ef120ecc02b030bd1276172929d6a612846acf4a5489c36a04cb57de59"
+  "hash": "44ab9996732805816b456a20d407ba341226fd74ef5701ee91a005dbc465835c"
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device_attestation_state WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "13d5fc46b47fdb49ac8b4e8696a205af9b17a39f899558a2b7f6572133d21643"
+}

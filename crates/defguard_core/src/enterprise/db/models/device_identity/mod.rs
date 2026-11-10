@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{
-        Device, device_identity::DeviceAttestationStatus,
+        Device, DeviceType, device_identity::DeviceAttestationStatus,
         vpn_client_mfa_session::VpnClientMfaSession,
     },
 };
@@ -44,10 +44,15 @@ impl DeviceIdentity {
         executor: E,
         device_id: Id,
     ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as("SELECT * FROM device_identity WHERE device_id = $1")
-            .bind(device_id)
-            .fetch_optional(executor)
-            .await
+        sqlx::query_as!(
+            Self,
+            "SELECT device_id, backend AS \"backend: DeviceIdentityBackend\", public_key_der, \
+             apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
+             FROM device_identity WHERE device_id = $1",
+            device_id,
+        )
+        .fetch_optional(executor)
+        .await
     }
 
     /// Persists approved identity material and the device's attestation status in one transaction.
@@ -60,15 +65,16 @@ impl DeviceIdentity {
     ) -> Result<Device<Id>, DeviceIdentityError> {
         self.validate(status)?;
         let mut transaction = connection.begin().await?;
-        let device: Option<Id> =
-            sqlx::query_scalar("SELECT id FROM device WHERE id = $1 FOR UPDATE")
-                .bind(self.device_id)
-                .fetch_optional(&mut *transaction)
-                .await?;
+        let device: Option<Id> = sqlx::query_scalar!(
+            "SELECT id FROM device WHERE id = $1 FOR UPDATE",
+            self.device_id
+        )
+        .fetch_optional(&mut *transaction)
+        .await?;
         if device.is_none() {
             return Err(DeviceIdentityError::DeviceNotFound);
         }
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO device_identity \
              (device_id, backend, public_key_der, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id) \
              VALUES ($1, $2, $3, $4, $5, $6, $7) \
@@ -77,22 +83,26 @@ impl DeviceIdentity {
              tpm_ek_public = EXCLUDED.tpm_ek_public, \
              tpm_ek_certificate_chain_der = EXCLUDED.tpm_ek_certificate_chain_der, \
              apple_key_id = EXCLUDED.apple_key_id",
+            self.device_id,
+            self.backend as DeviceIdentityBackend,
+            &self.public_key_der,
+            self.apple_sign_count,
+            self.tpm_ek_public.as_deref(),
+            self.tpm_ek_certificate_chain_der.as_deref(),
+            self.apple_key_id.as_deref(),
         )
-        .bind(self.device_id)
-        .bind(self.backend)
-        .bind(&self.public_key_der)
-        .bind(self.apple_sign_count)
-        .bind(&self.tpm_ek_public)
-        .bind(&self.tpm_ek_certificate_chain_der)
-        .bind(&self.apple_key_id)
         .execute(&mut *transaction)
         .await?;
-        let device = sqlx::query_as(
-            "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 RETURNING *",
+        let device = sqlx::query_as!(
+            Device,
+            "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 \
+             RETURNING id, name, wireguard_pubkey, user_id, created, description, \
+             device_type AS \"device_type: DeviceType\", configured, \
+             attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at",
+            status as DeviceAttestationStatus,
+            attested_at,
+            self.device_id,
         )
-        .bind(status)
-        .bind(attested_at)
-        .bind(self.device_id)
         .fetch_one(&mut *transaction)
         .await?;
         transaction.commit().await?;
@@ -186,7 +196,7 @@ impl DeviceAttestationState {
     pub async fn save<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO device_attestation_state \
              (challenge_id, token_id, wireguard_key, created_at, expires_at, payload) \
              VALUES ($1, $2, $3, $4, $5, $6) \
@@ -194,13 +204,13 @@ impl DeviceAttestationState {
              challenge_id = EXCLUDED.challenge_id, wireguard_key = EXCLUDED.wireguard_key, \
              created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at, \
              payload = EXCLUDED.payload",
+            &self.challenge_id,
+            &self.token_id,
+            &self.wireguard_key,
+            self.created_at,
+            self.expires_at,
+            payload,
         )
-        .bind(&self.challenge_id)
-        .bind(&self.token_id)
-        .bind(&self.wireguard_key)
-        .bind(self.created_at)
-        .bind(self.expires_at)
-        .bind(payload)
         .execute(executor)
         .await?;
         Ok(())
@@ -221,18 +231,18 @@ impl DeviceAttestationState {
     pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
-        let result = sqlx::query(
+        let result = sqlx::query!(
             "DELETE FROM device_attestation_state \
              WHERE challenge_id = $1 AND token_id = $2 AND wireguard_key = $3 \
              AND created_at = $4 AND expires_at = $5 AND payload = $6 \
              AND expires_at > (now() AT TIME ZONE 'UTC')",
+            &self.challenge_id,
+            &self.token_id,
+            &self.wireguard_key,
+            self.created_at,
+            self.expires_at,
+            payload,
         )
-        .bind(&self.challenge_id)
-        .bind(&self.token_id)
-        .bind(&self.wireguard_key)
-        .bind(self.created_at)
-        .bind(self.expires_at)
-        .bind(payload)
         .execute(executor)
         .await?;
         Ok(result.rows_affected() == 1)
@@ -306,7 +316,8 @@ impl DeviceIdentityChallenge<Id> {
         location_id: Option<Id>,
         mfa_session_id: Option<Id>,
     ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as(
+        sqlx::query_as!(
+            Self,
             "UPDATE device_identity_challenge AS challenge SET consumed_at = (clock_timestamp() AT TIME ZONE 'UTC') \
              WHERE id = $1 AND device_id = $2 AND purpose = $3 \
              AND location_id IS NOT DISTINCT FROM $4 AND mfa_session_id IS NOT DISTINCT FROM $5 \
@@ -317,13 +328,16 @@ impl DeviceIdentityChallenge<Id> {
                  AND session.token_hash = challenge.mfa_session_token_hash \
                  AND session.expires_at > (clock_timestamp() AT TIME ZONE 'UTC') \
                  AND challenge.expires_at <= session.expires_at \
-             )) RETURNING challenge.*",
+             )) RETURNING challenge.id, \
+             challenge.purpose AS \"purpose: DeviceIdentityChallengePurpose\", challenge.device_id, \
+             challenge.location_id, challenge.mfa_session_id, challenge.mfa_session_token_hash, \
+             challenge.data, challenge.created_at, challenge.expires_at, challenge.consumed_at",
+            id,
+            device_id,
+            purpose as DeviceIdentityChallengePurpose,
+            location_id,
+            mfa_session_id,
         )
-        .bind(id)
-        .bind(device_id)
-        .bind(purpose)
-        .bind(location_id)
-        .bind(mfa_session_id)
         .fetch_optional(executor)
         .await
     }
@@ -336,16 +350,16 @@ impl DeviceIdentityChallenge<Id> {
         session: &VpnClientMfaSession<Id>,
     ) -> sqlx::Result<bool> {
         let mut transaction = connection.begin().await?;
-        let updated = sqlx::query(
+        let updated = sqlx::query!(
             "UPDATE vpn_client_mfa_session SET possession_verified = true \
              WHERE id = $1 AND device_id = $2 AND location_id = $3 AND token_hash = $4 \
              AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC') \
              AND possession_verified = false",
+            session.id,
+            session.device_id,
+            session.location_id,
+            &session.token_hash,
         )
-        .bind(session.id)
-        .bind(session.device_id)
-        .bind(session.location_id)
-        .bind(&session.token_hash)
         .execute(&mut *transaction)
         .await?;
         if updated.rows_affected() != 1 {
@@ -373,13 +387,13 @@ impl DeviceIdentityChallenge<Id> {
 /// Deletes expired attestation states and possession challenges, including consumed challenges.
 pub async fn reap_expired(pool: &sqlx::PgPool) -> sqlx::Result<u64> {
     let mut transaction = pool.begin().await?;
-    let challenges = sqlx::query(
+    let challenges = sqlx::query!(
         "DELETE FROM device_identity_challenge WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
     )
     .execute(&mut *transaction)
     .await?
     .rows_affected();
-    let attestations = sqlx::query(
+    let attestations = sqlx::query!(
         "DELETE FROM device_attestation_state WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
     )
     .execute(&mut *transaction)
