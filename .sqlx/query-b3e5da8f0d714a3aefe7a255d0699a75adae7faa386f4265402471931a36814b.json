@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", d.configured, d.attestation_status \"attestation_status: _\", d.attested_at FROM device d JOIN vpn_client_session s ON d.id = s.device_id WHERE s.state = 'connected' AND s.location_id = $1 AND d.device_type = $2",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at, state \"state: _\", verification \"verification: _\" FROM device WHERE device_type = $1 AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -135,11 +135,53 @@
             "name": "attested_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "verification: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "verification"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         {
           "Custom": {
             "name": "device_type",
@@ -150,7 +192,8 @@
               ]
             }
           }
-        }
+        },
+        "Int8"
       ]
     },
     "nullable": [
@@ -163,8 +206,10 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "9b1594b7ea77c5e999df36ebf5fe216cb91dd20ae0bf78e22eb001e5ba3b4866"
+  "hash": "b3e5da8f0d714a3aefe7a255d0699a75adae7faa386f4265402471931a36814b"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".username = $2",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at, state \"state: _\", verification \"verification: _\" FROM device WHERE device_type = $1 ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -135,12 +135,64 @@
             "name": "attested_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "verification: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "verification"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Text"
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -153,8 +205,10 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "acaeaec834a0ca8df63c60e660bc30b3d04b00ad4b1a10b93f3e1bf4377e5875"
+  "hash": "9aaf02970da1baf6f4cb49a4a5f3d6c494af2bf71347f7ea4f83ecb74f312fc4"
 }

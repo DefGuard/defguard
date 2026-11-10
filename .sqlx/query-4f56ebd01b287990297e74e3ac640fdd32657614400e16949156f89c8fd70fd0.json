@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow AND d.configured",
+  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type  \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at, d.state \"state: _\", d.verification \"verification: _\" FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE $1 = ANY(wnd.wireguard_ips) AND wnd.wireguard_network_id = $2",
   "describe": {
     "columns": [
       {
@@ -135,10 +135,54 @@
             "name": "attested_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "verification: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "verification"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        "Inet",
         "Int8"
       ]
     },
@@ -152,8 +196,10 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "09933ce6ab88d0fcc81ab149de71747721537516e35c87de5b2c0123052b9350"
+  "hash": "4f56ebd01b287990297e74e3ac640fdd32657614400e16949156f89c8fd70fd0"
 }

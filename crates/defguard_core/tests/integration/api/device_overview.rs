@@ -1,0 +1,271 @@
+use chrono::{NaiveDate, Utc};
+use defguard_common::db::{
+    Id,
+    models::{
+        Device, DeviceState, DeviceType, DeviceVerification, WireguardNetwork,
+        device_client_info::{DeviceClientInfo, OsType},
+        device_identity::DeviceAttestationStatus,
+        vpn_client_session::{VpnClientSession, VpnClientSessionState},
+    },
+};
+use defguard_core::{events::ApiEventType, handlers::Auth};
+use reqwest::StatusCode;
+use serde_json::{Value, json};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
+
+use super::common::{make_network, make_test_client, setup_pool};
+
+#[sqlx::test]
+async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+
+    let user_device = Device::new(
+        "work-laptop".to_owned(),
+        "user-device-pubkey".to_owned(),
+        client_state.test_user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
+    let mut network_device = Device::new(
+        "office-router".to_owned(),
+        "network-device-pubkey".to_owned(),
+        client_state.test_user.id,
+        DeviceType::Network,
+        None,
+        true,
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
+    network_device.state = DeviceState::Blocked;
+    network_device.save(&client_state.pool).await.unwrap();
+    DeviceClientInfo {
+        device_id: user_device.id,
+        client_version: Some("2.3.0".to_owned()),
+        os_type: OsType::Ios,
+        os_version: "27.1".to_owned(),
+        os_edition: None,
+        updated_at: Utc::now().naive_utc(),
+    }
+    .upsert(&client_state.pool)
+    .await
+    .unwrap();
+
+    let response = client.get("/api/v1/device/overview").send().await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/device/overview").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
+    let earlier_connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+        .unwrap()
+        .and_hms_opt(3, 4, 5)
+        .unwrap();
+    let latest_connected_at = NaiveDate::from_ymd_opt(2026, 1, 3)
+        .unwrap()
+        .and_hms_opt(4, 5, 6)
+        .unwrap();
+    let mut disconnected_session = VpnClientSession::new(
+        network.id,
+        client_state.test_user.id,
+        user_device.id,
+        Some(earlier_connected_at),
+        false,
+    );
+    disconnected_session.state = VpnClientSessionState::Disconnected;
+    disconnected_session.disconnected_at = Some(latest_connected_at);
+    disconnected_session.save(&client_state.pool).await.unwrap();
+    VpnClientSession::new(
+        network.id,
+        client_state.test_user.id,
+        user_device.id,
+        Some(latest_connected_at),
+        false,
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
+
+    let response = client.get("/api/v1/device/overview").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_eq!(body["pagination"]["total_items"], 2);
+    let data = body["data"].as_array().unwrap();
+    assert_eq!(data[0]["id"], network_device.id);
+    assert_eq!(data[0]["name"], "office-router");
+    assert_eq!(data[0]["state"], "blocked");
+    assert!(data[0]["user_id"].is_null());
+    assert!(data[0]["os_type"].is_null());
+    assert!(data[0]["os_version"].is_null());
+    assert!(data[0]["client_version"].is_null());
+    assert_eq!(data[0]["connected"], false);
+    assert!(data[0]["last_connected_at"].is_null());
+    assert_eq!(data[1]["id"], user_device.id);
+    assert_eq!(data[1]["state"], "enabled");
+    assert_eq!(data[1]["verification"], "unverified");
+    assert_eq!(data[1]["attestation_status"], "not_attested");
+    assert_eq!(data[1]["user_id"], client_state.test_user.id);
+    assert_eq!(data[1]["os_type"], "ios");
+    assert_eq!(data[1]["os_version"], "27.1");
+    assert_eq!(data[1]["client_version"], "2.3.0");
+    assert_eq!(data[1]["connected"], true);
+    assert_eq!(data[1]["last_connected_at"], "2026-01-03T04:05:06");
+
+    let response = client
+        .get("/api/v1/device/overview?search=LAPTOP&page=1&per_page=1")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_eq!(body["pagination"]["total_items"], 1);
+    assert_eq!(body["data"][0]["id"], user_device.id);
+}
+
+async fn make_device(pool: &PgPool, name: &str, user_id: Id) -> Device<Id> {
+    Device::new(
+        name.to_owned(),
+        format!("{name}-pubkey"),
+        user_id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(pool)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test]
+async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+
+    let first = make_device(pool, "first", user_id).await;
+    let second = make_device(pool, "second", user_id).await;
+    let mut verified = make_device(pool, "verified", user_id).await;
+    verified.verification = DeviceVerification::Verified;
+    verified.save(pool).await.unwrap();
+    let ids = json!({"devices": [first.id, second.id, verified.id]});
+
+    client.login_user("hpotter", "pass123").await;
+    for action in ["verify", "block", "delete"] {
+        let response = client
+            .post(format!("/api/v1/device/bulk/{action}"))
+            .json(&ids)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/device/bulk/verify")
+        .json(&ids)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let first_after = Device::find_by_id(pool, first.id).await.unwrap().unwrap();
+    assert_eq!(first_after.verification, DeviceVerification::Verified);
+    assert_eq!(
+        first_after.attestation_status,
+        DeviceAttestationStatus::NotAttested
+    );
+    assert!(first_after.attested_at.is_none());
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceModified { .. }))
+    );
+
+    let response = client
+        .post("/api/v1/device/bulk/block")
+        .json(&json!({"devices": [first.id, second.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    for id in [first.id, second.id] {
+        let device = Device::find_by_id(pool, id).await.unwrap().unwrap();
+        assert_eq!(device.state, DeviceState::Blocked);
+    }
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceModified { .. }))
+    );
+    let verified_after = Device::find_by_id(pool, verified.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(verified_after.state, DeviceState::Enabled);
+
+    let response = client
+        .post("/api/v1/device/bulk/delete")
+        .json(&json!({"devices": [first.id, Id::MAX]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(Device::find_by_id(pool, first.id).await.unwrap().is_some());
+
+    let response = client
+        .post("/api/v1/device/bulk/delete")
+        .json(&json!({"devices": [first.id, second.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(Device::find_by_id(pool, first.id).await.unwrap().is_none());
+    assert!(Device::find_by_id(pool, second.id).await.unwrap().is_none());
+    assert!(
+        Device::find_by_id(pool, verified.id)
+            .await
+            .unwrap()
+            .is_some()
+    );
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceRemoved { .. }))
+    );
+}
+
+#[sqlx::test]
+async fn test_users_display(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+
+    client.login_user("hpotter", "pass123").await;
+    let response = client.get("/api/v1/user-display").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.login_user("admin", "pass123").await;
+    let response = client.get("/api/v1/user-display").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    let users = body.as_array().unwrap();
+    assert!(users.contains(&json!({
+        "id": client_state.test_user.id,
+        "display": "Harry Potter",
+    })));
+}

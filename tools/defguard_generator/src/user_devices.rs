@@ -49,7 +49,7 @@ pub async fn prepare_user_devices(
     Ok(user_devices)
 }
 
-fn unique_device_name(base: &str, taken: &mut HashSet<String>) -> String {
+pub(crate) fn unique_device_name(base: &str, taken: &mut HashSet<String>) -> String {
     let mut name = base.to_string();
     let mut suffix = 1;
     while taken.contains(&name) {

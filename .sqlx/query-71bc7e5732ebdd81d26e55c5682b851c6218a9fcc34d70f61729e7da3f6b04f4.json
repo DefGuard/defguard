@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\",\"attestation_status\" \"attestation_status: _\",\"attested_at\",\"state\" \"state: _\",\"verification\" \"verification: _\" FROM \"device\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -60,18 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "description",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "device",
-            "name": "description"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
-        "name": "device_type: DeviceType",
+        "name": "device_type: _",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -87,6 +76,17 @@
           "Table": {
             "table": "device",
             "name": "device_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "description"
           }
         }
       },
@@ -135,11 +135,55 @@
             "name": "attested_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "verification: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "verification"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -148,12 +192,14 @@
       false,
       false,
       false,
+      false,
       true,
       false,
       false,
+      true,
       false,
-      true
+      false
     ]
   },
-  "hash": "3bbfb2af3a31026cb015f4cf4a01a37165e17f1f692588d9f169ee185a0e8b76"
+  "hash": "71bc7e5732ebdd81d26e55c5682b851c6218a9fcc34d70f61729e7da3f6b04f4"
 }

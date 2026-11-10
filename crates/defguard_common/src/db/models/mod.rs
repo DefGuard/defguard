@@ -35,7 +35,10 @@ pub use auth_code::AuthCode;
 pub use authentication_key::{AuthenticationKey, AuthenticationKeyType};
 pub use biometric_auth::{BiometricAuth, BiometricChallenge};
 pub use certificates::{Certificates, CoreCertSource, ProxyCertSource};
-pub use device::{Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceType};
+pub use device::{
+    Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceState, DeviceType,
+    DeviceVerification,
+};
 pub use device_login::DeviceLoginEvent;
 pub use error::ModelError;
 pub use initial_setup_wizard::{InitialSetupState, InitialSetupStep};

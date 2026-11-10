@@ -281,6 +281,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         configured: true,
         attestation_status: Default::default(),
         attested_at: None,
+        state: Default::default(),
+        verification: Default::default(),
     };
     let location = sample_location();
     let timestamp = Utc::now().naive_utc();
