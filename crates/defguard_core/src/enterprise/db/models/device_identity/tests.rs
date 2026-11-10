@@ -1,7 +1,11 @@
 use chrono::SubsecRound;
 use defguard_common::db::{
     Id, NoId,
-    models::{Device, DeviceType, User, WireguardNetwork},
+    models::{
+        Device, DeviceType, User, WireguardNetwork,
+        vpn_client_mfa_session::{VpnClientMfaSession, VpnMfaFlowKind},
+        vpn_client_session::VpnClientMfaMethod,
+    },
     setup_pool,
 };
 use sqlx::{
@@ -307,6 +311,8 @@ async fn test_device_identity_challenge_roundtrip_and_device_binding(
             purpose,
             device_id: row.id,
             location_id,
+            mfa_session_id: None,
+            mfa_session_token_hash: None,
             data: vec![0, 255, 128],
             created_at: row.created,
             expires_at: row.created + chrono::TimeDelta::minutes(5),
@@ -357,6 +363,8 @@ async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOp
         purpose: DeviceIdentityChallengePurpose::Polling,
         device_id: device.id,
         location_id: None,
+        mfa_session_id: None,
+        mfa_session_token_hash: None,
         data: vec![0, 255, 128],
         created_at: device.created,
         expires_at: device.created + chrono::TimeDelta::minutes(5),
@@ -375,6 +383,7 @@ async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOp
         device.id,
         DeviceIdentityChallengePurpose::Polling,
         None,
+        None,
     )
     .await
     .unwrap()
@@ -385,6 +394,7 @@ async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOp
             row.id,
             device.id,
             DeviceIdentityChallengePurpose::Polling,
+            None,
             None
         )
         .await
@@ -400,4 +410,397 @@ async fn test_device_identity_models_crud(_: PgPoolOptions, options: PgConnectOp
     );
     row.delete(&pool).await.unwrap();
     assert_eq!(DeviceIdentityChallenge::count(&pool).await.unwrap(), 0);
+}
+
+async fn mfa_session(pool: &PgPool, name: &str) -> (VpnClientMfaSession<Id>, String) {
+    let owner = device(pool, name).await;
+    let location = WireguardNetwork::default()
+        .try_set_address("10.9.1.1/24")
+        .unwrap()
+        .save(pool)
+        .await
+        .unwrap();
+    let mut connection = pool.acquire().await.unwrap();
+    let (session, outcome) = VpnClientMfaSession::start(
+        &mut connection,
+        location.id,
+        owner.id,
+        owner.user_id,
+        1,
+        vec![
+            vec![VpnClientMfaMethod::Totp],
+            vec![VpnClientMfaMethod::Email],
+        ],
+        VpnMfaFlowKind::MultiStep,
+        VpnClientMfaMethod::Totp,
+        None,
+        std::time::Duration::from_mins(10),
+    )
+    .await
+    .unwrap();
+    (session, outcome.token)
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_records_verification_for_the_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (session, token) = mfa_session(&pool, "mfa-proof").await;
+    assert!(!session.possession_verified);
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![0, 255, 128])
+        .save(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        challenge.purpose,
+        DeviceIdentityChallengePurpose::MfaConnection
+    );
+    assert_eq!(challenge.mfa_session_id, Some(session.id));
+    assert_eq!(
+        challenge.mfa_session_token_hash.as_deref(),
+        Some(session.token_hash.as_str())
+    );
+    assert_eq!(challenge.expires_at, session.expires_at);
+    let mut connection = pool.acquire().await.unwrap();
+    assert!(
+        DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            challenge.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            challenge.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    let verified = VpnClientMfaSession::find_active_by_token(&pool, &token)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(verified.possession_verified);
+    assert!(
+        verified
+            .advance(&mut connection, 0, None, VpnClientMfaMethod::Totp, None)
+            .await
+            .unwrap()
+            .is_some()
+    );
+    let next_step = VpnClientMfaSession::find_active_by_token(&pool, &token)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(next_step.possession_verified);
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .consumed_at
+            .is_some()
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_rejects_wrong_context(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (session, _) = mfa_session(&pool, "mfa-scope").await;
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![1])
+        .save(&pool)
+        .await
+        .unwrap();
+    for (device_id, location_id, session_id) in [
+        (
+            session.device_id + 1,
+            Some(session.location_id),
+            Some(session.id),
+        ),
+        (
+            session.device_id,
+            Some(session.location_id + 1),
+            Some(session.id),
+        ),
+        (
+            session.device_id,
+            Some(session.location_id),
+            Some(session.id + 1),
+        ),
+        (session.device_id, Some(session.location_id), None),
+    ] {
+        assert!(
+            DeviceIdentityChallenge::consume(
+                &pool,
+                challenge.id,
+                device_id,
+                DeviceIdentityChallengePurpose::MfaConnection,
+                location_id,
+                session_id
+            )
+            .await
+            .unwrap()
+            .is_none()
+        );
+    }
+    let mut connection = pool.acquire().await.unwrap();
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            challenge.id + 1,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    let stored = VpnClientMfaSession::find_by_id(&pool, session.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(!stored.possession_verified);
+    let other_device = device(&pool, "other-mfa-device").await;
+    let mut mismatched = DeviceIdentityChallenge::for_mfa(&session, vec![2]);
+    mismatched.device_id = other_device.id;
+    assert_constraint(
+        mismatched.save(&pool).await.err().unwrap(),
+        "device_identity_challenge_mfa_session",
+    );
+    let mut missing_session = DeviceIdentityChallenge::for_mfa(&session, vec![3]);
+    missing_session.mfa_session_id = None;
+    assert_constraint(
+        missing_session.save(&pool).await.err().unwrap(),
+        "device_identity_challenge_location",
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_deadlines_rollback_and_concurrency(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (session, _) = mfa_session(&pool, "mfa-expiry").await;
+    let mut expired = DeviceIdentityChallenge::for_mfa(&session, vec![1]);
+    expired.created_at -= chrono::TimeDelta::minutes(20);
+    expired.expires_at = expired.created_at + chrono::TimeDelta::minutes(1);
+    let expired = expired.save(&pool).await.unwrap();
+    let mut connection = pool.acquire().await.unwrap();
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            expired.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    let mut too_long = DeviceIdentityChallenge::for_mfa(&session, vec![2]);
+    too_long.expires_at += chrono::TimeDelta::minutes(1);
+    let too_long = too_long.save(&pool).await.unwrap();
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            too_long.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    let challenge = DeviceIdentityChallenge::for_mfa(&session, vec![3])
+        .save(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
+        .bind(chrono::Utc::now().naive_utc() - chrono::TimeDelta::seconds(1))
+        .bind(session.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            challenge.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
+        .bind(session.expires_at)
+        .bind(session.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut transaction = pool.begin().await.unwrap();
+    assert!(
+        DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut transaction,
+            challenge.id,
+            &session
+        )
+        .await
+        .unwrap()
+    );
+    transaction.rollback().await.unwrap();
+    let restored = VpnClientMfaSession::find_by_id(&pool, session.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(!restored.possession_verified);
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, challenge.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .consumed_at
+            .is_none()
+    );
+    for expire_session in [false, true] {
+        let mut delayed_transaction = pool.begin().await.unwrap();
+        let deadline: chrono::NaiveDateTime =
+            sqlx::query_scalar("SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds'")
+                .fetch_one(&mut *delayed_transaction)
+                .await
+                .unwrap();
+        if expire_session {
+            sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
+                .bind(deadline)
+                .bind(session.id)
+                .execute(&mut *delayed_transaction)
+                .await
+                .unwrap();
+        }
+        sqlx::query("UPDATE device_identity_challenge SET expires_at = $1 WHERE id = $2")
+            .bind(deadline)
+            .bind(challenge.id)
+            .execute(&mut *delayed_transaction)
+            .await
+            .unwrap();
+        sqlx::query("SELECT pg_sleep(0.1)")
+            .execute(&mut *delayed_transaction)
+            .await
+            .unwrap();
+        assert!(
+            !DeviceIdentityChallenge::record_verified_mfa_possession(
+                &mut delayed_transaction,
+                challenge.id,
+                &session,
+            )
+            .await
+            .unwrap()
+        );
+        delayed_transaction.rollback().await.unwrap();
+    }
+    let mut second_connection = pool.acquire().await.unwrap();
+    let (first, second) = tokio::join!(
+        DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            challenge.id,
+            &session
+        ),
+        DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut second_connection,
+            challenge.id,
+            &session
+        ),
+    );
+    assert!(matches!(
+        (first.unwrap(), second.unwrap()),
+        (true, false) | (false, true)
+    ));
+    assert!(
+        VpnClientMfaSession::find_by_id(&pool, session.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .possession_verified
+    );
+}
+
+#[sqlx::test]
+async fn test_mfa_possession_is_bound_to_session_generation_and_cascades_on_restart(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (old_session, _) = mfa_session(&pool, "mfa-generation").await;
+    let old_challenge = DeviceIdentityChallenge::for_mfa(&old_session, vec![1])
+        .save(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE vpn_client_mfa_session SET token_hash = $1 WHERE id = $2")
+        .bind("replacement-session-hash")
+        .bind(old_session.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let current = VpnClientMfaSession::find_by_id(&pool, old_session.id)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut connection = pool.acquire().await.unwrap();
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            old_challenge.id,
+            &old_session
+        )
+        .await
+        .unwrap()
+    );
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            old_challenge.id,
+            &current
+        )
+        .await
+        .unwrap()
+    );
+    let fresh = DeviceIdentityChallenge::for_mfa(&current, vec![2])
+        .save(&pool)
+        .await
+        .unwrap();
+    assert!(
+        DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut connection,
+            fresh.id,
+            &current
+        )
+        .await
+        .unwrap()
+    );
+    let (replacement, _) = VpnClientMfaSession::start(
+        &mut connection,
+        current.location_id,
+        current.device_id,
+        current.user_id,
+        1,
+        vec![vec![VpnClientMfaMethod::Totp]],
+        VpnMfaFlowKind::Legacy,
+        VpnClientMfaMethod::Totp,
+        None,
+        std::time::Duration::from_mins(10),
+    )
+    .await
+    .unwrap();
+    assert!(!replacement.possession_verified);
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, old_challenge.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        DeviceIdentityChallenge::find_by_id(&pool, fresh.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
 }

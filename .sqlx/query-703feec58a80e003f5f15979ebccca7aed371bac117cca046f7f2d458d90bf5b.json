@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"purpose\" \"purpose: _\",\"device_id\",\"location_id\",\"data\",\"created_at\",\"expires_at\",\"consumed_at\" FROM \"device_identity_challenge\"",
+  "query": "SELECT id, \"purpose\" \"purpose: _\",\"device_id\",\"location_id\",\"mfa_session_id\",\"mfa_session_token_hash\",\"data\",\"created_at\",\"expires_at\",\"consumed_at\" FROM \"device_identity_challenge\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -23,7 +23,8 @@
             "kind": {
               "Enum": [
                 "polling",
-                "posture_connection"
+                "posture_connection",
+                "mfa_connection"
               ]
             }
           }
@@ -59,6 +60,28 @@
       },
       {
         "ordinal": 4,
+        "name": "mfa_session_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "mfa_session_token_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_token_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "data",
         "type_info": "Bytea",
         "origin": {
@@ -69,7 +92,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamp",
         "origin": {
@@ -80,7 +103,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 8,
         "name": "expires_at",
         "type_info": "Timestamp",
         "origin": {
@@ -91,7 +114,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "consumed_at",
         "type_info": "Timestamp",
         "origin": {
@@ -103,12 +126,16 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
       false,
       false,
+      true,
+      true,
       true,
       false,
       false,
@@ -116,5 +143,5 @@
       true
     ]
   },
-  "hash": "db107f83024225b450c8b587783c0dea38ca16e148da03319245905651af0490"
+  "hash": "703feec58a80e003f5f15979ebccca7aed371bac117cca046f7f2d458d90bf5b"
 }

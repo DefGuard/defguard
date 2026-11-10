@@ -3,7 +3,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use super::{DeviceAttestationStatus, DeviceIdentityBackend, DevicePossessionState};
+use super::{DeviceAttestationStatus, DeviceIdentityBackend};
 use crate::db::{
     Id,
     models::{Device, DeviceType, User},
@@ -156,25 +156,6 @@ async fn test_device_identity_constraints(_: PgPoolOptions, options: PgConnectOp
             .unwrap(),
         Some(manually_attested)
     );
-}
-
-#[test]
-fn test_device_possession_state_roundtrip() {
-    for state in [
-        DevicePossessionState::Pending {
-            challenge_id: "challenge".into(),
-            data: vec![0, 255, 128],
-        },
-        DevicePossessionState::Verified {
-            key_fingerprint: [3; 32],
-        },
-    ] {
-        let encoded = serde_json::to_vec(&state).unwrap();
-        assert_eq!(
-            serde_json::from_slice::<DevicePossessionState>(&encoded).unwrap(),
-            state
-        );
-    }
 }
 
 #[sqlx::test]

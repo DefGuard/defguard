@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, token_hash, location_id, device_id, user_id, flow_kind \"flow_kind: VpnMfaFlowKind\", steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", possession_state \"possession_state: Json<DevicePossessionState>\", failed_attempts, created_at, expires_at FROM vpn_client_mfa_session WHERE token_hash = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",
+  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"possession_verified\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "flow_kind: VpnMfaFlowKind",
+        "name": "flow_kind: _",
         "type_info": {
           "Custom": {
             "name": "vpn_mfa_flow_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "steps_snapshot: Json<StepsSnapshot>",
+        "name": "steps_snapshot: _",
         "type_info": "Jsonb",
         "origin": {
           "Table": {
@@ -103,7 +103,7 @@
       },
       {
         "ordinal": 8,
-        "name": "ephemeral_state: Json<EphemeralState>",
+        "name": "ephemeral_state: _",
         "type_info": "Jsonb",
         "origin": {
           "Table": {
@@ -114,12 +114,12 @@
       },
       {
         "ordinal": 9,
-        "name": "possession_state: Json<DevicePossessionState>",
-        "type_info": "Jsonb",
+        "name": "possession_verified",
+        "type_info": "Bool",
         "origin": {
           "Table": {
             "table": "vpn_client_mfa_session",
-            "name": "possession_state"
+            "name": "possession_verified"
           }
         }
       },
@@ -159,7 +159,8 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -172,11 +173,11 @@
       false,
       false,
       true,
-      true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "9eb877b5d2948bc851e36d19dfc1bcb5b1cb4ff47189252f29cc7fbb643dea1d"
+  "hash": "18e4f19017f814248059bee75821e86c29e7d37d1597b769a46d3e98f95f68ec"
 }

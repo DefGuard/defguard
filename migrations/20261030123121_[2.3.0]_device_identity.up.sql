@@ -50,23 +50,30 @@ CREATE TABLE device_attestation_state (
 );
 
 CREATE INDEX device_attestation_state_expiry_idx ON device_attestation_state (expires_at);
-ALTER TABLE vpn_client_mfa_session ADD COLUMN possession_state jsonb NULL;
+ALTER TABLE vpn_client_mfa_session
+    ADD COLUMN possession_verified boolean NOT NULL DEFAULT false,
+    ADD CONSTRAINT vpn_client_mfa_session_identity_context UNIQUE (id, device_id, location_id);
 
-CREATE TYPE challenge_purpose AS ENUM ('polling', 'posture_connection');
+CREATE TYPE challenge_purpose AS ENUM ('polling', 'posture_connection', 'mfa_connection');
 
 CREATE TABLE device_identity_challenge (
     id bigserial PRIMARY KEY,
     purpose challenge_purpose NOT NULL,
     device_id bigint NOT NULL REFERENCES device(id) ON DELETE CASCADE,
     location_id bigint NULL REFERENCES wireguard_network(id) ON DELETE CASCADE,
+    mfa_session_id bigint NULL,
+    mfa_session_token_hash text NULL,
     data bytea NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
     expires_at timestamp without time zone NOT NULL,
     consumed_at timestamp without time zone NULL,
     CONSTRAINT device_identity_challenge_location CHECK (
-        (purpose = 'polling' AND location_id IS NULL)
-        OR (purpose = 'posture_connection' AND location_id IS NOT NULL)
+        (purpose = 'polling' AND location_id IS NULL AND mfa_session_id IS NULL AND mfa_session_token_hash IS NULL)
+        OR (purpose = 'posture_connection' AND location_id IS NOT NULL AND mfa_session_id IS NULL AND mfa_session_token_hash IS NULL)
+        OR (purpose = 'mfa_connection' AND location_id IS NOT NULL AND mfa_session_id IS NOT NULL AND mfa_session_token_hash IS NOT NULL)
     ),
+    CONSTRAINT device_identity_challenge_mfa_session FOREIGN KEY (mfa_session_id, device_id, location_id)
+        REFERENCES vpn_client_mfa_session (id, device_id, location_id) ON DELETE CASCADE,
     CONSTRAINT device_identity_challenge_data CHECK (octet_length(data) > 0),
     CONSTRAINT device_identity_challenge_expiry CHECK (expires_at > created_at),
     CONSTRAINT device_identity_challenge_consumption
@@ -75,3 +82,5 @@ CREATE TABLE device_identity_challenge (
 
 CREATE INDEX device_identity_challenge_device_idx ON device_identity_challenge (device_id);
 CREATE INDEX device_identity_challenge_expiry_idx ON device_identity_challenge (expires_at);
+
+CREATE INDEX device_identity_challenge_mfa_session_idx ON device_identity_challenge (mfa_session_id);

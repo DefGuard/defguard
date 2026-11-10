@@ -16,7 +16,6 @@ use crate::{
         models::{
             biometric_auth::BiometricChallenge,
             device::Device,
-            device_identity::DevicePossessionState,
             user::User,
             vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
             wireguard::WireguardNetwork,
@@ -144,8 +143,8 @@ pub struct VpnClientMfaSession<I = NoId> {
     /// Same `#[model(json)]` treatment as `steps_snapshot`, for a nullable `jsonb` column.
     #[model(json)]
     pub ephemeral_state: Option<Json<EphemeralState>>,
-    #[model(json)]
-    pub possession_state: Option<Json<DevicePossessionState>>,
+    /// Set atomically with challenge consumption after successful identity-key proof verification.
+    pub possession_verified: bool,
     pub failed_attempts: i32,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
@@ -274,7 +273,7 @@ impl VpnClientMfaSession<Id> {
                 steps_snapshot = EXCLUDED.steps_snapshot, \
                 current_step = EXCLUDED.current_step, \
                 ephemeral_state = EXCLUDED.ephemeral_state, \
-                possession_state = NULL, \
+                possession_verified = false, \
                 flow_kind = EXCLUDED.flow_kind, \
                 failed_attempts = EXCLUDED.failed_attempts, \
                 created_at = EXCLUDED.created_at, \
@@ -283,7 +282,7 @@ impl VpnClientMfaSession<Id> {
                 id, token_hash, location_id, device_id, user_id, flow_kind \"flow_kind: VpnMfaFlowKind\", \
                 steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, \
                 ephemeral_state \"ephemeral_state: Json<EphemeralState>\", \
-                possession_state \"possession_state: Json<DevicePossessionState>\", failed_attempts, \
+                possession_verified, failed_attempts, \
                 created_at, expires_at",
             hash,
             location_id,
@@ -326,7 +325,7 @@ impl VpnClientMfaSession<Id> {
              flow_kind \"flow_kind: VpnMfaFlowKind\", \
              steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, \
              ephemeral_state \"ephemeral_state: Json<EphemeralState>\", \
-             possession_state \"possession_state: Json<DevicePossessionState>\", failed_attempts, \
+             possession_verified, failed_attempts, \
              created_at, expires_at \
              FROM vpn_client_mfa_session \
              WHERE token_hash = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",

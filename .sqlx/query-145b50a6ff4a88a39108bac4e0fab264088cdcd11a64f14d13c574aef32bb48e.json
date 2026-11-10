@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"vpn_client_mfa_session\" SET \"token_hash\" = $2,\"location_id\" = $3,\"device_id\" = $4,\"user_id\" = $5,\"flow_kind\" = $6,\"steps_snapshot\" = $7,\"current_step\" = $8,\"ephemeral_state\" = $9,\"possession_state\" = $10,\"failed_attempts\" = $11,\"created_at\" = $12,\"expires_at\" = $13 WHERE id = $1",
+  "query": "UPDATE \"vpn_client_mfa_session\" SET \"token_hash\" = $2,\"location_id\" = $3,\"device_id\" = $4,\"user_id\" = $5,\"flow_kind\" = $6,\"steps_snapshot\" = $7,\"current_step\" = $8,\"ephemeral_state\" = $9,\"possession_verified\" = $10,\"failed_attempts\" = $11,\"created_at\" = $12,\"expires_at\" = $13 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -24,7 +24,7 @@
         "Jsonb",
         "Int4",
         "Jsonb",
-        "Jsonb",
+        "Bool",
         "Int4",
         "Timestamp",
         "Timestamp"
@@ -32,5 +32,5 @@
     },
     "nullable": []
   },
-  "hash": "79c23151fed31355db8b94f42dc8d1a8327aec18c29d7ea0ff99d39d9da02396"
+  "hash": "145b50a6ff4a88a39108bac4e0fab264088cdcd11a64f14d13c574aef32bb48e"
 }

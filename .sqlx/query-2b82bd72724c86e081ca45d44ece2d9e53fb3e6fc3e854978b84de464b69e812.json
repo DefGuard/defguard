@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"possession_state\" \"possession_state: _\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\"",
+  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"possession_verified\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\"",
   "describe": {
     "columns": [
       {
@@ -114,12 +114,12 @@
       },
       {
         "ordinal": 9,
-        "name": "possession_state: _",
-        "type_info": "Jsonb",
+        "name": "possession_verified",
+        "type_info": "Bool",
         "origin": {
           "Table": {
             "table": "vpn_client_mfa_session",
-            "name": "possession_state"
+            "name": "possession_verified"
           }
         }
       },
@@ -170,11 +170,11 @@
       false,
       false,
       true,
-      true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "983ee484f041f815154168236384e86cc12dd86d4d324f79fa88dfb6a3d33fa7"
+  "hash": "2b82bd72724c86e081ca45d44ece2d9e53fb3e6fc3e854978b84de464b69e812"
 }

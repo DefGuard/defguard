@@ -23,11 +23,5 @@ pub enum DeviceAttestationStatus {
     AttestationFailed,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub enum DevicePossessionState {
-    Pending { challenge_id: String, data: Vec<u8> },
-    Verified { key_fingerprint: [u8; 32] },
-}
-
 #[cfg(test)]
 mod tests;
