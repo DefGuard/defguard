@@ -4,9 +4,8 @@ use sqlx::{
 };
 
 use super::{
-    DeviceAttestationChallenge, DeviceAttestationState, DeviceAttestationStatus,
-    DeviceIdentityBackend, DeviceIdentityChallenge, DeviceIdentityChallengePurpose,
-    DevicePossessionState,
+    DeviceAttestationStatus, DeviceIdentityBackend, DeviceIdentityChallenge,
+    DeviceIdentityChallengePurpose, DevicePossessionState,
 };
 use crate::db::{
     Id, NoId,
@@ -229,27 +228,7 @@ async fn test_device_identity_challenge_roundtrip_and_device_binding(
 }
 
 #[test]
-fn test_device_identity_enrollment_state_roundtrip() {
-    for backend in [
-        DeviceAttestationChallenge::Tpm {
-            ak_name: vec![0, 255],
-            ek_fingerprint: [1; 32],
-            activation_secret_hash: [2; 32],
-        },
-        DeviceAttestationChallenge::AppleAppAttest {
-            key_id: "apple-key".into(),
-        },
-    ] {
-        let state = DeviceAttestationState {
-            challenge_id: "challenge".into(),
-            data: vec![0, 255, 128],
-            wireguard_key: "wg-key".into(),
-            backend,
-        };
-        let encoded = serde_cbor::to_vec(&state).unwrap();
-        let decoded: DeviceAttestationState = serde_cbor::from_slice(&encoded).unwrap();
-        assert!(decoded == state);
-    }
+fn test_device_possession_state_roundtrip() {
     for state in [
         DevicePossessionState::Pending {
             challenge_id: "challenge".into(),
@@ -281,6 +260,12 @@ async fn test_device_identity_migration_is_reversible(_: PgPoolOptions, options:
     .unwrap();
     let table: Option<String> =
         sqlx::query_scalar("SELECT to_regclass('device_identity_challenge')::text")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert!(table.is_none());
+    let table: Option<String> =
+        sqlx::query_scalar("SELECT to_regclass('device_attestation_state')::text")
             .fetch_one(&mut *tx)
             .await
             .unwrap();

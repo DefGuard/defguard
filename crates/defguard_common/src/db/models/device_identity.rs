@@ -34,26 +34,6 @@ pub enum DeviceIdentityChallengePurpose {
     PostureConnection,
 }
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
-pub struct DeviceAttestationState {
-    pub challenge_id: String,
-    pub data: Vec<u8>,
-    pub wireguard_key: String,
-    pub backend: DeviceAttestationChallenge,
-}
-
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
-pub enum DeviceAttestationChallenge {
-    Tpm {
-        ak_name: Vec<u8>,
-        ek_fingerprint: [u8; 32],
-        activation_secret_hash: [u8; 32],
-    },
-    AppleAppAttest {
-        key_id: String,
-    },
-}
-
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum DevicePossessionState {
     Pending { challenge_id: String, data: Vec<u8> },

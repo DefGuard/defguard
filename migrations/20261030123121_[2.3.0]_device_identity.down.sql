@@ -1,5 +1,5 @@
 DROP TABLE device_identity_challenge;
-ALTER TABLE token DROP COLUMN attestation_state;
+DROP TABLE device_attestation_state;
 ALTER TABLE vpn_client_mfa_session DROP COLUMN possession_state;
 ALTER TABLE device
     DROP CONSTRAINT device_identity_backend_fields,

@@ -5,7 +5,7 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, device_identity::DeviceAttestationState, user::User},
+        models::{Settings, user::User},
     },
     random::gen_alphanumeric,
     types::UrlParseError,
@@ -56,8 +56,6 @@ pub enum TokenError {
     UrlParseError(#[from] UrlParseError),
     #[error("Failed to serialize MFA setup state: {0}")]
     MfaSetupStateSerialization(String),
-    #[error("Failed to serialize device attestation state: {0}")]
-    AttestationStateSerialization(String),
     #[error("WebAuthn configuration error: {0}")]
     WebauthnConfig(String),
     #[error("WebAuthn registration error: {0}")]
@@ -80,7 +78,6 @@ impl From<TokenError> for Status {
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
             | TokenError::TemplateErrorInternal(_)
-            | TokenError::AttestationStateSerialization(_)
             | TokenError::MfaSetupStateSerialization(_)
             | TokenError::WebauthnConfig(_) => (Code::Internal, unexpected_err_msg.as_str()),
             TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
@@ -127,7 +124,6 @@ pub struct Token {
     /// CBOR-serialized ceremony state. An unauthorized MFA configuration session holds
     /// [`MfaConfigAuthState`], an authorized one a `PasskeyRegistration` during FIDO2 setup.
     pub mfa_setup_state: Option<Vec<u8>>,
-    pub attestation_state: Option<Vec<u8>>,
 }
 
 impl fmt::Debug for Token {
@@ -166,7 +162,6 @@ impl Token {
             token_type,
             device_id: None,
             mfa_setup_state: None,
-            attestation_state: None,
         }
     }
 
@@ -183,8 +178,8 @@ impl Token {
     {
         query!(
             "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, \
-            token_type, device_id, attestation_state) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+            token_type, device_id) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             self.id,
             self.user_id,
             self.admin_id,
@@ -193,65 +188,11 @@ impl Token {
             self.expires_at,
             self.used_at,
             self.token_type,
-            self.device_id,
-            self.attestation_state
+            self.device_id
         )
         .execute(executor)
         .await?;
         Ok(())
-    }
-
-    pub fn get_attestation_state(&self) -> Result<Option<DeviceAttestationState>, TokenError> {
-        self.attestation_state
-            .as_deref()
-            .map(serde_cbor::from_slice)
-            .transpose()
-            .map_err(|err| TokenError::AttestationStateSerialization(err.to_string()))
-    }
-
-    pub async fn set_attestation_state<'e, E>(
-        &mut self,
-        executor: E,
-        state: &DeviceAttestationState,
-    ) -> Result<(), TokenError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let encoded = serde_cbor::to_vec(state)
-            .map_err(|err| TokenError::AttestationStateSerialization(err.to_string()))?;
-        query!(
-            "UPDATE token SET attestation_state = $1 WHERE id = $2",
-            encoded,
-            self.id
-        )
-        .execute(executor)
-        .await?;
-        self.attestation_state = Some(encoded);
-        Ok(())
-    }
-
-    pub async fn consume_attestation_state<'e, E>(
-        &mut self,
-        executor: E,
-    ) -> Result<bool, TokenError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let Some(state) = self.attestation_state.as_ref() else {
-            return Ok(false);
-        };
-        let result = query!(
-            "UPDATE token SET attestation_state = NULL WHERE id = $1 AND attestation_state = $2",
-            self.id,
-            state,
-        )
-        .execute(executor)
-        .await?;
-        let consumed = result.rows_affected() == 1;
-        if consumed {
-            self.attestation_state = None;
-        }
-        Ok(consumed)
     }
 
     pub async fn clear_mfa_setup_state<'e, E>(&mut self, executor: E) -> Result<(), TokenError>
@@ -497,7 +438,7 @@ impl Token {
         if let Some(enrollment) = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, \
-            mfa_setup_state, attestation_state \
+            mfa_setup_state \
             FROM token WHERE id = $1",
             id
         )
@@ -516,7 +457,7 @@ impl Token {
         let tokens = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, \
-            mfa_setup_state, attestation_state \
+            mfa_setup_state \
             FROM token",
         )
         .fetch_all(pool)

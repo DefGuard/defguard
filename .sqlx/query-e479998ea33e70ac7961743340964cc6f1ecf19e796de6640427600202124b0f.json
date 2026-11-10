@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Text",
+        "Timestamp",
+        "Timestamp",
+        "Timestamp",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e479998ea33e70ac7961743340964cc6f1ecf19e796de6640427600202124b0f"
+}

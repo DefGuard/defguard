@@ -36,7 +36,20 @@ ALTER TABLE device
         )
     );
 
-ALTER TABLE token ADD COLUMN attestation_state bytea NULL;
+CREATE TABLE device_attestation_state (
+    challenge_id text PRIMARY KEY,
+    token_id text NOT NULL UNIQUE REFERENCES token(id) ON DELETE CASCADE,
+    wireguard_key text NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
+    expires_at timestamp without time zone NOT NULL,
+    payload bytea NOT NULL,
+    CONSTRAINT device_attestation_state_challenge_id CHECK (length(challenge_id) > 0),
+    CONSTRAINT device_attestation_state_wireguard_key CHECK (length(wireguard_key) > 0),
+    CONSTRAINT device_attestation_state_payload CHECK (octet_length(payload) > 0),
+    CONSTRAINT device_attestation_state_expiry CHECK (expires_at > created_at)
+);
+
+CREATE INDEX device_attestation_state_expiry_idx ON device_attestation_state (expires_at);
 ALTER TABLE vpn_client_mfa_session ADD COLUMN possession_state jsonb NULL;
 
 CREATE TYPE challenge_purpose AS ENUM ('polling', 'posture_connection');

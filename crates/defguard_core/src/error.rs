@@ -206,7 +206,6 @@ impl From<TokenError> for WebError {
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
-            | TokenError::AttestationStateSerialization(_)
             | TokenError::MfaSetupStateSerialization(_)
             | TokenError::WebauthnConfig(_)
             | TokenError::TemplateErrorInternal(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),

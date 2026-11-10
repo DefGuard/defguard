@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, mfa_setup_state, attestation_state FROM token",
+  "query": "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id, mfa_setup_state FROM token",
   "describe": {
     "columns": [
       {
@@ -112,17 +112,6 @@
             "name": "mfa_setup_state"
           }
         }
-      },
-      {
-        "ordinal": 10,
-        "name": "attestation_state",
-        "type_info": "Bytea",
-        "origin": {
-          "Table": {
-            "table": "token",
-            "name": "attestation_state"
-          }
-        }
       }
     ],
     "parameters": {
@@ -138,9 +127,8 @@
       true,
       true,
       true,
-      true,
       true
     ]
   },
-  "hash": "1eecb31b341910fb634fa0978d8ebe82ef560e1af6be219462311494da665f81"
+  "hash": "861df8ea1a881a5567fe32b1bef37ff43c430c1c1101d46e625c5aa947ce5c0a"
 }
