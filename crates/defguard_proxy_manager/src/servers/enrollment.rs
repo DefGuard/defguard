@@ -88,7 +88,7 @@ impl EnrollmentServer {
     }
 
     /// Validates an enrollment session token.
-    async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
+    async fn validate_enrollment_session(&self, token: Option<&String>) -> Result<Token, Status> {
         let (token, is_enrollment) = self.validate_mfa_setup_session(token).await?;
         if !is_enrollment {
             error!(
@@ -394,7 +394,7 @@ impl EnrollmentServer {
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
         debug!("Register mobile auth started");
-        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let enrollment = self.validate_enrollment_session(Some(&request.token)).await?;
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
@@ -488,7 +488,7 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account");
-        let enrollment = self.validate_session(request.token.as_ref()).await?;
+        let enrollment = self.validate_enrollment_session(request.token.as_ref()).await?;
         Self::validate_activated_user(&request)?;
 
         let ip_address;
@@ -662,7 +662,7 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device");
-        let enrollment_token = self.validate_session(request.token.as_ref()).await?;
+        let enrollment_token = self.validate_enrollment_session(request.token.as_ref()).await?;
 
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
@@ -1154,7 +1154,7 @@ impl EnrollmentServer {
         device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let token = self.validate_session(request.token.as_ref()).await?;
+        let token = self.validate_enrollment_session(request.token.as_ref()).await?;
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", &request.pubkey);
