@@ -168,6 +168,7 @@ impl DeviceIdentity {
 pub struct DeviceAttestationState {
     pub challenge_id: String,
     pub token_id: String,
+    pub device_id: Id,
     pub wireguard_key: String,
     pub created_at: NaiveDateTime,
     /// The enrollment session deadline supplied by the caller.
@@ -198,14 +199,16 @@ impl DeviceAttestationState {
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         sqlx::query!(
             "INSERT INTO device_attestation_state \
-             (challenge_id, token_id, wireguard_key, created_at, expires_at, payload) \
-             VALUES ($1, $2, $3, $4, $5, $6) \
+             (challenge_id, token_id, device_id, wireguard_key, created_at, expires_at, payload) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7) \
              ON CONFLICT (token_id) DO UPDATE SET \
-             challenge_id = EXCLUDED.challenge_id, wireguard_key = EXCLUDED.wireguard_key, \
+             challenge_id = EXCLUDED.challenge_id, device_id = EXCLUDED.device_id, \
+             wireguard_key = EXCLUDED.wireguard_key, \
              created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at, \
              payload = EXCLUDED.payload",
             &self.challenge_id,
             &self.token_id,
+            self.device_id,
             &self.wireguard_key,
             self.created_at,
             self.expires_at,
@@ -216,14 +219,19 @@ impl DeviceAttestationState {
         Ok(())
     }
 
-    pub async fn find_by_token_id<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_for_device<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         token_id: &str,
+        device_id: Id,
     ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as("SELECT * FROM device_attestation_state WHERE token_id = $1")
-            .bind(token_id)
-            .fetch_optional(executor)
-            .await
+        sqlx::query_as(
+            "SELECT challenge_id, token_id, device_id, wireguard_key, created_at, expires_at, payload \
+             FROM device_attestation_state WHERE token_id = $1 AND device_id = $2",
+        )
+        .bind(token_id)
+        .bind(device_id)
+        .fetch_optional(executor)
+        .await
     }
 
     /// Deletes this unexpired snapshot after verification, returning whether it was consumed.
@@ -233,11 +241,12 @@ impl DeviceAttestationState {
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         let result = sqlx::query!(
             "DELETE FROM device_attestation_state \
-             WHERE challenge_id = $1 AND token_id = $2 AND wireguard_key = $3 \
-             AND created_at = $4 AND expires_at = $5 AND payload = $6 \
-             AND expires_at > (now() AT TIME ZONE 'UTC')",
+             WHERE challenge_id = $1 AND token_id = $2 AND device_id = $3 AND wireguard_key = $4 \
+             AND created_at = $5 AND expires_at = $6 AND payload = $7 \
+             AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')",
             &self.challenge_id,
             &self.token_id,
+            self.device_id,
             &self.wireguard_key,
             self.created_at,
             self.expires_at,

@@ -20,6 +20,7 @@ CREATE TABLE device_identity (
 CREATE TABLE device_attestation_state (
     challenge_id text PRIMARY KEY,
     token_id text NOT NULL UNIQUE REFERENCES token(id) ON DELETE CASCADE,
+    device_id bigint NOT NULL REFERENCES device(id) ON DELETE CASCADE,
     wireguard_key text NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'UTC'),
     expires_at timestamp without time zone NOT NULL,
@@ -30,6 +31,7 @@ CREATE TABLE device_attestation_state (
     CONSTRAINT device_attestation_state_expiry CHECK (expires_at > created_at)
 );
 
+CREATE INDEX device_attestation_state_device_idx ON device_attestation_state (device_id);
 CREATE INDEX device_attestation_state_expiry_idx ON device_attestation_state (expires_at);
 ALTER TABLE vpn_client_mfa_session
     ADD COLUMN possession_verified boolean NOT NULL DEFAULT false,

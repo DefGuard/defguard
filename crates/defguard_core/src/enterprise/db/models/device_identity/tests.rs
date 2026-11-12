@@ -51,10 +51,22 @@ async fn enrollment_attestation(
     );
     token.used_at = Some(now);
     token.save(pool).await.unwrap();
+    let device = Device::new(
+        name.into(),
+        format!("key-{name}"),
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(pool)
+    .await
+    .unwrap();
     DeviceAttestationState {
         challenge_id: format!("challenge-{name}"),
         token_id: token.id,
-        wireguard_key: format!("key-{name}"),
+        device_id: device.id,
+        wireguard_key: device.wireguard_pubkey,
         created_at: now,
         expires_at: now + chrono::TimeDelta::minutes(10),
         payload: DeviceAttestationPayload {
@@ -90,7 +102,7 @@ async fn test_attestation_state_roundtrips_backend_payloads(
         let state = enrollment_attestation(&pool, name, backend).await;
         state.save(&pool).await.unwrap();
         assert!(
-            DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+            DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
                 .await
                 .unwrap()
                 == Some(state.clone())
@@ -102,7 +114,7 @@ async fn test_attestation_state_roundtrips_backend_payloads(
             .await
             .unwrap();
         assert!(
-            DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+            DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
                 .await
                 .is_err()
         );
@@ -127,7 +139,7 @@ async fn test_attestation_state_replacement_preserves_other_sessions(
     wrong_token.token_id.clone_from(&other.token_id);
     assert!(!wrong_token.consume(&pool).await.unwrap());
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &original.token_id)
+        DeviceAttestationState::find_for_device(&pool, &original.token_id, original.device_id)
             .await
             .unwrap()
             == Some(current.clone())
@@ -135,13 +147,13 @@ async fn test_attestation_state_replacement_preserves_other_sessions(
     assert!(current.consume(&pool).await.unwrap());
     assert!(!current.consume(&pool).await.unwrap());
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &original.token_id)
+        DeviceAttestationState::find_for_device(&pool, &original.token_id, original.device_id)
             .await
             .unwrap()
             .is_none()
     );
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &other.token_id)
+        DeviceAttestationState::find_for_device(&pool, &other.token_id, other.device_id)
             .await
             .unwrap()
             == Some(other)
@@ -160,7 +172,7 @@ async fn test_expired_attestation_state_cannot_be_consumed(
     state.save(&pool).await.unwrap();
     assert!(!state.consume(&pool).await.unwrap());
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
             .await
             .unwrap()
             == Some(state)
@@ -179,7 +191,7 @@ async fn test_attestation_state_consumption_is_rolled_back(
     assert!(state.consume(&mut *tx).await.unwrap());
     tx.rollback().await.unwrap();
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
             .await
             .unwrap()
             == Some(state.clone())
@@ -201,7 +213,7 @@ async fn test_attestation_state_is_consumed_once_under_concurrency(
         (true, false) | (false, true)
     ));
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
             .await
             .unwrap()
             .is_none()
@@ -221,7 +233,7 @@ async fn test_attestation_state_is_removed_with_its_enrollment_token(
         .await
         .unwrap();
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &state.token_id)
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
             .await
             .unwrap()
             .is_none()
@@ -1137,15 +1149,23 @@ async fn test_reap_expired_device_identity_state(_: PgPoolOptions, options: PgCo
         );
     }
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &expired_attestation.token_id)
-            .await
-            .unwrap()
-            .is_none()
+        DeviceAttestationState::find_for_device(
+            &pool,
+            &expired_attestation.token_id,
+            expired_attestation.device_id
+        )
+        .await
+        .unwrap()
+        .is_none()
     );
     assert!(
-        DeviceAttestationState::find_by_token_id(&pool, &active_attestation.token_id)
-            .await
-            .unwrap()
+        DeviceAttestationState::find_for_device(
+            &pool,
+            &active_attestation.token_id,
+            active_attestation.device_id
+        )
+        .await
+        .unwrap()
             == Some(active_attestation)
     );
     assert!(
