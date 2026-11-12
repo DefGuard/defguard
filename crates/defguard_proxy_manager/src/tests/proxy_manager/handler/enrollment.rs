@@ -13,9 +13,11 @@ use defguard_common::{
 };
 use defguard_core::{
     db::models::enrollment::Token,
-    enterprise::db::models::device_identity::DeviceAttestationState,
-    enterprise::db::models::openid_provider::{
-        DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+    enterprise::db::models::{
+        device_identity::DeviceAttestationState,
+        openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
     },
     events::{BidiStreamEventType, EnrollmentEvent},
 };
