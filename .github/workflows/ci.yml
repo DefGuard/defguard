@@ -52,7 +52,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ env.CARGO_HOME }}/registry/index
@@ -135,7 +135,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ env.CARGO_HOME }}/registry/index
@@ -260,7 +260,7 @@ jobs:
         run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf -
 
       - name: Log in to ghcr.io
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
