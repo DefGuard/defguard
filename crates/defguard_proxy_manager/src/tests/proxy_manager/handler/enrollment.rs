@@ -12,6 +12,8 @@ use defguard_common::{
     gateway_event::GatewayCommand,
 };
 use defguard_core::{
+    db::models::enrollment::Token,
+    enterprise::db::models::device_identity::DeviceAttestationState,
     enterprise::db::models::openid_provider::{
         DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
     },
@@ -20,7 +22,11 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{
         ClientPlatformInfo, EnrollmentStartRequest, ExistingDevice, LocationMfaMode, MfaMethod,
-        NewDevice, RegisterMobileAuthRequest,
+        NewDevice, RegisterMobileAuthRequest, enrollment_start_request::DeviceIdentity,
+    },
+    device_identity::{
+        AttestationIdentity, AttestationResponse, TpmAttestationIdentity, TpmAttestationResponse,
+        attestation_identity, attestation_response,
     },
     proxy::{CoreErrorCode, CoreRequest, DeviceInfo, core_request, core_response},
 };
@@ -1723,5 +1729,128 @@ async fn test_activate_oidc_user_with_password_management_disabled_skips_passwor
         "enrollment_pending must be cleared after activation"
     );
 
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_enrollment_attestation_stub_does_not_start_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::EnrollmentStart(
+            EnrollmentStartRequest {
+                token: token.id.clone(),
+                wireguard_key: Some("AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".into()),
+                device_identity: Some(DeviceIdentity::AttestationIdentity(AttestationIdentity {
+                    backend: Some(attestation_identity::Backend::Tpm(TpmAttestationIdentity {
+                        ek_public: vec![1],
+                        ek_certificate_chain_der: vec![vec![2]],
+                        ak_public: vec![3],
+                    })),
+                })),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 1);
+    assert_eq!(assert_error_response(&response), tonic::Code::Unimplemented);
+    let stored = Token::find_by_id(&context.pool, &token.id).await.unwrap();
+    assert!(stored.used_at.is_none());
+    assert!(stored.device_id.is_none());
+    assert!(
+        DeviceAttestationState::find_by_token_id(&context.pool, &token.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(Device::count(&context.pool).await.unwrap(), 0);
+    assert_eq!(PollingToken::count(&context.pool).await.unwrap(), 0);
+    assert!(matches!(
+        context.bidi_events_rx.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+    ));
+
+    start_enrollment_session(&mut context, &token.id).await;
+    assert!(
+        Token::find_by_id(&context.pool, &token.id)
+            .await
+            .unwrap()
+            .used_at
+            .is_some()
+    );
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_device_attestation_stub_does_not_create_device_or_polling_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    create_network(&context.pool).await;
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    let started = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        matches!(started.event, BidiStreamEventType::Enrollment(event) if matches!(*event, EnrollmentEvent::EnrollmentStarted))
+    );
+    let before = Token::find_by_id(&context.pool, &token.id).await.unwrap();
+    let mut gateway_rx = context.take_gateway_rx();
+    let mut request = NewDevice {
+        name: "Unverified device".into(),
+        pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".into(),
+        token: Some(token.id.clone()),
+        attestation_response: Some(AttestationResponse {
+            session_id: "unverified-session".into(),
+            result: Some(attestation_response::Result::Tpm(TpmAttestationResponse {
+                activation_secret: vec![1; 32],
+                evidence: Some(Default::default()),
+            })),
+        }),
+    };
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(request.clone())),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 1);
+    assert_eq!(assert_error_response(&response), tonic::Code::Unimplemented);
+    assert_eq!(Device::count(&context.pool).await.unwrap(), 0);
+    assert_eq!(PollingToken::count(&context.pool).await.unwrap(), 0);
+    let after = Token::find_by_id(&context.pool, &token.id).await.unwrap();
+    assert_eq!(after.used_at, before.used_at);
+    assert_eq!(after.expires_at, before.expires_at);
+    assert_eq!(after.device_id, before.device_id);
+    assert!(matches!(
+        context.bidi_events_rx.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+    ));
+    assert!(matches!(
+        gateway_rx.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+    ));
+
+    request.attestation_response = None;
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(request)),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 2);
+    assert!(assert_device_config_response(&response).token.is_some());
     context.finish().await.expect_server_finished().await;
 }
