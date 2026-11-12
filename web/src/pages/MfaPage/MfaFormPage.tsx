@@ -208,6 +208,7 @@ export const MfaFormPage = ({ flow }: Props) => {
                 }}
               />
               <form.FormSubmitButton
+                testId="save-mfa-flow"
                 text={
                   isEdit ? m.controls_save_changes() : m.mfa_flow_form_action_create()
                 }

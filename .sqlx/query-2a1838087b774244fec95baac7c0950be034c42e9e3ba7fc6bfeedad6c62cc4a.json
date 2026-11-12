@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5,\"device_type\" = $6,\"description\" = $7,\"configured\" = $8,\"attestation_status\" = $9,\"attested_at\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2a1838087b774244fec95baac7c0950be034c42e9e3ba7fc6bfeedad6c62cc4a"
+}

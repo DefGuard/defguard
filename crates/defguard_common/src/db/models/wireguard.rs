@@ -463,7 +463,7 @@ impl WireguardNetwork<Id> {
             return query_as!(
                 Device,
                 "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-                d.device_type \"device_type: DeviceType\", configured \
+                d.device_type \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at \
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 WHERE u.is_active \
@@ -479,7 +479,7 @@ impl WireguardNetwork<Id> {
         let devices = query_as!(
             Device,
             "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
-                d.description, d.device_type \"device_type: DeviceType\", configured
+                d.description, d.device_type \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -544,7 +544,7 @@ impl WireguardNetwork<Id> {
             return query_as!(
                 Device,
                 "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-                d.device_type \"device_type: DeviceType\", configured \
+                d.device_type \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at \
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 WHERE u.is_active \
@@ -562,7 +562,7 @@ impl WireguardNetwork<Id> {
         let devices = query_as!(
             Device,
             "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
-                d.description, d.device_type \"device_type: DeviceType\", configured
+                d.description, d.device_type \"device_type: DeviceType\", configured, d.attestation_status \"attestation_status: _\", d.attested_at
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -742,7 +742,7 @@ impl WireguardNetwork<Id> {
         let devices = query_as!(
             Device,
             "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
-            d.description, d.device_type \"device_type: DeviceType\", d.configured \
+            d.description, d.device_type \"device_type: DeviceType\", d.configured, d.attestation_status \"attestation_status: _\", d.attested_at \
             FROM device d JOIN vpn_client_session s ON d.id = s.device_id \
             WHERE s.state = 'connected' AND s.location_id = $1 \
             AND d.device_type = $2",
@@ -1222,7 +1222,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             Device,
             "SELECT id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
             FROM device WHERE id in (SELECT device_id \
             FROM wireguard_network_device WHERE wireguard_network_id = $1) \
             AND device_type = $2",

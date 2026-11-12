@@ -40,5 +40,9 @@ export const getDeleteMfaFlowModalData = (
   contentMd: m.mfa_flow_delete_body({ name: flow.title }),
   actionPromise: () => api.mfaFlow.delete(flow.id),
   invalidateKeys: [['mfa-flow'], ['location']],
-  submitProps: { text: m.controls_delete(), variant: 'critical' },
+  submitProps: {
+    text: m.controls_delete(),
+    variant: 'critical',
+    testId: 'confirm-delete-mfa-flow',
+  },
 });

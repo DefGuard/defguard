@@ -240,6 +240,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         device_posture::list_device_postures,
         device_posture::create_device_posture,
         device_posture::get_device_posture_versions,
+        device_posture::get_device_attestation_stats,
         device_posture::delete_device_posture,
         device_posture::get_device_posture,
         device_posture::update_device_posture,

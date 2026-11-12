@@ -55,6 +55,7 @@ import type {
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
+  DeviceAttestationStats,
   DeviceLocationIpsResponse,
   DevicePostureListFilters,
   DevicePostureVersionMetadata,
@@ -472,6 +473,8 @@ const api = {
       client.post<ApiDevicePosture>(`/device-posture/${id}/duplicate`),
     editDevicePosture: (id: number, data: EditDevicePostureRequest) =>
       client.put<ApiDevicePosture>(`/device-posture/${id}`, removeEmptyStrings(data)),
+    getDeviceAttestationStats: () =>
+      client.get<DeviceAttestationStats>('/device-posture/attestation-stats'),
     getDevicePosture: (id: number) =>
       client.get<ApiDevicePosture>(`/device-posture/${id}`),
     getDevicePostureVersionMetadata: () =>

@@ -23,6 +23,7 @@ export const createAlias = async (
 
   if (addresses) {
     await modal.getByTestId('field-addresses').fill(addresses.join(','));
+    await modal.getByTestId('field-addresses').press('Enter');
   }
 
   if (ports) {

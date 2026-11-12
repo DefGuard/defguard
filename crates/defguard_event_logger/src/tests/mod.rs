@@ -279,6 +279,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         device_type: DeviceType::User,
         description: None,
         configured: true,
+        attestation_status: Default::default(),
+        attested_at: None,
     };
     let location = sample_location();
     let timestamp = Utc::now().naive_utc();
@@ -449,6 +451,10 @@ fn api_event_cases() -> Vec<EventTestCase> {
         min_desktop_client_version: None,
         min_mobile_client_version: None,
         allow_prerelease_client: false,
+        desktop_attestation: false,
+        desktop_verification: false,
+        mobile_attestation: false,
+        mobile_verification: false,
     };
     let posture_snapshot = DevicePostureSnapshot {
         device_posture: posture.clone(),
@@ -463,6 +469,10 @@ fn api_event_cases() -> Vec<EventTestCase> {
             min_desktop_client_version: None,
             min_mobile_client_version: None,
             allow_prerelease_client: true,
+            desktop_attestation: false,
+            desktop_verification: false,
+            mobile_attestation: false,
+            mobile_verification: false,
         },
         os_rules: Vec::new(),
         location_ids: Vec::new(),

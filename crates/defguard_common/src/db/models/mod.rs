@@ -5,6 +5,7 @@ pub mod certificates;
 pub mod connection_event;
 pub mod device;
 pub mod device_client_info;
+pub mod device_identity;
 pub mod device_login;
 pub mod error;
 pub mod gateway;

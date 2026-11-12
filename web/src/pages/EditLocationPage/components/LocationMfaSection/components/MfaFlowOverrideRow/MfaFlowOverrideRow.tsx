@@ -65,6 +65,7 @@ export const MfaFlowOverrideRow = ({
           </button>
         }
         editLabel={m.location_mfa_override_edit()}
+        editTestId={`location-mfa-override-edit-${position}`}
         onEdit={onEdit}
         removeLabel={m.location_mfa_override_remove()}
         onRemove={onRemove}
