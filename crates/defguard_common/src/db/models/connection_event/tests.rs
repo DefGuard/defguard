@@ -122,12 +122,12 @@ async fn test_save_with_device(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(device_id(elsewhere).await, None);
 
     // Stored rows match the returned events.
-    let mut stored: Vec<_> = ConnectionEvent::all(&pool)
+    let mut stored = ConnectionEvent::all(&pool)
         .await
         .unwrap()
         .into_iter()
         .map(|event| event.device_id)
-        .collect();
+        .collect::<Vec<_>>();
     stored.sort_unstable();
     assert_eq!(stored, vec![None, Some(laptop), Some(laptop), Some(phone)]);
 }

@@ -128,10 +128,6 @@ fn event(
     }
 }
 
-async fn save(pool: &PgPool, event: ConnectionEvent<NoId>) -> ConnectionEvent<Id> {
-    event.save(pool).await.unwrap()
-}
-
 /// Asserts that both connection event endpoints reject the client.
 async fn assert_forbidden(client: &TestClient) {
     for path in [
@@ -167,14 +163,17 @@ async fn test_list_connection_events(_: PgPoolOptions, options: PgConnectOptions
     let (client, state) = make_test_client(pool.clone()).await;
     let fixture = setup(&client, &pool, state.test_user.id).await;
 
-    let outbound = save(&pool, event(&fixture, 2, ConnectionDirection::Outbound)).await;
+    let outbound = event(&fixture, 2, ConnectionDirection::Outbound)
+        .save(&pool)
+        .await
+        .unwrap();
     let inbound = ConnectionEvent {
         status: ConnectionStatus::Blocked,
         // Rule ID without a matching rule, e.g. a deleted one.
         rule_id: Some(12345),
         ..event(&fixture, 1, ConnectionDirection::Inbound)
     };
-    let inbound = save(&pool, inbound).await;
+    let inbound = inbound.save(&pool).await.unwrap();
 
     let response = fetch(&client, "").await;
     assert_eq!(response.pagination.total_items, 2);
@@ -205,17 +204,17 @@ async fn test_filter_and_sort_connection_events(_: PgPoolOptions, options: PgCon
         download_bytes: 300,
         ..event(&fixture, 120, ConnectionDirection::Outbound)
     };
-    let old = save(&pool, old).await;
+    let old = old.save(&pool).await.unwrap();
     let blocked = ConnectionEvent {
         status: ConnectionStatus::Blocked,
         ..event(&fixture, 10, ConnectionDirection::Inbound)
     };
-    let blocked = save(&pool, blocked).await;
+    let blocked = blocked.save(&pool).await.unwrap();
     let recent = ConnectionEvent {
         download_bytes: 200,
         ..event(&fixture, 5, ConnectionDirection::Outbound)
     };
-    let recent = save(&pool, recent).await;
+    let recent = recent.save(&pool).await.unwrap();
 
     let response = fetch(&client, "status=blocked").await;
     assert_eq!(ids(&response), vec![blocked.id]);
@@ -285,7 +284,10 @@ async fn test_search_connection_events(_: PgPoolOptions, options: PgConnectOptio
     let fixture = setup(&client, &pool, state.test_user.id).await;
 
     // From the fixture's device (10.1.1.2) to 192.168.5.5.
-    let known = save(&pool, event(&fixture, 2, ConnectionDirection::Outbound)).await;
+    let known = event(&fixture, 2, ConnectionDirection::Outbound)
+        .save(&pool)
+        .await
+        .unwrap();
     // Between addresses that belong to no device.
     let unknown = ConnectionEvent {
         source_ip: "172.16.0.9".parse().unwrap(),
@@ -293,7 +295,7 @@ async fn test_search_connection_events(_: PgPoolOptions, options: PgConnectOptio
         device_id: None,
         ..event(&fixture, 1, ConnectionDirection::Inbound)
     };
-    let unknown = save(&pool, unknown).await;
+    let unknown = unknown.save(&pool).await.unwrap();
 
     for (search, expected) in [
         // Full and partial source and destination addresses, IPv4 and IPv6.
@@ -308,7 +310,7 @@ async fn test_search_connection_events(_: PgPoolOptions, options: PgConnectOptio
         ("gateway", vec![unknown.id, known.id]),
         // Surrounding whitespace is ignored.
         ("%20laptop%20", vec![known.id]),
-        ("no-such-thing", vec![]),
+        ("no-such-thing", Vec::new()),
     ] {
         let response = fetch(&client, &format!("search={search}")).await;
         assert_eq!(ids(&response), expected, "search={search}");

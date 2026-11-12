@@ -6,6 +6,7 @@ use defguard_common::db::{
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
         WebAuthn, WireguardNetwork,
+        device_identity::DeviceAttestationStatus,
         gateway::Gateway,
         group::Group,
         mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},
@@ -279,7 +280,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         device_type: DeviceType::User,
         description: None,
         configured: true,
-        attestation_status: Default::default(),
+        attestation_status: DeviceAttestationStatus::default(),
         attested_at: None,
     };
     let location = sample_location();
