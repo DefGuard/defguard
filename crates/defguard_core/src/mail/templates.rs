@@ -1,8 +1,10 @@
 use std::{collections::HashMap, time::Duration};
 
-use chrono::{Datelike, NaiveDateTime, Utc};
+use chrono::{DateTime, Datelike, NaiveDateTime, Utc};
+use chrono_tz::Tz;
 use defguard_common::{
     VERSION,
+    config::SERVER_CONFIG,
     db::models::{Session, Settings, user::MFAMethod},
     types::UrlParseError,
 };
@@ -23,7 +25,36 @@ pub static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
 static BASE_MJML: &str = include_str!("templates/base.mjml");
 static MACROS_MJML: &str = include_str!("templates/macros.mjml");
-static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
+static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r %Z";
+
+/// Time zone in which timestamps are rendered in e-mails.
+///
+/// Configured with `DEFGUARD_MAIL_TIMEZONE`; falls back to UTC if the server
+/// configuration has not been initialized yet.
+fn mail_timezone() -> Tz {
+    SERVER_CONFIG
+        .get()
+        .map_or(Tz::UTC, |config| config.mail_timezone)
+}
+
+/// Format a UTC timestamp for display in e-mails using the given time zone.
+fn format_datetime_in(datetime: DateTime<Utc>, timezone: Tz) -> String {
+    datetime
+        .with_timezone(&timezone)
+        .format(MAIL_DATETIME_FORMAT)
+        .to_string()
+}
+
+/// Format a UTC timestamp for display in e-mails using the configured time zone.
+fn format_mail_datetime(datetime: DateTime<Utc>) -> String {
+    format_datetime_in(datetime, mail_timezone())
+}
+
+/// Format a naive timestamp (stored as UTC in the database) for display in
+/// e-mails using the configured time zone.
+fn format_mail_naive_datetime(datetime: NaiveDateTime) -> String {
+    format_mail_datetime(datetime.and_utc())
+}
 
 #[derive(Debug, Error)]
 pub enum TemplateError {
@@ -85,7 +116,7 @@ fn get_base_tera_mjml(
     tera.add_raw_template("macros.mjml", MACROS_MJML)?;
     // Supply context for the base template.
     context.insert("application_version", &VERSION);
-    let now = Utc::now();
+    let now = Utc::now().with_timezone(&mail_timezone());
     context.insert("current_year", &now.year().to_string());
     context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
 
@@ -491,7 +522,7 @@ pub async fn new_device_login_mail(
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    context.insert("created", &created.format(MAIL_DATETIME_FORMAT).to_string());
+    context.insert("created", &format_mail_naive_datetime(created));
 
     let message = MailMessage::NewDeviceLogin;
     message.fill_context(conn, &mut context).await?;
@@ -604,10 +635,7 @@ pub async fn mfa_activation_mail(
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("username", first_name);
-    context.insert(
-        "datetime",
-        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("datetime", &format_mail_datetime(Utc::now()));
 
     let message = MailMessage::MFAActivation;
     message.fill_context(conn, &mut context).await?;
@@ -636,10 +664,7 @@ pub async fn mfa_code_mail(
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("username", first_name);
-    context.insert(
-        "datetime",
-        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("datetime", &format_mail_datetime(Utc::now()));
 
     let message = MailMessage::MFACode;
     message.fill_context(conn, &mut context).await?;
@@ -726,10 +751,7 @@ pub async fn certificate_expiration_mail(
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
 
     context.insert("cert_type", certificate_type);
-    context.insert(
-        "exp_date",
-        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("exp_date", &format_mail_naive_datetime(expiration));
 
     let message = MailMessage::CertificateExpiration;
     message.fill_context(conn, &mut context).await?;
@@ -748,10 +770,7 @@ pub async fn certificate_expired_mail(
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
 
     context.insert("cert_type", certificate_type);
-    context.insert(
-        "exp_date",
-        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("exp_date", &format_mail_naive_datetime(expiration));
 
     let message = MailMessage::CertificateExpired;
     message.fill_context(conn, &mut context).await?;
@@ -764,7 +783,43 @@ pub async fn certificate_expired_mail(
 mod tests {
     use std::time::Duration;
 
-    use super::format_timeout;
+    use chrono::TimeZone;
+
+    use super::*;
+
+    #[test]
+    fn test_formats_datetime_in_utc() {
+        let datetime = Utc.with_ymd_and_hms(2026, 9, 9, 23, 51, 50).unwrap();
+        assert_eq!(
+            format_datetime_in(datetime, Tz::UTC),
+            "Wednesday, September 09, 2026 at 11:51:50 PM UTC"
+        );
+    }
+
+    #[test]
+    fn test_formats_datetime_in_configured_timezone() {
+        let datetime = Utc.with_ymd_and_hms(2026, 9, 9, 23, 51, 50).unwrap();
+        assert_eq!(
+            format_datetime_in(datetime, Tz::Asia__Tokyo),
+            "Thursday, September 10, 2026 at 08:51:50 AM JST"
+        );
+        assert_eq!(
+            format_datetime_in(datetime, Tz::Europe__Warsaw),
+            "Thursday, September 10, 2026 at 01:51:50 AM CEST"
+        );
+    }
+
+    #[test]
+    fn test_formats_naive_datetime_as_utc() {
+        let naive = Utc
+            .with_ymd_and_hms(2026, 9, 9, 23, 51, 50)
+            .unwrap()
+            .naive_utc();
+        assert_eq!(
+            format_mail_naive_datetime(naive),
+            "Wednesday, September 09, 2026 at 11:51:50 PM UTC"
+        );
+    }
 
     #[test]
     fn test_formats_weeks() {
