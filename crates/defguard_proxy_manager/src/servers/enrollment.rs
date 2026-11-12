@@ -50,9 +50,8 @@ use defguard_proto::{
         ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
         CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
         EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-        MfaMethod, NewDevice, RegisterMobileAuthRequest, enrollment_start_request::DeviceIdentity,
+        MfaMethod, NewDevice, RegisterMobileAuthRequest,
     },
-    device_identity::{AttestationRequest, AttestationResponse, IdentityState},
     proxy::{CoreError, CoreErrorCode},
 };
 use sqlx::{PgConnection, PgPool, query_scalar};
@@ -155,28 +154,6 @@ impl EnrollmentServer {
         self.bidi_event_tx.send(event)
     }
 
-    fn start_device_attestation(
-        &self,
-        _enrollment: &Token,
-        _identity: &DeviceIdentity,
-        _wireguard_key: Option<&str>,
-    ) -> Result<AttestationRequest, Status> {
-        Err(Status::unimplemented(
-            "Device attestation challenge generation is not implemented",
-        ))
-    }
-
-    fn verify_device_attestation(
-        &self,
-        _enrollment: &Token,
-        _response: &AttestationResponse,
-        _wireguard_pubkey: &str,
-    ) -> Result<IdentityState, Status> {
-        Err(Status::unimplemented(
-            "Device attestation verification is not implemented",
-        ))
-    }
-
     #[instrument(skip_all)]
     pub(crate) async fn start_enrollment(
         &self,
@@ -212,18 +189,6 @@ impl EnrollmentServer {
                 "User {}({:?}) is active, proceeding with enrollment",
                 user.username, user.id
             );
-
-            let attestation_request = request
-                .device_identity
-                .as_ref()
-                .map(|identity| {
-                    self.start_device_attestation(
-                        &enrollment,
-                        identity,
-                        request.wireguard_key.as_deref(),
-                    )
-                })
-                .transpose()?;
 
             let mut transaction = self.pool.begin().await.map_err(|err| {
                 error!("Failed to begin a transaction for enrollment: {err}");
@@ -363,7 +328,6 @@ impl EnrollmentServer {
                 final_page_content,
                 instance: Some(instance_info.into()),
                 settings: Some(enrollment_settings),
-                attestation_request,
             };
             debug!("Response {response:?}");
 
@@ -394,7 +358,9 @@ impl EnrollmentServer {
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
         debug!("Register mobile auth started");
-        let enrollment = self.validate_enrollment_session(Some(&request.token)).await?;
+        let enrollment = self
+            .validate_enrollment_session(Some(&request.token))
+            .await?;
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
@@ -488,7 +454,9 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account");
-        let enrollment = self.validate_enrollment_session(request.token.as_ref()).await?;
+        let enrollment = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
         Self::validate_activated_user(&request)?;
 
         let ip_address;
@@ -662,7 +630,9 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device");
-        let enrollment_token = self.validate_enrollment_session(request.token.as_ref()).await?;
+        let enrollment_token = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
 
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
@@ -754,14 +724,6 @@ impl EnrollmentServer {
             "Pubkey {} is unique for device creation process for user {}({:?}).",
             request.pubkey, user.username, user.id
         );
-
-        let identity_state = request
-            .attestation_response
-            .as_ref()
-            .map(|response| {
-                self.verify_device_attestation(&enrollment_token, response, &request.pubkey)
-            })
-            .transpose()?;
 
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction: {err}");
@@ -1125,7 +1087,7 @@ impl EnrollmentServer {
             configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
-            identity_state,
+            identity_state: None,
             possession_challenge: None,
         };
 
@@ -1154,7 +1116,9 @@ impl EnrollmentServer {
         device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let token = self.validate_enrollment_session(request.token.as_ref()).await?;
+        let token = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", &request.pubkey);
