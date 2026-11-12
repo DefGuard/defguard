@@ -1,0 +1,389 @@
+use std::net::{IpAddr, Ipv4Addr};
+
+use chrono::{NaiveDateTime, SecondsFormat, TimeDelta, Utc};
+use defguard_common::db::{
+    Id, NoId,
+    models::{
+        Device, DeviceType, WireguardNetwork,
+        connection_event::{ConnectionDirection, ConnectionEvent, ConnectionStatus},
+        gateway::Gateway,
+    },
+};
+use defguard_core::handlers::Auth;
+use reqwest::StatusCode;
+use serde::Deserialize;
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
+
+use super::common::{
+    client::TestClient, make_network, make_test_client, set_enterprise_license, setup_pool,
+};
+
+#[derive(Deserialize)]
+struct PaginatedResponse<T> {
+    data: Vec<T>,
+    pagination: PaginationMeta,
+}
+
+#[derive(Deserialize)]
+struct PaginationMeta {
+    total_items: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct ApiConnectionEvent {
+    id: Id,
+    direction: ConnectionDirection,
+    status: ConnectionStatus,
+    location_name: String,
+    gateway_name: Option<String>,
+    rule_id: Option<Id>,
+    rule_name: Option<String>,
+    device_id: Option<Id>,
+    device_name: Option<String>,
+    download_bytes: i64,
+    count: i64,
+}
+
+#[derive(Deserialize)]
+struct FilterOption {
+    id: Id,
+    name: String,
+    context: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct FilterOptions {
+    locations: Vec<FilterOption>,
+    gateways: Vec<FilterOption>,
+    devices: Vec<FilterOption>,
+}
+
+const DEVICE_IP: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2));
+const REMOTE_IP: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 5, 5));
+
+struct Fixture {
+    network: WireguardNetwork<Id>,
+    gateway: Gateway<Id>,
+    device: Device<Id>,
+    base_time: NaiveDateTime,
+}
+
+async fn setup(client: &TestClient, pool: &PgPool, user_id: Id) -> Fixture {
+    set_enterprise_license();
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let network: WireguardNetwork<Id> = make_network(client, "network").await.json().await;
+    let gateway = Gateway::new(network.id, "gateway", "localhost", 50051, "admin")
+        .save(pool)
+        .await
+        .unwrap();
+    let device = Device::new(
+        "laptop".to_owned(),
+        "laptop-pubkey".to_owned(),
+        user_id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(pool)
+    .await
+    .unwrap();
+
+    Fixture {
+        network,
+        gateway,
+        device,
+        base_time: Utc::now().naive_utc(),
+    }
+}
+
+/// Allowed event of the fixture's device, without a matching ACL rule.
+fn event(
+    fixture: &Fixture,
+    minutes_ago: i64,
+    direction: ConnectionDirection,
+) -> ConnectionEvent<NoId> {
+    ConnectionEvent {
+        id: NoId,
+        location_id: fixture.network.id,
+        gateway_id: fixture.gateway.id,
+        timestamp: fixture.base_time - TimeDelta::minutes(minutes_ago),
+        direction,
+        status: ConnectionStatus::Allowed,
+        protocol: 6,
+        source_ip: DEVICE_IP,
+        source_port: Some(40000),
+        destination_ip: REMOTE_IP,
+        destination_port: Some(443),
+        rule_id: None,
+        device_id: Some(fixture.device.id),
+        upload_bytes: 10,
+        download_bytes: 100,
+        count: 3,
+    }
+}
+
+/// Asserts that both connection event endpoints reject the client.
+async fn assert_forbidden(client: &TestClient) {
+    for path in [
+        "/api/v1/connection_event",
+        "/api/v1/connection_event/filter_options",
+    ] {
+        let response = client.get(path).send().await;
+        assert_eq!(response.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+}
+
+async fn fetch(client: &TestClient, query: &str) -> PaginatedResponse<ApiConnectionEvent> {
+    let response = client
+        .get(format!("/api/v1/connection_event?{query}"))
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "{}",
+        response.text().await
+    );
+    response.json().await
+}
+
+fn ids(response: &PaginatedResponse<ApiConnectionEvent>) -> Vec<Id> {
+    response.data.iter().map(|event| event.id).collect()
+}
+
+#[sqlx::test]
+async fn test_list_connection_events(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_test_client(pool.clone()).await;
+    let fixture = setup(&client, &pool, state.test_user.id).await;
+
+    let outbound = event(&fixture, 2, ConnectionDirection::Outbound)
+        .save(&pool)
+        .await
+        .unwrap();
+    let inbound = ConnectionEvent {
+        status: ConnectionStatus::Blocked,
+        // Rule ID without a matching rule, e.g. a deleted one.
+        rule_id: Some(12345),
+        ..event(&fixture, 1, ConnectionDirection::Inbound)
+    };
+    let inbound = inbound.save(&pool).await.unwrap();
+
+    let response = fetch(&client, "").await;
+    assert_eq!(response.pagination.total_items, 2);
+    // Newest first by default.
+    assert_eq!(ids(&response), vec![inbound.id, outbound.id]);
+
+    for event in &response.data {
+        assert_eq!(event.location_name, "network");
+        assert_eq!(event.gateway_name.as_deref(), Some("gateway"));
+        assert_eq!(event.device_id, Some(fixture.device.id));
+        assert_eq!(event.device_name.as_deref(), Some("laptop"));
+        assert_eq!(event.count, 3);
+    }
+    let first = &response.data[0];
+    assert_eq!(first.direction, ConnectionDirection::Inbound);
+    assert_eq!(first.status, ConnectionStatus::Blocked);
+    assert_eq!(first.rule_id, Some(12345));
+    assert_eq!(first.rule_name, None);
+}
+
+#[sqlx::test]
+async fn test_filter_and_sort_connection_events(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_test_client(pool.clone()).await;
+    let fixture = setup(&client, &pool, state.test_user.id).await;
+
+    let old = ConnectionEvent {
+        download_bytes: 300,
+        ..event(&fixture, 120, ConnectionDirection::Outbound)
+    };
+    let old = old.save(&pool).await.unwrap();
+    let blocked = ConnectionEvent {
+        status: ConnectionStatus::Blocked,
+        ..event(&fixture, 10, ConnectionDirection::Inbound)
+    };
+    let blocked = blocked.save(&pool).await.unwrap();
+    let recent = ConnectionEvent {
+        download_bytes: 200,
+        ..event(&fixture, 5, ConnectionDirection::Outbound)
+    };
+    let recent = recent.save(&pool).await.unwrap();
+
+    let response = fetch(&client, "status=blocked").await;
+    assert_eq!(ids(&response), vec![blocked.id]);
+    assert_eq!(response.pagination.total_items, 1);
+
+    let response = fetch(&client, "direction=outbound&direction=inbound").await;
+    assert_eq!(response.pagination.total_items, 3);
+
+    let response = fetch(&client, "direction=outbound").await;
+    assert_eq!(ids(&response), vec![recent.id, old.id]);
+
+    // `Z` suffix rather than `+00:00`, which would need escaping in a query string.
+    let from = (fixture.base_time - TimeDelta::minutes(60))
+        .and_utc()
+        .to_rfc3339_opts(SecondsFormat::Secs, true);
+    let response = fetch(&client, &format!("from={from}")).await;
+    assert_eq!(ids(&response), vec![recent.id, blocked.id]);
+
+    let response = fetch(&client, &format!("device={}", fixture.device.id)).await;
+    assert_eq!(response.pagination.total_items, 3);
+    let response = fetch(&client, &format!("device={}", fixture.device.id + 1)).await;
+    assert_eq!(response.pagination.total_items, 0);
+
+    let response = fetch(&client, &format!("gateway={}", fixture.gateway.id)).await;
+    assert_eq!(response.pagination.total_items, 3);
+    let response = fetch(&client, &format!("location={}", fixture.network.id + 1)).await;
+    assert_eq!(response.pagination.total_items, 0);
+
+    let response = fetch(&client, "protocol=17").await;
+    assert_eq!(response.pagination.total_items, 0);
+
+    // Search matches IP addresses and names.
+    let response = fetch(&client, "search=192.168.5").await;
+    assert_eq!(response.pagination.total_items, 3);
+    let response = fetch(&client, "search=LAPTOP").await;
+    assert_eq!(response.pagination.total_items, 3);
+    let response = fetch(&client, "search=no-such-thing").await;
+    assert_eq!(response.pagination.total_items, 0);
+
+    let response = fetch(&client, "sort_by=download_bytes&sort_order=asc").await;
+    assert_eq!(ids(&response), vec![blocked.id, recent.id, old.id]);
+    assert_eq!(
+        response
+            .data
+            .iter()
+            .map(|event| event.download_bytes)
+            .collect::<Vec<_>>(),
+        vec![100, 200, 300]
+    );
+
+    // Pagination keeps the requested order and reports the total.
+    let response = fetch(&client, "per_page=1&page=2").await;
+    assert_eq!(ids(&response), vec![blocked.id]);
+    assert_eq!(response.pagination.total_items, 3);
+
+    let response = client
+        .get("/api/v1/connection_event?sort_by=nonsense")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test]
+async fn test_search_connection_events(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_test_client(pool.clone()).await;
+    let fixture = setup(&client, &pool, state.test_user.id).await;
+
+    // From the fixture's device (10.1.1.2) to 192.168.5.5.
+    let known = event(&fixture, 2, ConnectionDirection::Outbound)
+        .save(&pool)
+        .await
+        .unwrap();
+    // Between addresses that belong to no device.
+    let unknown = ConnectionEvent {
+        source_ip: "172.16.0.9".parse().unwrap(),
+        destination_ip: "2001:db8::53".parse().unwrap(),
+        device_id: None,
+        ..event(&fixture, 1, ConnectionDirection::Inbound)
+    };
+    let unknown = unknown.save(&pool).await.unwrap();
+
+    for (search, expected) in [
+        // Full and partial source and destination addresses, IPv4 and IPv6.
+        ("10.1.1.2", vec![known.id]),
+        ("192.168.5.5", vec![known.id]),
+        ("172.16", vec![unknown.id]),
+        ("2001:db8::53", vec![unknown.id]),
+        // Device names, case-insensitive.
+        ("LaPtOp", vec![known.id]),
+        // Location and Gateway names.
+        ("network", vec![unknown.id, known.id]),
+        ("gateway", vec![unknown.id, known.id]),
+        // Surrounding whitespace is ignored.
+        ("%20laptop%20", vec![known.id]),
+        ("no-such-thing", Vec::new()),
+    ] {
+        let response = fetch(&client, &format!("search={search}")).await;
+        assert_eq!(ids(&response), expected, "search={search}");
+    }
+}
+
+#[sqlx::test]
+async fn test_connection_event_filter_options(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, state) = make_test_client(pool.clone()).await;
+    let fixture = setup(&client, &pool, state.test_user.id).await;
+
+    let response = client
+        .get("/api/v1/connection_event/filter_options")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let options: FilterOptions = response.json().await;
+
+    assert!(
+        options
+            .locations
+            .iter()
+            .any(|option| option.id == fixture.network.id && option.name == "network")
+    );
+    let gateway = options
+        .gateways
+        .iter()
+        .find(|option| option.id == fixture.gateway.id)
+        .unwrap();
+    assert_eq!(gateway.context.as_deref(), Some("network"));
+    let device = options
+        .devices
+        .iter()
+        .find(|option| option.id == fixture.device.id)
+        .unwrap();
+    assert_eq!(device.name, "laptop");
+    assert_eq!(
+        device.context.as_deref(),
+        Some(state.test_user.username.as_str())
+    );
+}
+
+#[sqlx::test]
+async fn test_connection_events_require_admin(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+    // Enterprise license, so that only the missing admin role can cause rejection.
+    set_enterprise_license();
+
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_forbidden(&client).await;
+}
+
+#[sqlx::test]
+async fn test_connection_events_require_enterprise_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    // Business-tier license is the default for test clients.
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_forbidden(&client).await;
+
+    set_enterprise_license();
+    let response = client.get("/api/v1/connection_event").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}

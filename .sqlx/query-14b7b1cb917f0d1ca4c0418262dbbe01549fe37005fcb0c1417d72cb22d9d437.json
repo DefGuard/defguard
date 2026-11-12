@@ -1,0 +1,226 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"location_id\",\"gateway_id\",\"timestamp\",\"direction\" \"direction: _\",\"status\" \"status: _\",\"protocol\",\"source_ip\" \"source_ip: IpAddr\",\"source_port\",\"destination_ip\" \"destination_ip: IpAddr\",\"destination_port\",\"rule_id\",\"device_id\",\"upload_bytes\",\"download_bytes\",\"count\" FROM \"connection_event\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "location_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "gateway_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "gateway_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "timestamp",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "timestamp"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "direction: _",
+        "type_info": {
+          "Custom": {
+            "name": "connection_direction",
+            "kind": {
+              "Enum": [
+                "inbound",
+                "outbound"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "direction"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status: _",
+        "type_info": {
+          "Custom": {
+            "name": "connection_status",
+            "kind": {
+              "Enum": [
+                "allowed",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "protocol",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "protocol"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "source_ip: IpAddr",
+        "type_info": "Inet",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "source_ip"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "source_port",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "source_port"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "destination_ip: IpAddr",
+        "type_info": "Inet",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "destination_ip"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "destination_port",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "destination_port"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "rule_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "rule_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "upload_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "upload_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "download_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "download_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "connection_event",
+            "name": "count"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "14b7b1cb917f0d1ca4c0418262dbbe01549fe37005fcb0c1417d72cb22d9d437"
+}

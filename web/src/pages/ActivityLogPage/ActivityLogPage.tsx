@@ -15,22 +15,9 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getLocationsQueryOptions } from '../../shared/query';
+import { mapColumnFiltersToApiParams } from '../../shared/utils/columnFilters';
 import { ActivityLogTable } from './ActivityLogTable';
 import { LogDetailsDrawer } from './LogDetailsDrawer/LogDetailsDrawer';
-
-const mapColumnFiltersToApiParams = (
-  columnFilters: ColumnFiltersState,
-): Record<string, string[]> => {
-  const result: Record<string, string[]> = {};
-  for (const filter of columnFilters) {
-    if (Array.isArray(filter.value) && filter.value.length > 0) {
-      result[filter.id] = filter.value.filter(
-        (value): value is string => typeof value === 'string',
-      );
-    }
-  }
-  return result;
-};
 
 export const ActivityLogPage = () => {
   const [search, setSearch] = useState('');

@@ -3,6 +3,7 @@ use std::{
     env::temp_dir,
     fs::remove_file,
     io,
+    net::{Ipv4Addr, Ipv6Addr},
     path::PathBuf,
     process,
     sync::{
@@ -16,7 +17,7 @@ use defguard_common::{
     db::{
         Id, NoId,
         models::{
-            Settings,
+            ConnectionEvent, Settings,
             gateway::Gateway,
             settings::{initialize_current_settings, set_settings},
             wireguard::{ServiceLocationMode, WireguardNetwork},
@@ -27,8 +28,9 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::events::GatewayConnectionEvent;
-use defguard_proto::gateway::{
-    CoreRequest, CoreResponse, PeerStats, core_request, core_response, gateway_server,
+use defguard_proto::{
+    enterprise::monitor,
+    gateway::{CoreRequest, CoreResponse, PeerStats, core_request, core_response, gateway_server},
 };
 use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};
@@ -168,16 +170,13 @@ impl gateway_server::Gateway for MockGatewayService {
         let state = Arc::clone(&self.state);
         tokio::spawn(async move {
             loop {
-                match outbound_stream.message().await {
-                    Ok(Some(response)) => {
-                        if outbound_tx.send(response).is_err() {
-                            break;
-                        }
-                    }
-                    Ok(None) | Err(_) => {
-                        state.note_core_stream_closed();
+                if let Ok(Some(response)) = outbound_stream.message().await {
+                    if outbound_tx.send(response).is_err() {
                         break;
                     }
+                } else {
+                    state.note_core_stream_closed();
+                    break;
                 }
             }
         });
@@ -327,6 +326,13 @@ impl MockGatewayHarness {
         self.send_request(CoreRequest {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
             payload: Some(core_request::Payload::PeerStats(peer_stats)),
+        });
+    }
+
+    pub(crate) fn send_connection_event(&self, event: monitor::ConnectionEvent) {
+        self.send_request(CoreRequest {
+            id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
+            payload: Some(core_request::Payload::ConnectionEvent(event)),
         });
     }
 
@@ -828,6 +834,51 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
         }),
         allowed_ips: "10.10.0.2/32".to_owned(),
     }
+}
+
+pub(crate) fn build_connection_event() -> monitor::ConnectionEvent {
+    let source_ip_addr = Ipv4Addr::new(10, 10, 0, 2).octets().to_vec();
+    let destination_ip_addr = Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1)
+        .octets()
+        .to_vec();
+    monitor::ConnectionEvent {
+        timestamp: Some(Timestamp {
+            seconds: 1_700_000_000,
+            nanos: 0,
+        }),
+        direction: monitor::Direction::Outbound.into(),
+        status: monitor::Status::Blocked.into(),
+        protocol: 6,
+        source_ip_addr,
+        source_port: Some(54321),
+        destination_ip_addr,
+        destination_port: Some(443),
+        rule_id: Some(7),
+        upload_bytes: 1024,
+        download_bytes: 2048,
+        count: 1,
+    }
+}
+
+/// Wait until exactly `expected` connection events are stored.
+pub(crate) async fn wait_for_connection_events(
+    pool: &PgPool,
+    expected: usize,
+) -> Vec<ConnectionEvent<Id>> {
+    timeout(TEST_TIMEOUT, async {
+        loop {
+            let events = ConnectionEvent::all(pool)
+                .await
+                .expect("failed to query connection events");
+            if events.len() == expected {
+                return events;
+            }
+
+            sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("timed out waiting for connection events")
 }
 
 /// Sets the Gateway notification settings in the process-global `SETTINGS` struct. Must be

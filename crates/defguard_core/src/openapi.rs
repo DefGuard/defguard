@@ -14,8 +14,8 @@ use utoipa::{
 use super::{
     enterprise::{
         handlers::{
-            self as enterprise_handlers, acl, activity_log_stream, api_tokens, device_posture,
-            enterprise_settings, openid_login, openid_providers,
+            self as enterprise_handlers, acl, activity_log_stream, api_tokens, connection_event,
+            device_posture, enterprise_settings, openid_login, openid_providers,
         },
         snat::handlers as snat,
     },
@@ -206,6 +206,9 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         activity_log_stream::create_activity_log_stream,
         activity_log_stream::delete_activity_log_stream,
         activity_log_stream::modify_activity_log_stream,
+        // connection events
+        connection_event::list_connection_events,
+        connection_event::get_connection_event_filter_options,
         // ACL
         acl::alias::list_acl_aliases,
         acl::alias::create_acl_alias,
@@ -316,6 +319,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         (name = "settings", description = "Instance and enterprise settings."),
         (name = "LDAP", description = "LDAP connection tests and sync dry runs."),
         (name = "activity log", description = "Activity log events and activity log streams."),
+        (name = "connection events", description = "Traffic flows reported by Gateways."),
         (name = "ACL", description = "Access Control Lists (ACL)."),
         (name = "device posture", description = "Device posture check policies."),
         (name = "SNAT", description = "User SNAT bindings in your locations."),

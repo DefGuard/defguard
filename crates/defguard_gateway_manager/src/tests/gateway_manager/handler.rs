@@ -2,11 +2,17 @@
 mod support;
 
 use defguard_common::{
-    db::models::device::{DeviceInfo, WireguardNetworkDevice},
+    db::models::{
+        ConnectionDirection, ConnectionStatus,
+        device::{DeviceInfo, WireguardNetworkDevice},
+    },
     gateway_event::GatewayCommand,
 };
 use defguard_core::events::GatewayConnectionEvent;
-use defguard_proto::gateway::{UpdateType, core_response};
+use defguard_proto::{
+    enterprise::monitor,
+    gateway::{UpdateType, core_response},
+};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
 
@@ -19,13 +25,17 @@ use self::support::{
     create_authorized_mfa_device_for_current_network, create_authorized_mfa_device_for_network,
     create_authorized_posture_device_for_current_network, create_device_for_network,
     create_device_info_for_current_network, enable_internal_mfa_for_network,
-    enable_linux_posture_for_network, expected_keepalive_interval, panic_unexpected, parse_test_ip,
+    enable_linux_posture_for_network, expected_keepalive_interval, panic_unexpected,
 };
-use crate::tests::common::{HandlerTestContext, build_peer_stats, reload_gateway};
+use crate::tests::common::{
+    HandlerTestContext, build_connection_event, build_peer_stats, reload_gateway,
+    wait_for_connection_events,
+};
 
 include!("handler/handshake.rs");
 include!("handler/lifecycle.rs");
 include!("handler/stats.rs");
+include!("handler/connection_events.rs");
 include!("handler/network_events.rs");
 include!("handler/firewall_events.rs");
 include!("handler/device_events.rs");

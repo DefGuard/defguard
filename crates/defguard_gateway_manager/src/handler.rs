@@ -2,6 +2,7 @@
 use std::path::PathBuf;
 use std::{
     collections::HashMap,
+    net::IpAddr,
     str::FromStr,
     sync::{
         Arc, Mutex,
@@ -10,12 +11,12 @@ use std::{
     time::Duration,
 };
 
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDateTime};
 use defguard_common::{
     VERSION,
     db::{
-        Id,
-        models::{Certificates, Settings, WireguardNetwork, gateway::Gateway},
+        Id, NoId,
+        models::{Certificates, ConnectionEvent, Settings, WireguardNetwork, gateway::Gateway},
     },
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
@@ -27,8 +28,11 @@ use defguard_core::{
     location_management::allowed_peers::get_location_allowed_peers,
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
-use defguard_proto::gateway::{
-    Configuration, CoreResponse, PeerStats, core_request, core_response, gateway_client,
+use defguard_proto::{
+    enterprise::monitor,
+    gateway::{
+        Configuration, CoreResponse, PeerStats, core_request, core_response, gateway_client,
+    },
 };
 use defguard_version::client::ClientVersionInterceptor;
 use hyper_rustls::HttpsConnectorBuilder;
@@ -551,8 +555,7 @@ impl GatewayHandler {
                     return Ok(());
                 }
                 Ok(Some(received)) => {
-                    info!("Received message from Gateway");
-                    debug!("Message from Gateway {uri}");
+                    debug!("Received message from Gateway {uri}");
 
                     match received.payload {
                         Some(core_request::Payload::ConfigRequest(())) => {
@@ -614,6 +617,34 @@ impl GatewayHandler {
                                         );
                                     }
                                 }
+                            }
+                        }
+                        Some(core_request::Payload::ConnectionEvent(event)) => {
+                            if !config_sent {
+                                warn!(
+                                    "Ignoring connection event from {} because it hasn't \
+                                    authorized itself",
+                                    self.gateway
+                                );
+                                continue;
+                            }
+
+                            let Some(event) = try_proto_into_connection_event(
+                                &event,
+                                self.gateway.location_id,
+                                self.gateway.id,
+                            ) else {
+                                warn!(
+                                    "Failed to parse connection event from {}. Skipping.",
+                                    self.gateway
+                                );
+                                continue;
+                            };
+                            if let Err(err) = event.save_with_device(&self.pool).await {
+                                error!(
+                                    "Failed to store connection event from {}: {err}",
+                                    self.gateway
+                                );
                             }
                         }
                         None => (),
@@ -764,10 +795,7 @@ fn try_protos_into_stats_message(
 ) -> Option<PeerStatsUpdate> {
     let endpoint = proto_stats.endpoint.parse().ok()?;
 
-    let latest_handshake = proto_stats
-        .latest_handshake
-        .and_then(|ts| DateTime::from_timestamp(ts.seconds, ts.nanos as u32))?
-        .naive_utc();
+    let latest_handshake = proto_timestamp_to_naive(proto_stats.latest_handshake?)?;
 
     Some(PeerStatsUpdate::new(
         location_id,
@@ -778,6 +806,58 @@ fn try_protos_into_stats_message(
         proto_stats.download,
         latest_handshake,
     ))
+}
+
+fn proto_timestamp_to_naive(ts: prost_types::Timestamp) -> Option<NaiveDateTime> {
+    DateTime::from_timestamp(ts.seconds, u32::try_from(ts.nanos).ok()?).map(|dt| dt.naive_utc())
+}
+
+/// Parse IP address sent as raw bytes: 4 octets for IPv4, 16 octets for IPv6.
+fn ip_addr_from_bytes(bytes: &[u8]) -> Option<IpAddr> {
+    if let Ok(octets) = <[u8; 4]>::try_from(bytes) {
+        Some(IpAddr::from(octets))
+    } else if let Ok(octets) = <[u8; 16]>::try_from(bytes) {
+        Some(IpAddr::from(octets))
+    } else {
+        None
+    }
+}
+
+/// Convert connection event coming from gRPC client into a database model.
+fn try_proto_into_connection_event(
+    proto_event: &monitor::ConnectionEvent,
+    location_id: Id,
+    gateway_id: Id,
+) -> Option<ConnectionEvent> {
+    Some(ConnectionEvent {
+        id: NoId,
+        location_id,
+        gateway_id,
+        timestamp: proto_timestamp_to_naive(proto_event.timestamp?)?,
+        direction: proto_event.direction().try_into().ok()?,
+        status: proto_event.status().try_into().ok()?,
+        protocol: u8::try_from(proto_event.protocol).ok()?.into(),
+        source_ip: ip_addr_from_bytes(&proto_event.source_ip_addr)?,
+        source_port: proto_event
+            .source_port
+            .map(u16::try_from)
+            .transpose()
+            .ok()?
+            .map(i32::from),
+        destination_ip: ip_addr_from_bytes(&proto_event.destination_ip_addr)?,
+        destination_port: proto_event
+            .destination_port
+            .map(u16::try_from)
+            .transpose()
+            .ok()?
+            .map(i32::from),
+        rule_id: proto_event.rule_id,
+        // Set by `save_with_device`.
+        device_id: None,
+        upload_bytes: i64::try_from(proto_event.upload_bytes).ok()?,
+        download_bytes: i64::try_from(proto_event.download_bytes).ok()?,
+        count: i64::try_from(proto_event.count).ok()?,
+    })
 }
 
 #[cfg(test)]

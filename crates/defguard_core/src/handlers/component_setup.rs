@@ -1194,11 +1194,11 @@ pub async fn adopt_gateway(
 }
 
 #[derive(Debug, Serialize)]
-struct AcmeSetupResponse {
+struct AcmeSetupResponse<'a> {
     step: &'static str,
     error: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    message: Option<String>,
+    message: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     logs: Option<Vec<String>>,
 }
@@ -1214,11 +1214,11 @@ fn acme_event(step: &'static str) -> Event {
     Event::default().data(body)
 }
 
-fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String>>) -> Event {
+fn acme_error_event(step: &'static str, message: &str, logs: Option<Vec<String>>) -> Event {
     let body = serde_json::to_string(&AcmeSetupResponse {
         step,
         error: true,
-        message: Some(message.clone()),
+        message: Some(message),
         logs,
     })
     .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":true,"message":"{message}"}}"#));
@@ -1292,7 +1292,7 @@ pub async fn stream_proxy_acme(
         let certs = match Certificates::get_or_default(&pool).await {
             Ok(c) => c,
             Err(e) => {
-                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates: {e}"),
+                yield Ok(acme_error_event("Connecting", &format!("Failed to load certificates: {e}"),
                     None));
                 return;
             }
@@ -1302,7 +1302,7 @@ pub async fn stream_proxy_acme(
         let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
             Err(err) => {
-                yield Ok(acme_error_event("Connecting", err.to_string(), None));
+                yield Ok(acme_error_event("Connecting", err.to_string().as_str(), None));
                 return;
             }
         };
@@ -1314,7 +1314,7 @@ pub async fn stream_proxy_acme(
             Err(e) => {
                 yield Ok(acme_error_event(
                     "Connecting",
-                    format!("Failed to load Edge list from DB: {e}"),
+                    &format!("Failed to load Edge list from DB: {e}"),
                     None,
                 ));
                 return;
@@ -1324,8 +1324,7 @@ pub async fn stream_proxy_acme(
         let Some(proxy) = proxies.into_iter().next() else {
             yield Ok(acme_error_event(
                 "Connecting",
-                "No Edge found in database. Please complete the edge adoption step \
-                 first.".to_owned(),
+                "No Edge found in database. Please complete the edge adoption step first.",
                 None,
             ));
             return;
@@ -1380,9 +1379,9 @@ pub async fn stream_proxy_acme(
                 () = sleep_until(deadline) => {
                     yield Ok(acme_error_event(
                         current_step,
-                        format!(
-                            "ACME certificate issuance timed out after \
-                             {} seconds.", ACME_TIMEOUT.as_secs()
+                        &format!(
+                            "ACME certificate issuance timed out after {} seconds.",
+                            ACME_TIMEOUT.as_secs()
                         ),
                         None,
                     ));
@@ -1408,7 +1407,7 @@ pub async fn stream_proxy_acme(
                         if let Err(e) = updated_certs.save(&pool).await {
                             yield Ok(acme_error_event(
                                 "Installing",
-                                format!("Failed to save certificate: {e}"),
+                                &format!("Failed to save certificate: {e}"),
                                 None,
                             ));
                             return;
@@ -1417,7 +1416,7 @@ pub async fn stream_proxy_acme(
                     Err(e) => {
                         yield Ok(acme_error_event(
                             "Installing",
-                            format!("Failed to reload certificates for saving: {e}"),
+                            &format!("Failed to reload certificates for saving: {e}"),
                             None,
                         ));
                         return;
@@ -1438,12 +1437,12 @@ pub async fn stream_proxy_acme(
             Ok(Err((acme_err, logs))) => {
                 let msg = format!("ACME issuance failed: {acme_err}");
                 error!("{msg}");
-                yield Ok(acme_error_event(current_step, msg, Some(logs)));
+                yield Ok(acme_error_event(current_step, &msg, Some(logs)));
             }
             Err(_) => {
                 yield Ok(acme_error_event(
                     current_step,
-                    "ACME task terminated unexpectedly.".to_owned(),
+                    "ACME task terminated unexpectedly.",
                     None,
                 ));
             }

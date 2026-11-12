@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::models::ConnectionEvent;
 use humantime::format_duration;
 use sqlx::{PgExecutor, PgPool, query, query_scalar};
 use tokio::time::sleep;
@@ -77,13 +78,14 @@ where
 /// This is done to prevent unnecessary table growth.
 /// At least one session is retained for each device and location combination,
 /// even when older than set threshold to generate last connection info for VPN overview.
+/// Connection events reported by Gateways share the same threshold and are removed as well.
 async fn purge_old_sessions(
     pool: &PgPool,
     stats_purge_threshold: Duration,
 ) -> Result<(), sqlx::Error> {
     let start = Utc::now();
     info!(
-        "Purging VPN sessions older than {}",
+        "Purging VPN sessions and connection events older than {}",
         format_duration(stats_purge_threshold)
     );
 
@@ -103,13 +105,16 @@ async fn purge_old_sessions(
     .execute(pool)
     .await?;
 
-    let end = Utc::now();
-    let rows_count = result.rows_affected();
+    let sessions_count = result.rows_affected();
+    info!("Removed {sessions_count} old VPN sessions");
 
-    info!("Removed {rows_count} old records from wireguard_peer_stats",);
+    let events_count = ConnectionEvent::delete_older_than(pool, threshold).await?;
+    info!("Removed {events_count} old connection events");
+
+    let end = Utc::now();
 
     // Store successful stats purge in database.
-    record_stats_purge(pool, start, end, threshold, rows_count as i64).await?;
+    record_stats_purge(pool, start, end, threshold, sessions_count as i64).await?;
 
     Ok(())
 }

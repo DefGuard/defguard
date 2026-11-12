@@ -5,6 +5,7 @@ mod api_tokens;
 mod auth;
 mod common;
 mod component_setup;
+mod connection_event;
 mod core_certs;
 mod device_posture;
 mod enrollment;

@@ -1,0 +1,22 @@
+.traffic-muted {
+  color: var(--fg-muted);
+}
+
+.traffic-direction {
+  display: inline-flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  column-gap: var(--spacing-xs);
+  padding: 2px var(--spacing-sm) 2px var(--spacing-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+
+  .icon path {
+    fill: var(--fg-muted);
+  }
+
+  span {
+    font: var(--t-body-xs-500);
+    color: var(--fg-neutral);
+  }
+}
