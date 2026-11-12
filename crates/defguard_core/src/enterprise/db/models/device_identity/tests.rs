@@ -240,6 +240,138 @@ async fn test_attestation_state_is_removed_with_its_enrollment_token(
     );
 }
 
+#[sqlx::test]
+async fn test_attestation_state_is_bound_to_device_and_wireguard_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let state = enrollment_attestation(&pool, "device-binding", tpm_challenge()).await;
+    state.save(&pool).await.unwrap();
+    let token = Token::find_by_id(&pool, &state.token_id).await.unwrap();
+    let other_device = Device::new(
+        "other-device".into(),
+        "other-wireguard-key".into(),
+        token.user_id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let other_session = enrollment_attestation(&pool, "other-binding", tpm_challenge()).await;
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, other_device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &other_session.token_id, state.device_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let mut wrong_device = state.clone();
+    wrong_device.device_id = other_device.id;
+    assert!(!wrong_device.consume(&pool).await.unwrap());
+    let mut wrong_key = state.clone();
+    wrong_key
+        .wireguard_key
+        .clone_from(&other_device.wireguard_pubkey);
+    assert!(!wrong_key.consume(&pool).await.unwrap());
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
+            .await
+            .unwrap()
+            == Some(state.clone())
+    );
+
+    let mut replacement = state.clone();
+    replacement.challenge_id = "replacement-device".into();
+    replacement.device_id = other_device.id;
+    replacement.wireguard_key = other_device.wireguard_pubkey;
+    replacement.save(&pool).await.unwrap();
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, replacement.device_id)
+            .await
+            .unwrap()
+            == Some(replacement.clone())
+    );
+    assert!(!state.consume(&pool).await.unwrap());
+    assert!(replacement.consume(&pool).await.unwrap());
+}
+
+#[sqlx::test]
+async fn test_attestation_state_is_removed_with_its_device(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let state = enrollment_attestation(&pool, "device-cleanup", tpm_challenge()).await;
+    state.save(&pool).await.unwrap();
+    let other = enrollment_attestation(&pool, "retained-device", tpm_challenge()).await;
+    other.save(&pool).await.unwrap();
+    let device = Device::find_by_id(&pool, state.device_id)
+        .await
+        .unwrap()
+        .unwrap();
+    device.delete(&pool).await.unwrap();
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(Token::find_by_id(&pool, &state.token_id).await.is_ok());
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &other.token_id, other.device_id)
+            .await
+            .unwrap()
+            == Some(other)
+    );
+}
+
+#[sqlx::test]
+async fn test_attestation_state_deadline_applies_inside_transaction(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let mut state = enrollment_attestation(&pool, "transaction-deadline", tpm_challenge()).await;
+    state.save(&pool).await.unwrap();
+    let mut transaction = pool.begin().await.unwrap();
+    state.expires_at =
+        sqlx::query_scalar("SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds'")
+            .fetch_one(&mut *transaction)
+            .await
+            .unwrap();
+    state.save(&mut *transaction).await.unwrap();
+    sqlx::query("SELECT pg_sleep(0.1)")
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+    assert!(!state.consume(&mut *transaction).await.unwrap());
+    assert!(
+        DeviceAttestationState::find_for_device(
+            &mut *transaction,
+            &state.token_id,
+            state.device_id
+        )
+        .await
+        .unwrap()
+            == Some(state)
+    );
+    transaction.rollback().await.unwrap();
+}
+
 async fn device(pool: &PgPool, name: &str) -> Device<Id> {
     let user = User::new(
         name,

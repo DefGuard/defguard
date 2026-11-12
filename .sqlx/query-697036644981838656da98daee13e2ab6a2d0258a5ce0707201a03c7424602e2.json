@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device_attestation_state WHERE challenge_id = $1 AND token_id = $2 AND device_id = $3 AND wireguard_key = $4 AND created_at = $5 AND expires_at = $6 AND payload = $7 AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Text",
+        "Timestamp",
+        "Timestamp",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "697036644981838656da98daee13e2ab6a2d0258a5ce0707201a03c7424602e2"
+}

@@ -1582,8 +1582,6 @@ mod test {
 
         let request = EnrollmentStartRequest {
             token: token.id.clone(),
-            wireguard_key: None,
-            device_identity: None,
         };
         let device_info = DeviceInfo {
             ip_address: "127.0.0.1".to_owned(),
