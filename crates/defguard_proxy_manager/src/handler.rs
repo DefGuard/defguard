@@ -785,6 +785,28 @@ impl ProxyHandler {
                     }
                 }
             }
+            Some(core_request::Payload::AttestationStart(request)) => {
+                match boxed(services.enrollment.attestation_start(request)).await {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::AttestationStart(response_payload))
+                    }
+                    Err(err) => {
+                        error!("Start device attestation error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::AttestationFinish(request)) => {
+                match boxed(services.enrollment.attestation_finish(request)).await {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::AttestationFinish(response_payload))
+                    }
+                    Err(err) => {
+                        error!("Finish device attestation error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
             Some(core_request::Payload::ActivateUser(request)) => {
                 match boxed(

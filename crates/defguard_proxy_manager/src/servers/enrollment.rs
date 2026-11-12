@@ -19,7 +19,11 @@ use defguard_core::{
     },
     device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            device_identity::DeviceIdentity, enterprise_settings::EnterpriseSettings,
+            openid_provider::OpenIdProvider,
+        },
+        device_identity::{generate_attestation_challenge, verify_attestation},
         firewall::try_get_location_firewall_config,
         ldap::utils::ldap_add_user,
         licensed_mfa_setup_methods,
@@ -47,10 +51,11 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types::{
-        ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-        CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
-        EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-        MfaMethod, NewDevice, RegisterMobileAuthRequest,
+        ActivateUserRequest, AdminInfo, AttestationFinishRequest, AttestationFinishResponse,
+        AttestationStartRequest, AttestationStartResponse, CodeMfaSetupFinishRequest,
+        CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest, CodeMfaSetupStartResponse,
+        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+        InitialUserInfo, MfaMethod, NewDevice, RegisterMobileAuthRequest,
     },
     proxy::{CoreError, CoreErrorCode},
 };
@@ -131,6 +136,79 @@ impl EnrollmentServer {
             return Err(Status::unauthenticated("Session expired"));
         }
         Ok((token, is_enrollment))
+    }
+
+    async fn validate_attestation_session(
+        &self,
+        token: &String,
+        device_id: Id,
+    ) -> Result<(Token, Device<Id>), Status> {
+        let enrollment = self.validate_enrollment_session(Some(token)).await?;
+        let user = enrollment.fetch_user(&self.pool).await?;
+        if !user.is_active {
+            return Err(Status::permission_denied("user is disabled"));
+        }
+        let device = Device::find_by_id(&self.pool, device_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch device for attestation: {err}");
+                Status::internal("failed to retrieve device")
+            })?
+            .ok_or_else(|| Status::not_found("device not found"))?;
+        if device.user_id != enrollment.user_id {
+            return Err(Status::permission_denied(
+                "enrollment token is not valid for specified device",
+            ));
+        }
+        if DeviceIdentity::find_by_device_id(&self.pool, device.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch device identity for attestation: {err}");
+                Status::internal("failed to retrieve device identity")
+            })?
+            .is_some()
+        {
+            return Err(Status::failed_precondition(
+                "device already has an attestation identity",
+            ));
+        }
+        Ok((enrollment, device))
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn attestation_start(
+        &self,
+        request: AttestationStartRequest,
+    ) -> Result<AttestationStartResponse, Status> {
+        let (enrollment, device) = self
+            .validate_attestation_session(&request.token, request.device_id)
+            .await?;
+        let identity = request
+            .device_identity
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("missing device identity"))?;
+        let attestation_request = generate_attestation_challenge(&enrollment, &device, identity)?;
+        Ok(AttestationStartResponse {
+            attestation_request: Some(attestation_request),
+        })
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn attestation_finish(
+        &self,
+        request: AttestationFinishRequest,
+    ) -> Result<AttestationFinishResponse, Status> {
+        let (enrollment, device) = self
+            .validate_attestation_session(&request.token, request.device_id)
+            .await?;
+        let response = request
+            .attestation_response
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("missing attestation response"))?;
+        let identity_state = verify_attestation(&enrollment, &device, response)?;
+        Ok(AttestationFinishResponse {
+            identity_state: Some(identity_state),
+        })
     }
 
     /// Sends given `GatewayCommand` to be handled by gateway manager service
