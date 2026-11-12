@@ -182,8 +182,13 @@ impl fmt::Debug for WireguardNetwork<Id> {
 
 #[derive(Debug, Error)]
 pub enum WireguardNetworkError {
-    #[error("Network address space cannot fit all devices")]
-    NetworkTooSmall,
+    #[error(
+        "The network is too small to accommodate all devices allowed in this location (network capacity: {network_size}, devices: {device_count}). Use a larger network or change allowed groups."
+    )]
+    NetworkTooSmall {
+        network_size: usize,
+        device_count: usize,
+    },
     #[error(transparent)]
     IpNetworkError(#[from] IpNetworkError),
     #[error("Database error")]
@@ -329,14 +334,20 @@ impl<I> WireguardNetwork<I> {
                     // +3: network address, broadcast address, gateway
                     let count = (device_count + 3) as u32;
                     if count > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
+                        return Err(WireguardNetworkError::NetworkTooSmall {
+                            network_size: size.saturating_sub(3) as usize,
+                            device_count,
+                        });
                     }
                 }
                 NetworkSize::V6(size) => {
                     // +2: network address, gateway (IPv6 has no broadcast)
                     let count = (device_count + 2) as u128;
                     if count > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
+                        return Err(WireguardNetworkError::NetworkTooSmall {
+                            network_size: size.saturating_sub(2) as usize,
+                            device_count,
+                        });
                     }
                 }
             }

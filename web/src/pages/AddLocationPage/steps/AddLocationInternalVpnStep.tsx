@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { LicenseFeature } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
@@ -11,14 +10,12 @@ import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseEnterpriseFeature } from '../../../shared/utils/license';
-import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
@@ -75,12 +72,6 @@ export const AddLocationInternalVpnStep = () => {
     LicenseFeature.AclAllowedIps,
   ).result;
 
-  const { data: devices } = useQuery({
-    queryKey: ['device', 'all'],
-    queryFn: api.device.getDevices,
-    select: (resp) => resp.data,
-  });
-
   const defaultValues = useAddLocationStore(
     useShallow((s) => ({
       allowed_ips: s.allowed_ips,
@@ -100,14 +91,6 @@ export const AddLocationInternalVpnStep = () => {
       onChange: formSchema,
     },
     onSubmit: ({ value }) => {
-      const deviceCount = Array.isArray(devices) ? devices.length : 0;
-      const network_size = smallestNetworkCapacity(value.address);
-      if (deviceCount > network_size) {
-        Snackbar.error(
-          m.location_error_network_too_small({ network_size, device_count: deviceCount }),
-        );
-        return;
-      }
       useAddLocationStore.setState({
         ...value,
         allowed_ips: value.allowed_ips.join(','),
