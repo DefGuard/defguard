@@ -17,8 +17,8 @@ use defguard_core::{
 use defguard_proto::{
     client_types::{AttestationFinishRequest, AttestationStartRequest, attestation_start_request},
     device_identity::{
-        AttestationIdentity, AttestationResponse, TpmAttestationIdentity, TpmAttestationResponse,
-        attestation_identity, attestation_response,
+        AttestationChallengeSolution, AttestationIdentity, TpmAttestationIdentity,
+        TpmAttestationResponse, attestation_challenge_solution, attestation_identity,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -51,12 +51,14 @@ fn attestation_requests(token: &str, device_id: Id) -> [core_request::Payload; 2
         core_request::Payload::AttestationFinish(AttestationFinishRequest {
             token: token.into(),
             device_id,
-            attestation_response: Some(AttestationResponse {
+            solution: Some(AttestationChallengeSolution {
                 session_id: "unverified-challenge".into(),
-                result: Some(attestation_response::Result::Tpm(TpmAttestationResponse {
-                    activation_secret: vec![1; 32],
-                    evidence: Some(Default::default()),
-                })),
+                result: Some(attestation_challenge_solution::Result::Tpm(
+                    TpmAttestationResponse {
+                        activation_secret: vec![1; 32],
+                        evidence: Some(Default::default()),
+                    },
+                )),
             }),
         }),
     ]
@@ -340,7 +342,7 @@ async fn test_attestation_cannot_replace_an_existing_identity(
 }
 
 #[sqlx::test]
-async fn test_attestation_requires_identity_and_response_payloads(
+async fn test_attestation_requires_identity_and_solution_payloads(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -352,9 +354,7 @@ async fn test_attestation_requires_identity_and_response_payloads(
     for mut payload in attestation_requests(&token.id, device.id) {
         match &mut payload {
             core_request::Payload::AttestationStart(request) => request.device_identity = None,
-            core_request::Payload::AttestationFinish(request) => {
-                request.attestation_response = None
-            }
+            core_request::Payload::AttestationFinish(request) => request.solution = None,
             _ => unreachable!(),
         }
         let response = send_attestation_request(&mut context, payload).await;
