@@ -1,5 +1,6 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { m } from '../../../../paraglide/messages';
 import type { DeviceOverview } from '../../../../shared/api/types';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
@@ -11,20 +12,14 @@ import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getUsersDisplayQueryOptions } from '../../../../shared/query';
 import { displayDate } from '../../../../shared/utils/displayDate';
 import { formatIpForDisplay } from '../../../../shared/utils/formatIpForDisplay';
-import {
-  attestationStatusText,
-  ConnectionBadge,
-  DeviceStateBadge,
-  platformText,
-  systemText,
-  unknownBadge,
-  verificationText,
-} from '../../deviceDisplay';
+import { attestationStatusText, verificationText } from '../../consts';
+import { platformText, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
-import {
-  type DeviceDetailsRow,
-  DeviceDetailsSection,
-} from './components/DeviceDetailsSection/DeviceDetailsSection';
+import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
+import { DeviceStateBadge } from '../DeviceStateBadge/DeviceStateBadge';
+import { UnknownBadge } from '../UnknownBadge/UnknownBadge';
+import { DeviceDetailsSection } from './components/DeviceDetailsSection/DeviceDetailsSection';
+import type { DeviceDetailsRow } from './components/DeviceDetailsSection/types';
 
 const lastConnectionDateFormat = 'YYYY-MM-DD HH:mm';
 
@@ -46,74 +41,88 @@ export const DeviceDetailsDrawer = ({ device, onClose }: Props) => {
   );
 };
 
-const DrawerContent = ({
-  device,
-  onClose,
-}: {
+type ContentProps = {
   device: DeviceOverview;
   onClose: () => void;
-}) => {
+};
+
+const DrawerContent = ({ device, onClose }: ContentProps) => {
   const { data: usersDisplay } = useQuery(getUsersDisplayQueryOptions);
-  const getActionMenuItems = useDeviceActions();
+  const { getMenuItems } = useDeviceActions();
 
-  const { os_type: osType } = device;
+  const generalRows = useMemo((): DeviceDetailsRow[] => {
+    const { os_type: osType } = device;
+    return [
+      { label: m.devices_details_label_name(), value: device.name },
+      ...(isPresent(device.user_id)
+        ? [{ label: m.devices_col_user(), value: usersDisplay?.[device.user_id] }]
+        : []),
+      {
+        label: m.devices_col_platform(),
+        value: isPresent(osType) ? platformText(osType) : <UnknownBadge />,
+      },
+      {
+        label: m.devices_col_system(),
+        value: isPresent(osType) ? (
+          systemText(osType, device.os_version)
+        ) : (
+          <UnknownBadge />
+        ),
+      },
+      {
+        label: m.devices_col_client_version(),
+        value: device.client_version ?? <UnknownBadge />,
+      },
+      {
+        label: m.devices_col_state(),
+        value: <DeviceStateBadge state={device.state} removeBackground />,
+      },
+      {
+        label: m.devices_col_connection(),
+        value: <ConnectionBadge connected={device.connected} removeBackground />,
+      },
+    ];
+  }, [device, usersDisplay]);
 
-  const generalRows: DeviceDetailsRow[] = [
-    { label: m.devices_details_label_name(), value: device.name },
-    ...(isPresent(device.user_id)
-      ? [{ label: m.devices_col_user(), value: usersDisplay?.[device.user_id] }]
-      : []),
-    {
-      label: m.devices_col_platform(),
-      value: isPresent(osType) ? platformText(osType) : unknownBadge,
-    },
-    {
-      label: m.devices_col_system(),
-      value: isPresent(osType) ? systemText(osType, device.os_version) : unknownBadge,
-    },
-    {
-      label: m.devices_col_client_version(),
-      value: device.client_version ?? unknownBadge,
-    },
-    {
-      label: m.devices_col_state(),
-      value: <DeviceStateBadge state={device.state} removeBackground />,
-    },
-    {
-      label: m.devices_col_connection(),
-      value: <ConnectionBadge connected={device.connected} removeBackground />,
-    },
-  ];
+  const lastConnectionRows = useMemo(
+    (): DeviceDetailsRow[] => [
+      {
+        label: m.devices_details_label_last_ip(),
+        value: isPresent(device.last_connected_ip) ? (
+          formatIpForDisplay(device.last_connected_ip)
+        ) : (
+          <UnknownBadge />
+        ),
+      },
+      {
+        label: m.devices_details_label_last_date(),
+        value: isPresent(device.last_connected_at) ? (
+          displayDate(device.last_connected_at, lastConnectionDateFormat)
+        ) : (
+          <UnknownBadge />
+        ),
+      },
+      {
+        label: m.devices_details_label_connected_through(),
+        value: device.last_connected_location ?? <UnknownBadge />,
+      },
+    ],
+    [device],
+  );
 
-  const lastConnectionRows: DeviceDetailsRow[] = [
-    {
-      label: m.devices_details_label_last_ip(),
-      value: isPresent(device.last_connected_ip)
-        ? formatIpForDisplay(device.last_connected_ip)
-        : unknownBadge,
-    },
-    {
-      label: m.devices_details_label_last_date(),
-      value: isPresent(device.last_connected_at)
-        ? displayDate(device.last_connected_at, lastConnectionDateFormat)
-        : unknownBadge,
-    },
-    {
-      label: m.devices_details_label_connected_through(),
-      value: device.last_connected_location ?? unknownBadge,
-    },
-  ];
-
-  const attestationRows: DeviceDetailsRow[] = [
-    {
-      label: m.devices_col_attestation(),
-      value: attestationStatusText[device.attestation_status](),
-    },
-    {
-      label: m.devices_col_verification(),
-      value: verificationText[device.verification](),
-    },
-  ];
+  const attestationRows = useMemo(
+    (): DeviceDetailsRow[] => [
+      {
+        label: m.devices_col_attestation(),
+        value: attestationStatusText[device.attestation_status](),
+      },
+      {
+        label: m.devices_col_verification(),
+        value: verificationText[device.verification](),
+      },
+    ],
+    [device],
+  );
 
   return (
     <>
@@ -144,7 +153,7 @@ const DrawerContent = ({
           iconRightRotation="down"
           placement="top-start"
           testId="device-details-actions"
-          menuItems={getActionMenuItems({
+          menuItems={getMenuItems({
             devices: [device],
             testIdPrefix: 'device-details',
           })}

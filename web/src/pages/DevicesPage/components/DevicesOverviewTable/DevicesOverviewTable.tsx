@@ -1,4 +1,3 @@
-import './style.scss';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   type ColumnFiltersState,
@@ -8,7 +7,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import {
@@ -54,17 +53,17 @@ import {
 } from '../../../../shared/utils/policyPostures';
 import {
   attestationStatusText,
-  blockedBadge,
-  ConnectionBadge,
   devicePlatformText,
   osIconSize,
-  platformIcon,
-  systemText,
-  unknownBadge,
   verificationText,
-} from '../../deviceDisplay';
+} from '../../consts';
+import { platformIcon, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
+import { BlockedBadge } from '../BlockedBadge/BlockedBadge';
+import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
 import { DeviceDetailsDrawer } from '../DeviceDetailsDrawer/DeviceDetailsDrawer';
+import { UnknownBadge } from '../UnknownBadge/UnknownBadge';
+import { DeviceNameButton } from './components/DeviceNameButton/DeviceNameButton';
 
 const columnHelper = createColumnHelper<DeviceOverview>();
 
@@ -174,23 +173,21 @@ export const DevicesOverviewTable = () => {
     () => devices.find((device) => device.id === selectedDeviceId) ?? null,
     [devices, selectedDeviceId],
   );
-  const closeDrawer = useCallback(() => setSelectedDeviceId(null), []);
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const clearSelection = useCallback(() => setRowSelection({}), []);
   const selectedDevices = useMemo(
     () => devices.filter((device) => rowSelection[String(device.id)]),
     [devices, rowSelection],
   );
-  const getActionMenuItems = useDeviceActions();
+  const { getMenuItems } = useDeviceActions();
   const bulkMenuItems = useMemo(
     () =>
-      getActionMenuItems({
+      getMenuItems({
         devices: selectedDevices,
         testIdPrefix: 'devices-bulk',
-        onSuccess: clearSelection,
+        onSuccess: () => setRowSelection({}),
       }),
-    [getActionMenuItems, selectedDevices, clearSelection],
+    [getMenuItems, selectedDevices],
   );
 
   const tableFilterMessages = useMemo(
@@ -255,14 +252,11 @@ export const DevicesOverviewTable = () => {
         },
         cell: (info) => (
           <TableCell>
-            <button
-              type="button"
-              className="device-name-link"
-              data-testid="device-name"
+            <DeviceNameButton
+              text={info.getValue()}
+              testId="device-name"
               onClick={() => setSelectedDeviceId(info.row.original.id)}
-            >
-              {info.getValue()}
-            </button>
+            />
           </TableCell>
         ),
       }),
@@ -273,17 +267,19 @@ export const DevicesOverviewTable = () => {
         meta: { filterOptions: filterOptions.state },
         size: 120,
         minSize: 100,
-        cell: (info) => (
-          <TableCell>
-            {info.getValue() === DeviceState.Enabled ? (
-              <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-                {m.state_enabled()}
-              </AppText>
-            ) : (
-              blockedBadge
-            )}
-          </TableCell>
-        ),
+        cell: (info) => {
+          const isEnabled = info.getValue() === DeviceState.Enabled;
+          return (
+            <TableCell>
+              {isEnabled && (
+                <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+                  {m.state_enabled()}
+                </AppText>
+              )}
+              {!isEnabled && <BlockedBadge />}
+            </TableCell>
+          );
+        },
       }),
       columnHelper.accessor('attestation_status', {
         header: m.devices_col_attestation(),
@@ -324,15 +320,14 @@ export const DevicesOverviewTable = () => {
           const osType = info.getValue();
           return (
             <TableCell>
-              {isPresent(osType) ? (
+              {isPresent(osType) && (
                 <Icon
                   icon={platformIcon(osType)}
                   size={osIconSize}
                   staticColor={ThemeVariable.FgNeutral}
                 />
-              ) : (
-                unknownBadge
               )}
+              {!isPresent(osType) && <UnknownBadge />}
             </TableCell>
           );
         },
@@ -347,7 +342,12 @@ export const DevicesOverviewTable = () => {
         minSize: 150,
         cell: (info) => {
           const osType = info.getValue();
-          if (!isPresent(osType)) return <TableCell>{unknownBadge}</TableCell>;
+          if (!isPresent(osType))
+            return (
+              <TableCell>
+                <UnknownBadge />
+              </TableCell>
+            );
           const osVersion = info.row.original.os_version;
           return (
             <TableCell>
@@ -370,7 +370,8 @@ export const DevicesOverviewTable = () => {
           const clientVersion = info.getValue();
           return (
             <TableCell>
-              {isPresent(clientVersion) ? <span>{clientVersion}</span> : unknownBadge}
+              {isPresent(clientVersion) && <span>{clientVersion}</span>}
+              {!isPresent(clientVersion) && <UnknownBadge />}
             </TableCell>
           );
         },
@@ -398,11 +399,14 @@ export const DevicesOverviewTable = () => {
         meta: { filterOptions: filterOptions.connection },
         size: 140,
         minSize: 120,
-        cell: (info) => (
-          <TableCell>
-            <ConnectionBadge connected={info.getValue()} />
-          </TableCell>
-        ),
+        cell: (info) => {
+          const connected = info.getValue();
+          return (
+            <TableCell>
+              <ConnectionBadge connected={connected} removeBackground={!connected} />
+            </TableCell>
+          );
+        },
       }),
       columnHelper.display({
         id: 'edit',
@@ -413,7 +417,7 @@ export const DevicesOverviewTable = () => {
         cell: (info) => (
           <TableEditCell
             testId="device-edit"
-            menuItems={getActionMenuItems({
+            menuItems={getMenuItems({
               devices: [info.row.original],
               testIdPrefix: 'device',
             })}
@@ -421,7 +425,7 @@ export const DevicesOverviewTable = () => {
         ),
       }),
     ],
-    [getActionMenuItems, usersDisplay, filterOptions],
+    [getMenuItems, usersDisplay, filterOptions],
   );
 
   const table = useReactTable({
@@ -450,7 +454,9 @@ export const DevicesOverviewTable = () => {
 
   if (isLoading) return <TableSkeleton />;
 
-  if (devices.length === 0 && search.length === 0 && columnFilters.length === 0)
+  const isEmpty =
+    devices.length === 0 && search.length === 0 && columnFilters.length === 0;
+  if (isEmpty)
     return (
       <EmptyStateFlexible
         icon="devices"
@@ -492,7 +498,10 @@ export const DevicesOverviewTable = () => {
           subtitle={m.search_empty_common_subtitle()}
         />
       )}
-      <DeviceDetailsDrawer device={selectedDevice} onClose={closeDrawer} />
+      <DeviceDetailsDrawer
+        device={selectedDevice}
+        onClose={() => setSelectedDeviceId(null)}
+      />
     </>
   );
 };

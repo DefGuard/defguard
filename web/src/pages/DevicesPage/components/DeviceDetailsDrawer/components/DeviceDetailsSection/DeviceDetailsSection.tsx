@@ -1,14 +1,9 @@
 import './style.scss';
-import type { ReactNode } from 'react';
 import {
   Icon,
   type IconKindValue,
 } from '../../../../../../shared/defguard-ui/components/Icon';
-
-export type DeviceDetailsRow = {
-  label: string;
-  value: ReactNode;
-};
+import type { DeviceDetailsRow } from './types';
 
 type Props = {
   icon: IconKindValue;

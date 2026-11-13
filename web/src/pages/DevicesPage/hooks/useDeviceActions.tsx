@@ -31,7 +31,7 @@ export const useDeviceActions = () => {
     onError: () => Snackbar.error(m.devices_block_error()),
   });
 
-  return useCallback(
+  const getMenuItems = useCallback(
     ({ devices, testIdPrefix, onSuccess }: DeviceActionsTarget): MenuItemsGroup[] => {
       const verifyIds = devices
         .filter((device) => device.verification !== DeviceVerification.Verified)
@@ -108,4 +108,6 @@ export const useDeviceActions = () => {
     },
     [verifyDevices, blockDevices],
   );
+
+  return { getMenuItems };
 };

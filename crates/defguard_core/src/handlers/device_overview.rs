@@ -93,8 +93,8 @@ pub(crate) struct DeviceOverviewSortParams {
     sort_order: SortOrder,
 }
 
-/// Joins needed by both the data and the count query, since filters reference `ci`, `s` and `u`.
-/// Network devices store the creating admin in `user_id`, which is not an owner.
+/// Joins shared by the data and count queries, since filters reference ci, s and u.
+/// Network devices store the creating admin in user_id, which is not an owner.
 const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
     LEFT JOIN device_client_info ci ON ci.device_id = d.id \
     LEFT JOIN LATERAL ( \
@@ -111,22 +111,20 @@ pub(crate) struct DeviceOverviewRow {
     state: DeviceState,
     verification: DeviceVerification,
     attestation_status: DeviceAttestationStatus,
-    /// `None` for network devices.
+    /// None for network devices.
     user_id: Option<Id>,
-    /// Lowercase DB enum label, `None` until the client reports its platform.
+    /// Lowercase DB enum label, None until the client reports its platform.
     os_type: Option<String>,
     os_version: Option<String>,
     client_version: Option<String>,
     connected: bool,
     last_connected_at: Option<NaiveDateTime>,
-    /// Public IP of the latest connected session.
+    /// Public endpoint IP, not the VPN address.
     last_connected_ip: Option<String>,
-    /// Location of the latest connected session.
     last_connected_location: Option<String>,
 }
 
-/// Internal endpoint backing the devices overview page; intentionally not part of the public
-/// OpenAPI spec.
+/// Internal endpoint for the devices page, intentionally left out of the OpenAPI spec.
 pub(crate) async fn list_devices_overview(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -173,7 +171,6 @@ pub(crate) async fn list_devices_overview(
         .build_query_as::<DeviceOverviewRow>()
         .fetch_all(&appstate.pool)
         .await?;
-    // The query yields the raw WireGuard endpoint (`ip:port`).
     for device in &mut devices {
         device.last_connected_ip = device
             .last_connected_ip
