@@ -182,7 +182,7 @@ export const DevicesOverviewTable = () => {
     () => devices.filter((device) => rowSelection[String(device.id)]),
     [devices, rowSelection],
   );
-  const { getMenuItems } = useDeviceActions();
+  const { getMenuItems, getRowMenuItems } = useDeviceActions();
   const bulkMenuItems = useMemo(
     () =>
       getMenuItems({
@@ -398,11 +398,9 @@ export const DevicesOverviewTable = () => {
         size: 200,
         minSize: 150,
         cell: (info) => {
-          const userId = info.getValue();
-          const display = isPresent(userId) ? usersDisplay?.[userId] : undefined;
           return (
             <TableCell>
-              <span>{display}</span>
+              <span>{usersDisplay?.[info.getValue()]}</span>
             </TableCell>
           );
         },
@@ -432,15 +430,12 @@ export const DevicesOverviewTable = () => {
         cell: (info) => (
           <TableEditCell
             testId="device-edit"
-            menuItems={getMenuItems({
-              devices: [info.row.original],
-              testIdPrefix: 'device',
-            })}
+            menuItems={getRowMenuItems(info.row.original)}
           />
         ),
       }),
     ],
-    [getMenuItems, usersDisplay, filterOptions, isEnterprise],
+    [getRowMenuItems, usersDisplay, filterOptions, isEnterprise],
   );
 
   const table = useReactTable({

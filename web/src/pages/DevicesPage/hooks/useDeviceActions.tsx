@@ -14,6 +14,10 @@ import type {
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import {
+  type UserDeviceContext,
+  userDeviceActions,
+} from '../../../shared/utils/userDeviceActions';
 import { useEnterpriseTier } from './useEnterpriseTier';
 
 type DeviceActionsTarget = {
@@ -140,5 +144,48 @@ export const useDeviceActions = () => {
     [verifyDevices, revokeVerification, blockDevices, isEnterprise],
   );
 
-  return { getMenuItems };
+  const getRowMenuItems = useCallback(
+    (device: DeviceOverview): MenuItemsGroup[] => {
+      const actionGroups = getMenuItems({ devices: [device], testIdPrefix: 'device' });
+      const { username } = device;
+
+      const withContext = (action: (context: UserDeviceContext) => void) => async () => {
+        const context = await userDeviceActions.fetchContext(username, device.id);
+        if (context) action(context);
+      };
+
+      return [
+        {
+          items: [
+            {
+              text: m.controls_edit(),
+              icon: 'edit',
+              testId: 'device-edit-device',
+              onClick: withContext((context) =>
+                userDeviceActions.openEdit(username, context),
+              ),
+            },
+            {
+              text: m.profile_devices_menu_ip_settings(),
+              icon: 'gateway',
+              testId: 'assign-device-ip',
+              onClick: withContext(({ device }) =>
+                userDeviceActions.openIpSettings(username, device),
+              ),
+            },
+            {
+              text: m.profile_devices_menu_show_config(),
+              icon: 'config',
+              testId: 'device-show-config',
+              onClick: withContext(({ device }) => userDeviceActions.openConfig(device)),
+            },
+          ],
+        },
+        ...actionGroups,
+      ];
+    },
+    [getMenuItems],
+  );
+
+  return { getMenuItems, getRowMenuItems };
 };

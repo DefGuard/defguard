@@ -56,9 +56,7 @@ const DrawerContent = ({ device, onClose }: ContentProps) => {
     const { os_type: osType } = device;
     return [
       { label: m.devices_details_label_name(), value: device.name },
-      ...(isPresent(device.user_id)
-        ? [{ label: m.devices_col_user(), value: usersDisplay?.[device.user_id] }]
-        : []),
+      { label: m.devices_col_user(), value: usersDisplay?.[device.user_id] },
       {
         label: m.devices_col_platform(),
         value: isPresent(osType) ? platformText(osType) : <UnknownBadge />,

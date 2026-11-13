@@ -134,31 +134,21 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/device/overview").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let body: Value = response.json().await;
-    assert_eq!(body["pagination"]["total_items"], 2);
+    assert_eq!(body["pagination"]["total_items"], 1);
     let data = body["data"].as_array().unwrap();
-    assert_eq!(data[0]["id"], network_device.id);
-    assert_eq!(data[0]["name"], "office-router");
-    assert_eq!(data[0]["state"], "blocked");
-    assert!(data[0]["user_id"].is_null());
-    assert!(data[0]["os_type"].is_null());
-    assert!(data[0]["os_version"].is_null());
-    assert!(data[0]["client_version"].is_null());
-    assert_eq!(data[0]["connected"], false);
-    assert!(data[0]["last_connected_at"].is_null());
-    assert!(data[0]["last_connected_ip"].is_null());
-    assert!(data[0]["last_connected_location"].is_null());
-    assert_eq!(data[1]["id"], user_device.id);
-    assert_eq!(data[1]["state"], "enabled");
-    assert_eq!(data[1]["verification"], "unverified");
-    assert_eq!(data[1]["attestation_status"], "not_attested");
-    assert_eq!(data[1]["user_id"], client_state.test_user.id);
-    assert_eq!(data[1]["os_type"], "ios");
-    assert_eq!(data[1]["os_version"], "27.1");
-    assert_eq!(data[1]["client_version"], "2.3.0");
-    assert_eq!(data[1]["connected"], true);
-    assert_eq!(data[1]["last_connected_at"], "2026-01-03T04:05:06");
-    assert_eq!(data[1]["last_connected_ip"], "2001:db8::1");
-    assert_eq!(data[1]["last_connected_location"], "network");
+    assert_eq!(data[0]["id"], user_device.id);
+    assert_eq!(data[0]["state"], "enabled");
+    assert_eq!(data[0]["verification"], "unverified");
+    assert_eq!(data[0]["attestation_status"], "not_attested");
+    assert_eq!(data[0]["user_id"], client_state.test_user.id);
+    assert_eq!(data[0]["username"], client_state.test_user.username);
+    assert_eq!(data[0]["os_type"], "ios");
+    assert_eq!(data[0]["os_version"], "27.1");
+    assert_eq!(data[0]["client_version"], "2.3.0");
+    assert_eq!(data[0]["connected"], true);
+    assert_eq!(data[0]["last_connected_at"], "2026-01-03T04:05:06");
+    assert_eq!(data[0]["last_connected_ip"], "2001:db8::1");
+    assert_eq!(data[0]["last_connected_location"], "network");
 
     let response = client
         .get("/api/v1/device/overview?search=LAPTOP&page=1&per_page=1")
@@ -259,25 +249,25 @@ async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: Pg
     .await
     .unwrap();
 
-    let (a, b, c, d) = (phone.id, laptop.id, router.id, desktop.id);
+    let (a, b, d) = (phone.id, laptop.id, desktop.id);
     let cases: &[(&str, Vec<Id>)] = &[
-        ("", vec![a, b, c, d]),
-        ("sort_by=name&sort_order=desc", vec![d, c, b, a]),
-        ("sort_by=user&sort_order=asc", vec![b, d, a, c]),
-        ("sort_by=user&sort_order=desc", vec![a, d, b, c]),
-        ("state=blocked", vec![c]),
-        ("state=enabled&state=blocked", vec![a, b, c, d]),
+        ("", vec![a, b, d]),
+        ("sort_by=name&sort_order=desc", vec![d, b, a]),
+        ("sort_by=user&sort_order=asc", vec![b, d, a]),
+        ("sort_by=user&sort_order=desc", vec![a, d, b]),
+        ("state=blocked", vec![]),
+        ("state=enabled&state=blocked", vec![a, b, d]),
         ("verification=verified", vec![a]),
         ("attestation_status=attested", vec![b]),
         ("platform=mobile", vec![a]),
         ("platform=desktop", vec![b]),
-        ("platform=unknown", vec![c, d]),
-        ("platform=mobile&platform=unknown", vec![a, c, d]),
+        ("platform=unknown", vec![d]),
+        ("platform=mobile&platform=unknown", vec![a, d]),
         ("system=windows", vec![b]),
-        ("system=unknown", vec![c, d]),
+        ("system=unknown", vec![d]),
         ("system=android&system=windows", vec![a, b]),
         ("connected=true", vec![a]),
-        ("connected=false", vec![b, c, d]),
+        ("connected=false", vec![b, d]),
         ("platform=unknown&state=enabled", vec![d]),
         ("search=laptop", vec![b]),
         ("search=ADUMBLEDORE", vec![b, d]),
@@ -285,6 +275,7 @@ async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: Pg
         ("search=dumbledore&platform=unknown", vec![d]),
         ("search=hpotter", vec![a]),
         ("search=harry%20potter", vec![a]),
+        ("search=router", vec![]),
     ];
     for (query, expected) in cases {
         assert_eq!(
@@ -300,7 +291,7 @@ async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: Pg
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let body: Value = response.json().await;
-    assert_eq!(body["pagination"]["total_items"], 3);
+    assert_eq!(body["pagination"]["total_items"], 2);
     assert_eq!(body["data"][0]["id"], b);
     assert_eq!(body["data"][1]["id"], d);
 }
@@ -488,8 +479,8 @@ async fn test_devices_overview_business_license(_: PgPoolOptions, options: PgCon
     assert_eq!(response.status(), StatusCode::OK);
     let body: Value = response.json().await;
     for device in body["data"].as_array().unwrap() {
-        assert!(device.get("verification").is_none());
-        assert!(device.get("attestation_status").is_none());
+        assert!(device["verification"].is_null());
+        assert!(device["attestation_status"].is_null());
     }
 
     let all = vec![verified.id, attested.id, plain.id];

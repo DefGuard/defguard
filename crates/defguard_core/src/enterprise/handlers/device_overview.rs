@@ -98,7 +98,6 @@ pub(crate) struct DeviceOverviewSortParams {
 }
 
 /// Joins shared by the data and count queries, since filters reference ci, s and u.
-/// Network devices store the creating admin in user_id, which is not an owner.
 const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
     LEFT JOIN device_client_info ci ON ci.device_id = d.id \
     LEFT JOIN LATERAL ( \
@@ -106,7 +105,10 @@ const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
         FROM vpn_client_session \
         WHERE device_id = d.id \
     ) s ON true \
-    LEFT JOIN \"user\" u ON u.id = d.user_id AND d.device_type = 'user' ";
+    JOIN \"user\" u ON u.id = d.user_id ";
+
+/// Network devices are managed per location and stay out of the overview.
+const DEVICE_OVERVIEW_WHERE: &str = "WHERE d.device_type = 'user' ";
 
 #[derive(Debug, FromRow, Serialize)]
 pub(crate) struct DeviceOverviewRow {
@@ -114,13 +116,11 @@ pub(crate) struct DeviceOverviewRow {
     name: String,
     state: DeviceState,
     /// None below the Enterprise license tier.
-    #[serde(skip_serializing_if = "Option::is_none")]
     verification: Option<DeviceVerification>,
     /// None below the Enterprise license tier.
-    #[serde(skip_serializing_if = "Option::is_none")]
     attestation_status: Option<DeviceAttestationStatus>,
-    /// None for network devices.
-    user_id: Option<Id>,
+    user_id: Id,
+    username: String,
     /// Lowercase DB enum label, None until the client reports its platform.
     os_type: Option<String>,
     os_version: Option<String>,
@@ -154,7 +154,7 @@ pub(crate) async fn list_devices_overview(
 
     let mut query_builder = QueryBuilder::<Postgres>::new(
         "SELECT d.id, d.name, d.state, d.verification, d.attestation_status, \
-        u.id user_id, \
+        u.id user_id, u.username, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
         COALESCE(s.connected, false) connected, s.last_connected_at, \
         ls.endpoint last_connected_ip, ls.location_name last_connected_location ",
@@ -169,9 +169,9 @@ pub(crate) async fn list_devices_overview(
             JOIN wireguard_network n ON n.id = vcs.location_id \
             WHERE vcs.device_id = d.id AND vcs.connected_at IS NOT NULL \
             ORDER BY vcs.connected_at DESC, vcs.id DESC LIMIT 1 \
-        ) ls ON true \
-        WHERE 1=1 ",
+        ) ls ON true ",
     );
+    query_builder.push(DEVICE_OVERVIEW_WHERE);
     apply_filters(&mut query_builder, &filters);
     apply_sorting(&mut query_builder, &sorting);
     query_builder
@@ -198,7 +198,7 @@ pub(crate) async fn list_devices_overview(
     let mut count_query_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*) ");
     count_query_builder
         .push(DEVICE_OVERVIEW_FROM)
-        .push("WHERE 1=1 ");
+        .push(DEVICE_OVERVIEW_WHERE);
     apply_filters(&mut count_query_builder, &filters);
     let count: i64 = count_query_builder
         .build_query_scalar()
@@ -275,10 +275,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &DeviceOve
     let order = &sorting.sort_order;
     query_builder.push(" ORDER BY ");
     if matches!(sorting.sort_by, DeviceOverviewSortKey::User) {
-        // Network devices have no owner and stay last in both directions.
-        query_builder.push(format!(
-            "u.first_name {order} NULLS LAST, u.last_name {order} NULLS LAST, "
-        ));
+        query_builder.push(format!("u.first_name {order}, u.last_name {order}, "));
     }
     query_builder.push(format!("d.name {order}, d.id {order}"));
 }

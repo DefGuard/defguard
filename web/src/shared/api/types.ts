@@ -1873,9 +1873,10 @@ export interface DeviceOverview {
   id: number;
   name: string;
   state: DeviceStateValue;
-  verification?: DeviceVerificationValue;
-  attestation_status?: DeviceAttestationStatusValue;
-  user_id: number | null;
+  verification: DeviceVerificationValue | null;
+  attestation_status: DeviceAttestationStatusValue | null;
+  user_id: number;
+  username: string;
   os_type: PolicyOsVariant | null;
   os_version: string | null;
   client_version: string | null;

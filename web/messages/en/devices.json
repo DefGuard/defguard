@@ -39,6 +39,7 @@
   "devices_modal_delete_single_content": "Are you sure you want to delete device **{name}**? This action is irreversible.",
   "devices_delete_success": "Device(s) deleted",
   "devices_delete_error": "Failed to delete device(s)",
+  "devices_load_error": "Failed to load device details",
   "devices_platform_desktop": "Desktop",
   "devices_platform_mobile": "Mobile",
   "devices_details_title": "Device details",
