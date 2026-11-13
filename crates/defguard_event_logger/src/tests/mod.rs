@@ -1339,7 +1339,7 @@ fn bidi_event_cases() -> Vec<EventTestCase> {
             message: bidi_msg(
                 BidiStreamEventType::Enrollment(Box::new(
                     CoreEnrollmentEvent::EnrollmentDeviceAdded {
-                        device: Box::new(device.clone()),
+                        device: device.clone(),
                     },
                 )),
                 None,

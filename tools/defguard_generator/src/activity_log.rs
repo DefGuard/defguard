@@ -311,7 +311,7 @@ fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<String> {
         }
         EnrollmentEvent::EnrollmentDeviceAdded { device } => {
             get_core_enrollment_event_description(&CoreEnrollmentEvent::EnrollmentDeviceAdded {
-                device: Box::new(device.clone()),
+                device: device.clone(),
             })
         }
         EnrollmentEvent::EnrollmentCompleted => {

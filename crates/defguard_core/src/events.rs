@@ -444,7 +444,7 @@ pub enum BidiStreamEventType {
 #[derive(Debug, EnumCount)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
-    EnrollmentDeviceAdded { device: Box<Device<Id>> },
+    EnrollmentDeviceAdded { device: Device<Id> },
     EnrollmentCompleted,
 }
 

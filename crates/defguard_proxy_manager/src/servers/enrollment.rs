@@ -1172,16 +1172,11 @@ impl EnrollmentServer {
         // Prepare event context and push the event
         let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;
         let context = BidiRequestContext::new(user.id, user.username.clone(), ip, user_agent);
-        self.emit_event(
-            context,
-            EnrollmentEvent::EnrollmentDeviceAdded {
-                device: Box::new(device),
-            },
-        )
-        .map_err(|err| {
-            error!("Failed to send event. Reason: {err}",);
-            Status::internal("unexpected error")
-        })?;
+        self.emit_event(context, EnrollmentEvent::EnrollmentDeviceAdded { device })
+            .map_err(|err| {
+                error!("Failed to send event. Reason: {err}",);
+                Status::internal("unexpected error")
+            })?;
 
         Ok(response)
     }
