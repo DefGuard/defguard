@@ -1885,8 +1885,30 @@ export interface DeviceOverview {
   last_connected_location: string | null;
 }
 
+export const DevicePlatform = {
+  Desktop: 'desktop',
+  Mobile: 'mobile',
+  Unknown: 'unknown',
+} as const;
+
+export type DevicePlatformValue = (typeof DevicePlatform)[keyof typeof DevicePlatform];
+
+export const deviceSystemUnknown = 'unknown';
+
+export type DeviceSystemFilterValue = PolicyOsVariant | typeof deviceSystemUnknown;
+
+export type DeviceOverviewSortKey = 'name' | 'user';
+
 export interface DeviceOverviewListParams extends PaginationParams {
   search?: string;
+  sort_by?: DeviceOverviewSortKey;
+  sort_order?: SortDirectionValue;
+  state?: DeviceStateValue[];
+  verification?: DeviceVerificationValue[];
+  attestation_status?: DeviceAttestationStatusValue[];
+  platform?: DevicePlatformValue[];
+  system?: DeviceSystemFilterValue[];
+  connected?: boolean;
 }
 
 export interface UserListParams extends PaginationParams {

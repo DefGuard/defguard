@@ -1,15 +1,14 @@
 use std::collections::HashSet;
 
-use axum::{
-    Json,
-    extract::{Query, State},
-};
+use axum::{Json, extract::State};
+use axum_extra::extract::Query;
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
     models::{
         Device, DeviceType, WireguardNetwork,
         device::{DeviceInfo, DeviceState, DeviceVerification},
+        device_client_info::OsType,
         device_identity::DeviceAttestationStatus,
         vpn_session_stats::endpoint_without_port,
     },
@@ -20,6 +19,7 @@ use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
 use super::{
     ApiResponse, ApiResult, WebError,
     pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    user::SortOrder,
 };
 use crate::{
     appstate::AppState,
@@ -29,10 +29,80 @@ use crate::{
     grpc::GatewayCommand,
 };
 
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum DevicePlatformFilter {
+    Desktop,
+    Mobile,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum DeviceSystemFilter {
+    Windows,
+    Macos,
+    Linux,
+    Ios,
+    Android,
+    Unknown,
+}
+
+impl DeviceSystemFilter {
+    fn os_type(self) -> Option<OsType> {
+        match self {
+            Self::Windows => Some(OsType::Windows),
+            Self::Macos => Some(OsType::Macos),
+            Self::Linux => Some(OsType::Linux),
+            Self::Ios => Some(OsType::Ios),
+            Self::Android => Some(OsType::Android),
+            Self::Unknown => None,
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct DeviceOverviewFilterParams {
     search: Option<String>,
+    #[serde(default)]
+    state: Vec<DeviceState>,
+    #[serde(default)]
+    verification: Vec<DeviceVerification>,
+    #[serde(default)]
+    attestation_status: Vec<DeviceAttestationStatus>,
+    #[serde(default)]
+    platform: Vec<DevicePlatformFilter>,
+    #[serde(default)]
+    system: Vec<DeviceSystemFilter>,
+    connected: Option<bool>,
 }
+
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum DeviceOverviewSortKey {
+    #[default]
+    Name,
+    User,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub(crate) struct DeviceOverviewSortParams {
+    #[serde(default)]
+    sort_by: DeviceOverviewSortKey,
+    #[serde(default)]
+    sort_order: SortOrder,
+}
+
+/// Joins needed by both the data and the count query, since filters reference `ci`, `s` and `u`.
+/// Network devices store the creating admin in `user_id`, which is not an owner.
+const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
+    LEFT JOIN device_client_info ci ON ci.device_id = d.id \
+    LEFT JOIN LATERAL ( \
+        SELECT bool_or(state = 'connected') connected, MAX(connected_at) last_connected_at \
+        FROM vpn_client_session \
+        WHERE device_id = d.id \
+    ) s ON true \
+    LEFT JOIN \"user\" u ON u.id = d.user_id AND d.device_type = 'user' ";
 
 #[derive(Debug, FromRow, Serialize)]
 pub(crate) struct DeviceOverviewRow {
@@ -62,26 +132,24 @@ pub(crate) async fn list_devices_overview(
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<DeviceOverviewFilterParams>,
+    sorting: Query<DeviceOverviewSortParams>,
 ) -> PaginatedApiResult<DeviceOverviewRow> {
     let pagination = pagination.0;
     let filters = filters.0;
-    debug!("Listing devices overview with filters {filters:?} and {pagination}");
+    let sorting = sorting.0;
+    debug!(
+        "Listing devices overview with filters {filters:?}, sorting {sorting:?} and {pagination}"
+    );
 
-    // Network devices store the creating admin in `user_id`, which is not an owner.
     let mut query_builder = QueryBuilder::<Postgres>::new(
         "SELECT d.id, d.name, d.state, d.verification, d.attestation_status, \
-        CASE WHEN d.device_type = 'user' THEN d.user_id END user_id, \
+        u.id user_id, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
         COALESCE(s.connected, false) connected, s.last_connected_at, \
-        ls.endpoint last_connected_ip, ls.location_name last_connected_location \
-        FROM device d \
-        LEFT JOIN device_client_info ci ON ci.device_id = d.id \
-        LEFT JOIN LATERAL ( \
-            SELECT bool_or(state = 'connected') connected, MAX(connected_at) last_connected_at \
-            FROM vpn_client_session \
-            WHERE device_id = d.id \
-        ) s ON true \
-        LEFT JOIN LATERAL ( \
+        ls.endpoint last_connected_ip, ls.location_name last_connected_location ",
+    );
+    query_builder.push(DEVICE_OVERVIEW_FROM).push(
+        "LEFT JOIN LATERAL ( \
             SELECT n.name location_name, \
             (SELECT endpoint FROM vpn_session_stats \
                 WHERE session_id = vcs.id \
@@ -94,8 +162,9 @@ pub(crate) async fn list_devices_overview(
         WHERE 1=1 ",
     );
     apply_filters(&mut query_builder, &filters);
+    apply_sorting(&mut query_builder, &sorting);
     query_builder
-        .push(" ORDER BY d.name, d.id LIMIT ")
+        .push(" LIMIT ")
         .push_bind(i64::from(pagination.per_page()))
         .push(" OFFSET ")
         .push_bind(i64::from(pagination.offset()));
@@ -112,8 +181,10 @@ pub(crate) async fn list_devices_overview(
             .and_then(endpoint_without_port);
     }
 
-    let mut count_query_builder =
-        QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM device d WHERE 1=1 ");
+    let mut count_query_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*) ");
+    count_query_builder
+        .push(DEVICE_OVERVIEW_FROM)
+        .push("WHERE 1=1 ");
     apply_filters(&mut count_query_builder, &filters);
     let count: i64 = count_query_builder
         .build_query_scalar()
@@ -126,10 +197,76 @@ pub(crate) async fn list_devices_overview(
 fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &DeviceOverviewFilterParams) {
     if let Some(search) = filters.search.as_deref().filter(|s| !s.is_empty()) {
         query_builder
-            .push(" AND d.name ILIKE ")
+            .push(" AND CONCAT_WS(' ', d.name, u.username, u.first_name, u.last_name) ILIKE ")
             .push_bind(format!("%{search}%"))
             .push(" ");
     }
+    if !filters.state.is_empty() {
+        query_builder
+            .push(" AND d.state = ANY(")
+            .push_bind(filters.state.clone())
+            .push(") ");
+    }
+    if !filters.verification.is_empty() {
+        query_builder
+            .push(" AND d.verification = ANY(")
+            .push_bind(filters.verification.clone())
+            .push(") ");
+    }
+    if !filters.attestation_status.is_empty() {
+        query_builder
+            .push(" AND d.attestation_status = ANY(")
+            .push_bind(filters.attestation_status.clone())
+            .push(") ");
+    }
+    if !filters.platform.is_empty() {
+        let conditions: Vec<&str> = filters
+            .platform
+            .iter()
+            .map(|platform| match platform {
+                DevicePlatformFilter::Desktop => "ci.os_type NOT IN ('ios', 'android')",
+                DevicePlatformFilter::Mobile => "ci.os_type IN ('ios', 'android')",
+                DevicePlatformFilter::Unknown => "ci.os_type IS NULL",
+            })
+            .collect();
+        query_builder
+            .push(" AND (")
+            .push(conditions.join(" OR "))
+            .push(") ");
+    }
+    if !filters.system.is_empty() {
+        let os_types: Vec<OsType> = filters
+            .system
+            .iter()
+            .filter_map(|system| system.os_type())
+            .collect();
+        query_builder
+            .push(" AND (ci.os_type = ANY(")
+            .push_bind(os_types)
+            .push(")");
+        if filters.system.contains(&DeviceSystemFilter::Unknown) {
+            query_builder.push(" OR ci.os_type IS NULL");
+        }
+        query_builder.push(") ");
+    }
+    if let Some(connected) = filters.connected {
+        query_builder
+            .push(" AND COALESCE(s.connected, false) = ")
+            .push_bind(connected)
+            .push(" ");
+    }
+}
+
+fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &DeviceOverviewSortParams) {
+    let order = &sorting.sort_order;
+    query_builder.push(" ORDER BY ");
+    if matches!(sorting.sort_by, DeviceOverviewSortKey::User) {
+        // Network devices have no owner and stay last in both directions.
+        query_builder.push(format!(
+            "u.first_name {order} NULLS LAST, u.last_name {order} NULLS LAST, "
+        ));
+    }
+    query_builder.push(format!("d.name {order}, d.id {order}"));
 }
 
 #[derive(Debug, Deserialize)]

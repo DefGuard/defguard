@@ -1,9 +1,11 @@
 import './style.scss';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
+  type ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   type RowSelectionState,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
@@ -13,10 +15,20 @@ import {
   DeviceAttestationStatus,
   type DeviceAttestationStatusValue,
   type DeviceOverview,
+  type DeviceOverviewListParams,
+  type DeviceOverviewSortKey,
+  DevicePlatform,
+  type DevicePlatformValue,
   DeviceState,
+  type DeviceStateValue,
+  type DeviceSystemFilterValue,
   DeviceVerification,
   type DeviceVerificationValue,
+  deviceSystemUnknown,
+  SortDirection,
 } from '../../../../shared/api/types';
+import type { SelectionOption } from '../../../../shared/components/SelectionSection/type';
+import { PolicyOsVariant } from '../../../../shared/components/SystemSelector/types';
 import { TableSkeleton } from '../../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
@@ -36,14 +48,20 @@ import { TableTop } from '../../../../shared/defguard-ui/components/table/TableT
 import { TextStyle, ThemeVariable } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getUsersDisplayQueryOptions } from '../../../../shared/query';
-import { policyOsVariantToIcon } from '../../../../shared/utils/policyPostures';
 import {
+  policyOsVariantToIcon,
+  policyOsVariantToText,
+} from '../../../../shared/utils/policyPostures';
+import {
+  attestationStatusText,
   blockedBadge,
   ConnectionBadge,
+  devicePlatformText,
   osIconSize,
   platformIcon,
   systemText,
   unknownBadge,
+  verificationText,
 } from '../../deviceDisplay';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
 import { DeviceDetailsDrawer } from '../DeviceDetailsDrawer/DeviceDetailsDrawer';
@@ -94,16 +112,53 @@ const attestationBadge: Record<
   },
 };
 
+const ConnectionFilter = {
+  Online: 'online',
+  Offline: 'offline',
+} as const;
+
+type ConnectionFilterValue = (typeof ConnectionFilter)[keyof typeof ConnectionFilter];
+
+const getFilterValues = <T,>(columnFilters: ColumnFiltersState, columnId: string) => {
+  const value = columnFilters.find((filter) => filter.id === columnId)?.value;
+  return Array.isArray(value) && value.length > 0 ? (value as T[]) : undefined;
+};
+
 export const DevicesOverviewTable = () => {
   const [search, setSearch] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const requestParams = useMemo((): DeviceOverviewListParams => {
+    const sort = sorting[0];
+    const connection = getFilterValues<ConnectionFilterValue>(columnFilters, 'connected');
+    return {
+      search: search.length ? search : undefined,
+      sort_by: sort?.id as DeviceOverviewSortKey | undefined,
+      sort_order: sort ? (sort.desc ? SortDirection.DESC : SortDirection.ASC) : undefined,
+      state: getFilterValues<DeviceStateValue>(columnFilters, 'state'),
+      verification: getFilterValues<DeviceVerificationValue>(
+        columnFilters,
+        'verification',
+      ),
+      attestation_status: getFilterValues<DeviceAttestationStatusValue>(
+        columnFilters,
+        'attestation_status',
+      ),
+      platform: getFilterValues<DevicePlatformValue>(columnFilters, 'platform'),
+      system: getFilterValues<DeviceSystemFilterValue>(columnFilters, 'system'),
+      connected:
+        connection?.length === 1 ? connection[0] === ConnectionFilter.Online : undefined,
+    };
+  }, [search, sorting, columnFilters]);
 
   const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['device', 'overview', { search }],
+    queryKey: ['device', 'overview', requestParams],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.device.getDevicesOverview({
+        ...requestParams,
         page: pageParam,
-        search: search.length ? search : undefined,
       }),
     getNextPageParam: (lastPage) => lastPage.pagination.next_page,
     placeholderData: keepPreviousData,
@@ -138,10 +193,62 @@ export const DevicesOverviewTable = () => {
     [getActionMenuItems, selectedDevices, clearSelection],
   );
 
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
+
+  const filterOptions = useMemo(
+    () => ({
+      state: [
+        { id: DeviceState.Enabled, label: m.state_enabled() },
+        { id: DeviceState.Blocked, label: m.devices_state_blocked() },
+      ] satisfies SelectionOption<DeviceStateValue>[],
+      attestation: Object.values(DeviceAttestationStatus).map(
+        (status): SelectionOption<DeviceAttestationStatusValue> => ({
+          id: status,
+          label: attestationStatusText[status](),
+        }),
+      ),
+      verification: Object.values(DeviceVerification).map(
+        (verification): SelectionOption<DeviceVerificationValue> => ({
+          id: verification,
+          label: verificationText[verification](),
+        }),
+      ),
+      platform: Object.values(DevicePlatform).map(
+        (platform): SelectionOption<DevicePlatformValue> => ({
+          id: platform,
+          label: devicePlatformText[platform](),
+        }),
+      ),
+      system: [
+        ...Object.values(PolicyOsVariant).map(
+          (osType): SelectionOption<DeviceSystemFilterValue> => ({
+            id: osType,
+            label: policyOsVariantToText(osType),
+          }),
+        ),
+        { id: deviceSystemUnknown, label: m.devices_unknown() },
+      ],
+      connection: [
+        { id: ConnectionFilter.Online, label: m.devices_connection_online() },
+        { id: ConnectionFilter.Offline, label: m.devices_connection_offline() },
+      ] satisfies SelectionOption<ConnectionFilterValue>[],
+    }),
+    [],
+  );
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
         header: m.form_label_device_name(),
+        enableSorting: true,
         minSize: 250,
         meta: {
           flex: true,
@@ -161,6 +268,9 @@ export const DevicesOverviewTable = () => {
       }),
       columnHelper.accessor('state', {
         header: m.devices_col_state(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.state },
         size: 120,
         minSize: 100,
         cell: (info) => (
@@ -177,6 +287,9 @@ export const DevicesOverviewTable = () => {
       }),
       columnHelper.accessor('attestation_status', {
         header: m.devices_col_attestation(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.attestation },
         size: 170,
         minSize: 140,
         cell: (info) => {
@@ -192,6 +305,9 @@ export const DevicesOverviewTable = () => {
       }),
       columnHelper.accessor('verification', {
         header: m.devices_col_verification(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.verification },
         size: 150,
         minSize: 120,
         cell: (info) => <TableCell>{verificationContent(info.getValue())}</TableCell>,
@@ -199,8 +315,11 @@ export const DevicesOverviewTable = () => {
       columnHelper.accessor('os_type', {
         id: 'platform',
         header: m.devices_col_platform(),
-        size: 100,
-        minSize: 80,
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.platform },
+        size: 130,
+        minSize: 120,
         cell: (info) => {
           const osType = info.getValue();
           return (
@@ -221,6 +340,9 @@ export const DevicesOverviewTable = () => {
       columnHelper.accessor('os_type', {
         id: 'system',
         header: m.devices_col_system(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.system },
         size: 200,
         minSize: 150,
         cell: (info) => {
@@ -241,6 +363,7 @@ export const DevicesOverviewTable = () => {
       }),
       columnHelper.accessor('client_version', {
         header: m.devices_col_client_version(),
+        enableSorting: false,
         size: 140,
         minSize: 120,
         cell: (info) => {
@@ -255,6 +378,7 @@ export const DevicesOverviewTable = () => {
       columnHelper.accessor('user_id', {
         id: 'user',
         header: m.devices_col_user(),
+        enableSorting: true,
         size: 200,
         minSize: 150,
         cell: (info) => {
@@ -269,6 +393,9 @@ export const DevicesOverviewTable = () => {
       }),
       columnHelper.accessor('connected', {
         header: m.devices_col_connection(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.connection },
         size: 140,
         minSize: 120,
         cell: (info) => (
@@ -280,6 +407,7 @@ export const DevicesOverviewTable = () => {
       columnHelper.display({
         id: 'edit',
         header: '',
+        enableSorting: false,
         size: tableEditColumnSize,
         enableResizing: false,
         cell: (info) => (
@@ -293,12 +421,17 @@ export const DevicesOverviewTable = () => {
         ),
       }),
     ],
-    [getActionMenuItems, usersDisplay],
+    [getActionMenuItems, usersDisplay, filterOptions],
   );
 
   const table = useReactTable({
     state: {
       rowSelection,
+      sorting,
+      columnFilters,
+    },
+    meta: {
+      filterMessages: tableFilterMessages,
     },
     data: devices,
     columns,
@@ -306,14 +439,18 @@ export const DevicesOverviewTable = () => {
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     columnResizeMode: 'onChange',
-    enableSorting: false,
+    enableSorting: true,
+    enableSortingRemoval: false,
+    manualSorting: true,
+    onSortingChange: setSorting,
     manualFiltering: true,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
   });
 
   if (isLoading) return <TableSkeleton />;
 
-  if (devices.length === 0 && search.length === 0)
+  if (devices.length === 0 && search.length === 0 && columnFilters.length === 0)
     return (
       <EmptyStateFlexible
         icon="devices"

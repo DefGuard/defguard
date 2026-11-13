@@ -2,7 +2,7 @@ use chrono::{NaiveDate, Utc};
 use defguard_common::db::{
     Id,
     models::{
-        Device, DeviceState, DeviceType, DeviceVerification, WireguardNetwork,
+        Device, DeviceState, DeviceType, DeviceVerification, User, WireguardNetwork,
         device_client_info::{DeviceClientInfo, OsType},
         device_identity::DeviceAttestationStatus,
         gateway::Gateway,
@@ -18,7 +18,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use super::common::{make_network, make_test_client, setup_pool};
+use super::common::{client::TestClient, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
@@ -162,6 +162,140 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     let body: Value = response.json().await;
     assert_eq!(body["pagination"]["total_items"], 1);
     assert_eq!(body["data"][0]["id"], user_device.id);
+}
+
+async fn overview_ids(client: &TestClient, query: &str) -> Vec<Id> {
+    let response = client
+        .get(format!("/api/v1/device/overview?{query}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK, "query: {query}");
+    let body: Value = response.json().await;
+    let ids: Vec<Id> = body["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|device| device["id"].as_i64().unwrap())
+        .collect();
+    assert_eq!(
+        body["pagination"]["total_items"],
+        ids.len(),
+        "query: {query}"
+    );
+    ids
+}
+
+#[sqlx::test]
+async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    let pool = &client_state.pool;
+    client.login_user("admin", "pass123").await;
+
+    let harry = client_state.test_user.id;
+    let albus = User::new(
+        "adumbledore",
+        Some("pass123"),
+        "Dumbledore",
+        "Albus",
+        "a.dumbledore@hogwart.edu.uk",
+        None,
+    )
+    .save(pool)
+    .await
+    .unwrap()
+    .id;
+
+    let mut phone = make_device(pool, "a-phone", harry).await;
+    phone.verification = DeviceVerification::Verified;
+    phone.save(pool).await.unwrap();
+    let mut laptop = make_device(pool, "b-laptop", albus).await;
+    laptop.attestation_status = DeviceAttestationStatus::Attested;
+    laptop.save(pool).await.unwrap();
+    let mut router = Device::new(
+        "c-router".to_owned(),
+        "c-router-pubkey".to_owned(),
+        harry,
+        DeviceType::Network,
+        None,
+        true,
+    )
+    .save(pool)
+    .await
+    .unwrap();
+    router.state = DeviceState::Blocked;
+    router.save(pool).await.unwrap();
+    let desktop = make_device(pool, "d-desktop", albus).await;
+
+    for (device_id, os_type) in [(phone.id, OsType::Android), (laptop.id, OsType::Windows)] {
+        DeviceClientInfo {
+            device_id,
+            client_version: None,
+            os_type,
+            os_version: "1".to_owned(),
+            os_edition: None,
+            updated_at: Utc::now().naive_utc(),
+        }
+        .upsert(pool)
+        .await
+        .unwrap();
+    }
+    let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
+    VpnClientSession::new(
+        network.id,
+        harry,
+        phone.id,
+        Some(Utc::now().naive_utc()),
+        false,
+    )
+    .save(pool)
+    .await
+    .unwrap();
+
+    let (a, b, c, d) = (phone.id, laptop.id, router.id, desktop.id);
+    let cases: &[(&str, Vec<Id>)] = &[
+        ("", vec![a, b, c, d]),
+        ("sort_by=name&sort_order=desc", vec![d, c, b, a]),
+        ("sort_by=user&sort_order=asc", vec![b, d, a, c]),
+        ("sort_by=user&sort_order=desc", vec![a, d, b, c]),
+        ("state=blocked", vec![c]),
+        ("state=enabled&state=blocked", vec![a, b, c, d]),
+        ("verification=verified", vec![a]),
+        ("attestation_status=attested", vec![b]),
+        ("platform=mobile", vec![a]),
+        ("platform=desktop", vec![b]),
+        ("platform=unknown", vec![c, d]),
+        ("platform=mobile&platform=unknown", vec![a, c, d]),
+        ("system=windows", vec![b]),
+        ("system=unknown", vec![c, d]),
+        ("system=android&system=windows", vec![a, b]),
+        ("connected=true", vec![a]),
+        ("connected=false", vec![b, c, d]),
+        ("platform=unknown&state=enabled", vec![d]),
+        ("search=laptop", vec![b]),
+        ("search=ADUMBLEDORE", vec![b, d]),
+        ("search=albus", vec![b, d]),
+        ("search=dumbledore&platform=unknown", vec![d]),
+        ("search=hpotter", vec![a]),
+        ("search=harry%20potter", vec![a]),
+    ];
+    for (query, expected) in cases {
+        assert_eq!(
+            &overview_ids(&client, query).await,
+            expected,
+            "query: {query}"
+        );
+    }
+
+    let response = client
+        .get("/api/v1/device/overview?connected=false&sort_by=user&page=1&per_page=2")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_eq!(body["pagination"]["total_items"], 3);
+    assert_eq!(body["data"][0]["id"], b);
+    assert_eq!(body["data"][1]["id"], d);
 }
 
 async fn make_device(pool: &PgPool, name: &str, user_id: Id) -> Device<Id> {

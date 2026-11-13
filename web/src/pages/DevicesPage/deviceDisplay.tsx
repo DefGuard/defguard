@@ -2,6 +2,8 @@ import { m } from '../../paraglide/messages';
 import {
   DeviceAttestationStatus,
   type DeviceAttestationStatusValue,
+  DevicePlatform,
+  type DevicePlatformValue,
   DeviceState,
   type DeviceStateValue,
   DeviceVerification,
@@ -29,6 +31,12 @@ export const platformIcon = (osType: PolicyOsVariant): IconKindValue =>
 export const platformText = (osType: PolicyOsVariant) =>
   isMobileOs(osType) ? m.devices_platform_mobile() : m.devices_platform_desktop();
 
+export const devicePlatformText: Record<DevicePlatformValue, () => string> = {
+  [DevicePlatform.Desktop]: m.devices_platform_desktop,
+  [DevicePlatform.Mobile]: m.devices_platform_mobile,
+  [DevicePlatform.Unknown]: m.devices_unknown,
+};
+
 export const systemText = (osType: PolicyOsVariant, osVersion: string | null) =>
   [policyOsVariantToText(osType), osVersion].filter(Boolean).join(' ');
 
@@ -41,17 +49,38 @@ export const blockedBadge = (
   />
 );
 
-export const DeviceStateBadge = ({ state }: { state: DeviceStateValue }) => {
-  if (state === DeviceState.Blocked) return blockedBadge;
-  return <Badge variant={BadgeVariant.Success} showIcon text={m.state_enabled()} />;
+type DeviceStateBadgeProps = {
+  state: DeviceStateValue;
+  removeBackground?: boolean;
 };
 
-export const ConnectionBadge = ({ connected }: { connected: boolean }) => {
+export const DeviceStateBadge = ({ state, removeBackground }: DeviceStateBadgeProps) => {
+  if (state === DeviceState.Blocked) return blockedBadge;
+  return (
+    <Badge
+      variant={BadgeVariant.Success}
+      showIcon
+      removeBackground={removeBackground}
+      text={m.state_enabled()}
+    />
+  );
+};
+
+type ConnectionBadgeProps = {
+  connected: boolean;
+  removeBackground?: boolean;
+};
+
+export const ConnectionBadge = ({
+  connected,
+  removeBackground,
+}: ConnectionBadgeProps) => {
   if (connected)
     return (
       <Badge
         variant={BadgeVariant.Success}
         showIcon
+        removeBackground={removeBackground}
         text={m.devices_connection_online()}
       />
     );
