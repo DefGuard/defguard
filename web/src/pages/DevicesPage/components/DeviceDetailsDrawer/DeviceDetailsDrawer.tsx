@@ -28,8 +28,6 @@ import {
 
 const lastConnectionDateFormat = 'YYYY-MM-DD HH:mm';
 
-const missingValuePlaceholder = '—';
-
 type Props = {
   device: DeviceOverview | null;
   onClose: () => void;
@@ -77,10 +75,13 @@ const DrawerContent = ({
       label: m.devices_col_client_version(),
       value: device.client_version ?? unknownBadge,
     },
-    { label: m.devices_col_state(), value: <DeviceStateBadge state={device.state} /> },
+    {
+      label: m.devices_col_state(),
+      value: <DeviceStateBadge state={device.state} removeBackground />,
+    },
     {
       label: m.devices_col_connection(),
-      value: <ConnectionBadge connected={device.connected} />,
+      value: <ConnectionBadge connected={device.connected} removeBackground />,
     },
   ];
 
@@ -89,17 +90,17 @@ const DrawerContent = ({
       label: m.devices_details_label_last_ip(),
       value: isPresent(device.last_connected_ip)
         ? formatIpForDisplay(device.last_connected_ip)
-        : missingValuePlaceholder,
+        : unknownBadge,
     },
     {
       label: m.devices_details_label_last_date(),
       value: isPresent(device.last_connected_at)
         ? displayDate(device.last_connected_at, lastConnectionDateFormat)
-        : missingValuePlaceholder,
+        : unknownBadge,
     },
     {
       label: m.devices_details_label_connected_through(),
-      value: device.last_connected_location ?? missingValuePlaceholder,
+      value: device.last_connected_location ?? unknownBadge,
     },
   ];
 

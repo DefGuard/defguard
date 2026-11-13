@@ -1,4 +1,6 @@
 #modals-root > .modal-root .drawer-modal.device-details-drawer {
+  width: min(500px, 100dvw);
+
   & > .modal-content {
     padding: 0;
     overflow: hidden;
