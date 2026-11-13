@@ -91,7 +91,7 @@ rand = "0.8"
 rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
 regex = "1.10"
 reqwest = { version = "0.12", features = ["json"] }
-rsa = "0.9"
+rsa = "0.10"
 rust-ini = "0.21"
 rustls = { version = "0.23.46", features = ["ring"] }
 rustls-pki-types = "1.15"
