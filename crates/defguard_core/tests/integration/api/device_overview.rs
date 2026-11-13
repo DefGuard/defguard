@@ -344,7 +344,7 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     let ids = json!({"devices": [first.id, second.id, verified.id]});
 
     client.login_user("hpotter", "pass123").await;
-    for action in ["verify", "block", "delete"] {
+    for action in ["verify", "revoke-verification", "block", "delete"] {
         let response = client
             .post(format!("/api/v1/device/bulk/{action}"))
             .json(&ids)
@@ -373,7 +373,27 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(
         events
             .iter()
-            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceModified { .. }))
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceVerified { .. }))
+    );
+
+    let response = client
+        .post("/api/v1/device/bulk/revoke-verification")
+        .json(&json!({"devices": [first.id, verified.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    for id in [first.id, verified.id] {
+        let device = Device::find_by_id(pool, id).await.unwrap().unwrap();
+        assert_eq!(device.verification, DeviceVerification::Unverified);
+    }
+    let second_after = Device::find_by_id(pool, second.id).await.unwrap().unwrap();
+    assert_eq!(second_after.verification, DeviceVerification::Verified);
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 2);
+    assert!(
+        events
+            .iter()
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceVerificationRevoked { .. }))
     );
 
     let response = client
@@ -391,7 +411,7 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(
         events
             .iter()
-            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceModified { .. }))
+            .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceBlocked { .. }))
     );
     let verified_after = Device::find_by_id(pool, verified.id)
         .await

@@ -288,36 +288,74 @@ async fn find_devices(
     Ok(devices)
 }
 
-async fn device_modified_event(
-    conn: &mut PgConnection,
-    before: Device<Id>,
-    after: Device<Id>,
-) -> Result<Option<ApiEventType>, WebError> {
-    match after.device_type {
-        DeviceType::User => {
-            let owner = after.get_owner(&mut *conn).await?;
-            Ok(Some(ApiEventType::UserDeviceModified {
-                owner,
-                before,
-                after,
-            }))
+#[derive(Clone, Copy)]
+enum BulkDeviceAction {
+    Verify,
+    RevokeVerification,
+    Block,
+}
+
+impl BulkDeviceAction {
+    /// Returns `false` when the device is already in the target state.
+    fn apply(self, device: &mut Device<Id>) -> bool {
+        match self {
+            Self::Verify => {
+                if device.verification == DeviceVerification::Verified {
+                    return false;
+                }
+                device.verification = DeviceVerification::Verified;
+            }
+            Self::RevokeVerification => {
+                if device.verification != DeviceVerification::Verified {
+                    return false;
+                }
+                device.verification = DeviceVerification::Unverified;
+            }
+            Self::Block => {
+                if device.state == DeviceState::Blocked {
+                    return false;
+                }
+                device.state = DeviceState::Blocked;
+            }
         }
-        DeviceType::Network => {
-            let location = WireguardNetwork::find_network_device_networks(&mut *conn, after.id)
-                .await?
-                .pop();
-            if let Some(location) = location {
-                Ok(Some(ApiEventType::NetworkDeviceModified {
-                    before,
-                    after,
-                    location,
+        true
+    }
+
+    async fn event(
+        self,
+        conn: &mut PgConnection,
+        device: Device<Id>,
+    ) -> Result<Option<ApiEventType>, WebError> {
+        match device.device_type {
+            DeviceType::User => {
+                let owner = device.get_owner(&mut *conn).await?;
+                Ok(Some(match self {
+                    Self::Verify => ApiEventType::UserDeviceVerified { owner, device },
+                    Self::RevokeVerification => {
+                        ApiEventType::UserDeviceVerificationRevoked { owner, device }
+                    }
+                    Self::Block => ApiEventType::UserDeviceBlocked { owner, device },
                 }))
-            } else {
-                error!(
-                    "Network device {}({}) has no network assigned",
-                    after.name, after.id
-                );
-                Ok(None)
+            }
+            DeviceType::Network => {
+                let Some(location) =
+                    WireguardNetwork::find_network_device_networks(&mut *conn, device.id)
+                        .await?
+                        .pop()
+                else {
+                    error!(
+                        "Network device {}({}) has no network assigned",
+                        device.name, device.id
+                    );
+                    return Ok(None);
+                };
+                Ok(Some(match self {
+                    Self::Verify => ApiEventType::NetworkDeviceVerified { device, location },
+                    Self::RevokeVerification => {
+                        ApiEventType::NetworkDeviceVerificationRevoked { device, location }
+                    }
+                    Self::Block => ApiEventType::NetworkDeviceBlocked { device, location },
+                }))
             }
         }
     }
@@ -327,18 +365,17 @@ async fn device_modified_event(
 async fn bulk_modify_devices(
     conn: &mut PgConnection,
     ids: Vec<Id>,
-    modify: impl Fn(&mut Device<Id>) -> bool,
+    action: BulkDeviceAction,
 ) -> Result<(Vec<Device<Id>>, Vec<ApiEventType>), WebError> {
     let devices = find_devices(&mut *conn, ids).await?;
     let mut modified = Vec::new();
     let mut events = Vec::new();
     for mut device in devices {
-        let before = device.clone();
-        if !modify(&mut device) {
+        if !action.apply(&mut device) {
             continue;
         }
         device.save(&mut *conn).await?;
-        if let Some(event) = device_modified_event(&mut *conn, before, device.clone()).await? {
+        if let Some(event) = action.event(&mut *conn, device.clone()).await? {
             events.push(event);
         }
         modified.push(device);
@@ -373,18 +410,41 @@ pub(crate) async fn bulk_verify_devices(
         data.devices.len()
     );
     let mut transaction = appstate.pool.begin().await?;
-    let (verified, events) = bulk_modify_devices(&mut transaction, data.devices, |device| {
-        if device.verification == DeviceVerification::Verified {
-            return false;
-        }
-        device.verification = DeviceVerification::Verified;
-        true
-    })
-    .await?;
+    let (verified, events) =
+        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Verify).await?;
     transaction.commit().await?;
     info!(
         "User {username} manually verified {} device(s)",
         verified.len()
+    );
+    emit_events(&appstate, &context, events)?;
+
+    Ok(ApiResponse::default())
+}
+
+pub(crate) async fn bulk_revoke_device_verification(
+    _role: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+    Json(data): Json<BulkDeviceOperationRequest>,
+) -> ApiResult {
+    let username = &session.user.username;
+    debug!(
+        "User {username} revoking verification of {} device(s)",
+        data.devices.len()
+    );
+    let mut transaction = appstate.pool.begin().await?;
+    let (revoked, events) = bulk_modify_devices(
+        &mut transaction,
+        data.devices,
+        BulkDeviceAction::RevokeVerification,
+    )
+    .await?;
+    transaction.commit().await?;
+    info!(
+        "User {username} revoked verification of {} device(s)",
+        revoked.len()
     );
     emit_events(&appstate, &context, events)?;
 
@@ -401,14 +461,8 @@ pub(crate) async fn bulk_block_devices(
     let username = &session.user.username;
     debug!("User {username} blocking {} device(s)", data.devices.len());
     let mut transaction = appstate.pool.begin().await?;
-    let (blocked, events) = bulk_modify_devices(&mut transaction, data.devices, |device| {
-        if device.state == DeviceState::Blocked {
-            return false;
-        }
-        device.state = DeviceState::Blocked;
-        true
-    })
-    .await?;
+    let (blocked, events) =
+        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Block).await?;
     let blocked_count = blocked.len();
     let mut gateway_commands = Vec::with_capacity(blocked_count);
     for device in blocked {

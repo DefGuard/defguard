@@ -25,6 +25,12 @@ export const useDeviceActions = () => {
     onError: () => Snackbar.error(m.devices_verify_error()),
   });
 
+  const { mutate: revokeVerification } = useMutation({
+    mutationFn: api.device.bulkRevokeDeviceVerification,
+    meta: { invalidate: ['device'] },
+    onError: () => Snackbar.error(m.devices_revoke_verification_error()),
+  });
+
   const { mutate: blockDevices } = useMutation({
     mutationFn: api.device.bulkBlockDevices,
     meta: { invalidate: ['device'] },
@@ -36,6 +42,10 @@ export const useDeviceActions = () => {
       const verifyIds = devices
         .filter((device) => device.verification !== DeviceVerification.Verified)
         .map(({ id }) => id);
+      const revokeIds = devices
+        .filter((device) => device.verification === DeviceVerification.Verified)
+        .map(({ id }) => id);
+      const showRevoke = revokeIds.length > 0 && verifyIds.length === 0;
       const blockIds = devices
         .filter((device) => device.state !== DeviceState.Blocked)
         .map(({ id }) => id);
@@ -64,19 +74,32 @@ export const useDeviceActions = () => {
       return [
         {
           items: [
-            {
-              text: m.devices_action_verify(),
-              icon: 'device-attestation',
-              testId: `${testIdPrefix}-verify`,
-              disabled: verifyIds.length === 0,
-              onClick: () =>
-                verifyDevices(verifyIds, {
-                  onSuccess: () => {
-                    onSuccess?.();
-                    Snackbar.default(m.devices_verify_success());
-                  },
-                }),
-            },
+            showRevoke
+              ? {
+                  text: m.devices_action_revoke_verification(),
+                  icon: 'close',
+                  testId: `${testIdPrefix}-revoke-verification`,
+                  onClick: () =>
+                    revokeVerification(revokeIds, {
+                      onSuccess: () => {
+                        onSuccess?.();
+                        Snackbar.default(m.devices_revoke_verification_success());
+                      },
+                    }),
+                }
+              : {
+                  text: m.devices_action_verify(),
+                  icon: 'device-attestation',
+                  testId: `${testIdPrefix}-verify`,
+                  disabled: verifyIds.length === 0,
+                  onClick: () =>
+                    verifyDevices(verifyIds, {
+                      onSuccess: () => {
+                        onSuccess?.();
+                        Snackbar.default(m.devices_verify_success());
+                      },
+                    }),
+                },
             {
               text: m.devices_action_block(),
               icon: 'cancel',
@@ -106,7 +129,7 @@ export const useDeviceActions = () => {
         },
       ];
     },
-    [verifyDevices, blockDevices],
+    [verifyDevices, revokeVerification, blockDevices],
   );
 
   return { getMenuItems };

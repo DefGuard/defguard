@@ -150,7 +150,8 @@ use crate::{
         component_setup::{adopt_gateway, setup_gateway_tls_stream},
         core_certs::{get_ca, get_certs, set_external_url_settings, set_internal_url_settings},
         device_overview::{
-            bulk_block_devices, bulk_delete_devices, bulk_verify_devices, list_devices_overview,
+            bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
+            bulk_verify_devices, list_devices_overview,
         },
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
@@ -661,6 +662,10 @@ pub fn build_webapp(
             .route("/device", get(list_devices))
             .route("/device/overview", get(list_devices_overview))
             .route("/device/bulk/verify", post(bulk_verify_devices))
+            .route(
+                "/device/bulk/revoke-verification",
+                post(bulk_revoke_device_verification),
+            )
             .route("/device/bulk/block", post(bulk_block_devices))
             .route("/device/bulk/delete", post(bulk_delete_devices))
             .route("/device/user/{username}", get(list_user_devices))

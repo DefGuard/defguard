@@ -451,6 +451,8 @@ const api = {
       fetchPage<DeviceOverview>('/device/overview', params),
     bulkVerifyDevices: (devices: number[]) =>
       client.post('/device/bulk/verify', { devices }),
+    bulkRevokeDeviceVerification: (devices: number[]) =>
+      client.post('/device/bulk/revoke-verification', { devices }),
     bulkBlockDevices: (devices: number[]) =>
       client.post('/device/bulk/block', { devices }),
     bulkDeleteDevices: (devices: number[]) =>
