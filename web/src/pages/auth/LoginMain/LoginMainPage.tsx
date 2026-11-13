@@ -185,6 +185,7 @@ const buttonProvider: Record<
   Microsoft: 'microsoft',
   Okta: 'okta',
   Zitadel: 'custom',
+  Keycloak: 'custom',
 };
 
 const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {

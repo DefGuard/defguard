@@ -30,6 +30,7 @@ const providerImage: Record<OpenIdProviderKindValue, ReactNode> = {
   Microsoft: <img src={microsoft} height={28} width={28} />,
   Okta: <img src={okta} height={32} width={32} />,
   Zitadel: <img src={zitadel} height={28} width={28} />,
+  Keycloak: <Icon size={20} icon="lock-closed" staticColor={ThemeVariable.FgAction} />,  //TODO: add icon
 };
 
 const providerDescription: Record<OpenIdProviderKindValue, string> = {
@@ -44,6 +45,8 @@ const providerDescription: Record<OpenIdProviderKindValue, string> = {
     "Enable users to log in with their Microsoft accounts through Microsoft's secure authentication platform.",
   Google:
     "Allow users to sign in securely with their Google accounts using Google's trusted authentication service.",
+  Keycloak:
+    'Allow users to sign in with their Keycloak accounts using your self-hosted Keycloak identity and access management server.',
 };
 
 export const ExternalProviderCard = ({
