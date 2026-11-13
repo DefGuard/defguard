@@ -25,3 +25,6 @@ tracing.workspace = true
 
 [dev-dependencies]
 ipnetwork.workspace = true
+
+[lints]
+workspace = true

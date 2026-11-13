@@ -1,0 +1,28 @@
+.device-name-button {
+  --text-decoration: none;
+
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  background: none;
+  font: var(--t-body-sm-400);
+  color: var(--fg-action);
+  text-align: left;
+  text-decoration: var(--text-decoration);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    --text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-action);
+    outline-offset: -2px;
+  }
+}

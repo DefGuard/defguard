@@ -90,6 +90,12 @@ const navigationConfig: NavGroupProps[] = [
         testId: 'groups',
       },
       {
+        id: 'devices',
+        icon: 'devices',
+        label: m.cmp_nav_item_devices(),
+        link: '/devices',
+      },
+      {
         id: 'enrollment',
         icon: 'key',
         label: m.cmp_nav_item_enrollment(),

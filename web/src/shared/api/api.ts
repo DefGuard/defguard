@@ -54,6 +54,8 @@ import type {
   Device,
   DeviceAttestationStats,
   DeviceLocationIpsResponse,
+  DeviceOverview,
+  DeviceOverviewListParams,
   DevicePostureListFilters,
   DevicePostureVersionMetadata,
   Edge,
@@ -227,6 +229,7 @@ const api = {
     getMe: () => client.get<User>('/me'),
     getUsers: (params?: UserListParams) => fetchPage<User>('/user', params),
     getAllUsers: () => fetchAllPages<User>('/user'),
+    getUsersDisplay: () => client.get<ResourceDisplay[]>('/user-display'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
@@ -444,6 +447,16 @@ const api = {
     editDevice: (device: Device) => client.put<Device>(`/device/${device.id}`, device),
     getDevice: (deviceId: number) => client.get<Device>(`/device/${deviceId}`),
     getDevices: () => client.get<Device[]>('/device'),
+    getDevicesOverview: (params: DeviceOverviewListParams) =>
+      fetchPage<DeviceOverview>('/device/overview', params),
+    bulkVerifyDevices: (devices: number[]) =>
+      client.post('/device/bulk/verify', { devices }),
+    bulkRevokeDeviceVerification: (devices: number[]) =>
+      client.post('/device/bulk/revoke-verification', { devices }),
+    bulkBlockDevices: (devices: number[]) =>
+      client.post('/device/bulk/block', { devices }),
+    bulkDeleteDevices: (devices: number[]) =>
+      client.post('/device/bulk/delete', { devices }),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
       const { data: configs } = await client.get<AddDeviceResponseConfig[]>(
         `/device/${device.id}/config`,

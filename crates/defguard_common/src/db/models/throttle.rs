@@ -44,7 +44,7 @@ impl ThrottleScope {
                 attempts = CASE WHEN t.expires_at <= $3 THEN 1 ELSE t.attempts + 1 END, \
                 expires_at = CASE WHEN t.expires_at <= $3 THEN $4 ELSE t.expires_at END \
              RETURNING attempts",
-            self as ThrottleScope,
+            self as Self,
             key,
             now,
             expires_at,
@@ -59,7 +59,7 @@ impl ThrottleScope {
         query!(
             "UPDATE throttle SET attempts = attempts - 1 \
              WHERE scope = $1 AND key = $2 AND attempts > 0",
-            self as ThrottleScope,
+            self as Self,
             key,
         )
         .execute(executor)
@@ -76,7 +76,7 @@ impl ThrottleScope {
     ) -> sqlx::Result<bool> {
         let attempts = query_scalar!(
             "SELECT attempts FROM throttle WHERE scope = $1 AND key = $2 AND expires_at > $3",
-            self as ThrottleScope,
+            self as Self,
             key,
             Utc::now().naive_utc(),
         )
@@ -101,7 +101,7 @@ impl ThrottleScope {
     pub async fn attempts(self, pool: &PgPool, key: &str) -> Option<i32> {
         query_scalar!(
             "SELECT attempts FROM throttle WHERE scope = $1 AND key = $2",
-            self as ThrottleScope,
+            self as Self,
             key,
         )
         .fetch_optional(pool)
@@ -113,7 +113,7 @@ impl ThrottleScope {
         query!(
             "UPDATE throttle SET expires_at = expires_at - interval '1 day' \
              WHERE scope = $1 AND key = $2",
-            self as ThrottleScope,
+            self as Self,
             key,
         )
         .execute(pool)

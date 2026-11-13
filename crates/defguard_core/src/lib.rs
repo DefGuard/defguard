@@ -121,6 +121,10 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            device_overview::{
+                bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
+                bulk_verify_devices, list_devices_overview,
+            },
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_attestation_stats, get_device_posture, get_device_posture_versions,
@@ -170,7 +174,7 @@ use crate::{
             userinfo,
         },
         proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
-        resource_display::get_locations_display,
+        resource_display::{get_locations_display, get_users_display},
         settings::{
             get_settings, get_settings_essentials, ldap_dry_run, patch_settings,
             set_default_branding, test_ldap_settings, test_submitted_ldap_settings,
@@ -358,6 +362,7 @@ pub fn build_webapp(
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
+            .route("/user-display", get(get_users_display))
             .route("/user/bulk-disable", post(bulk_disable_users))
             .route("/user/bulk-enable", post(bulk_enable_users))
             .route("/user/bulk-delete", post(bulk_delete_users))
@@ -655,6 +660,14 @@ pub fn build_webapp(
             )
             .route("/device/{device_id}/config", get(user_device_configs))
             .route("/device", get(list_devices))
+            .route("/device/overview", get(list_devices_overview))
+            .route("/device/bulk/verify", post(bulk_verify_devices))
+            .route(
+                "/device/bulk/revoke-verification",
+                post(bulk_revoke_device_verification),
+            )
+            .route("/device/bulk/block", post(bulk_block_devices))
+            .route("/device/bulk/delete", post(bulk_delete_devices))
             .route("/device/user/{username}", get(list_user_devices))
             .route(
                 "/device/user/{username}/ip",

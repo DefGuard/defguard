@@ -1,4 +1,5 @@
 import type { MigrationWizardStepValue } from '../../pages/MigrationWizardPage/types';
+import type { PolicyOsVariant } from '../components/SystemSelector/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -1840,6 +1841,76 @@ export type ActivityLogRequestParams = Partial<ActivityLogFilters> & {
   sort_by?: ActivityLogSortKey;
   sort_order?: SortDirectionValue;
 } & PaginationParams;
+
+export const DeviceState = {
+  Enabled: 'enabled',
+  Blocked: 'blocked',
+} as const;
+
+export type DeviceStateValue = (typeof DeviceState)[keyof typeof DeviceState];
+
+export const DeviceVerification = {
+  Verified: 'verified',
+  Unverified: 'unverified',
+  Pending: 'pending',
+} as const;
+
+export type DeviceVerificationValue =
+  (typeof DeviceVerification)[keyof typeof DeviceVerification];
+
+export const DeviceAttestationStatus = {
+  NotAttested: 'not_attested',
+  Attested: 'attested',
+  Unrecognized: 'unrecognized',
+  AttestedManually: 'attested_manually',
+  AttestationFailed: 'attestation_failed',
+} as const;
+
+export type DeviceAttestationStatusValue =
+  (typeof DeviceAttestationStatus)[keyof typeof DeviceAttestationStatus];
+
+export interface DeviceOverview {
+  id: number;
+  name: string;
+  state: DeviceStateValue;
+  verification: DeviceVerificationValue | null;
+  attestation_status: DeviceAttestationStatusValue | null;
+  user_id: number;
+  username: string;
+  os_type: PolicyOsVariant | null;
+  os_version: string | null;
+  client_version: string | null;
+  connected: boolean;
+  last_connected_at: string | null;
+  last_connected_ip: string | null;
+  last_connected_location: string | null;
+}
+
+export const DevicePlatform = {
+  Desktop: 'desktop',
+  Mobile: 'mobile',
+  Unknown: 'unknown',
+} as const;
+
+export type DevicePlatformValue = (typeof DevicePlatform)[keyof typeof DevicePlatform];
+
+export const deviceSystemUnknown = 'unknown';
+
+export type DeviceSystemFilterValue = PolicyOsVariant | typeof deviceSystemUnknown;
+
+export type DeviceOverviewSortKey = 'name' | 'user';
+
+export interface DeviceOverviewListParams extends PaginationParams {
+  search?: string;
+  sort_by?: DeviceOverviewSortKey;
+  sort_order?: SortDirectionValue;
+  state?: DeviceStateValue[];
+  verification?: DeviceVerificationValue[];
+  attestation_status?: DeviceAttestationStatusValue[];
+  platform?: DevicePlatformValue[];
+  system?: DeviceSystemFilterValue[];
+  connected?: boolean;
+}
 
 export interface UserListParams extends PaginationParams {
   groups?: string[];

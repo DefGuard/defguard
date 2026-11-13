@@ -1,0 +1,51 @@
+.device-details-section {
+  --label-column: 187px;
+  --section-indent: 28px;
+
+  display: flex;
+  flex-flow: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  row-gap: var(--spacing-lg);
+
+  & > .header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-sm);
+
+    & > .title {
+      font: var(--t-body-sm-500);
+      color: var(--fg-neutral);
+    }
+  }
+
+  & > .rows {
+    display: flex;
+    flex-flow: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    row-gap: var(--spacing-lg);
+    box-sizing: border-box;
+    padding-left: var(--section-indent);
+
+    & > .row {
+      display: grid;
+      grid-template-columns: minmax(0, var(--label-column)) minmax(0, 1fr);
+      grid-template-rows: 1fr;
+      align-items: center;
+
+      & > .label {
+        font: var(--t-body-xs-500);
+        color: var(--fg-disabled);
+      }
+
+      & > .value {
+        font: var(--t-body-sm-400);
+        color: var(--fg-default);
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+}
