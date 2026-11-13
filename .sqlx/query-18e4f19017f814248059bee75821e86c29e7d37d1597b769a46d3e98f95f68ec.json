@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\" LIMIT $1 OFFSET $2",
+  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"possession_verified\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -114,6 +114,17 @@
       },
       {
         "ordinal": 9,
+        "name": "possession_verified",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "possession_verified"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
         "name": "failed_attempts",
         "type_info": "Int4",
         "origin": {
@@ -124,7 +135,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamp",
         "origin": {
@@ -135,7 +146,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "expires_at",
         "type_info": "Timestamp",
         "origin": {
@@ -164,8 +175,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "df2e1a59225dc05f3765d8d9ea894bed7cfe6b7c5d18799b1c94b70dd6d54cf1"
+  "hash": "18e4f19017f814248059bee75821e86c29e7d37d1597b769a46d3e98f95f68ec"
 }

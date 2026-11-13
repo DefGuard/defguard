@@ -1,0 +1,162 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE device_identity_challenge AS challenge SET consumed_at = (clock_timestamp() AT TIME ZONE 'UTC') WHERE id = $1 AND device_id = $2 AND purpose = $3 AND location_id IS NOT DISTINCT FROM $4 AND mfa_session_id IS NOT DISTINCT FROM $5 AND consumed_at IS NULL AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC') AND (mfa_session_id IS NULL OR EXISTS ( SELECT 1 FROM vpn_client_mfa_session AS session WHERE session.id = challenge.mfa_session_id AND session.token_hash = challenge.mfa_session_token_hash AND session.expires_at > (clock_timestamp() AT TIME ZONE 'UTC') AND challenge.expires_at <= session.expires_at )) RETURNING challenge.id, challenge.purpose AS \"purpose: DeviceIdentityChallengePurpose\", challenge.device_id, challenge.location_id, challenge.mfa_session_id, challenge.mfa_session_token_hash, challenge.data, challenge.created_at, challenge.expires_at, challenge.consumed_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purpose: DeviceIdentityChallengePurpose",
+        "type_info": {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "polling",
+                "posture_connection",
+                "mfa_connection"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "purpose"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "location_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mfa_session_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "mfa_session_token_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_token_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "data",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "data"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "consumed_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "consumed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "polling",
+                "posture_connection",
+                "mfa_connection"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7f5eb8af495bf77c5227130574fc7d51a32176f1f8d3aa2420586d6b06603582"
+}

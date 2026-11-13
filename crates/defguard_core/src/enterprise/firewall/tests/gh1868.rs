@@ -30,6 +30,8 @@ async fn setup_user_and_device(
     let user = user.save(pool).await.unwrap();
 
     let device = Device {
+        attestation_status: Default::default(),
+        attested_at: None,
         id: NoId,
         name: format!("device-{}", user.id),
         user_id: user.id,
@@ -38,8 +40,6 @@ async fn setup_user_and_device(
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
-        attestation_status: Default::default(),
-        attested_at: None,
     };
     let device = device.save(pool).await.unwrap();
 

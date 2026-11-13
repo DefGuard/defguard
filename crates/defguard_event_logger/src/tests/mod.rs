@@ -271,6 +271,8 @@ fn api_message(event: ApiEventType) -> EventLoggerMessage {
 fn api_event_cases() -> Vec<EventTestCase> {
     let user = User::new("testuser", Some("pass"), "Last", "First", "e@e", None).with_id(1);
     let device = Device {
+        attestation_status: Default::default(),
+        attested_at: None,
         id: 2,
         name: "d2".into(),
         wireguard_pubkey: "pk".into(),
@@ -279,8 +281,6 @@ fn api_event_cases() -> Vec<EventTestCase> {
         device_type: DeviceType::User,
         description: None,
         configured: true,
-        attestation_status: Default::default(),
-        attested_at: None,
     };
     let location = sample_location();
     let timestamp = Utc::now().naive_utc();

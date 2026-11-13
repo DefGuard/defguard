@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"token_hash\",\"location_id\",\"device_id\",\"user_id\",\"flow_kind\" \"flow_kind: _\",\"steps_snapshot\" \"steps_snapshot: _\",\"current_step\",\"ephemeral_state\" \"ephemeral_state: _\",\"failed_attempts\",\"created_at\",\"expires_at\" FROM \"vpn_client_mfa_session\"",
+  "query": "SELECT id, token_hash, location_id, device_id, user_id, flow_kind \"flow_kind: VpnMfaFlowKind\", steps_snapshot \"steps_snapshot: Json<StepsSnapshot>\", current_step, ephemeral_state \"ephemeral_state: Json<EphemeralState>\", possession_verified, failed_attempts, created_at, expires_at FROM vpn_client_mfa_session WHERE token_hash = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "flow_kind: _",
+        "name": "flow_kind: VpnMfaFlowKind",
         "type_info": {
           "Custom": {
             "name": "vpn_mfa_flow_kind",
@@ -81,7 +81,7 @@
       },
       {
         "ordinal": 6,
-        "name": "steps_snapshot: _",
+        "name": "steps_snapshot: Json<StepsSnapshot>",
         "type_info": "Jsonb",
         "origin": {
           "Table": {
@@ -103,7 +103,7 @@
       },
       {
         "ordinal": 8,
-        "name": "ephemeral_state: _",
+        "name": "ephemeral_state: Json<EphemeralState>",
         "type_info": "Jsonb",
         "origin": {
           "Table": {
@@ -114,6 +114,17 @@
       },
       {
         "ordinal": 9,
+        "name": "possession_verified",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vpn_client_mfa_session",
+            "name": "possession_verified"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
         "name": "failed_attempts",
         "type_info": "Int4",
         "origin": {
@@ -124,7 +135,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamp",
         "origin": {
@@ -135,7 +146,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "expires_at",
         "type_info": "Timestamp",
         "origin": {
@@ -147,7 +158,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -161,8 +174,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "4aacd660b6d18499b737d9145e3d843a8f54a0f6d24d271155cb3ad867ca3428"
+  "hash": "5683e228ff7186828d46a78a71515f28302cfad3b7013d0227b07aa5d0bb65f0"
 }

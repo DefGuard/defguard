@@ -785,6 +785,28 @@ impl ProxyHandler {
                     }
                 }
             }
+            Some(core_request::Payload::AttestationStart(request)) => {
+                match boxed(services.enrollment.attestation_start(request)).await {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::AttestationStart(response_payload))
+                    }
+                    Err(err) => {
+                        error!("Start device attestation error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
+            Some(core_request::Payload::AttestationFinish(request)) => {
+                match boxed(services.enrollment.attestation_finish(request)).await {
+                    Ok(response_payload) => {
+                        Some(core_response::Payload::AttestationFinish(response_payload))
+                    }
+                    Err(err) => {
+                        error!("Finish device attestation error {err}");
+                        Some(core_response::Payload::CoreError(err.into()))
+                    }
+                }
+            }
             // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
             Some(core_request::Payload::ActivateUser(request)) => {
                 match boxed(
@@ -1146,11 +1168,12 @@ impl ProxyHandler {
                 )
                 .await
                 {
-                    Ok(PostureCheckOutcome::Approved { preshared_key }) => {
-                        Some(core_response::Payload::DevicePostureCheck(
-                            DevicePostureCheckResponse { preshared_key },
-                        ))
-                    }
+                    Ok(PostureCheckOutcome::Approved { preshared_key }) => Some(
+                        core_response::Payload::DevicePostureCheck(DevicePostureCheckResponse {
+                            possession_challenge: None,
+                            preshared_key,
+                        }),
+                    ),
                     Ok(PostureCheckOutcome::Rejected { failed_checks }) => Some(
                         core_response::Payload::DevicePostureRejected(DevicePostureRejection {
                             failed_posture_checks: failed_checks,

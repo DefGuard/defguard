@@ -1,0 +1,147 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"purpose\" \"purpose: _\",\"device_id\",\"location_id\",\"mfa_session_id\",\"mfa_session_token_hash\",\"data\",\"created_at\",\"expires_at\",\"consumed_at\" FROM \"device_identity_challenge\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purpose: _",
+        "type_info": {
+          "Custom": {
+            "name": "challenge_purpose",
+            "kind": {
+              "Enum": [
+                "polling",
+                "posture_connection",
+                "mfa_connection"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "purpose"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "location_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "location_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mfa_session_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "mfa_session_token_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "mfa_session_token_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "data",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "data"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "consumed_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_identity_challenge",
+            "name": "consumed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "703feec58a80e003f5f15979ebccca7aed371bac117cca046f7f2d458d90bf5b"
+}
