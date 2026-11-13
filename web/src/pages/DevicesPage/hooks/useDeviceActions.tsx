@@ -7,10 +7,14 @@ import {
   DeviceState,
   DeviceVerification,
 } from '../../../shared/api/types';
-import type { MenuItemsGroup } from '../../../shared/defguard-ui/components/Menu/types';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../../shared/defguard-ui/components/Menu/types';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import { useEnterpriseTier } from './useEnterpriseTier';
 
 type DeviceActionsTarget = {
   devices: DeviceOverview[];
@@ -19,6 +23,8 @@ type DeviceActionsTarget = {
 };
 
 export const useDeviceActions = () => {
+  const isEnterprise = useEnterpriseTier();
+
   const { mutate: verifyDevices } = useMutation({
     mutationFn: api.device.bulkVerifyDevices,
     meta: { invalidate: ['device'] },
@@ -71,35 +77,37 @@ export const useDeviceActions = () => {
         });
       };
 
+      const verificationItem: MenuItemProps = showRevoke
+        ? {
+            text: m.devices_action_revoke_verification(),
+            icon: 'close',
+            testId: `${testIdPrefix}-revoke-verification`,
+            onClick: () =>
+              revokeVerification(revokeIds, {
+                onSuccess: () => {
+                  onSuccess?.();
+                  Snackbar.default(m.devices_revoke_verification_success());
+                },
+              }),
+          }
+        : {
+            text: m.devices_action_verify(),
+            icon: 'device-attestation',
+            testId: `${testIdPrefix}-verify`,
+            disabled: verifyIds.length === 0,
+            onClick: () =>
+              verifyDevices(verifyIds, {
+                onSuccess: () => {
+                  onSuccess?.();
+                  Snackbar.default(m.devices_verify_success());
+                },
+              }),
+          };
+
       return [
         {
           items: [
-            showRevoke
-              ? {
-                  text: m.devices_action_revoke_verification(),
-                  icon: 'close',
-                  testId: `${testIdPrefix}-revoke-verification`,
-                  onClick: () =>
-                    revokeVerification(revokeIds, {
-                      onSuccess: () => {
-                        onSuccess?.();
-                        Snackbar.default(m.devices_revoke_verification_success());
-                      },
-                    }),
-                }
-              : {
-                  text: m.devices_action_verify(),
-                  icon: 'device-attestation',
-                  testId: `${testIdPrefix}-verify`,
-                  disabled: verifyIds.length === 0,
-                  onClick: () =>
-                    verifyDevices(verifyIds, {
-                      onSuccess: () => {
-                        onSuccess?.();
-                        Snackbar.default(m.devices_verify_success());
-                      },
-                    }),
-                },
+            ...(isEnterprise ? [verificationItem] : []),
             {
               text: m.devices_action_block(),
               icon: 'cancel',
@@ -129,7 +137,7 @@ export const useDeviceActions = () => {
         },
       ];
     },
-    [verifyDevices, revokeVerification, blockDevices],
+    [verifyDevices, revokeVerification, blockDevices, isEnterprise],
   );
 
   return { getMenuItems };

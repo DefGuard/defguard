@@ -21,12 +21,15 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use super::common::{client::TestClient, make_network, make_test_client, setup_pool};
+use super::common::{
+    client::TestClient, make_network, make_test_client, set_enterprise_license, setup_pool,
+};
 
 #[sqlx::test]
 async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
 
     let user_device = Device::new(
         "work-laptop".to_owned(),
@@ -192,6 +195,7 @@ async fn overview_ids(client: &TestClient, query: &str) -> Vec<Id> {
 async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
     let pool = &client_state.pool;
     client.login_user("admin", "pass123").await;
 
@@ -319,6 +323,7 @@ async fn make_device(pool: &PgPool, name: &str, user_id: Id) -> Device<Id> {
 async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
     let pool = &client_state.pool;
     let user_id = client_state.test_user.id;
     let mut gateway_rx = client_state.gateway_rx;
@@ -461,6 +466,58 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
             .iter()
             .all(|(event, ..)| matches!(event, ApiEventType::UserDeviceRemoved { .. }))
     );
+}
+
+#[sqlx::test]
+async fn test_devices_overview_business_license(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    client.login_user("admin", "pass123").await;
+
+    let mut verified = make_device(pool, "a-verified", user_id).await;
+    verified.verification = DeviceVerification::Verified;
+    verified.save(pool).await.unwrap();
+    let mut attested = make_device(pool, "b-attested", user_id).await;
+    attested.attestation_status = DeviceAttestationStatus::Attested;
+    attested.save(pool).await.unwrap();
+    let plain = make_device(pool, "c-plain", user_id).await;
+
+    let response = client.get("/api/v1/device/overview").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    for device in body["data"].as_array().unwrap() {
+        assert!(device.get("verification").is_none());
+        assert!(device.get("attestation_status").is_none());
+    }
+
+    let all = vec![verified.id, attested.id, plain.id];
+    for query in ["verification=verified", "attestation_status=attested"] {
+        assert_eq!(overview_ids(&client, query).await, all, "query: {query}");
+    }
+
+    let ids = json!({"devices": [plain.id]});
+    for action in ["verify", "revoke-verification"] {
+        let response = client
+            .post(format!("/api/v1/device/bulk/{action}"))
+            .json(&ids)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::FORBIDDEN, "action: {action}");
+    }
+    let plain_after = Device::find_by_id(pool, plain.id).await.unwrap().unwrap();
+    assert_eq!(plain_after.verification, DeviceVerification::Unverified);
+
+    for action in ["block", "delete"] {
+        let response = client
+            .post(format!("/api/v1/device/bulk/{action}"))
+            .json(&ids)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::OK, "action: {action}");
+    }
+    assert!(Device::find_by_id(pool, plain.id).await.unwrap().is_none());
 }
 
 #[sqlx::test]

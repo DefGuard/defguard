@@ -1,6 +1,7 @@
 pub mod acl;
 pub mod activity_log_stream;
 pub mod api_tokens;
+pub(crate) mod device_overview;
 pub mod device_posture;
 pub mod enterprise_settings;
 pub mod openid_login;
@@ -94,6 +95,26 @@ where
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if has_enterprise_access(Some(F::FEATURE)) {
             Ok(Self(PhantomData))
+        } else {
+            Err(WebError::Forbidden("Enterprise features are disabled"))
+        }
+    }
+}
+
+/// Extractor that rejects with 403 unless the license is Enterprise tier. Additive feature
+/// flags on a Business license do not grant access.
+pub struct EnterpriseTier;
+
+impl<S> FromRequestParts<S> for EnterpriseTier
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if has_enterprise_access(None) {
+            Ok(Self)
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }

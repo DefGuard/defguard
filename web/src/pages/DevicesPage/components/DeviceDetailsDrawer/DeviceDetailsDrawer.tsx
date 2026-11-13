@@ -15,6 +15,7 @@ import { formatIpForDisplay } from '../../../../shared/utils/formatIpForDisplay'
 import { attestationStatusText, verificationText } from '../../consts';
 import { platformText, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
+import { useEnterpriseTier } from '../../hooks/useEnterpriseTier';
 import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
 import { DeviceStateBadge } from '../DeviceStateBadge/DeviceStateBadge';
 import { UnknownBadge } from '../UnknownBadge/UnknownBadge';
@@ -49,6 +50,7 @@ type ContentProps = {
 const DrawerContent = ({ device, onClose }: ContentProps) => {
   const { data: usersDisplay } = useQuery(getUsersDisplayQueryOptions);
   const { getMenuItems } = useDeviceActions();
+  const isEnterprise = useEnterpriseTier();
 
   const generalRows = useMemo((): DeviceDetailsRow[] => {
     const { os_type: osType } = device;
@@ -110,19 +112,21 @@ const DrawerContent = ({ device, onClose }: ContentProps) => {
     [device],
   );
 
-  const attestationRows = useMemo(
-    (): DeviceDetailsRow[] => [
+  const attestationRows = useMemo((): DeviceDetailsRow[] => {
+    const { attestation_status: attestationStatus, verification } = device;
+    return [
       {
         label: m.devices_col_attestation(),
-        value: attestationStatusText[device.attestation_status](),
+        value: isPresent(attestationStatus)
+          ? attestationStatusText[attestationStatus]()
+          : null,
       },
       {
         label: m.devices_col_verification(),
-        value: verificationText[device.verification](),
+        value: isPresent(verification) ? verificationText[verification]() : null,
       },
-    ],
-    [device],
-  );
+    ];
+  }, [device]);
 
   return (
     <>
@@ -138,12 +142,16 @@ const DrawerContent = ({ device, onClose }: ContentProps) => {
           title={m.devices_details_section_last_connection()}
           rows={lastConnectionRows}
         />
-        <Divider spacing={ThemeSpacing.Xl} />
-        <DeviceDetailsSection
-          icon="connected-devices"
-          title={m.devices_details_section_attestation()}
-          rows={attestationRows}
-        />
+        {isEnterprise && (
+          <>
+            <Divider spacing={ThemeSpacing.Xl} />
+            <DeviceDetailsSection
+              icon="connected-devices"
+              title={m.devices_details_section_attestation()}
+              rows={attestationRows}
+            />
+          </>
+        )}
       </div>
       <div className="footer">
         <ButtonMenu

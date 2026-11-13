@@ -16,17 +16,21 @@ use defguard_common::db::{
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
 
-use super::{
-    ApiResponse, ApiResult, WebError,
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
-    user::SortOrder,
-};
+use super::EnterpriseTier;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
+    enterprise::{
+        firewall::try_get_location_firewall_config, has_enterprise_access, limits::update_counts,
+    },
+    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayCommand,
+    handlers::{
+        ApiResponse, ApiResult,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+        user::SortOrder,
+    },
 };
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -109,8 +113,12 @@ pub(crate) struct DeviceOverviewRow {
     id: Id,
     name: String,
     state: DeviceState,
-    verification: DeviceVerification,
-    attestation_status: DeviceAttestationStatus,
+    /// None below the Enterprise license tier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verification: Option<DeviceVerification>,
+    /// None below the Enterprise license tier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    attestation_status: Option<DeviceAttestationStatus>,
     /// None for network devices.
     user_id: Option<Id>,
     /// Lowercase DB enum label, None until the client reports its platform.
@@ -133,8 +141,13 @@ pub(crate) async fn list_devices_overview(
     sorting: Query<DeviceOverviewSortParams>,
 ) -> PaginatedApiResult<DeviceOverviewRow> {
     let pagination = pagination.0;
-    let filters = filters.0;
+    let mut filters = filters.0;
     let sorting = sorting.0;
+    let enterprise = has_enterprise_access(None);
+    if !enterprise {
+        filters.verification.clear();
+        filters.attestation_status.clear();
+    }
     debug!(
         "Listing devices overview with filters {filters:?}, sorting {sorting:?} and {pagination}"
     );
@@ -176,6 +189,10 @@ pub(crate) async fn list_devices_overview(
             .last_connected_ip
             .as_deref()
             .and_then(endpoint_without_port);
+        if !enterprise {
+            device.verification = None;
+            device.attestation_status = None;
+        }
     }
 
     let mut count_query_builder = QueryBuilder::<Postgres>::new("SELECT COUNT(*) ");
@@ -399,6 +416,7 @@ fn emit_events(
 
 pub(crate) async fn bulk_verify_devices(
     _role: AdminRole,
+    _license: EnterpriseTier,
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
@@ -424,6 +442,7 @@ pub(crate) async fn bulk_verify_devices(
 
 pub(crate) async fn bulk_revoke_device_verification(
     _role: AdminRole,
+    _license: EnterpriseTier,
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,

@@ -1873,8 +1873,8 @@ export interface DeviceOverview {
   id: number;
   name: string;
   state: DeviceStateValue;
-  verification: DeviceVerificationValue;
-  attestation_status: DeviceAttestationStatusValue;
+  verification?: DeviceVerificationValue;
+  attestation_status?: DeviceAttestationStatusValue;
   user_id: number | null;
   os_type: PolicyOsVariant | null;
   os_version: string | null;

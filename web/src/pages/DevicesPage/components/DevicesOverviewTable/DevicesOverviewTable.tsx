@@ -59,6 +59,7 @@ import {
 } from '../../consts';
 import { platformIcon, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
+import { useEnterpriseTier } from '../../hooks/useEnterpriseTier';
 import { BlockedBadge } from '../BlockedBadge/BlockedBadge';
 import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
 import { DeviceDetailsDrawer } from '../DeviceDetailsDrawer/DeviceDetailsDrawer';
@@ -127,6 +128,7 @@ export const DevicesOverviewTable = () => {
   const [search, setSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const isEnterprise = useEnterpriseTier();
 
   const requestParams = useMemo((): DeviceOverviewListParams => {
     const sort = sorting[0];
@@ -136,20 +138,21 @@ export const DevicesOverviewTable = () => {
       sort_by: sort?.id as DeviceOverviewSortKey | undefined,
       sort_order: sort ? (sort.desc ? SortDirection.DESC : SortDirection.ASC) : undefined,
       state: getFilterValues<DeviceStateValue>(columnFilters, 'state'),
-      verification: getFilterValues<DeviceVerificationValue>(
-        columnFilters,
-        'verification',
-      ),
-      attestation_status: getFilterValues<DeviceAttestationStatusValue>(
-        columnFilters,
-        'attestation_status',
-      ),
+      verification: isEnterprise
+        ? getFilterValues<DeviceVerificationValue>(columnFilters, 'verification')
+        : undefined,
+      attestation_status: isEnterprise
+        ? getFilterValues<DeviceAttestationStatusValue>(
+            columnFilters,
+            'attestation_status',
+          )
+        : undefined,
       platform: getFilterValues<DevicePlatformValue>(columnFilters, 'platform'),
       system: getFilterValues<DeviceSystemFilterValue>(columnFilters, 'system'),
       connected:
         connection?.length === 1 ? connection[0] === ConnectionFilter.Online : undefined,
     };
-  }, [search, sorting, columnFilters]);
+  }, [search, sorting, columnFilters, isEnterprise]);
 
   const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['device', 'overview', requestParams],
@@ -281,33 +284,45 @@ export const DevicesOverviewTable = () => {
           );
         },
       }),
-      columnHelper.accessor('attestation_status', {
-        header: m.devices_col_attestation(),
-        enableSorting: false,
-        enableColumnFilter: true,
-        meta: { filterOptions: filterOptions.attestation },
-        size: 170,
-        minSize: 140,
-        cell: (info) => {
-          const status = info.getValue();
-          if (status === DeviceAttestationStatus.NotAttested) return <TableCell />;
-          const { text, variant } = attestationBadge[status];
-          return (
-            <TableCell>
-              <Badge variant={variant} text={text()} />
-            </TableCell>
-          );
-        },
-      }),
-      columnHelper.accessor('verification', {
-        header: m.devices_col_verification(),
-        enableSorting: false,
-        enableColumnFilter: true,
-        meta: { filterOptions: filterOptions.verification },
-        size: 150,
-        minSize: 120,
-        cell: (info) => <TableCell>{verificationContent(info.getValue())}</TableCell>,
-      }),
+      ...(isEnterprise
+        ? [
+            columnHelper.accessor('attestation_status', {
+              header: m.devices_col_attestation(),
+              enableSorting: false,
+              enableColumnFilter: true,
+              meta: { filterOptions: filterOptions.attestation },
+              size: 170,
+              minSize: 140,
+              cell: (info) => {
+                const status = info.getValue();
+                if (!isPresent(status) || status === DeviceAttestationStatus.NotAttested)
+                  return <TableCell />;
+                const { text, variant } = attestationBadge[status];
+                return (
+                  <TableCell>
+                    <Badge variant={variant} text={text()} />
+                  </TableCell>
+                );
+              },
+            }),
+            columnHelper.accessor('verification', {
+              header: m.devices_col_verification(),
+              enableSorting: false,
+              enableColumnFilter: true,
+              meta: { filterOptions: filterOptions.verification },
+              size: 150,
+              minSize: 120,
+              cell: (info) => {
+                const verification = info.getValue();
+                return (
+                  <TableCell>
+                    {isPresent(verification) && verificationContent(verification)}
+                  </TableCell>
+                );
+              },
+            }),
+          ]
+        : []),
       columnHelper.accessor('os_type', {
         id: 'platform',
         header: m.devices_col_platform(),
@@ -425,7 +440,7 @@ export const DevicesOverviewTable = () => {
         ),
       }),
     ],
-    [getMenuItems, usersDisplay, filterOptions],
+    [getMenuItems, usersDisplay, filterOptions, isEnterprise],
   );
 
   const table = useReactTable({

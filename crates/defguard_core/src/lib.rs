@@ -121,6 +121,10 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            device_overview::{
+                bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
+                bulk_verify_devices, list_devices_overview,
+            },
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_attestation_stats, get_device_posture, get_device_posture_versions,
@@ -149,10 +153,6 @@ use crate::{
         },
         component_setup::{adopt_gateway, setup_gateway_tls_stream},
         core_certs::{get_ca, get_certs, set_external_url_settings, set_internal_url_settings},
-        device_overview::{
-            bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
-            bulk_verify_devices, list_devices_overview,
-        },
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
