@@ -15,7 +15,7 @@ use defguard_common::{
         models::{
             Device, DeviceType, User, WireguardNetwork,
             biometric_auth::BiometricAuth,
-            device::WireguardNetworkDevice,
+            device::{DeviceState, WireguardNetworkDevice},
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::initialize_current_settings,
@@ -602,6 +602,83 @@ async fn test_posture_check_without_postures_still_rejects_inactive_user(
     };
     assert_eq!(status.code(), tonic::Code::InvalidArgument);
     assert_eq!(status.message(), "user is inactive");
+}
+
+async fn create_blocked_device(pool: &PgPool, user_id: Id) -> Device<Id> {
+    let mut device = create_device(pool, user_id).await;
+    device.state = DeviceState::Blocked;
+    device.save(pool).await.expect("failed to block device");
+    device
+}
+
+#[sqlx::test]
+async fn test_posture_check_rejects_blocked_device(_: PgPoolOptions, options: PgConnectOptions) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_non_mfa_location(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_blocked_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let token = create_polling_token(&pool, device.id).await;
+    let (server, _event_rx, mut gateway_rx) = make_server(pool.clone());
+
+    let Err(status) = server
+        .handle_posture_check(
+            DevicePostureCheckRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                device_posture_data: None,
+                token: Some(token),
+            },
+            device_info(),
+        )
+        .await
+    else {
+        panic!("a blocked device must not pass the posture check");
+    };
+    assert_eq!(status.code(), Code::PermissionDenied);
+    assert_eq!(status.message(), "device is blocked");
+    assert!(gateway_rx.try_recv().is_err());
+}
+
+#[sqlx::test]
+async fn test_mfa_start_rejects_blocked_device(_: PgPoolOptions, options: PgConnectOptions) {
+    set_enterprise_license();
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("failed to init settings");
+    let location = create_mfa_location(&pool).await;
+    create_and_assign_mfa_flow(&pool, location.id).await;
+    let mut user = create_user(&pool).await;
+    user.enable_totp(&pool)
+        .await
+        .expect("failed to enable TOTP");
+    let device = create_blocked_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let (server, _event_rx, _gateway_rx) = make_server(pool);
+
+    let status = match server
+        .legacy_mfa_start(
+            ClientMfaStartRequest {
+                location_id: location.id,
+                pubkey: device.wireguard_pubkey.clone(),
+                method: MfaMethod::Totp as i32,
+                posture_data: None,
+            },
+            device_info(),
+        )
+        .await
+    {
+        Ok(_) => panic!("a blocked device must not start MFA"),
+        Err(MfaStartRejection::Status(status)) => status,
+        Err(MfaStartRejection::PostureFailed { .. }) => panic!("unexpected posture rejection"),
+    };
+    assert_eq!(status.code(), Code::PermissionDenied);
+    assert_eq!(status.message(), "device is blocked");
 }
 
 /// A passing posture evaluation must be auditable, so an operator can see that a headless

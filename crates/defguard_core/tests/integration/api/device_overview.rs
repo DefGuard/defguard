@@ -1,8 +1,11 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 use chrono::{NaiveDate, Utc};
 use defguard_common::db::{
     Id,
     models::{
         Device, DeviceState, DeviceType, DeviceVerification, User, WireguardNetwork,
+        device::WireguardNetworkDevice,
         device_client_info::{DeviceClientInfo, OsType},
         device_identity::DeviceAttestationStatus,
         gateway::Gateway,
@@ -10,7 +13,7 @@ use defguard_common::db::{
         vpn_session_stats::VpnSessionStats,
     },
 };
-use defguard_core::{events::ApiEventType, handlers::Auth};
+use defguard_core::{events::ApiEventType, grpc::GatewayCommand, handlers::Auth};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::{
@@ -318,8 +321,22 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     let (mut client, client_state) = make_test_client(pool).await;
     let pool = &client_state.pool;
     let user_id = client_state.test_user.id;
+    let mut gateway_rx = client_state.gateway_rx;
 
     let first = make_device(pool, "first", user_id).await;
+    let mut network = WireguardNetwork::default()
+        .try_set_address("10.1.1.1/24")
+        .unwrap();
+    network.name = "bulk-location".to_owned();
+    let network = network.save(pool).await.unwrap();
+    WireguardNetworkDevice::new(
+        network.id,
+        first.id,
+        vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2))],
+    )
+    .insert(pool)
+    .await
+    .unwrap();
     let second = make_device(pool, "second", user_id).await;
     let mut verified = make_device(pool, "verified", user_id).await;
     verified.verification = DeviceVerification::Verified;
@@ -381,6 +398,19 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
         .unwrap()
         .unwrap();
     assert_eq!(verified_after.state, DeviceState::Enabled);
+    let mut removed_peers = Vec::new();
+    while let Ok(command) = gateway_rx.try_recv() {
+        if let GatewayCommand::DeviceDeleted(device_info) = command {
+            removed_peers.push(device_info);
+        }
+    }
+    assert_eq!(removed_peers.len(), 2);
+    let first_removed = removed_peers
+        .iter()
+        .find(|device_info| device_info.device.id == first.id)
+        .unwrap();
+    assert_eq!(first_removed.network_info.len(), 1);
+    assert_eq!(first_removed.network_info[0].network_id, network.id);
 
     let response = client
         .post("/api/v1/device/bulk/delete")

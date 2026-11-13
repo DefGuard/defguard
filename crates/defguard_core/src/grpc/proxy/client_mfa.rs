@@ -11,7 +11,7 @@ use defguard_common::{
         Id,
         models::{
             Device, User, WireguardNetwork,
-            device::WireguardNetworkDevice,
+            device::{DeviceState, WireguardNetworkDevice},
             mfa_flow::{MfaFlow, MfaFlowStep},
             polling_token::PollingToken,
             vpn_client_mfa_session::{VpnClientMfaSession, VpnMfaFlowKind, hash_token},
@@ -433,9 +433,9 @@ impl From<StepFinishError> for Status {
             StepFinishError::MissingBiometricChallenge | StepFinishError::Internal => {
                 Code::Internal
             }
-            StepFinishError::Event(e) => return Status::from(e),
+            StepFinishError::Event(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 
@@ -920,6 +920,11 @@ impl ClientMfaServer {
         device: &Device<Id>,
         user_info: &UserInfo,
     ) -> Result<(), Status> {
+        if device.state == DeviceState::Blocked {
+            error!("Device {device} is blocked and can't connect to location {location}");
+            return Err(Status::permission_denied("device is blocked"));
+        }
+
         // acquire connection
         let mut conn = acquire_connection(pool).await?;
 

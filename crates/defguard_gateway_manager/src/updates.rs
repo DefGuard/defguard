@@ -3,7 +3,9 @@ use std::net::IpAddr;
 use defguard_common::{
     db::{
         Id,
-        models::{DeviceNetworkInfo, WireguardNetwork, wireguard::DEFAULT_WIREGUARD_MTU},
+        models::{
+            DeviceNetworkInfo, DeviceState, WireguardNetwork, wireguard::DEFAULT_WIREGUARD_MTU,
+        },
     },
     gateway_event::GatewayCommand,
     gateway_types::{FirewallConfig, WireguardPeer},
@@ -188,6 +190,15 @@ impl<'a> GatewayUpdatesHandler<'a> {
                     Ok(())
                 }
             }
+            GatewayCommand::DeviceCreated(device)
+                if device.device.state == DeviceState::Blocked =>
+            {
+                debug!(
+                    "Skipping peer update for blocked device {}",
+                    device.device.name
+                );
+                Ok(())
+            }
             GatewayCommand::DeviceCreated(device) => {
                 // check if a peer has to be added in the current network
                 match device
@@ -203,6 +214,15 @@ impl<'a> GatewayUpdatesHandler<'a> {
                     ),
                     None => Ok(()),
                 }
+            }
+            GatewayCommand::DeviceModified(device)
+                if device.device.state == DeviceState::Blocked =>
+            {
+                debug!(
+                    "Skipping peer update for blocked device {}",
+                    device.device.name
+                );
+                Ok(())
             }
             GatewayCommand::DeviceModified(device) => {
                 // check if a peer has to be updated in the current network

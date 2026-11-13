@@ -48,6 +48,7 @@ pub async fn get_location_allowed_peers(
                 JOIN \"user\" u ON d.user_id = u.id \
                 WHERE wireguard_network_id = $1 \
                     AND d.configured \
+                    AND d.state = 'enabled' \
                     AND u.is_active \
                 ORDER BY d.id ASC",
             location.id,
@@ -88,6 +89,7 @@ pub async fn get_location_allowed_peers(
             ) active_session ON true \
             WHERE wireguard_network_id = $1 \
                 AND d.configured \
+                AND d.state = 'enabled' \
                 AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
@@ -114,8 +116,8 @@ mod test {
     use defguard_common::{
         db::{
             models::{
-                Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, user::User,
-                vpn_client_session::VpnClientSession, wireguard::ServiceLocationMode,
+                Device, DeviceState, DeviceType, WireguardNetwork, device::WireguardNetworkDevice,
+                user::User, vpn_client_session::VpnClientSession, wireguard::ServiceLocationMode,
             },
             setup_pool,
         },
@@ -481,5 +483,95 @@ mod test {
                 ("pubkey-connected", Some("connected-session-psk")),
             ]
         );
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_skips_blocked_devices(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&mut *conn)
+        .await
+        .unwrap();
+
+        let enabled_device = Device::new(
+            "device-enabled".into(),
+            "pubkey-enabled".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&mut *conn)
+        .await
+        .unwrap();
+
+        let mut blocked_device = Device::new(
+            "device-blocked".into(),
+            "pubkey-blocked".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&mut *conn)
+        .await
+        .unwrap();
+        blocked_device.state = DeviceState::Blocked;
+        blocked_device.save(&mut *conn).await.unwrap();
+
+        for (address, device_ips, mfa_enabled) in [
+            ("10.7.1.1/24", ["10.7.1.2", "10.7.1.3"], false),
+            ("10.8.1.1/24", ["10.8.1.2", "10.8.1.3"], true),
+        ] {
+            let mut network = WireguardNetwork::default()
+                .try_set_address(address)
+                .unwrap();
+            network.name = format!("location-mfa-{mfa_enabled}");
+            network.service_location_mode = ServiceLocationMode::Disabled;
+            network.mfa_enabled = mfa_enabled;
+            let network = network.save(&mut *conn).await.unwrap();
+
+            for (device, ip) in [&enabled_device, &blocked_device]
+                .into_iter()
+                .zip(device_ips)
+            {
+                WireguardNetworkDevice::new(
+                    network.id,
+                    device.id,
+                    vec![IpAddr::from_str(ip).unwrap()],
+                )
+                .insert(&mut *conn)
+                .await
+                .unwrap();
+
+                let mut session = VpnClientSession::new(
+                    network.id,
+                    user.id,
+                    device.id,
+                    Some(Utc::now().naive_utc()),
+                    false,
+                );
+                session.preshared_key = Some(format!("psk-{}", device.id).into());
+                session.save(&mut *conn).await.unwrap();
+            }
+
+            let peers = get_location_allowed_peers(&network, &mut conn)
+                .await
+                .unwrap();
+
+            assert_eq!(peers.len(), 1, "mfa_enabled: {mfa_enabled}");
+            assert_eq!(peers[0].pubkey, "pubkey-enabled");
+        }
     }
 }

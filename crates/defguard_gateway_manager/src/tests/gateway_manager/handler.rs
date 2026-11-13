@@ -2,7 +2,7 @@
 mod support;
 
 use defguard_common::{
-    db::models::device::{DeviceInfo, WireguardNetworkDevice},
+    db::models::device::{DeviceInfo, DeviceState, WireguardNetworkDevice},
     gateway_event::GatewayCommand,
 };
 use defguard_core::events::GatewayConnectionEvent;

@@ -323,35 +323,41 @@ async fn device_modified_event(
     }
 }
 
+/// Returns the modified devices together with their activity log events.
 async fn bulk_modify_devices(
-    appstate: &AppState,
-    context: &ApiRequestContext,
+    conn: &mut PgConnection,
     ids: Vec<Id>,
     modify: impl Fn(&mut Device<Id>) -> bool,
-) -> Result<usize, WebError> {
-    let mut transaction = appstate.pool.begin().await?;
-    let devices = find_devices(&mut transaction, ids).await?;
+) -> Result<(Vec<Device<Id>>, Vec<ApiEventType>), WebError> {
+    let devices = find_devices(&mut *conn, ids).await?;
+    let mut modified = Vec::new();
     let mut events = Vec::new();
     for mut device in devices {
         let before = device.clone();
         if !modify(&mut device) {
             continue;
         }
-        device.save(&mut *transaction).await?;
-        if let Some(event) = device_modified_event(&mut transaction, before, device).await? {
+        device.save(&mut *conn).await?;
+        if let Some(event) = device_modified_event(&mut *conn, before, device.clone()).await? {
             events.push(event);
         }
+        modified.push(device);
     }
-    transaction.commit().await?;
+    Ok((modified, events))
+}
 
-    let modified = events.len();
+fn emit_events(
+    appstate: &AppState,
+    context: &ApiRequestContext,
+    events: Vec<ApiEventType>,
+) -> Result<(), WebError> {
     for event in events {
         appstate.emit_event(ApiEvent {
             context: context.clone(),
             event: Box::new(event),
         })?;
     }
-    Ok(modified)
+    Ok(())
 }
 
 pub(crate) async fn bulk_verify_devices(
@@ -366,7 +372,8 @@ pub(crate) async fn bulk_verify_devices(
         "User {username} manually verifying {} device(s)",
         data.devices.len()
     );
-    let verified = bulk_modify_devices(&appstate, &context, data.devices, |device| {
+    let mut transaction = appstate.pool.begin().await?;
+    let (verified, events) = bulk_modify_devices(&mut transaction, data.devices, |device| {
         if device.verification == DeviceVerification::Verified {
             return false;
         }
@@ -374,7 +381,12 @@ pub(crate) async fn bulk_verify_devices(
         true
     })
     .await?;
-    info!("User {username} manually verified {verified} device(s)");
+    transaction.commit().await?;
+    info!(
+        "User {username} manually verified {} device(s)",
+        verified.len()
+    );
+    emit_events(&appstate, &context, events)?;
 
     Ok(ApiResponse::default())
 }
@@ -388,7 +400,8 @@ pub(crate) async fn bulk_block_devices(
 ) -> ApiResult {
     let username = &session.user.username;
     debug!("User {username} blocking {} device(s)", data.devices.len());
-    let blocked = bulk_modify_devices(&appstate, &context, data.devices, |device| {
+    let mut transaction = appstate.pool.begin().await?;
+    let (blocked, events) = bulk_modify_devices(&mut transaction, data.devices, |device| {
         if device.state == DeviceState::Blocked {
             return false;
         }
@@ -396,7 +409,17 @@ pub(crate) async fn bulk_block_devices(
         true
     })
     .await?;
-    info!("User {username} blocked {blocked} device(s)");
+    let blocked_count = blocked.len();
+    let mut gateway_commands = Vec::with_capacity(blocked_count);
+    for device in blocked {
+        let device_info = DeviceInfo::from_device(&mut *transaction, device).await?;
+        gateway_commands.push(GatewayCommand::DeviceDeleted(device_info));
+    }
+    transaction.commit().await?;
+
+    appstate.send_multiple_gateway_commands(gateway_commands);
+    info!("User {username} blocked {blocked_count} device(s)");
+    emit_events(&appstate, &context, events)?;
 
     Ok(ApiResponse::default())
 }
@@ -468,12 +491,7 @@ pub(crate) async fn bulk_delete_devices(
 
     appstate.send_multiple_gateway_commands(gateway_commands);
     info!("User {username} deleted {deleted} device(s)");
-    for event in events {
-        appstate.emit_event(ApiEvent {
-            context: context.clone(),
-            event: Box::new(event),
-        })?;
-    }
+    emit_events(&appstate, &context, events)?;
 
     Ok(ApiResponse::default())
 }
