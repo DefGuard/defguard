@@ -349,6 +349,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         prefetch_users: false,
         disable_password_management: false,
         directory_sync_user_groups: None,
+        client_certificate: None,
+        client_private_key: None,
     };
     let log_stream = ActivityLogStream {
         id: 1,

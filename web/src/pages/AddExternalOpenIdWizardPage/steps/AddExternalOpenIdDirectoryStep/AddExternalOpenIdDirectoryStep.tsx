@@ -25,6 +25,7 @@ export const AddExternalOpenIdDirectoryStep = () => {
   const { mutateAsync } = useMutation({
     mutationFn: validateExternalProviderWizard,
     onSuccess: (result) => {
+      if (result === null) return;
       if (typeof result === 'boolean') {
         useAddExternalOpenIdStore.setState({
           testResult: result,

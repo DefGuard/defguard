@@ -16,7 +16,12 @@ use defguard_core::{
     },
     handlers::{Auth, openid_clients::NewOpenIDClient},
 };
+use rcgen::{CertificateParams, KeyPair, date_time_ymd};
 use reqwest::{StatusCode, Url};
+use rsa::{
+    RsaPrivateKey,
+    pkcs8::{EncodePrivateKey, LineEnding},
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::{
@@ -63,6 +68,8 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_owned(),
         client_secret: "client_secret".to_owned(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -149,6 +156,8 @@ async fn test_modify_openid_provider_persists_disable_password_management(
         kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_owned(),
         client_secret: "client_secret".to_owned(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -239,6 +248,8 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         kind: OpenIdProviderKind::Custom,
         client_id: openid_client.client_id.clone(),
         client_secret: openid_client.client_secret.clone(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("Defguard".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -393,6 +404,8 @@ async fn test_delete_openid_provider_removes_it(_: PgPoolOptions, options: PgCon
         kind: OpenIdProviderKind::Custom,
         client_id: "client_id".to_owned(),
         client_secret: "client_secret".to_owned(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -482,6 +495,8 @@ async fn test_delete_openid_provider_reports_affected_locations(
         kind: OpenIdProviderKind::Custom,
         client_id: "client_id".to_owned(),
         client_secret: "client_secret".to_owned(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -569,6 +584,8 @@ fn provider_with_secrets() -> AddProviderData {
         kind: OpenIdProviderKind::Google,
         client_id: "client_id".to_owned(),
         client_secret: CLIENT_SECRET.to_owned(),
+        client_certificate: None,
+        client_private_key: None,
         display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
@@ -770,5 +787,197 @@ async fn test_modify_openid_provider_with_new_secret_replaces_it(
             .as_ref()
             .map(SecretStringWrapper::expose_secret),
         Some(JUMPCLOUD_KEY)
+    );
+}
+
+fn rsa_key_pair() -> KeyPair {
+    let key_pem = RsaPrivateKey::new(&mut rand::thread_rng(), 2048)
+        .unwrap()
+        .to_pkcs8_pem(LineEnding::LF)
+        .unwrap();
+    KeyPair::from_pem(&key_pem).unwrap()
+}
+
+fn self_signed_cert(key_pair: &KeyPair, expired: bool) -> String {
+    let mut params = CertificateParams::new(vec!["defguard-test".to_owned()]).unwrap();
+    if expired {
+        params.not_before = date_time_ymd(2000, 1, 1);
+        params.not_after = date_time_ymd(2001, 1, 1);
+    }
+    params.self_signed(key_pair).unwrap().pem()
+}
+
+#[sqlx::test]
+async fn test_openid_provider_client_certificate(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let client = make_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let key_pair = rsa_key_pair();
+    let key_pem = key_pair.serialize_pem();
+    let cert_pem = self_signed_cert(&key_pair, false);
+    let certificate_data = |cert: &str, key: &str| AddProviderData {
+        client_secret: String::new(),
+        client_certificate: Some(cert.to_owned()),
+        client_private_key: Some(key.to_owned()),
+        ..provider_with_secrets()
+    };
+    let stored_provider = || async {
+        OpenIdProvider::find_by_name(&pool, "test")
+            .await
+            .unwrap()
+            .unwrap()
+    };
+    let stored_key = |provider: &OpenIdProvider<Id>| {
+        provider
+            .client_private_key
+            .as_ref()
+            .map(|key| key.expose_secret().to_owned())
+    };
+
+    let other_key_pair = rsa_key_pair();
+    let ec_key_pair = KeyPair::generate().unwrap();
+    let rejected = [
+        (
+            certificate_data(&self_signed_cert(&key_pair, true), &key_pem),
+            "cert_expired",
+        ),
+        (
+            certificate_data(&cert_pem, &other_key_pair.serialize_pem()),
+            "cert_invalid_cert_or_key",
+        ),
+        // A valid pair, but an EC key cannot sign the client assertion.
+        (
+            certificate_data(
+                &self_signed_cert(&ec_key_pair, false),
+                &ec_key_pair.serialize_pem(),
+            ),
+            "cert_invalid_cert_or_key",
+        ),
+        (
+            certificate_data("not a certificate", &key_pem),
+            "cert_invalid_cert_or_key",
+        ),
+        (
+            AddProviderData {
+                client_private_key: None,
+                ..certificate_data(&cert_pem, &key_pem)
+            },
+            "cert_missing_key_pem",
+        ),
+    ];
+    for (data, code) in &rejected {
+        let response = client
+            .post("/api/v1/openid/provider")
+            .json(data)
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{code}");
+        let body: Value = response.json().await;
+        assert_eq!(body["code"], *code);
+    }
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&AddProviderData {
+            client_secret: CLIENT_SECRET.to_owned(),
+            ..certificate_data(&cert_pem, &key_pem)
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(OpenIdProvider::get_current(&pool).await.unwrap().is_none());
+
+    let response = client
+        .post("/api/v1/openid/provider")
+        .json(&certificate_data(&cert_pem, &key_pem))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let provider = stored_provider().await;
+    assert_eq!(provider.client_secret.expose_secret(), "");
+    assert_eq!(provider.client_certificate.as_deref(), Some(&*cert_pem));
+    assert_eq!(stored_key(&provider).as_deref(), Some(&*key_pem));
+
+    let response = client.get("/api/v1/openid/provider/test").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    let provider = &body["provider"];
+    assert_eq!(provider["client_certificate_set"], true);
+    assert_eq!(provider["client_secret_set"], false);
+    assert!(provider["client_certificate_expiry"].is_string());
+    assert!(provider.get("client_private_key").is_none());
+    assert!(provider.get("client_certificate").is_none());
+    assert!(!body.to_string().contains("PRIVATE KEY"));
+
+    let mut data = certificate_data(&cert_pem, &key_pem);
+    data.client_certificate = None;
+    data.client_private_key = None;
+    data.display_name = Some("changed".to_owned());
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let provider = stored_provider().await;
+    assert_eq!(provider.display_name.as_deref(), Some("changed"));
+    assert_eq!(provider.client_certificate.as_deref(), Some(&*cert_pem));
+    assert_eq!(stored_key(&provider).as_deref(), Some(&*key_pem));
+
+    let renewed_cert_pem = self_signed_cert(&key_pair, false);
+    data.client_certificate = Some(renewed_cert_pem.clone());
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let provider = stored_provider().await;
+    assert_eq!(
+        provider.client_certificate.as_deref(),
+        Some(&*renewed_cert_pem)
+    );
+    assert_eq!(stored_key(&provider).as_deref(), Some(&*key_pem));
+
+    data.client_certificate = None;
+    data.client_private_key = Some(other_key_pair.serialize_pem());
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        stored_key(&stored_provider().await).as_deref(),
+        Some(&*key_pem)
+    );
+
+    data.client_private_key = None;
+    data.client_secret = CLIENT_SECRET.to_owned();
+    let response = client
+        .put("/api/v1/openid/provider/test")
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let provider = stored_provider().await;
+    assert_eq!(provider.client_secret.expose_secret(), CLIENT_SECRET);
+    assert_eq!(provider.client_certificate, None);
+    assert_eq!(provider.client_private_key, None);
+    assert_eq!(provider.client_certificate_expiry(), None);
+
+    // The API rejects an expired upload, so write a certificate that expired after it was stored.
+    let mut provider = provider;
+    provider.client_certificate = Some(self_signed_cert(&key_pair, true));
+    provider.client_private_key = Some(key_pem.into());
+    provider.save(&pool).await.unwrap();
+    let response = client.get("/api/v1/openid/provider/test").send().await;
+    let body: Value = response.json().await;
+    assert_eq!(
+        body["provider"]["client_certificate_expiry"],
+        "2001-01-01T00:00:00"
     );
 }

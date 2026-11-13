@@ -1,5 +1,7 @@
 use std::fmt;
 
+use chrono::NaiveDateTime;
+use defguard_certs::{CertificateInfo, parse_pem_certificate};
 use defguard_common::{
     db::{Id, NoId},
     secret::SecretStringWrapper,
@@ -153,6 +155,23 @@ pub struct OpenIdProvider<I = NoId> {
     #[model(option_ref)]
     // If set, only users who are members of these groups will be imported by the user prefetch
     pub directory_sync_user_groups: Option<Vec<String>>,
+    // A set key selects certificate authentication, and `client_secret` is then empty.
+    #[serde(skip_serializing)]
+    pub client_certificate: Option<String>,
+    #[model(secret)]
+    #[serde(skip_serializing)]
+    pub client_private_key: Option<SecretStringWrapper>,
+}
+
+impl<I> OpenIdProvider<I> {
+    /// Expiry of the stored client certificate, also when it has already expired.
+    #[must_use]
+    pub fn client_certificate_expiry(&self) -> Option<NaiveDateTime> {
+        let cert_der = parse_pem_certificate(self.client_certificate.as_deref()?).ok()?;
+        CertificateInfo::from_der(&cert_der)
+            .ok()
+            .map(|info| info.not_after)
+    }
 }
 
 impl OpenIdProvider {
@@ -203,6 +222,8 @@ impl OpenIdProvider {
             prefetch_users,
             disable_password_management,
             directory_sync_user_groups,
+            client_certificate: None,
+            client_private_key: None,
         }
     }
 
@@ -217,8 +238,9 @@ impl OpenIdProvider {
                 okta_private_jwk = $15, okta_dirsync_client_id = $16, \
                 directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19, \
                 disable_password_management = $20, \
-                directory_sync_user_groups = $21 \
-                WHERE id = $22",
+                directory_sync_user_groups = $21, client_certificate = $22, \
+                client_private_key = $23 \
+                WHERE id = $24",
                 self.name,
                 self.base_url,
                 self.kind as OpenIdProviderKind,
@@ -240,6 +262,8 @@ impl OpenIdProvider {
                 self.prefetch_users,
                 self.disable_password_management,
                 self.directory_sync_user_groups.as_deref(),
+                self.client_certificate,
+                self.client_private_key as Option<SecretStringWrapper>,
                 provider.id,
             )
             .execute(pool)
@@ -267,7 +291,8 @@ impl OpenIdProvider<Id> {
             okta_private_jwk \"okta_private_jwk?: _\", okta_dirsync_client_id, directory_sync_group_match, \
             jumpcloud_api_key \"jumpcloud_api_key?: _\", prefetch_users, \
             disable_password_management, \
-            directory_sync_user_groups \
+            directory_sync_user_groups, client_certificate, \
+            client_private_key \"client_private_key?: _\" \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -289,7 +314,8 @@ impl OpenIdProvider<Id> {
             okta_private_jwk \"okta_private_jwk?: _\", okta_dirsync_client_id, directory_sync_group_match, \
             jumpcloud_api_key \"jumpcloud_api_key?: _\", prefetch_users, \
             disable_password_management, \
-            directory_sync_user_groups \
+            directory_sync_user_groups, client_certificate, \
+            client_private_key \"client_private_key?: _\" \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(executor)

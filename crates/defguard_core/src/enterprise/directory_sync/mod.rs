@@ -296,12 +296,18 @@ impl DirectorySyncClient {
             }
             "Microsoft" => {
                 debug!("Microsoft directory sync provider selected");
-                let client = microsoft::MicrosoftDirectorySync::new(
+                let mut client = microsoft::MicrosoftDirectorySync::new(
                     provider_settings.client_id,
                     provider_settings.client_secret.expose_secret().to_owned(),
                     provider_settings.base_url,
                     provider_settings.directory_sync_group_match,
                 );
+                if let (Some(cert), Some(key)) = (
+                    provider_settings.client_certificate,
+                    provider_settings.client_private_key,
+                ) {
+                    client = client.with_certificate(cert, key.expose_secret().to_owned());
+                }
                 debug!("Microsoft directory sync client created");
                 Ok(Self::Microsoft(client))
             }

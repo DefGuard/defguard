@@ -19,7 +19,7 @@ use crate::{
     cert_settings::{refresh_core_self_signed_cert, refresh_proxy_self_signed_cert},
     enterprise::{
         LicenseFeature,
-        db::models::acl::AclRule,
+        db::models::{acl::AclRule, openid_provider::OpenIdProvider},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         firewall::try_get_location_firewall_config,
         has_enterprise_access, is_business_license_active,
@@ -399,6 +399,20 @@ async fn check_certificates(
     proxy_control_tx: &mpsc::Sender<ProxyControlMessage>,
     web_reload_tx: &broadcast::Sender<()>,
 ) {
+    // The provider certificate does not depend on the `Certificates` row that the early return
+    // below checks.
+    match OpenIdProvider::get_current(pool).await {
+        Ok(provider) => {
+            if let Some(expiry) = provider.and_then(|p| p.client_certificate_expiry()) {
+                match pool.acquire().await {
+                    Ok(mut conn) => expiry_check(&mut conn, "OpenID provider client", expiry).await,
+                    Err(err) => error!("Failed to acquire database connection: {err}"),
+                }
+            }
+        }
+        Err(err) => error!("Failed to fetch OpenID provider: {err}"),
+    }
+
     let cert = match Certificates::get(pool).await {
         Ok(Some(cert)) => cert,
         Ok(None) => {

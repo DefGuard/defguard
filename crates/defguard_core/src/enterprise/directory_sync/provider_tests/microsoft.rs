@@ -1,9 +1,10 @@
 use wiremock::{
     Mock, MockServer,
-    matchers::{method, path, query_param, query_param_is_missing},
+    matchers::{body_string_contains, method, path, query_param, query_param_is_missing},
 };
 
 use super::*;
+use crate::enterprise::client_assertion::tests::rsa_cert;
 
 #[tokio::test]
 async fn test_refresh_access_token() {
@@ -26,6 +27,41 @@ async fn test_refresh_access_token() {
 
     assert_eq!(dirsync.access_token.as_deref(), Some("EwAoA8l6BAAR..."));
     assert!(!dirsync.is_token_expired());
+
+    let requests = mock_server.received_requests().await.unwrap();
+    let body = String::from_utf8_lossy(&requests[0].body);
+    assert!(body.contains("client_secret=client_secret"));
+    assert!(!body.contains("client_assertion"));
+}
+
+#[tokio::test]
+async fn test_refresh_access_token_with_certificate_sends_client_assertion() {
+    let mock_server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .and(body_string_contains(
+            "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer",
+        ))
+        .and(body_string_contains("client_assertion=ey"))
+        .respond_with(response_from_fixture("token_response.json"))
+        .mount(&mock_server)
+        .await;
+
+    let (cert_pem, key_pem, _) = rsa_cert();
+    let mut dirsync = MicrosoftDirectorySync::new(
+        "client_id".into(),
+        String::new(),
+        "https://login.microsoftonline.com/tenant-123/v2.0".into(),
+        Vec::new(),
+    )
+    .with_certificate(cert_pem, key_pem)
+    .with_urls(&format!("{}/token", mock_server.uri()), "");
+
+    dirsync.refresh_access_token().await.unwrap();
+
+    assert_eq!(dirsync.access_token.as_deref(), Some("EwAoA8l6BAAR..."));
+    let requests = mock_server.received_requests().await.unwrap();
+    assert!(!String::from_utf8_lossy(&requests[0].body).contains("client_secret"));
 }
 
 #[tokio::test]

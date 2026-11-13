@@ -1383,6 +1383,11 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret?: SecretValue;
   client_secret_set?: boolean;
+  // PEM text. The API never returns these two.
+  client_certificate?: string | null;
+  client_private_key?: string | null;
+  client_certificate_set?: boolean;
+  client_certificate_expiry?: string | null;
   display_name: string;
   google_service_account_key?: SecretValue;
   google_service_account_key_set?: boolean;

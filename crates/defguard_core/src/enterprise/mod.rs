@@ -1,5 +1,6 @@
 pub mod activity_log_stream;
 pub mod allowed_ips;
+pub(crate) mod client_assertion;
 pub mod db;
 pub mod directory_sync;
 pub mod fido2;

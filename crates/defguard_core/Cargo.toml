@@ -66,6 +66,7 @@ serde_cbor.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 sha-1.workspace = true
+sha2.workspace = true
 sha256.workspace = true
 sqlx.workspace = true
 ssh-key.workspace = true
@@ -133,7 +134,6 @@ reqwest = { version = "0.12", features = [
     "stream",
 ], default-features = false }
 serde_qs = "1.0"
-sha2.workspace = true
 tower.workspace = true
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 wiremock = "0.6"

@@ -1,4 +1,5 @@
 import { createFormHook } from '@tanstack/react-form';
+import { FormPemUploadField } from './components/FormPemUploadField/FormPemUploadField';
 import { FormSecretInput } from './components/FormSecretInput/FormSecretInput';
 import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMultiple';
 import { FormUploadField } from './components/FormUploadField/FormUploadField';
@@ -32,6 +33,7 @@ export const { useAppForm, withFieldGroup, withForm } = createFormHook({
     FormSelectMultiple,
     FormInteractiveBlock,
     FormUploadField,
+    FormPemUploadField,
     FormCheckboxGroup,
     FormDateInput,
     FormMultiSelect,
