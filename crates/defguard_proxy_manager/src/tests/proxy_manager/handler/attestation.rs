@@ -15,10 +15,11 @@ use defguard_core::{
     },
 };
 use defguard_proto::{
-    client_types::{AttestationFinishRequest, AttestationStartRequest, attestation_start_request},
+    client_types::{AttestationFinishRequest, AttestationStartRequest},
     device_identity::{
-        AttestationChallengeSolution, AttestationIdentity, TpmAttestationIdentity,
-        TpmAttestationResponse, attestation_challenge_solution, attestation_identity,
+        AttestationChallengeSolution, AttestationIdentity, IdentityErrorCode,
+        TpmAttestationIdentity, TpmAttestationResponse, attestation_challenge_solution,
+        attestation_identity,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
@@ -36,17 +37,13 @@ fn attestation_requests(token: &str, device_id: Id) -> [core_request::Payload; 2
         core_request::Payload::AttestationStart(AttestationStartRequest {
             token: token.into(),
             device_id,
-            device_identity: Some(
-                attestation_start_request::DeviceIdentity::AttestationIdentity(
-                    AttestationIdentity {
-                        backend: Some(attestation_identity::Backend::Tpm(TpmAttestationIdentity {
-                            ek_public: vec![1],
-                            ek_certificate_chain_der: vec![vec![2]],
-                            ak_public: vec![3],
-                        })),
-                    },
-                ),
-            ),
+            attestation_identity: Some(AttestationIdentity {
+                backend: Some(attestation_identity::Backend::Tpm(TpmAttestationIdentity {
+                    ek_public: vec![1],
+                    ek_certificate_chain_der: vec![vec![2]],
+                    ak_public: vec![3],
+                })),
+            }),
         }),
         core_request::Payload::AttestationFinish(AttestationFinishRequest {
             token: token.into(),
@@ -122,7 +119,20 @@ async fn test_attestation_stubs_preserve_device_and_enrollment_session(
     while context.bidi_events_rx.try_recv().is_ok() {}
     let mut gateway_rx = context.take_gateway_rx();
 
-    for payload in attestation_requests(&token.id, device.id) {
+    let mut requests = attestation_requests(&token.id, device.id).to_vec();
+    requests.push(core_request::Payload::AttestationFinish(
+        AttestationFinishRequest {
+            token: token.id.clone(),
+            device_id: device.id,
+            solution: Some(AttestationChallengeSolution {
+                session_id: "unverified-challenge".into(),
+                result: Some(attestation_challenge_solution::Result::Error(
+                    IdentityErrorCode::BackendFailure.into(),
+                )),
+            }),
+        },
+    ));
+    for payload in requests {
         let response = send_attestation_request(&mut context, payload).await;
         assert_eq!(assert_error_response(&response), Code::Unimplemented);
         assert_eq!(
@@ -353,7 +363,7 @@ async fn test_attestation_requires_identity_and_solution_payloads(
     start_enrollment_session(&mut context, &token.id).await;
     for mut payload in attestation_requests(&token.id, device.id) {
         match &mut payload {
-            core_request::Payload::AttestationStart(request) => request.device_identity = None,
+            core_request::Payload::AttestationStart(request) => request.attestation_identity = None,
             core_request::Payload::AttestationFinish(request) => request.solution = None,
             _ => unreachable!(),
         }

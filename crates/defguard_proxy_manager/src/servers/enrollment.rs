@@ -184,9 +184,9 @@ impl EnrollmentServer {
             .validate_attestation_session(&request.token, request.device_id)
             .await?;
         let identity = request
-            .device_identity
+            .attestation_identity
             .as_ref()
-            .ok_or_else(|| Status::invalid_argument("missing device identity"))?;
+            .ok_or_else(|| Status::invalid_argument("missing attestation identity"))?;
         let challenge = generate_attestation_challenge(&enrollment, &device, identity)?;
         Ok(AttestationStartResponse {
             challenge: Some(challenge),
