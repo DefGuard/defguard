@@ -5,7 +5,9 @@ use defguard_common::db::{
         Device, DeviceState, DeviceType, DeviceVerification, WireguardNetwork,
         device_client_info::{DeviceClientInfo, OsType},
         device_identity::DeviceAttestationStatus,
+        gateway::Gateway,
         vpn_client_session::{VpnClientSession, VpnClientSessionState},
+        vpn_session_stats::VpnSessionStats,
     },
 };
 use defguard_core::{events::ApiEventType, handlers::Auth};
@@ -89,7 +91,7 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     disconnected_session.state = VpnClientSessionState::Disconnected;
     disconnected_session.disconnected_at = Some(latest_connected_at);
     disconnected_session.save(&client_state.pool).await.unwrap();
-    VpnClientSession::new(
+    let latest_session = VpnClientSession::new(
         network.id,
         client_state.test_user.id,
         user_device.id,
@@ -99,6 +101,29 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     .save(&client_state.pool)
     .await
     .unwrap();
+    let gateway = Gateway::new(network.id, "gateway", "198.51.100.1", 51820, "tester")
+        .save(&client_state.pool)
+        .await
+        .unwrap();
+    for (collected_at, endpoint) in [
+        (earlier_connected_at, "198.51.100.1:51820"),
+        (latest_connected_at, "[2001:db8::1]:51820"),
+    ] {
+        VpnSessionStats::new(
+            latest_session.id,
+            gateway.id,
+            collected_at,
+            collected_at,
+            endpoint.to_owned(),
+            0,
+            0,
+            0,
+            0,
+        )
+        .save(&client_state.pool)
+        .await
+        .unwrap();
+    }
 
     let response = client.get("/api/v1/device/overview").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -114,6 +139,8 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(data[0]["client_version"].is_null());
     assert_eq!(data[0]["connected"], false);
     assert!(data[0]["last_connected_at"].is_null());
+    assert!(data[0]["last_connected_ip"].is_null());
+    assert!(data[0]["last_connected_location"].is_null());
     assert_eq!(data[1]["id"], user_device.id);
     assert_eq!(data[1]["state"], "enabled");
     assert_eq!(data[1]["verification"], "unverified");
@@ -124,6 +151,8 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(data[1]["client_version"], "2.3.0");
     assert_eq!(data[1]["connected"], true);
     assert_eq!(data[1]["last_connected_at"], "2026-01-03T04:05:06");
+    assert_eq!(data[1]["last_connected_ip"], "2001:db8::1");
+    assert_eq!(data[1]["last_connected_location"], "network");
 
     let response = client
         .get("/api/v1/device/overview?search=LAPTOP&page=1&per_page=1")

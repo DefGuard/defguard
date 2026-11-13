@@ -11,6 +11,7 @@ use defguard_common::db::{
         Device, DeviceType, WireguardNetwork,
         device::{DeviceInfo, DeviceState, DeviceVerification},
         device_identity::DeviceAttestationStatus,
+        vpn_session_stats::endpoint_without_port,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -48,6 +49,10 @@ pub(crate) struct DeviceOverviewRow {
     client_version: Option<String>,
     connected: bool,
     last_connected_at: Option<NaiveDateTime>,
+    /// Public IP of the latest connected session.
+    last_connected_ip: Option<String>,
+    /// Location of the latest connected session.
+    last_connected_location: Option<String>,
 }
 
 /// Internal endpoint backing the devices overview page; intentionally not part of the public
@@ -67,7 +72,8 @@ pub(crate) async fn list_devices_overview(
         "SELECT d.id, d.name, d.state, d.verification, d.attestation_status, \
         CASE WHEN d.device_type = 'user' THEN d.user_id END user_id, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
-        COALESCE(s.connected, false) connected, s.last_connected_at \
+        COALESCE(s.connected, false) connected, s.last_connected_at, \
+        ls.endpoint last_connected_ip, ls.location_name last_connected_location \
         FROM device d \
         LEFT JOIN device_client_info ci ON ci.device_id = d.id \
         LEFT JOIN LATERAL ( \
@@ -75,6 +81,16 @@ pub(crate) async fn list_devices_overview(
             FROM vpn_client_session \
             WHERE device_id = d.id \
         ) s ON true \
+        LEFT JOIN LATERAL ( \
+            SELECT n.name location_name, \
+            (SELECT endpoint FROM vpn_session_stats \
+                WHERE session_id = vcs.id \
+                ORDER BY collected_at DESC, id DESC LIMIT 1) endpoint \
+            FROM vpn_client_session vcs \
+            JOIN wireguard_network n ON n.id = vcs.location_id \
+            WHERE vcs.device_id = d.id AND vcs.connected_at IS NOT NULL \
+            ORDER BY vcs.connected_at DESC, vcs.id DESC LIMIT 1 \
+        ) ls ON true \
         WHERE 1=1 ",
     );
     apply_filters(&mut query_builder, &filters);
@@ -84,10 +100,17 @@ pub(crate) async fn list_devices_overview(
         .push(" OFFSET ")
         .push_bind(i64::from(pagination.offset()));
 
-    let devices = query_builder
+    let mut devices = query_builder
         .build_query_as::<DeviceOverviewRow>()
         .fetch_all(&appstate.pool)
         .await?;
+    // The query yields the raw WireGuard endpoint (`ip:port`).
+    for device in &mut devices {
+        device.last_connected_ip = device
+            .last_connected_ip
+            .as_deref()
+            .and_then(endpoint_without_port);
+    }
 
     let mut count_query_builder =
         QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM device d WHERE 1=1 ");

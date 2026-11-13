@@ -1,0 +1,23 @@
+#modals-root > .modal-root .drawer-modal.device-details-drawer {
+  & > .modal-content {
+    padding: 0;
+    overflow: hidden;
+
+    & > .body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: var(--spacing-xl);
+    }
+
+    & > .footer {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-xl);
+      border-top: 1px solid var(--border-disabled);
+    }
+  }
+}

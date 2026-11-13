@@ -1,0 +1,48 @@
+.device-details-section {
+  --label-column: 149px;
+  --section-indent: 28px;
+
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-lg);
+
+  & > .header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+
+    & > .title {
+      font: var(--t-body-sm-500);
+      color: var(--fg-neutral);
+    }
+  }
+
+  & > .rows {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+    box-sizing: border-box;
+    padding-left: var(--section-indent);
+
+    & > .row {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+
+      & > .label {
+        flex: 0 0 var(--label-column);
+        font: var(--t-body-xs-500);
+        color: var(--fg-disabled);
+      }
+
+      & > .value {
+        flex: 1;
+        min-width: 0;
+        font: var(--t-body-sm-400);
+        color: var(--fg-default);
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+}

@@ -1881,6 +1881,8 @@ export interface DeviceOverview {
   client_version: string | null;
   connected: boolean;
   last_connected_at: string | null;
+  last_connected_ip: string | null;
+  last_connected_location: string | null;
 }
 
 export interface DeviceOverviewListParams extends PaginationParams {

@@ -35,5 +35,18 @@
   "devices_modal_delete_content": "Are you sure you want to delete {count} selected device(s)? This action is irreversible.",
   "devices_modal_delete_single_content": "Are you sure you want to delete device **{name}**? This action is irreversible.",
   "devices_delete_success": "Device(s) deleted",
-  "devices_delete_error": "Failed to delete device(s)"
+  "devices_delete_error": "Failed to delete device(s)",
+  "devices_platform_desktop": "Desktop",
+  "devices_platform_mobile": "Mobile",
+  "devices_details_title": "Device details",
+  "devices_details_section_general": "General",
+  "devices_details_section_last_connection": "Last connection details",
+  "devices_details_label_name": "Device name",
+  "devices_details_label_last_ip": "Last active IP",
+  "devices_details_label_last_date": "Last connection date",
+  "devices_details_label_connected_through": "Connected through",
+  "devices_details_actions": "Actions",
+  "devices_details_section_attestation": "Attestation and Verification",
+  "devices_attestation_not_attested": "Not attested",
+  "devices_verification_unverified": "Unverified"
 }

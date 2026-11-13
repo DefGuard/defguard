@@ -1,3 +1,4 @@
+import './style.scss';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
@@ -16,7 +17,6 @@ import {
   DeviceVerification,
   type DeviceVerificationValue,
 } from '../../../../shared/api/types';
-import type { PolicyOsVariant } from '../../../../shared/components/SystemSelector/types';
 import { TableSkeleton } from '../../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Badge } from '../../../../shared/defguard-ui/components/Badge/Badge';
@@ -26,7 +26,7 @@ import {
 } from '../../../../shared/defguard-ui/components/Badge/types';
 import { ButtonMenu } from '../../../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { Icon, type IconKindValue } from '../../../../shared/defguard-ui/components/Icon';
+import { Icon } from '../../../../shared/defguard-ui/components/Icon';
 import { Search } from '../../../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -36,22 +36,19 @@ import { TableTop } from '../../../../shared/defguard-ui/components/table/TableT
 import { TextStyle, ThemeVariable } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { getUsersDisplayQueryOptions } from '../../../../shared/query';
+import { policyOsVariantToIcon } from '../../../../shared/utils/policyPostures';
 import {
-  policyOsVariantToIcon,
-  policyOsVariantToText,
-} from '../../../../shared/utils/policyPostures';
+  blockedBadge,
+  ConnectionBadge,
+  osIconSize,
+  platformIcon,
+  systemText,
+  unknownBadge,
+} from '../../deviceDisplay';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
+import { DeviceDetailsDrawer } from '../DeviceDetailsDrawer/DeviceDetailsDrawer';
 
 const columnHelper = createColumnHelper<DeviceOverview>();
-
-const osIconSize = 20;
-
-const unknownBadge = <Badge variant={BadgeVariant.Neutral} text={m.devices_unknown()} />;
-
-const mobileOsTypes: PolicyOsVariant[] = ['android', 'ios'];
-
-const platformIcon = (osType: PolicyOsVariant): IconKindValue =>
-  mobileOsTypes.includes(osType) ? 'mobile' : 'desktop';
 
 const verificationContent = (verification: DeviceVerificationValue) => {
   switch (verification) {
@@ -117,6 +114,13 @@ export const DevicesOverviewTable = () => {
   const devices = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
   const hasNextPage = isPresent(data?.pages.at(-1)?.pagination.next_page);
 
+  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
+  const selectedDevice = useMemo(
+    () => devices.find((device) => device.id === selectedDeviceId) ?? null,
+    [devices, selectedDeviceId],
+  );
+  const closeDrawer = useCallback(() => setSelectedDeviceId(null), []);
+
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const clearSelection = useCallback(() => setRowSelection({}), []);
   const selectedDevices = useMemo(
@@ -144,7 +148,14 @@ export const DevicesOverviewTable = () => {
         },
         cell: (info) => (
           <TableCell>
-            <span>{info.getValue()}</span>
+            <button
+              type="button"
+              className="device-name-link"
+              data-testid="device-name"
+              onClick={() => setSelectedDeviceId(info.row.original.id)}
+            >
+              {info.getValue()}
+            </button>
           </TableCell>
         ),
       }),
@@ -159,12 +170,7 @@ export const DevicesOverviewTable = () => {
                 {m.state_enabled()}
               </AppText>
             ) : (
-              <Badge
-                variant={BadgeVariant.Critical}
-                icon="status-locked"
-                showIcon
-                text={m.devices_state_blocked()}
-              />
+              blockedBadge
             )}
           </TableCell>
         ),
@@ -228,9 +234,7 @@ export const DevicesOverviewTable = () => {
                 size={osIconSize}
                 staticColor={ThemeVariable.FgNeutral}
               />
-              <span>
-                {[policyOsVariantToText(osType), osVersion].filter(Boolean).join(' ')}
-              </span>
+              <span>{systemText(osType, osVersion)}</span>
             </TableCell>
           );
         },
@@ -267,27 +271,11 @@ export const DevicesOverviewTable = () => {
         header: m.devices_col_connection(),
         size: 140,
         minSize: 120,
-        cell: (info) => {
-          const connected = info.getValue();
-          return (
-            <TableCell>
-              {connected ? (
-                <Badge
-                  variant={BadgeVariant.Success}
-                  showIcon
-                  text={m.devices_connection_online()}
-                />
-              ) : (
-                <Badge
-                  variant={BadgeVariant.Neutral}
-                  showIcon
-                  removeBackground
-                  text={m.devices_connection_offline()}
-                />
-              )}
-            </TableCell>
-          );
-        },
+        cell: (info) => (
+          <TableCell>
+            <ConnectionBadge connected={info.getValue()} />
+          </TableCell>
+        ),
       }),
       columnHelper.display({
         id: 'edit',
@@ -367,6 +355,7 @@ export const DevicesOverviewTable = () => {
           subtitle={m.search_empty_common_subtitle()}
         />
       )}
+      <DeviceDetailsDrawer device={selectedDevice} onClose={closeDrawer} />
     </>
   );
 };
