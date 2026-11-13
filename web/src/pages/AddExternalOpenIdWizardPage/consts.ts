@@ -6,6 +6,7 @@ import {
   type DirectorySyncBehaviorValue,
   DirectorySyncTarget,
   type DirectorySyncTargetValue,
+  type OpenIdProviderKindValue,
   OpenIdProviderUsernameHandling,
   type OpenIdProviderUsernameHandlingValue,
   type TestDirectorySyncResponse,
@@ -103,3 +104,29 @@ export const jumpcloudRegionOptions: SelectOption<JumpCloudRegion>[] = [
 
 export const formatMicrosoftBaseUrl = (tenantId: string) =>
   `https://login.microsoftonline.com/${tenantId}/v2.0`;
+
+export const externalProviderBaseUrlHelper: Record<
+  OpenIdProviderKindValue,
+  () => string
+> = {
+  Custom: m.settings_openid_provider_helper_base_url,
+  Google: m.settings_openid_provider_helper_base_url,
+  JumpCloud: m.settings_openid_provider_helper_base_url,
+  Microsoft: m.settings_openid_provider_helper_base_url,
+  Okta: m.settings_openid_provider_helper_base_url,
+  Zitadel: m.settings_openid_provider_helper_base_url,
+  Keycloak: m.settings_openid_provider_helper_keycloak_base_url,
+};
+
+export const externalProviderBaseUrlLabel: Record<
+  OpenIdProviderKindValue,
+  () => string
+> = {
+  Custom: m.settings_openid_provider_label_base_url,
+  Google: m.settings_openid_provider_label_base_url,
+  JumpCloud: m.settings_openid_provider_label_base_url,
+  Microsoft: m.settings_openid_provider_label_base_url,
+  Okta: m.settings_openid_provider_label_base_url,
+  Zitadel: m.settings_openid_provider_label_base_url,
+  Keycloak: m.settings_openid_provider_label_keycloak_base_url,
+};

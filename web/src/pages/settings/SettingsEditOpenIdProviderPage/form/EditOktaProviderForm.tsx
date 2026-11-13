@@ -13,6 +13,8 @@ import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
+  externalProviderBaseUrlHelper,
+  externalProviderBaseUrlLabel,
   providerUsernameHandlingOptions,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
@@ -143,8 +145,8 @@ export const EditOktaProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_base_url()}
-                helper={m.settings_openid_provider_helper_base_url()}
+                label={externalProviderBaseUrlLabel[provider.kind]()}
+                helper={externalProviderBaseUrlHelper[provider.kind]()}
               />
             )}
           </form.AppField>
