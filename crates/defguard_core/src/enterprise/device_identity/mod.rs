@@ -1,3 +1,7 @@
+mod challenge_data;
+
+pub use challenge_data::{AttestationData, qualifying_data};
+
 use defguard_common::db::{Id, models::Device};
 use defguard_proto::device_identity::{
     AttestationChallenge, AttestationChallengeSolution, AttestationIdentity, IdentityState,
@@ -25,3 +29,6 @@ pub fn verify_attestation(
         "Device attestation verification is not implemented",
     ))
 }
+
+#[cfg(test)]
+mod tests;
