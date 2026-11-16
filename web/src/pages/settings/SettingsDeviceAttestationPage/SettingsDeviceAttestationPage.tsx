@@ -5,6 +5,7 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { DeviceAttestationCertificates } from './components/DeviceAttestationCertificates/DeviceAttestationCertificates';
+import './style.scss';
 
 const breadcrumbs = [
   <Link to="/settings" search={{ tab: 'general' }} key={0}>
@@ -19,7 +20,7 @@ export const SettingsDeviceAttestationPage = () => {
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
-      <SettingsLayout>
+      <SettingsLayout className="settings-device-attestation">
         <SettingsHeader
           icon="device-attestation"
           title={m.settings_device_attestation_title()}
