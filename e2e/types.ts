@@ -42,7 +42,6 @@ export type ApiUser = {
 
 export type ApiUserProfile = {
   user: ApiUser;
-  devices: ApiDevice[];
 };
 
 export type User = {
