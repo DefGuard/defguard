@@ -8,9 +8,7 @@ const testParaglideDir = path.resolve(
   './node_modules/.paraglide-test',
 );
 
-// The app build emits one module per message (~2.6k files), which every test worker
-// would have to transform and evaluate on its own. Tests use a single-file-per-locale
-// compile instead.
+// The app build emits one module per message which every test worker would have to transform and evaluate on its own. Tests use a single-file-per-locale compile instead.
 const redirectParaglide = (): Plugin => ({
   name: 'redirect-paraglide-to-test-build',
   enforce: 'pre',
