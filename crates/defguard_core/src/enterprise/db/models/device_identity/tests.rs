@@ -492,9 +492,9 @@ async fn test_polling_and_posture_challenges_enforce_scope_expiry_and_single_use
                 None
             ),
         );
-        let consumed = match (first.unwrap(), second.unwrap()) {
-            (Some(consumed), None) | (None, Some(consumed)) => consumed,
-            _ => panic!("expected exactly one successful consumption"),
+        let ((Some(consumed), None) | (None, Some(consumed))) = (first.unwrap(), second.unwrap())
+        else {
+            panic!("expected exactly one successful consumption");
         };
         assert_eq!(consumed.data, vec![0, 255, 128]);
         assert!(consumed.consumed_at.is_some());

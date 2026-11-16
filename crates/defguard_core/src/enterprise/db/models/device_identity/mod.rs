@@ -93,8 +93,7 @@ impl DeviceIdentity {
         )
         .execute(&mut *transaction)
         .await?;
-        let device = sqlx::query_as!(
-            Device,
+        sqlx::query!(
             "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 \
              RETURNING id, name, wireguard_pubkey, user_id, created, description, \
              device_type AS \"device_type: DeviceType\", configured, \
@@ -105,6 +104,9 @@ impl DeviceIdentity {
         )
         .fetch_one(&mut *transaction)
         .await?;
+        let device = Device::find_by_id(&mut *transaction, self.device_id)
+            .await?
+            .ok_or(DeviceIdentityError::DeviceNotFound)?;
         transaction.commit().await?;
         Ok(device)
     }

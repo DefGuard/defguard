@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import type { AxiosError } from 'axios';
 import { cloneDeep, omit } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import type { ApiError } from '../../../shared/api/types';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
@@ -13,6 +15,7 @@ import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkb
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
@@ -57,6 +60,10 @@ export const AddLocationFirewallStep = () => {
           }, 100);
         });
       }
+    },
+    onError: (error: AxiosError<ApiError>) => {
+      const msg = error.response?.status === 400 ? error.response.data?.msg : undefined;
+      Snackbar.error(msg ?? m.error_unknown());
     },
   });
 
