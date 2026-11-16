@@ -140,3 +140,6 @@ wiremock = "0.6"
 
 [build-dependencies]
 tonic-prost-build.workspace = true
+
+[lints]
+workspace = true

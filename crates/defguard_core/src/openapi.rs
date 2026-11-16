@@ -81,6 +81,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         user::add_user,
         user::username_available,
         user::bulk_delete_users,
+        resource_display::get_users_display,
         user::bulk_disable_users,
         user::bulk_enable_users,
         user::bulk_start_enrollment,

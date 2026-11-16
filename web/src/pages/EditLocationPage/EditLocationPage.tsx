@@ -2,12 +2,14 @@ import './style.scss';
 
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import type { AxiosError } from 'axios';
 import { cloneDeep, isEqual, omit } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
+  type ApiError,
   type EditNetworkLocation,
   type GroupClientMtu,
   LicenseFeature,
@@ -58,7 +60,6 @@ import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
-import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { confirmLocationPostureChange } from '../../shared/utils/postureWarning';
 import { Validate } from '../../shared/validate';
 import postureCheckShield from './assets/posture_check_shield.png';
@@ -475,12 +476,6 @@ const EditLocationForm = ({
     );
   }, [postureChecksSectionState.locked]);
 
-  const { data: devices } = useQuery({
-    queryKey: ['device', 'all'],
-    queryFn: api.device.getDevices,
-    select: (resp) => resp.data,
-  });
-
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
     queryKey: ['group'],
@@ -521,8 +516,9 @@ const EditLocationForm = ({
         replace: true,
       });
     },
-    onError: () => {
-      Snackbar.error(m.location_edit_failed());
+    onError: (error: AxiosError<ApiError>) => {
+      const msg = error.response?.status === 400 ? error.response.data?.msg : undefined;
+      Snackbar.error(msg ?? m.location_edit_failed());
     },
   });
 
@@ -599,15 +595,6 @@ const EditLocationForm = ({
     onSubmit: async ({ value }) => {
       if (value.mfa_enabled && !editedMfaFlows.some((flow) => flow.is_default)) {
         setMfaFlowError(m.add_location_mfa_flow_required());
-        return;
-      }
-
-      const deviceCount = Array.isArray(devices) ? devices.length : 0;
-      const network_size = smallestNetworkCapacity(value.address);
-      if (deviceCount > network_size) {
-        Snackbar.error(
-          m.location_error_network_too_small({ network_size, device_count: deviceCount }),
-        );
         return;
       }
 

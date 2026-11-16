@@ -7,6 +7,7 @@ mod common;
 mod component_setup;
 mod connection_event;
 mod core_certs;
+mod device_overview;
 mod device_posture;
 mod enrollment;
 mod enterprise_settings;

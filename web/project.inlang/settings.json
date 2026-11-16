@@ -34,7 +34,8 @@
       "./messages/{locale}/acl.json",
       "./messages/{locale}/postures.json",
       "./messages/{locale}/mfa_flow.json",
-      "./messages/{locale}/traffic.json"
+      "./messages/{locale}/traffic.json",
+      "./messages/{locale}/devices.json"
     ]
   }
 }

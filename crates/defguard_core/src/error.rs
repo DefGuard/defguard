@@ -172,7 +172,7 @@ impl From<DeviceError> for WebError {
 impl From<WireguardNetworkError> for WebError {
     fn from(error: WireguardNetworkError) -> Self {
         match error {
-            WireguardNetworkError::NetworkTooSmall
+            WireguardNetworkError::NetworkTooSmall { .. }
             | WireguardNetworkError::IpNetworkError(_)
             | WireguardNetworkError::InvalidDevicePubkey(_) => Self::BadRequest(error.to_string()),
             WireguardNetworkError::DbError(_)

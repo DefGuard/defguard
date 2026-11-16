@@ -4,7 +4,7 @@ mod support;
 use defguard_common::{
     db::models::{
         ConnectionDirection, ConnectionStatus,
-        device::{DeviceInfo, WireguardNetworkDevice},
+        device::{DeviceInfo, DeviceState, WireguardNetworkDevice},
     },
     gateway_event::GatewayCommand,
 };

@@ -25,6 +25,7 @@
   "cmp_nav_item_mfa": "MFA Flow",
   "cmp_nav_item_users": "Users",
   "cmp_nav_item_groups": "Groups",
+  "cmp_nav_item_devices": "Devices",
   "cmp_nav_item_enrollment": "Enrollment",
   "cmp_nav_item_network_devices": "Network Devices",
   "cmp_nav_item_openid": "OpenID applications",

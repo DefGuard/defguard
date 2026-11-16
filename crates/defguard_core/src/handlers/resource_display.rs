@@ -41,3 +41,34 @@ pub async fn get_locations_display(
 
     Ok(ApiResponse::json(resources, StatusCode::OK))
 }
+
+/// List users reduced to their ID and full name
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/api/v1/user-display",
+    tag = "user",
+    responses(
+        (status = 200, description = "All users, reduced to their ID and full name.", body = [Object], example = json!([{"id": 1, "display": "Harry Potter"}])),
+        (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Unable to list users.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+))]
+pub async fn get_users_display(
+    _admin: AdminRole,
+    Extension(pool): Extension<sqlx::PgPool>,
+) -> ApiResult {
+    let resources = sqlx::query_as!(
+        ResourceDisplay,
+        "SELECT id, first_name || ' ' || last_name \"display!\" FROM \"user\" \
+        ORDER BY first_name, last_name, id"
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(ApiResponse::json(resources, StatusCode::OK))
+}

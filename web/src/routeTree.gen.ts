@@ -28,6 +28,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as ErrorMigrationAuthRouteImport } from './routes/error/migration-auth'
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
+import { Route as AuthorizedDefaultDevicesRouteImport } from './routes/_authorized/_default/devices'
 import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized/_default/edges'
 import { Route as AuthorizedDefaultEnrollmentRouteImport } from './routes/_authorized/_default/enrollment'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
@@ -173,6 +174,12 @@ const AuthorizedDefaultActivityRoute =
   AuthorizedDefaultActivityRouteImport.update({
     id: '/activity',
     path: '/activity',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultDevicesRoute =
+  AuthorizedDefaultDevicesRouteImport.update({
+    id: '/devices',
+    path: '/devices',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultEdgesRoute = AuthorizedDefaultEdgesRouteImport.update({
@@ -497,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/devices': typeof AuthorizedDefaultDevicesRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
   '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
@@ -567,6 +575,7 @@ export interface FileRoutesByTo {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/devices': typeof AuthorizedDefaultDevicesRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
   '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
@@ -641,6 +650,7 @@ export interface FileRoutesById {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
+  '/_authorized/_default/devices': typeof AuthorizedDefaultDevicesRoute
   '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
   '/_authorized/_default/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth/'
     | '/activity'
+    | '/devices'
     | '/edges'
     | '/enrollment'
     | '/groups'
@@ -784,6 +795,7 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth'
     | '/activity'
+    | '/devices'
     | '/edges'
     | '/enrollment'
     | '/groups'
@@ -857,6 +869,7 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth/'
     | '/_authorized/_default/activity'
+    | '/_authorized/_default/devices'
     | '/_authorized/_default/edges'
     | '/_authorized/_default/enrollment'
     | '/_authorized/_default/groups'
@@ -1060,6 +1073,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof AuthorizedDefaultActivityRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/devices': {
+      id: '/_authorized/_default/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AuthorizedDefaultDevicesRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/edges': {
@@ -1446,6 +1466,7 @@ const AuthorizedDefaultAclPostureChecksRouteWithChildren =
 
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
+  AuthorizedDefaultDevicesRoute: typeof AuthorizedDefaultDevicesRoute
   AuthorizedDefaultEdgesRoute: typeof AuthorizedDefaultEdgesRoute
   AuthorizedDefaultEnrollmentRoute: typeof AuthorizedDefaultEnrollmentRoute
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
@@ -1489,6 +1510,7 @@ interface AuthorizedDefaultRouteChildren {
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultActivityRoute: AuthorizedDefaultActivityRoute,
+  AuthorizedDefaultDevicesRoute: AuthorizedDefaultDevicesRoute,
   AuthorizedDefaultEdgesRoute: AuthorizedDefaultEdgesRoute,
   AuthorizedDefaultEnrollmentRoute: AuthorizedDefaultEnrollmentRoute,
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,

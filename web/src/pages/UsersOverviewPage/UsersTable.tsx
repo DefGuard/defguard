@@ -65,6 +65,7 @@ import {
   getSettingsQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
+import { userDeviceActions } from '../../shared/utils/userDeviceActions';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
@@ -652,53 +653,25 @@ export const UsersTable = () => {
         {
           text: m.controls_edit(),
           icon: 'edit',
-          onClick: () => {
-            openModal(ModalName.EditUserDevice, {
+          onClick: () =>
+            userDeviceActions.openEdit(username, {
               device,
               reservedNames: reservedDeviceNames,
               reservedPubkeys,
-              username,
-              hidePubkey: false,
-            });
-          },
+            }),
         },
         {
           text: m.profile_devices_menu_ip_settings(),
           icon: 'gateway',
           testId: 'assign-device-ip',
-          onClick: () => {
-            api.device
-              .getDeviceIps(username, device.id)
-              .then(({ data: locationData }) => {
-                openModal(ModalName.AssignUserDeviceIP, {
-                  device,
-                  username,
-                  locationData,
-                });
-              })
-              .catch((error) => {
-                Snackbar.error(m.profile_devices_ip_settings_load_failed());
-                console.error(error);
-              });
-          },
+          onClick: () => userDeviceActions.openIpSettings(username, device),
         },
       ];
 
       if (device.networks.some((n) => !n.mfa_enabled)) {
         items.push({
           text: m.profile_devices_menu_show_config(),
-          onClick: () => {
-            api.device.getDeviceConfigs(device).then((modalData) => {
-              const hasConfigs = modalData.configs.some(
-                (c) => !c.mfa_enabled && !c.posture_check_required,
-              );
-              if (!hasConfigs) {
-                Snackbar.error(m.profile_devices_config_no_locations());
-                return;
-              }
-              openModal(ModalName.UserDeviceConfig, modalData);
-            });
-          },
+          onClick: () => userDeviceActions.openConfig(device),
           icon: 'config',
         });
       }
