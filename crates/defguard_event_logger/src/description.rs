@@ -98,6 +98,15 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             before: _,
             after,
         } => Some(format!("Modified device {after} owned by user {owner}")),
+        ApiEventType::UserDeviceVerified { owner, device } => Some(format!(
+            "Manually verified device {device} owned by user {owner}"
+        )),
+        ApiEventType::UserDeviceVerificationRevoked { owner, device } => Some(format!(
+            "Revoked verification of device {device} owned by user {owner}"
+        )),
+        ApiEventType::UserDeviceBlocked { owner, device } => {
+            Some(format!("Blocked device {device} owned by user {owner}"))
+        }
         ApiEventType::NetworkDeviceAdded { device, location } => Some(format!(
             "Added network device {device} to location {location}"
         )),
@@ -110,6 +119,15 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             location,
         } => Some(format!(
             "Modified network device {after} in location {location}"
+        )),
+        ApiEventType::NetworkDeviceVerified { device, location } => Some(format!(
+            "Manually verified network device {device} in location {location}"
+        )),
+        ApiEventType::NetworkDeviceVerificationRevoked { device, location } => Some(format!(
+            "Revoked verification of network device {device} in location {location}"
+        )),
+        ApiEventType::NetworkDeviceBlocked { device, location } => Some(format!(
+            "Blocked network device {device} in location {location}"
         )),
         ApiEventType::ActivityLogStreamCreated { stream } => Some(format!(
             "Created {} activity log stream {}",

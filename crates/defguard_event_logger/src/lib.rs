@@ -258,6 +258,30 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                ApiEventType::UserDeviceVerified { owner, device } => (
+                    EventType::DeviceVerified,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
+                ApiEventType::UserDeviceVerificationRevoked { owner, device } => (
+                    EventType::DeviceVerificationRevoked,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
+                ApiEventType::UserDeviceBlocked { owner, device } => (
+                    EventType::DeviceBlocked,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
                 ApiEventType::UserGroupsModified {
                     user,
                     before,
@@ -405,6 +429,18 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                         location,
                     })
                     .ok(),
+                ),
+                ApiEventType::NetworkDeviceVerified { device, location } => (
+                    EventType::NetworkDeviceVerified,
+                    serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
+                ),
+                ApiEventType::NetworkDeviceVerificationRevoked { device, location } => (
+                    EventType::NetworkDeviceVerificationRevoked,
+                    serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
+                ),
+                ApiEventType::NetworkDeviceBlocked { device, location } => (
+                    EventType::NetworkDeviceBlocked,
+                    serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
                 ),
                 ApiEventType::VpnLocationAdded { location } => (
                     EventType::VpnLocationAdded,

@@ -61,3 +61,6 @@ test-support = ["tokio/net", "tokio/io-util"]
 
 [build-dependencies]
 vergen-git2 = "10.0"
+
+[lints]
+workspace = true
