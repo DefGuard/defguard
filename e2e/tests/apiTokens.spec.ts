@@ -17,10 +17,6 @@ test.describe('API tokens management', () => {
   });
 
   test('Add API token as default admin', async ({ page }) => {
-    test.skip(
-      !!process.env.CI,
-      'TODO: add waitForRoute to wait for license info to load',
-    );
     await waitForBase(page);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(
@@ -43,10 +39,6 @@ test.describe('API tokens management', () => {
   });
 
   test('Add API token as new user with admin privileges', async ({ page, browser }) => {
-    test.skip(
-      !!process.env.CI,
-      'TODO: add waitForRoute to wait for license info to load',
-    );
     await waitForBase(page);
     await createUser(browser, testUser, ['admin']);
     await loginBasic(page, testUser);

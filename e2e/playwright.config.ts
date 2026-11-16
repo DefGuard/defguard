@@ -31,7 +31,6 @@ export default defineConfig({
   // Exclude files that consist entirely of skipped tests to avoid Playwright
   // collecting and reporting them as empty suites on every shard.
   testIgnore: [
-    '**/enrollment.spec.ts',
     '**/externalopenid.spec.ts',
     '**/externalopenidmfa.spec.ts',
     '**/openid.spec.ts',

@@ -56,7 +56,6 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
   });
 
   test('Add authentication key (SSH)', async ({ page }) => {
-    test.skip(!!process.env.CI, 'TODO: fix waitForResponse race condition');
     await page.goto(
       routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
     );
@@ -90,7 +89,6 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
   });
 
   test('Add authentication key (GPG)', async ({ page }) => {
-    test.skip(!!process.env.CI, 'TODO: fix waitForResponse race condition');
     await page.goto(
       routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
     );
