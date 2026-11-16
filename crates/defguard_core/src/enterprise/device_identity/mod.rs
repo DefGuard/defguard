@@ -1,4 +1,5 @@
 mod challenge_data;
+pub mod tpm;
 
 pub use challenge_data::{AttestationData, qualifying_data};
 
