@@ -16,7 +16,7 @@ use sha2_10::{Digest, Sha256};
 
 // Independent RustCrypto implementation of the receiving half of MakeCredential.
 // Production uses OpenSSL and never imports these helpers.
-pub(super) enum Ek {
+pub(in crate::enterprise::device_identity) enum Ek {
     Ecc(p256::SecretKey),
     Rsa(Box<RsaPrivateKey>),
 }
@@ -24,7 +24,7 @@ pub(super) enum Ek {
 static RSA_KEY: LazyLock<RsaPrivateKey> =
     LazyLock::new(|| RsaPrivateKey::new(&mut OsRng, 2048).unwrap());
 
-pub(super) struct Fixture {
+pub(in crate::enterprise::device_identity) struct Fixture {
     pub ek: Ek,
     pub ak: SigningKey,
     pub identity: SigningKey,
@@ -32,7 +32,7 @@ pub(super) struct Fixture {
     pub identity_public: Vec<u8>,
 }
 
-pub(super) fn sized(output: &mut Vec<u8>, bytes: &[u8]) {
+pub(in crate::enterprise::device_identity) fn sized(output: &mut Vec<u8>, bytes: &[u8]) {
     output.extend_from_slice(&(bytes.len() as u16).to_be_bytes());
     output.extend_from_slice(bytes);
 }
@@ -51,7 +51,10 @@ fn ecc_point(output: &mut Vec<u8>, key: &p256::PublicKey) {
     sized(output, point.y().unwrap());
 }
 
-fn signing_public(key: &SigningKey, restricted: bool) -> Vec<u8> {
+pub(in crate::enterprise::device_identity) fn signing_public(
+    key: &SigningKey,
+    restricted: bool,
+) -> Vec<u8> {
     let mut bytes = header(
         0x0023,
         0x0004_0472 | if restricted { 0x0001_0000 } else { 0 },
@@ -66,12 +69,12 @@ fn signing_public(key: &SigningKey, restricted: bool) -> Vec<u8> {
     bytes
 }
 
-pub(super) fn name(public: &[u8]) -> Vec<u8> {
+pub(in crate::enterprise::device_identity) fn name(public: &[u8]) -> Vec<u8> {
     [0x000bu16.to_be_bytes().as_slice(), &Sha256::digest(public)].concat()
 }
 
 impl Fixture {
-    pub(super) fn new(rsa: bool) -> Self {
+    pub(in crate::enterprise::device_identity) fn new(rsa: bool) -> Self {
         let ek = if rsa {
             Ek::Rsa(Box::new(RSA_KEY.clone()))
         } else {
@@ -110,7 +113,11 @@ impl Fixture {
         }
     }
 
-    pub(super) fn response(&self, secret: Vec<u8>, data: &[u8]) -> TpmAttestationResponse {
+    pub(in crate::enterprise::device_identity) fn response(
+        &self,
+        secret: Vec<u8>,
+        data: &[u8],
+    ) -> TpmAttestationResponse {
         let mut attest = 0xff54_4347u32.to_be_bytes().to_vec();
         attest.extend_from_slice(&0x8017u16.to_be_bytes());
         sized(&mut attest, &name(&self.metadata.ak_public));
@@ -135,7 +142,10 @@ impl Fixture {
         response
     }
 
-    pub(super) fn sign(&self, response: &mut TpmAttestationResponse) {
+    pub(in crate::enterprise::device_identity) fn sign(
+        &self,
+        response: &mut TpmAttestationResponse,
+    ) {
         let evidence = response.evidence.as_mut().unwrap();
         let signature: p256::ecdsa::Signature = self.ak.sign(&evidence.attest);
         evidence.signature = Some(Signature {
@@ -166,7 +176,7 @@ fn kdfa(seed: &[u8], label: &[u8], context: &[u8], bits: u32) -> Vec<u8> {
     mac.finalize().into_bytes()[..bits as usize / 8].to_vec()
 }
 
-pub(super) fn activate(
+pub(in crate::enterprise::device_identity) fn activate(
     fixture: &Fixture,
     challenge: &defguard_proto::device_identity::CredentialChallenge,
     ak_name: &[u8],

@@ -193,3 +193,74 @@ fn test_qualifying_data_hashes_the_exact_issued_bytes() {
         qualifying_data(&reordered_bytes)
     );
 }
+
+#[tokio::test]
+async fn test_start_rejects_missing_unsupported_or_invalid_identity_without_persistence() {
+    let mut settings = defguard_common::db::models::Settings::default();
+    settings.enrollment_session_timeout_minutes = 30;
+    defguard_common::db::models::settings::set_settings(Some(settings));
+    use defguard_proto::device_identity::{
+        AppleAttestationIdentity, AttestationIdentity, TpmAttestationIdentity,
+        attestation_identity::Backend,
+    };
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .connect_lazy("postgres://unused:unused@localhost/unused")
+        .unwrap();
+    for (backend, expected) in [
+        (None, tonic::Code::InvalidArgument),
+        (
+            Some(Backend::AppleAppAttest(AppleAttestationIdentity {
+                key_id: "key".into(),
+            })),
+            tonic::Code::Unimplemented,
+        ),
+        (
+            Some(Backend::Tpm(TpmAttestationIdentity::default())),
+            tonic::Code::InvalidArgument,
+        ),
+    ] {
+        let mut token = enrollment();
+        token.used_at = Some(chrono::Utc::now().naive_utc());
+        let result = super::generate_attestation_challenge(
+            &pool,
+            &token,
+            &device(),
+            &AttestationIdentity { backend },
+        )
+        .await;
+        assert_eq!(result.err().unwrap().code(), expected);
+    }
+}
+
+#[tokio::test]
+async fn test_finish_rejects_absent_unsupported_or_reported_failure_without_persistence() {
+    use defguard_proto::device_identity::{
+        AppleEvidence, AttestationChallengeSolution, IdentityErrorCode,
+        attestation_challenge_solution::Result,
+    };
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .connect_lazy("postgres://unused:unused@localhost/unused")
+        .unwrap();
+    for (result, expected) in [
+        (None, tonic::Code::InvalidArgument),
+        (
+            Some(Result::AppleAppAttest(AppleEvidence::default())),
+            tonic::Code::Unimplemented,
+        ),
+        (
+            Some(Result::Error(IdentityErrorCode::BackendFailure.into())),
+            tonic::Code::FailedPrecondition,
+        ),
+        (
+            Some(Result::Error(i32::MAX)),
+            tonic::Code::FailedPrecondition,
+        ),
+    ] {
+        let solution = AttestationChallengeSolution {
+            session_id: "challenge".into(),
+            result,
+        };
+        let result = super::verify_attestation(&pool, &enrollment(), &device(), &solution).await;
+        assert_eq!(result.err().unwrap().code(), expected);
+    }
+}

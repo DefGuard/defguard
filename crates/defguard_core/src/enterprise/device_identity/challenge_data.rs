@@ -48,15 +48,7 @@ impl AttestationData {
         session_timeout: Duration,
         now: NaiveDateTime,
     ) -> Result<Self, Status> {
-        let used_at = enrollment
-            .used_at
-            .ok_or_else(|| Status::unauthenticated("enrollment session has not started"))?;
-        let timeout = TimeDelta::from_std(session_timeout)
-            .map_err(|_| Status::internal("invalid enrollment session timeout"))?;
-        let expires_at = used_at
-            .checked_add_signed(timeout)
-            .and_then(|deadline| deadline.with_nanosecond(0))
-            .ok_or_else(|| Status::internal("invalid enrollment session deadline"))?;
+        let expires_at = session_deadline(enrollment, session_timeout)?;
         if now >= expires_at {
             return Err(Status::unauthenticated("enrollment session has expired"));
         }
@@ -113,4 +105,19 @@ impl AttestationData {
 /// Computes TPM qualifying data from the exact issued bytes without decoding or reserializing them.
 pub fn qualifying_data(data: &[u8]) -> [u8; 32] {
     Sha256::digest(data).into()
+}
+
+pub(super) fn session_deadline(
+    enrollment: &Token,
+    session_timeout: Duration,
+) -> Result<NaiveDateTime, Status> {
+    let used_at = enrollment
+        .used_at
+        .ok_or_else(|| Status::unauthenticated("enrollment session has not started"))?;
+    let timeout = TimeDelta::from_std(session_timeout)
+        .map_err(|_| Status::internal("invalid enrollment session timeout"))?;
+    used_at
+        .checked_add_signed(timeout)
+        .and_then(|deadline| deadline.with_nanosecond(0))
+        .ok_or_else(|| Status::internal("invalid enrollment session deadline"))
 }

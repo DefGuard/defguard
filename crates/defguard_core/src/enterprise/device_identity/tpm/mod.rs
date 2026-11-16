@@ -70,4 +70,4 @@ fn check_certificates(certificates: &[Vec<u8>]) -> Result<()> {
 mod tests;
 
 #[cfg(test)]
-mod test_support;
+pub(super) mod test_support;

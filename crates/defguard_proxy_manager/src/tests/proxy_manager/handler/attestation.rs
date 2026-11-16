@@ -79,7 +79,7 @@ async fn assert_attestation_error(
     context: &mut HandlerTestContext,
     token: &str,
     device_id: Id,
-    expected: Code,
+    expected: [Code; 2],
 ) {
     for (operation, payload) in attestation_requests(token, device_id)
         .into_iter()
@@ -88,14 +88,14 @@ async fn assert_attestation_error(
         let response = send_attestation_request(context, payload).await;
         assert_eq!(
             assert_error_response(&response),
-            expected,
+            expected[operation],
             "attestation operation {operation}"
         );
     }
 }
 
 #[sqlx::test]
-async fn test_attestation_stubs_preserve_device_and_enrollment_session(
+async fn test_invalid_attestation_preserves_device_and_enrollment_session(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -132,9 +132,16 @@ async fn test_attestation_stubs_preserve_device_and_enrollment_session(
             }),
         },
     ));
-    for payload in requests {
+    for (operation, payload) in requests.into_iter().enumerate() {
         let response = send_attestation_request(&mut context, payload).await;
-        assert_eq!(assert_error_response(&response), Code::Unimplemented);
+        assert_eq!(
+            assert_error_response(&response),
+            [
+                Code::InvalidArgument,
+                Code::FailedPrecondition,
+                Code::FailedPrecondition
+            ][operation]
+        );
         assert_eq!(
             Device::find_by_id(&context.pool, device.id)
                 .await
@@ -184,7 +191,13 @@ async fn test_attestation_requires_an_active_enrollment_session(
     complete_proxy_handshake(&mut context).await;
     let (user, device) = create_user_with_device(&context.pool).await;
     let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
-    assert_attestation_error(&mut context, &token.id, device.id, Code::Unauthenticated).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::Unauthenticated; 2],
+    )
+    .await;
     assert!(
         Token::find_by_id(&context.pool, &token.id)
             .await
@@ -196,7 +209,7 @@ async fn test_attestation_requires_an_active_enrollment_session(
         &mut context,
         "nonexistent-token",
         device.id,
-        Code::Unauthenticated,
+        [Code::Unauthenticated; 2],
     )
     .await;
 
@@ -214,7 +227,13 @@ async fn test_attestation_requires_an_active_enrollment_session(
             - TimeDelta::seconds(1),
     );
     expired.save(&context.pool).await.unwrap();
-    assert_attestation_error(&mut context, &expired.id, device.id, Code::Unauthenticated).await;
+    assert_attestation_error(
+        &mut context,
+        &expired.id,
+        device.id,
+        [Code::Unauthenticated; 2],
+    )
+    .await;
 
     for token_type in [MFA_CONFIG_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE] {
         let mut wrong_type = Token::new(user.id, None, None, 3600, Some(token_type.into()));
@@ -224,12 +243,18 @@ async fn test_attestation_requires_an_active_enrollment_session(
             &mut context,
             &wrong_type.id,
             device.id,
-            Code::PermissionDenied,
+            [Code::PermissionDenied; 2],
         )
         .await;
     }
     start_enrollment_session(&mut context, &token.id).await;
-    assert_attestation_error(&mut context, &token.id, device.id, Code::Unimplemented).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::InvalidArgument, Code::FailedPrecondition],
+    )
+    .await;
     context.finish().await.expect_server_finished().await;
 }
 
@@ -242,10 +267,22 @@ async fn test_attestation_rejects_disabled_users(_: PgPoolOptions, options: PgCo
     start_enrollment_session(&mut context, &token.id).await;
     user.is_active = false;
     user.save(&context.pool).await.unwrap();
-    assert_attestation_error(&mut context, &token.id, device.id, Code::PermissionDenied).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::PermissionDenied; 2],
+    )
+    .await;
     user.is_active = true;
     user.save(&context.pool).await.unwrap();
-    assert_attestation_error(&mut context, &token.id, device.id, Code::Unimplemented).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::InvalidArgument, Code::FailedPrecondition],
+    )
+    .await;
     context.finish().await.expect_server_finished().await;
 }
 
@@ -264,17 +301,23 @@ async fn test_attestation_rejects_missing_and_foreign_devices(
         &mut context,
         &token.id,
         foreign_device.id,
-        Code::PermissionDenied,
+        [Code::PermissionDenied; 2],
     )
     .await;
     assert_attestation_error(
         &mut context,
         &token.id,
         device.id.max(foreign_device.id) + 1,
-        Code::NotFound,
+        [Code::NotFound; 2],
     )
     .await;
-    assert_attestation_error(&mut context, &token.id, device.id, Code::Unimplemented).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::InvalidArgument, Code::FailedPrecondition],
+    )
+    .await;
     context.finish().await.expect_server_finished().await;
 }
 
@@ -302,7 +345,13 @@ async fn test_attestation_is_authorized_after_user_activation(
             .unwrap()
             .is_enrolled()
     );
-    assert_attestation_error(&mut context, &token.id, device.id, Code::Unimplemented).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::InvalidArgument, Code::FailedPrecondition],
+    )
+    .await;
     let after = Token::find_by_id(&context.pool, &token.id).await.unwrap();
     assert_eq!(after.used_at, before.used_at);
     context.finish().await.expect_server_finished().await;
@@ -337,7 +386,13 @@ async fn test_attestation_cannot_replace_an_existing_identity(
         .await
         .unwrap();
     drop(connection);
-    assert_attestation_error(&mut context, &token.id, device.id, Code::FailedPrecondition).await;
+    assert_attestation_error(
+        &mut context,
+        &token.id,
+        device.id,
+        [Code::FailedPrecondition; 2],
+    )
+    .await;
     assert!(
         DeviceIdentity::find_by_device_id(&context.pool, device.id)
             .await
