@@ -389,7 +389,6 @@ fn crl_to_pem(crl: &[u8]) -> String {
     pem
 }
 
-/// Reads Vendor\RootCA and Vendor\IntermediateCA certificates and the version.txt update date.
 fn extract_cab(
     cab: &[u8],
     vendors: &mut Vendors,

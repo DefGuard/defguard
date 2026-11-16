@@ -187,10 +187,10 @@ fn timestamp(seconds: i64) -> anyhow::Result<DateTime<Utc>> {
     DateTime::from_timestamp(seconds, 0).context("certificate validity is out of range")
 }
 
-/// Parses the DER, trimming any bytes after the certificate so the stored DER is canonical.
 pub fn describe(cert: &SourceCertificate, source: Source) -> anyhow::Result<Certificate> {
     let (rest, parsed) = parse_x509_certificate(&cert.der)
         .map_err(|err| anyhow::anyhow!("{}: invalid certificate: {err}", cert.origin))?;
+    // trailing bytes are dropped so the stored DER and its SHA-256 are canonical
     let der = &cert.der[..cert.der.len() - rest.len()];
     let subject = parsed.subject().to_string();
     let common_name = name_attr(parsed.subject().iter_common_name()).unwrap_or(subject.clone());
@@ -219,7 +219,6 @@ pub fn describe(cert: &SourceCertificate, source: Source) -> anyhow::Result<Cert
     })
 }
 
-/// Deduplicates by certificate SHA-256 and records every source that listed a certificate.
 #[derive(Default)]
 pub struct Merger {
     certificates: BTreeMap<String, Certificate>,

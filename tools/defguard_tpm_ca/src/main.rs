@@ -1,8 +1,3 @@
-//! Regenerates defguard_core/src/enterprise/tpm/tpm_ca_certificates.json, the TPM manufacturer CA
-//! bundle compiled into Core, from tpm-ca-certificates releases and Microsoft TrustedTpm.cab.
-//!
-//! Both sources are signature checked before use, which needs cosign and osslsigncode.
-
 mod bundle;
 mod sources;
 

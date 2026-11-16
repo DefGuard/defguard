@@ -186,7 +186,6 @@ pub enum TpmBundleError {
     NoRoots,
 }
 
-/// Roots are the only trust anchors. Intermediates only help build a chain up to a root.
 #[derive(Debug)]
 pub struct TpmTrustBundle {
     pub generated_at: DateTime<Utc>,
@@ -341,7 +340,6 @@ impl TpmTrustBundle {
         }
     }
 
-    /// Returns one page of matching certificates and the total number of matches.
     #[must_use]
     pub fn query(
         &self,
