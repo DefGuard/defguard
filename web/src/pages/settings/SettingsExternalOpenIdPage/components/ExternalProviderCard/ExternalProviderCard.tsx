@@ -10,6 +10,7 @@ import { ThemeVariable } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import google from './assets/google.png';
 import jumpcloud from './assets/jumpcloud.png';
+import keycloak from './assets/keycloak.png';
 import microsoft from './assets/microsoft.png';
 import okta from './assets/okta.png';
 import zitadel from './assets/zitadel.png';
@@ -30,7 +31,7 @@ const providerImage: Record<OpenIdProviderKindValue, ReactNode> = {
   Microsoft: <img src={microsoft} height={28} width={28} />,
   Okta: <img src={okta} height={32} width={32} />,
   Zitadel: <img src={zitadel} height={28} width={28} />,
-  Keycloak: <Icon size={20} icon="lock-closed" staticColor={ThemeVariable.FgAction} />,  //TODO: add icon
+  Keycloak: <img src={keycloak} height={32} width={32} />,
 };
 
 const providerDescription: Record<OpenIdProviderKindValue, string> = {
@@ -46,7 +47,7 @@ const providerDescription: Record<OpenIdProviderKindValue, string> = {
   Google:
     "Allow users to sign in securely with their Google accounts using Google's trusted authentication service.",
   Keycloak:
-    'Allow users to sign in with their Keycloak accounts using your self-hosted Keycloak identity and access management server.',
+    'Add authentication to applications and secure services with minimum effort. No need to deal with storing users or authenticating users.',
 };
 
 export const ExternalProviderCard = ({
