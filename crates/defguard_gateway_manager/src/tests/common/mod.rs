@@ -329,10 +329,12 @@ impl MockGatewayHarness {
         });
     }
 
-    pub(crate) fn send_connection_event(&self, event: monitor::ConnectionEvent) {
+    pub(crate) fn send_connection_events(&self, events: Vec<monitor::ConnectionEvent>) {
         self.send_request(CoreRequest {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
-            payload: Some(core_request::Payload::ConnectionEvent(event)),
+            payload: Some(core_request::Payload::ConnectionEvents(
+                monitor::ConnectionEvents { events },
+            )),
         });
     }
 

@@ -16,13 +16,13 @@ async fn test_stores_connection_event_after_config(_: PgPoolOptions, options: Pg
     // Sent before the configuration handshake, so it must be ignored.
     context
         .mock_gateway()
-        .send_connection_event(build_connection_event());
+        .send_connection_events(vec![build_connection_event()]);
 
     context.mock_gateway().send_config_request();
     let _ = context.mock_gateway_mut().recv_outbound().await;
     context
         .mock_gateway()
-        .send_connection_event(build_connection_event());
+        .send_connection_events(vec![build_connection_event()]);
 
     let events = wait_for_connection_events(&context.pool, 1).await;
     let event = &events[0];
@@ -55,35 +55,44 @@ async fn test_drops_malformed_connection_events(_: PgPoolOptions, options: PgCon
     context.mock_gateway().send_config_request();
     let _ = context.mock_gateway_mut().recv_outbound().await;
 
-    let mut event = build_connection_event();
-    event.source_ip_addr = vec![1, 2, 3];
-    context.mock_gateway().send_connection_event(event);
+    context.mock_gateway().send_connection_events(vec![
+        monitor::ConnectionEvent {
+            source_ip_addr: vec![1, 2, 3],
+            ..build_connection_event()
+        },
+        monitor::ConnectionEvent {
+            destination_port: Some(70_000),
+            ..build_connection_event()
+        },
+        monitor::ConnectionEvent {
+            timestamp: None,
+            ..build_connection_event()
+        },
+        monitor::ConnectionEvent {
+            direction: monitor::Direction::Unspecified.into(),
+            ..build_connection_event()
+        },
+        // Unknown enum values are treated as unspecified.
+        monitor::ConnectionEvent {
+            status: 7,
+            ..build_connection_event()
+        },
+        // Valid events.
+        monitor::ConnectionEvent {
+            source_port: None,
+            ..build_connection_event()
+        },
+        monitor::ConnectionEvent {
+            count: 2,
+            ..build_connection_event()
+        },
+    ]);
 
-    let mut event = build_connection_event();
-    event.destination_port = Some(70_000);
-    context.mock_gateway().send_connection_event(event);
-
-    let mut event = build_connection_event();
-    event.timestamp = None;
-    context.mock_gateway().send_connection_event(event);
-
-    let mut event = build_connection_event();
-    event.direction = monitor::Direction::Unspecified.into();
-    context.mock_gateway().send_connection_event(event);
-
-    // Unknown enum values are treated as unspecified.
-    let mut event = build_connection_event();
-    event.status = 7;
-    context.mock_gateway().send_connection_event(event);
-
-    let mut event = build_connection_event();
-    event.source_port = None;
-    context.mock_gateway().send_connection_event(event);
-
-    // Messages are handled in order, so once the last (valid) one is stored, the malformed
-    // ones have already been processed.
-    let events = wait_for_connection_events(&context.pool, 1).await;
+    // Stored in one statement, so both arrive together.
+    let mut events = wait_for_connection_events(&context.pool, 2).await;
+    events.sort_by_key(|event| event.count);
     assert_eq!(events[0].source_port, None);
+    assert_eq!(events[1].count, 2);
 
     context.finish().await.expect_server_finished().await;
 }

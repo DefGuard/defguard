@@ -619,30 +619,41 @@ impl GatewayHandler {
                                 }
                             }
                         }
-                        Some(core_request::Payload::ConnectionEvent(event)) => {
+                        Some(core_request::Payload::ConnectionEvents(batch)) => {
                             if !config_sent {
                                 warn!(
-                                    "Ignoring connection event from {} because it hasn't \
+                                    "Ignoring connection events from {} because it hasn't \
                                     authorized itself",
                                     self.gateway
                                 );
                                 continue;
                             }
 
-                            let Some(event) = try_proto_into_connection_event(
-                                &event,
-                                self.gateway.location_id,
-                                self.gateway.id,
-                            ) else {
+                            // Skip malformed events, store the rest.
+                            let events: Vec<_> = batch
+                                .events
+                                .iter()
+                                .filter_map(|event| {
+                                    try_proto_into_connection_event(
+                                        event,
+                                        self.gateway.location_id,
+                                        self.gateway.id,
+                                    )
+                                })
+                                .collect();
+                            let skipped = batch.events.len() - events.len();
+                            if skipped > 0 {
                                 warn!(
-                                    "Failed to parse connection event from {}. Skipping.",
+                                    "Skipping {skipped} malformed connection events from {}",
                                     self.gateway
                                 );
-                                continue;
-                            };
-                            if let Err(err) = event.save_with_device(&self.pool).await {
+                            }
+                            if let Err(err) =
+                                ConnectionEvent::save_all_with_device(&self.pool, &events).await
+                            {
                                 error!(
-                                    "Failed to store connection event from {}: {err}",
+                                    "Failed to store {} connection events from {}: {err}",
+                                    events.len(),
                                     self.gateway
                                 );
                             }
@@ -852,7 +863,7 @@ fn try_proto_into_connection_event(
             .ok()?
             .map(i32::from),
         rule_id: proto_event.rule_id,
-        // Set by `save_with_device`.
+        // Set by `save_all_with_device`.
         device_id: None,
         upload_bytes: i64::try_from(proto_event.upload_bytes).ok()?,
         download_bytes: i64::try_from(proto_event.download_bytes).ok()?,

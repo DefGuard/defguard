@@ -332,10 +332,7 @@ impl<I> User<I> {
             // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
             return true;
         }
-        if self.password_hash.is_some() || self.openid_sub.is_some() {
-            return true;
-        }
-        false
+        self.password_hash.is_some() || self.openid_sub.is_some()
     }
 
     /// LDAP-origin users already exist in the directory, so they stay in sync scope even before

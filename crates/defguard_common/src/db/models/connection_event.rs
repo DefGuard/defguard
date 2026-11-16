@@ -48,7 +48,7 @@ pub struct ConnectionEvent<I = NoId> {
     pub destination_port: Option<i32>,
     /// ACL rule that matched, if any.
     pub rule_id: Option<Id>,
-    /// VPN device taking part in the connection; see `save_with_device`.
+    /// VPN device taking part in the connection; see `save_all_with_device`.
     pub device_id: Option<Id>,
     /// Bytes sent by the VPN device.
     pub upload_bytes: i64,
@@ -59,52 +59,72 @@ pub struct ConnectionEvent<I = NoId> {
 }
 
 impl ConnectionEvent<NoId> {
-    /// Like `save`, but also sets `device_id` to the VPN device with one of the event's addresses
-    /// in its location, preferring the source of outbound and the destination of inbound traffic.
-    pub async fn save_with_device<'e, E>(self, executor: E) -> sqlx::Result<ConnectionEvent<Id>>
+    /// Stores `events` in one statement, setting `device_id` to the VPN device with an event's
+    /// address, preferring the source of outbound and the destination of inbound traffic.
+    pub async fn save_all_with_device<'e, E>(executor: E, events: &[Self]) -> sqlx::Result<u64>
     where
         E: PgExecutor<'e>,
     {
-        let (device_ip, peer_ip) = match self.direction {
-            ConnectionDirection::Outbound => (self.source_ip, self.destination_ip),
-            ConnectionDirection::Inbound => (self.destination_ip, self.source_ip),
-        };
-        let row = query!(
-            "INSERT INTO connection_event (location_id, gateway_id, timestamp, direction, status, \
+        if events.is_empty() {
+            return Ok(0);
+        }
+        let location_id: Vec<_> = events.iter().map(|e| e.location_id).collect();
+        let gateway_id: Vec<_> = events.iter().map(|e| e.gateway_id).collect();
+        let timestamp: Vec<_> = events.iter().map(|e| e.timestamp).collect();
+        let direction: Vec<_> = events.iter().map(|e| e.direction).collect();
+        let status: Vec<_> = events.iter().map(|e| e.status).collect();
+        let protocol: Vec<_> = events.iter().map(|e| e.protocol).collect();
+        let source_ip: Vec<_> = events.iter().map(|e| e.source_ip).collect();
+        let source_port: Vec<_> = events.iter().map(|e| e.source_port).collect();
+        let destination_ip: Vec<_> = events.iter().map(|e| e.destination_ip).collect();
+        let destination_port: Vec<_> = events.iter().map(|e| e.destination_port).collect();
+        let rule_id: Vec<_> = events.iter().map(|e| e.rule_id).collect();
+        let upload_bytes: Vec<_> = events.iter().map(|e| e.upload_bytes).collect();
+        let download_bytes: Vec<_> = events.iter().map(|e| e.download_bytes).collect();
+        let count: Vec<_> = events.iter().map(|e| e.count).collect();
+
+        // Addresses of devices in the batch's locations are looked up once, then joined.
+        let result = query!(
+            "WITH e AS (SELECT * FROM UNNEST($1::bigint[], $2::bigint[], $3::timestamp[], \
+            $4::connection_direction[], $5::connection_status[], $6::int[], $7::inet[], \
+            $8::int[], $9::inet[], $10::int[], $11::bigint[], $12::bigint[], $13::bigint[], \
+            $14::bigint[]) AS e(location_id, gateway_id, timestamp, direction, status, protocol, \
+            source_ip, source_port, destination_ip, destination_port, rule_id, upload_bytes, \
+            download_bytes, count)), \
+            ips AS (SELECT DISTINCT ON (wnd.wireguard_network_id, ip) \
+            wnd.wireguard_network_id location_id, ip, wnd.device_id \
+            FROM wireguard_network_device wnd, UNNEST(wnd.wireguard_ips) ip \
+            WHERE wnd.wireguard_network_id IN (SELECT location_id FROM e)) \
+            INSERT INTO connection_event (location_id, gateway_id, timestamp, direction, status, \
             protocol, source_ip, source_port, destination_ip, destination_port, rule_id, \
             device_id, upload_bytes, download_bytes, count) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, \
-            (SELECT device_id FROM wireguard_network_device \
-            WHERE wireguard_network_id = $1 \
-            AND ($12 = ANY(wireguard_ips) OR $13 = ANY(wireguard_ips)) \
-            ORDER BY $12 = ANY(wireguard_ips) DESC LIMIT 1), \
-            $14, $15, $16) \
-            RETURNING id, device_id",
-            self.location_id,
-            self.gateway_id,
-            self.timestamp,
-            &self.direction as &ConnectionDirection,
-            &self.status as &ConnectionStatus,
-            self.protocol,
-            &self.source_ip as &IpAddr,
-            self.source_port,
-            &self.destination_ip as &IpAddr,
-            self.destination_port,
-            self.rule_id,
-            &device_ip as &IpAddr,
-            &peer_ip as &IpAddr,
-            self.upload_bytes,
-            self.download_bytes,
-            self.count,
+            SELECT e.location_id, e.gateway_id, e.timestamp, e.direction, e.status, e.protocol, \
+            e.source_ip, e.source_port, e.destination_ip, e.destination_port, e.rule_id, \
+            CASE WHEN e.direction = 'outbound' THEN COALESCE(src.device_id, dst.device_id) \
+            ELSE COALESCE(dst.device_id, src.device_id) END, \
+            e.upload_bytes, e.download_bytes, e.count \
+            FROM e \
+            LEFT JOIN ips src ON src.location_id = e.location_id AND src.ip = e.source_ip \
+            LEFT JOIN ips dst ON dst.location_id = e.location_id AND dst.ip = e.destination_ip",
+            &location_id,
+            &gateway_id,
+            &timestamp,
+            &direction as &[ConnectionDirection],
+            &status as &[ConnectionStatus],
+            &protocol,
+            &source_ip as &[IpAddr],
+            &source_port as &[Option<i32>],
+            &destination_ip as &[IpAddr],
+            &destination_port as &[Option<i32>],
+            &rule_id as &[Option<Id>],
+            &upload_bytes,
+            &download_bytes,
+            &count,
         )
-        .fetch_one(executor)
+        .execute(executor)
         .await?;
 
-        Ok(ConnectionEvent {
-            device_id: row.device_id,
-            ..self
-        }
-        .with_id(row.id))
+        Ok(result.rows_affected())
     }
 }
 

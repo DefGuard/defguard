@@ -75,7 +75,7 @@ async fn add_device(pool: &PgPool, location_id: Id, user_id: Id, name: &str, ip:
 }
 
 #[sqlx::test]
-async fn test_save_with_device(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_save_all_with_device(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let location = WireguardNetwork::default().save(&pool).await.unwrap();
     let other_location = WireguardNetwork::default().save(&pool).await.unwrap();
@@ -93,41 +93,55 @@ async fn test_save_with_device(_: PgPoolOptions, options: PgConnectOptions) {
     let laptop = add_device(&pool, location.id, user.id, "laptop", "10.0.0.2").await;
     let phone = add_device(&pool, location.id, user.id, "phone", "10.0.0.3").await;
     let now = Utc::now().naive_utc();
-    let event = |direction, source_ip: &str, destination_ip: &str| ConnectionEvent {
+    // `count` tells the stored events apart.
+    let event = |count, direction, source_ip: &str, destination_ip: &str| ConnectionEvent {
+        count,
         direction,
         source_ip: source_ip.parse().unwrap(),
         destination_ip: destination_ip.parse().unwrap(),
         ..build_event(location.id, now)
     };
-    let device_id =
-        async |event: ConnectionEvent| event.save_with_device(&pool).await.unwrap().device_id;
+    let events = [
+        // Inbound traffic: the device is the destination.
+        event(1, ConnectionDirection::Inbound, "192.168.1.1", "10.0.0.3"),
+        // Only the other side is a known device.
+        event(2, ConnectionDirection::Inbound, "10.0.0.2", "192.168.1.1"),
+        // Both sides are devices: outbound traffic prefers the source.
+        event(3, ConnectionDirection::Outbound, "10.0.0.2", "10.0.0.3"),
+        // Same addresses in another location.
+        ConnectionEvent {
+            location_id: other_location.id,
+            ..event(4, ConnectionDirection::Outbound, "10.0.0.2", "10.0.0.3")
+        },
+    ];
 
-    // Inbound traffic: the device is the destination.
-    let inbound = event(ConnectionDirection::Inbound, "192.168.1.1", "10.0.0.3");
-    assert_eq!(device_id(inbound).await, Some(phone));
+    assert_eq!(
+        ConnectionEvent::save_all_with_device(&pool, &[])
+            .await
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        ConnectionEvent::save_all_with_device(&pool, &events)
+            .await
+            .unwrap(),
+        4
+    );
 
-    // Only the other side is a known device.
-    let inbound = event(ConnectionDirection::Inbound, "10.0.0.2", "192.168.1.1");
-    assert_eq!(device_id(inbound).await, Some(laptop));
-
-    // Both sides are devices: outbound traffic prefers the source.
-    let outbound = event(ConnectionDirection::Outbound, "10.0.0.2", "10.0.0.3");
-    assert_eq!(device_id(outbound).await, Some(laptop));
-
-    // Same addresses in another location.
-    let elsewhere = ConnectionEvent {
-        location_id: other_location.id,
-        ..event(ConnectionDirection::Outbound, "10.0.0.2", "10.0.0.3")
-    };
-    assert_eq!(device_id(elsewhere).await, None);
-
-    // Stored rows match the returned events.
     let mut stored = ConnectionEvent::all(&pool)
         .await
         .unwrap()
         .into_iter()
-        .map(|event| event.device_id)
+        .map(|event| (event.count, event.device_id))
         .collect::<Vec<_>>();
     stored.sort_unstable();
-    assert_eq!(stored, vec![None, Some(laptop), Some(laptop), Some(phone)]);
+    assert_eq!(
+        stored,
+        vec![
+            (1, Some(phone)),
+            (2, Some(laptop)),
+            (3, Some(laptop)),
+            (4, None)
+        ]
+    );
 }
