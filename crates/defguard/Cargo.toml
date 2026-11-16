@@ -36,3 +36,6 @@ default = ["openapi"]
 # Serve the OpenAPI specification and the Swagger UI. See the `openapi` feature of
 # `defguard_core`. Build with `--no-default-features` to leave it out.
 openapi = ["defguard_core/openapi", "defguard_common/openapi"]
+
+[lints]
+workspace = true

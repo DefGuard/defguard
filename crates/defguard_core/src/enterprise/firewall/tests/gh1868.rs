@@ -40,6 +40,8 @@ async fn setup_user_and_device(
         configured: true,
         attestation_status: Default::default(),
         attested_at: None,
+        state: Default::default(),
+        verification: Default::default(),
     };
     let device = device.save(pool).await.unwrap();
 

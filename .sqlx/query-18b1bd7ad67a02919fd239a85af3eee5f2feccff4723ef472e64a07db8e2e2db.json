@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5,\"device_type\" = $6,\"description\" = $7,\"configured\" = $8,\"attestation_status\" = $9,\"attested_at\" = $10,\"state\" = $11,\"verification\" = $12 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        {
+          "Custom": {
+            "name": "device_attestation_status",
+            "kind": {
+              "Enum": [
+                "not_attested",
+                "attested",
+                "unrecognized",
+                "attested_manually",
+                "attestation_failed"
+              ]
+            }
+          }
+        },
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18b1bd7ad67a02919fd239a85af3eee5f2feccff4723ef472e64a07db8e2e2db"
+}

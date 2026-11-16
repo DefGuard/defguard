@@ -31,3 +31,6 @@ tracing.workspace = true
 
 [dev-dependencies]
 hyper-util.workspace = true
+
+[lints]
+workspace = true

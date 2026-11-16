@@ -332,10 +332,7 @@ impl<I> User<I> {
             // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
             return true;
         }
-        if self.password_hash.is_some() || self.openid_sub.is_some() {
-            return true;
-        }
-        false
+        self.password_hash.is_some() || self.openid_sub.is_some()
     }
 
     /// LDAP-origin users already exist in the directory, so they stay in sync scope even before
@@ -1033,7 +1030,7 @@ impl User<Id> {
         query_as!(
             Device,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at, state \"state: _\", verification \"verification: _\" \
             FROM device WHERE user_id = $1 and device_type = 'user'::device_type \
             ORDER BY id",
             self.id

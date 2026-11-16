@@ -52,6 +52,40 @@ async fn test_device_created_before_config_handshake_is_ignored(
 }
 
 #[sqlx::test]
+async fn test_blocked_device_events_produce_no_peer_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+
+    let _ = context.complete_config_handshake().await;
+    let mut device_info = create_device_info_for_current_network(
+        &context,
+        "blocked-peer-device",
+        "c2Vd9JmM1hT3JzXwJ1nhs4nK3c4ZvlB0Rb0Wk3hBf0A=",
+        "10.10.0.12",
+    )
+    .await;
+    device_info.device.state = DeviceState::Blocked;
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayCommand::DeviceCreated(device_info.clone())),
+        "failed to send created device event"
+    );
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayCommand::DeviceModified(device_info)),
+        "failed to send modified device event"
+    );
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_device_modified_for_network_produces_peer_modify_update(
     _: PgPoolOptions,
     options: PgConnectOptions,

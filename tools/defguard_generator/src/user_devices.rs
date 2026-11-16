@@ -17,8 +17,9 @@ pub async fn prepare_user_devices(
     user: &User<Id>,
     devices_per_user: usize,
 ) -> Result<Vec<Device<Id>>> {
-    // fetch all existing devices for a given user
     let mut user_devices = Device::all_for_username(pool, &user.username).await?;
+    // Admins also own the network devices they created, which don't count as user devices.
+    user_devices.retain(|device| device.device_type == DeviceType::User);
 
     // if there are enough users just return the required number
     if user_devices.len() >= devices_per_user {
@@ -49,7 +50,7 @@ pub async fn prepare_user_devices(
     Ok(user_devices)
 }
 
-fn unique_device_name(base: &str, taken: &mut HashSet<String>) -> String {
+pub(crate) fn unique_device_name(base: &str, taken: &mut HashSet<String>) -> String {
     let mut name = base.to_string();
     let mut suffix = 1;
     while taken.contains(&name) {

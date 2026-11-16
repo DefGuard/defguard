@@ -281,6 +281,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         configured: true,
         attestation_status: Default::default(),
         attested_at: None,
+        state: Default::default(),
+        verification: Default::default(),
     };
     let location = sample_location();
     let timestamp = Utc::now().naive_utc();
@@ -744,6 +746,36 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("Modified"),
         },
         EventTestCase {
+            name: "UserDeviceVerified",
+            message: api_message(ApiEventType::UserDeviceVerified {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceVerified,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Manually verified"),
+        },
+        EventTestCase {
+            name: "UserDeviceVerificationRevoked",
+            message: api_message(ApiEventType::UserDeviceVerificationRevoked {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceVerificationRevoked,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Revoked verification"),
+        },
+        EventTestCase {
+            name: "UserDeviceBlocked",
+            message: api_message(ApiEventType::UserDeviceBlocked {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceBlocked,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Blocked"),
+        },
+        EventTestCase {
             name: "NetworkDeviceAdded",
             message: api_message(ApiEventType::NetworkDeviceAdded {
                 device: device.clone(),
@@ -773,6 +805,36 @@ fn api_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::NetworkDeviceModified,
             module: ActivityLogModule::Defguard,
             description_contains: Some("Modified"),
+        },
+        EventTestCase {
+            name: "NetworkDeviceVerified",
+            message: api_message(ApiEventType::NetworkDeviceVerified {
+                device: device.clone(),
+                location: location.clone(),
+            }),
+            event_type: EventType::NetworkDeviceVerified,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Manually verified"),
+        },
+        EventTestCase {
+            name: "NetworkDeviceVerificationRevoked",
+            message: api_message(ApiEventType::NetworkDeviceVerificationRevoked {
+                device: device.clone(),
+                location: location.clone(),
+            }),
+            event_type: EventType::NetworkDeviceVerificationRevoked,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Revoked verification"),
+        },
+        EventTestCase {
+            name: "NetworkDeviceBlocked",
+            message: api_message(ApiEventType::NetworkDeviceBlocked {
+                device: device.clone(),
+                location: location.clone(),
+            }),
+            event_type: EventType::NetworkDeviceBlocked,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Blocked"),
         },
         EventTestCase {
             name: "ActivityLogStreamCreated",

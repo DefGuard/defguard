@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand, value_parser};
 use defguard_common::db::{Id, init_db};
 use defguard_generator::{
     acl_rules::generate_acl_rules,
+    devices::{DevicesGeneratorConfig, generate_devices},
     vpn_session_stats::{VpnSessionGeneratorConfig, generate_vpn_session_stats},
 };
 use tracing_subscriber::EnvFilter;
@@ -53,6 +54,15 @@ enum Commands {
         /// number of activity log events to generate (defaults to 20 when omitted)
         #[arg(long)]
         activity_log_events: Option<usize>,
+    },
+    /// Generates users with user devices and network devices, without VPN sessions or locations.
+    Devices {
+        #[arg(long)]
+        num_users: usize,
+        #[arg(long)]
+        devices_per_user: usize,
+        #[arg(long, default_value_t = 0)]
+        network_devices: usize,
     },
     /// Generates ACL rules
     AclRules {
@@ -109,6 +119,18 @@ async fn main() -> Result<()> {
             };
 
             generate_vpn_session_stats(pool, config).await?;
+        }
+        Commands::Devices {
+            num_users,
+            devices_per_user,
+            network_devices,
+        } => {
+            let config = DevicesGeneratorConfig {
+                num_users,
+                devices_per_user,
+                network_devices,
+            };
+            generate_devices(pool, config).await?;
         }
         Commands::AclRules { num_rules } => generate_acl_rules(pool, num_rules).await?,
     };
