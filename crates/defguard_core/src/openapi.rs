@@ -14,8 +14,8 @@ use utoipa::{
 use super::{
     enterprise::{
         handlers::{
-            self as enterprise_handlers, acl, activity_log_stream, api_tokens, device_posture,
-            enterprise_settings, openid_login, openid_providers,
+            self as enterprise_handlers, acl, activity_log_stream, api_tokens, device_attestation,
+            device_posture, enterprise_settings, openid_login, openid_providers,
         },
         snat::handlers as snat,
     },
@@ -233,6 +233,9 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         acl::delete_acl_rule,
         acl::get_acl_rule,
         acl::update_acl_rule,
+        // DeviceAttestation
+        device_attestation::list_tpm_ca_certificates,
+        device_attestation::get_tpm_ca_certificate_pem,
         // DevicePosture
         device_posture::list_device_postures,
         device_posture::create_device_posture,
@@ -317,6 +320,7 @@ Errors are returned as a JSON object with a `msg` field and, for some of them, a
         (name = "LDAP", description = "LDAP connection tests and sync dry runs."),
         (name = "activity log", description = "Activity log events and activity log streams."),
         (name = "ACL", description = "Access Control Lists (ACL)."),
+        (name = "device attestation", description = "TPM manufacturer CA certificates bundled for device attestation."),
         (name = "device posture", description = "Device posture check policies."),
         (name = "SNAT", description = "User SNAT bindings in your locations."),
         (name = "OpenID", description = "External OpenID providers used for logging in to defguard."),

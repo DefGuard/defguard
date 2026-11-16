@@ -65,6 +65,7 @@ import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_au
 import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
 import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultSettingsDeviceAttestationRouteImport } from './routes/_authorized/_default/settings/device-attestation'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
@@ -387,6 +388,12 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsDeviceAttestationRoute =
+  AuthorizedDefaultSettingsDeviceAttestationRouteImport.update({
+    id: '/settings/device-attestation',
+    path: '/settings/device-attestation',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultSettingsEditOpenidRoute =
   AuthorizedDefaultSettingsEditOpenidRouteImport.update({
     id: '/settings/edit-openid',
@@ -524,6 +531,7 @@ export interface FileRoutesByFullPath {
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -593,6 +601,7 @@ export interface FileRoutesByTo {
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -666,6 +675,7 @@ export interface FileRoutesById {
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/_authorized/_default/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/_authorized/_default/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -738,6 +748,7 @@ export interface FileRouteTypes {
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
+    | '/settings/device-attestation'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
     | '/settings/instance'
@@ -807,6 +818,7 @@ export interface FileRouteTypes {
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
+    | '/settings/device-attestation'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
     | '/settings/instance'
@@ -879,6 +891,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/settings/ca'
     | '/_authorized/_default/settings/certs'
     | '/_authorized/_default/settings/client'
+    | '/_authorized/_default/settings/device-attestation'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
     | '/_authorized/_default/settings/instance'
@@ -1308,6 +1321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/device-attestation': {
+      id: '/_authorized/_default/settings/device-attestation'
+      path: '/settings/device-attestation'
+      fullPath: '/settings/device-attestation'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsDeviceAttestationRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/settings/edit-openid': {
       id: '/_authorized/_default/settings/edit-openid'
       path: '/settings/edit-openid'
@@ -1448,6 +1468,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
+  AuthorizedDefaultSettingsDeviceAttestationRoute: typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   AuthorizedDefaultSettingsInstanceRoute: typeof AuthorizedDefaultSettingsInstanceRoute
@@ -1493,6 +1514,8 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
+  AuthorizedDefaultSettingsDeviceAttestationRoute:
+    AuthorizedDefaultSettingsDeviceAttestationRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
   AuthorizedDefaultSettingsGatewayNotificationsRoute:

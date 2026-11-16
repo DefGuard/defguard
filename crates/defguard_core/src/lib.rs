@@ -121,6 +121,7 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            device_attestation::{get_tpm_ca_certificate_pem, list_tpm_ca_certificates},
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_attestation_stats, get_device_posture, get_device_posture_versions,
@@ -619,6 +620,14 @@ pub fn build_webapp(
     let api_router = api_router.nest(
         "/api/v1",
         Router::new()
+            .route(
+                "/device-attestation/certificates",
+                get(list_tpm_ca_certificates),
+            )
+            .route(
+                "/device-attestation/certificates/{sha256}/pem",
+                get(get_tpm_ca_certificate_pem),
+            )
             .route("/device-posture/versions", get(get_device_posture_versions))
             .route(
                 "/device-posture/attestation-stats",
