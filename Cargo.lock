@@ -1921,6 +1921,7 @@ dependencies = [
  "cab",
  "chrono",
  "clap",
+ "rcgen",
  "reqwest 0.12.28",
  "rustls-pki-types",
  "serde",

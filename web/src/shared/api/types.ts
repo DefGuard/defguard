@@ -1930,6 +1930,7 @@ export type TpmCaKindValue = (typeof TpmCaKind)[keyof typeof TpmCaKind];
 export const TpmCaSource = {
   TpmCaCertificates: 'tpm-ca-certificates',
   Microsoft: 'microsoft',
+  Defguard: 'defguard',
 } as const;
 
 export type TpmCaSourceValue = (typeof TpmCaSource)[keyof typeof TpmCaSource];

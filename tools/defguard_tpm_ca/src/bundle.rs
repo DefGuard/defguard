@@ -44,6 +44,9 @@ const EC_CURVES: [(&str, &str); 4] = [
     ("1.2.156.10197.1.301", "SM2"),
 ];
 
+const TCG_KP_EK_CERTIFICATE: &str = "2.23.133.8.1";
+const TCG_KP_AIK_CERTIFICATE: &str = "2.23.133.8.3";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
@@ -56,6 +59,7 @@ pub enum Kind {
 pub enum Source {
     TpmCaCertificates,
     Microsoft,
+    Defguard,
 }
 
 impl fmt::Display for Source {
@@ -63,6 +67,7 @@ impl fmt::Display for Source {
         f.write_str(match self {
             Self::TpmCaCertificates => "tpm-ca-certificates",
             Self::Microsoft => "microsoft",
+            Self::Defguard => "defguard",
         })
     }
 }
@@ -219,6 +224,21 @@ pub fn describe(cert: &SourceCertificate, source: Source) -> anyhow::Result<Cert
     })
 }
 
+/// Microsoft's per-vendor KEYID CAs in TrustedTpm.cab issue AIK certificates after Microsoft has
+/// checked the EK, so they never sign EK certificates and do not belong in an EK trust store.
+pub fn issues_only_aik_certificates(cert: &SourceCertificate) -> anyhow::Result<bool> {
+    let (_, parsed) = parse_x509_certificate(&cert.der)
+        .map_err(|err| anyhow::anyhow!("{}: invalid certificate: {err}", cert.origin))?;
+    let Some(eku) = parsed
+        .extended_key_usage()
+        .map_err(|err| anyhow::anyhow!("{}: invalid extended key usage: {err}", cert.origin))?
+    else {
+        return Ok(false);
+    };
+    let has = |oid: &str| eku.value.other.iter().any(|o| o.to_id_string() == oid);
+    Ok(has(TCG_KP_AIK_CERTIFICATE) && !has(TCG_KP_EK_CERTIFICATE))
+}
+
 #[derive(Default)]
 pub struct Merger {
     certificates: BTreeMap<String, Certificate>,
@@ -358,6 +378,32 @@ mod tests {
         assert_eq!(diff.removed[0].sha256, "a");
         assert_eq!(diff.changed.len(), 1);
         assert_eq!(diff.changed[0].sha256, "b");
+    }
+
+    fn ca_with_eku(oids: &[&[u64]]) -> SourceCertificate {
+        let mut params = rcgen::CertificateParams::new(Vec::new()).unwrap();
+        params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+        params.extended_key_usages = oids
+            .iter()
+            .map(|oid| rcgen::ExtendedKeyUsagePurpose::Other(oid.to_vec()))
+            .collect();
+        let key = rcgen::KeyPair::generate().unwrap();
+        SourceCertificate {
+            kind: Kind::Intermediate,
+            vendor: "Microsoft".into(),
+            der: params.self_signed(&key).unwrap().der().to_vec(),
+            origin: "test".into(),
+        }
+    }
+
+    #[test]
+    fn detects_aik_only_cas() {
+        let aik = [2, 23, 133, 8, 3];
+        let ek = [2, 23, 133, 8, 1];
+        assert!(issues_only_aik_certificates(&ca_with_eku(&[&aik])).unwrap());
+        assert!(!issues_only_aik_certificates(&ca_with_eku(&[&aik, &ek])).unwrap());
+        assert!(!issues_only_aik_certificates(&ca_with_eku(&[&ek])).unwrap());
+        assert!(!issues_only_aik_certificates(&ca_with_eku(&[])).unwrap());
     }
 
     #[test]

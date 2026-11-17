@@ -1,4 +1,5 @@
 mod bundle;
+mod extras;
 mod sources;
 
 use std::{
@@ -14,8 +15,9 @@ use clap::Parser;
 use crate::{
     bundle::{
         Bundle, Kind, Merger, MicrosoftTrustedTpm, Source, TpmCaCertificatesRelease, Vendors,
-        describe, diff, ensure_has_roots,
+        describe, diff, ensure_has_roots, issues_only_aik_certificates,
     },
+    extras::{check_extras, extra_certificates},
     sources::{Http, Verifiers, fetch_microsoft_trusted_tpm, fetch_tpm_ca_certificates},
 };
 
@@ -60,16 +62,27 @@ fn main() -> anyhow::Result<()> {
         );
     }
     let microsoft = fetch_microsoft_trusted_tpm(&http, &verifiers, workdir.path(), &mut vendors)?;
+    let extras = extra_certificates(&mut vendors)?;
 
     let mut merger = Merger::default();
-    for certificate in &tpm_ca.certificates {
-        merger.add(describe(certificate, Source::TpmCaCertificates)?);
+    let mut aik_cas = 0;
+    for (certificates, source) in [
+        (&tpm_ca.certificates, Source::TpmCaCertificates),
+        (&microsoft.certificates, Source::Microsoft),
+        (&extras, Source::Defguard),
+    ] {
+        for certificate in certificates {
+            if issues_only_aik_certificates(certificate)? {
+                aik_cas += 1;
+                continue;
+            }
+            merger.add(describe(certificate, source)?);
+        }
     }
-    for certificate in &microsoft.certificates {
-        merger.add(describe(certificate, Source::Microsoft)?);
-    }
+    println!("Skipped {aik_cas} CAs that only issue AIK certificates");
     let certificates = merger.finish();
     ensure_has_roots(&certificates)?;
+    check_extras(&certificates)?;
 
     let candidate = Bundle {
         generated_at: DateTime::from_timestamp(Utc::now().timestamp(), 0)

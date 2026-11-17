@@ -21,5 +21,8 @@ sha256.workspace = true
 tempfile = "3.27"
 x509-parser.workspace = true
 
+[dev-dependencies]
+rcgen.workspace = true
+
 [lints]
 workspace = true
