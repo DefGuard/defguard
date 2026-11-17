@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     db::{
         Id,
         models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
     },
+    time_utils::now_naive_utc,
     types::proxy::ProxyControlMessage,
 };
 use defguard_grpc_tls::certs::{ProxyTlsTarget, proxy_mtls_channel};
@@ -16,6 +16,7 @@ use defguard_proto::proxy::{
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use sqlx::PgPool;
 use thiserror::Error;
+use time::{PrimitiveDateTime, SignedDuration};
 use tokio::{
     sync::{
         mpsc::{self, UnboundedSender, unbounded_channel},
@@ -32,7 +33,7 @@ use crate::mail::templates;
 pub const ACME_TIMEOUT: Duration = Duration::from_mins(5);
 #[cfg(test)]
 pub const ACME_TIMEOUT: Duration = Duration::from_secs(1);
-const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);
+const LETSENCRYPT_EXPIRY_THRESHOLD: SignedDuration = SignedDuration::days(14);
 
 #[derive(Debug, Error)]
 pub(crate) enum LetsencryptError {
@@ -88,18 +89,18 @@ pub(crate) async fn do_letsencrypt_refresh(
         return Ok(());
     };
 
-    let expire_in = expiry - Utc::now().naive_utc();
+    let expire_in = expiry - now_naive_utc();
     if expire_in > LETSENCRYPT_EXPIRY_THRESHOLD {
         info!(
             "Letsencrypt certificate expires in {} days, skipping refresh",
-            expire_in.num_days()
+            expire_in.whole_days()
         );
         return Ok(());
     }
 
     info!(
         "Letsencrypt certificate expires in {} days, performing certificate refresh",
-        expire_in.num_days()
+        expire_in.whole_days()
     );
     let settings = Settings::get_current_settings();
     let domain = settings
@@ -215,7 +216,7 @@ async fn send_le_refresh_failed_emails(
 ///
 /// Returns the certificate `not_after` value, or `None` if the PEM cannot be
 /// parsed or the expiry cannot be extracted.
-pub(crate) fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+pub(crate) fn parse_cert_expiry(cert_pem: &str) -> Option<PrimitiveDateTime> {
     let der = defguard_certs::parse_pem_certificate(cert_pem)
         .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
         .ok()?;

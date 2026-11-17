@@ -5,6 +5,9 @@ use defguard_proto::enterprise::posture::{
     string_check::Result as StringResult,
 };
 use sqlx::PgPool;
+use time::{
+    Date, OffsetDateTime, format_description::BorrowedFormatItem, macros::format_description,
+};
 
 use super::{
     FailureReason, PostureCheckError, PostureResult,
@@ -17,6 +20,10 @@ use crate::enterprise::{
     },
     has_enterprise_access,
 };
+
+// chrono %m and %d accepted unpadded values, keep that for client supplied dates
+const PATCH_DATE_FORMAT: &[BorrowedFormatItem<'static>] =
+    format_description!("[year]-[month padding:none]-[day padding:none]");
 
 /// Resolves a `BoolCheck` signal:
 /// - `Value(true)`  → Ok(true)
@@ -171,10 +178,10 @@ fn evaluate_os_rule(
             data.android_security_patch_date.as_ref(),
             "android_security_patch_date",
         ) {
-            Ok(Some(date_str)) => match chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+            Ok(Some(date_str)) => match Date::parse(&date_str, PATCH_DATE_FORMAT) {
                 Ok(patch_date) => {
-                    let today = chrono::Utc::now().date_naive();
-                    let age_days = (today - patch_date).num_days() as i32;
+                    let today = OffsetDateTime::now_utc().date();
+                    let age_days = (today - patch_date).whole_days() as i32;
                     if age_days > required_max_age_days {
                         failures.push(FailureReason::AndroidSecurityPatchTooOld {
                             required_max_age_days,

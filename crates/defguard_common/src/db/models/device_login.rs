@@ -1,11 +1,14 @@
 use std::fmt;
 
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query_as};
+use time::PrimitiveDateTime;
 
-use crate::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    time_utils::now_naive_utc,
+};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 #[table(device_login_event)]
@@ -19,7 +22,8 @@ pub struct DeviceLoginEvent<I = NoId> {
     pub os_family: String,
     pub browser: String,
     pub event_type: String,
-    pub created: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub created: PrimitiveDateTime,
 }
 
 impl fmt::Display for DeviceLoginEvent<NoId> {
@@ -57,7 +61,7 @@ impl DeviceLoginEvent {
             os_family,
             browser,
             event_type,
-            created: Utc::now().naive_utc(),
+            created: now_naive_utc(),
         }
     }
 

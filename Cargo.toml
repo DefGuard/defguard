@@ -52,10 +52,8 @@ axum-extra = { version = "0.12", features = [
 base32 = "0.5"
 base64 = "0.23"
 bytes = { version = "1.12", features = ["serde"] }
-chrono = { version = "0.4", default-features = false, features = [
-    "clock",
-    "serde",
-] }
+# only for openidconnect IdTokenClaims, use time everywhere else
+chrono = { version = "0.4", default-features = false }
 claims = "0.8"
 clap = { version = "4.6", features = ["derive", "env"] }
 ctap-hid-fido2 = "3.5"
@@ -107,10 +105,10 @@ sha-1 = "0.10"
 sha2 = "0.11"
 sha256 = "1.5"
 sqlx = { version = "0.9", features = [
-    "chrono",
     "ipnetwork",
     "postgres",
     "runtime-tokio",
+    "time",
     "tls-native-tls",
     "uuid",
 ] }
@@ -150,7 +148,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
 ua-parser = "0.2"
 # openapi (see the `openapi` feature of defguard_common / defguard_core / defguard)
-utoipa = { version = "6", features = ["axum_extras", "chrono", "uuid"] }
+utoipa = { version = "6", features = ["axum_extras", "time", "uuid"] }
 utoipa-swagger-ui = { version = "10", features = ["axum", "vendored"] }
 uuid = { version = "1.24", features = ["v4"] }
 webauthn-authenticator-rs = "0.5"

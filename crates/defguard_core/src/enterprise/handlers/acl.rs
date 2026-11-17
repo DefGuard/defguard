@@ -6,10 +6,10 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
-use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, query_as};
+use time::PrimitiveDateTime;
 
 use super::LicenseInfo;
 #[cfg(feature = "openapi")]
@@ -33,11 +33,13 @@ pub struct ApiAclRule {
     pub parent_id: Option<Id>,
     pub state: RuleState,
     pub name: String,
-    pub modified_at: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
     pub all_locations: bool,
     pub locations: Vec<Id>,
-    pub expires: Option<NaiveDateTime>,
+    #[serde(default, with = "defguard_common::time_utils::serde_naive::option")]
+    pub expires: Option<PrimitiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,
@@ -110,7 +112,8 @@ pub struct EditAclRule {
     pub name: String,
     pub all_locations: bool,
     pub locations: Vec<Id>,
-    pub expires: Option<NaiveDateTime>,
+    #[serde(default, with = "defguard_common::time_utils::serde_naive::option")]
+    pub expires: Option<PrimitiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,

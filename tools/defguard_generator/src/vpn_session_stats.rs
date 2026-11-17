@@ -1,19 +1,22 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use anyhow::Result;
-use chrono::{Duration, NaiveDateTime, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        WireguardNetwork,
-        device::WireguardNetworkDevice,
-        gateway::Gateway,
-        vpn_client_session::{VpnClientSession, VpnClientSessionState},
-        vpn_session_stats::VpnSessionStats,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            WireguardNetwork,
+            device::WireguardNetworkDevice,
+            gateway::Gateway,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_session_stats::VpnSessionStats,
+        },
     },
+    time_utils::now_naive_utc,
 };
 use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
 use sqlx::{PgConnection, PgPool, QueryBuilder, query};
+use time::{PrimitiveDateTime, SignedDuration};
 use tracing::{debug, info};
 
 use crate::{
@@ -25,8 +28,8 @@ use crate::{
     users::prepare_users,
 };
 
-const STATS_COLLECTION_INTERVAL: Duration = Duration::seconds(30);
-const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
+const STATS_COLLECTION_INTERVAL: SignedDuration = SignedDuration::seconds(30);
+const HANDSHAKE_INTERVAL: SignedDuration = SignedDuration::minutes(2);
 
 #[derive(Debug)]
 pub struct VpnSessionGeneratorConfig {
@@ -147,11 +150,11 @@ async fn generate_stats_for_location(
             // and generate past ones as needed
 
             // start with the active session
-            let mut session_end = Utc::now().naive_utc();
+            let mut session_end = now_naive_utc();
             let session_count = rng.gen_range(1..=config.sessions_per_device.max(1));
 
             for i in 0..session_count {
-                let session_duration = Duration::minutes(rng.gen_range(10..120));
+                let session_duration = SignedDuration::minutes(rng.gen_range(10..120));
                 let session_start = session_end - session_duration;
 
                 let mut session = VpnClientSession::new(
@@ -187,7 +190,7 @@ async fn generate_stats_for_location(
                 debug!("Finished generating mock stats for session {session:?}");
 
                 // update end timestamp for next session
-                session_end -= Duration::minutes(rng.gen_range(30..120));
+                session_end -= SignedDuration::minutes(rng.gen_range(30..120));
             }
         }
         transaction.commit().await?;
@@ -225,8 +228,8 @@ async fn generate_mock_session_stats(
     rng: &mut ThreadRng,
     session_id: Id,
     gateway_id: Id,
-    session_start: NaiveDateTime,
-    session_end: NaiveDateTime,
+    session_start: PrimitiveDateTime,
+    session_end: PrimitiveDateTime,
     batch_size: u16,
     location_seed: f64,
 ) -> Result<()> {
@@ -246,7 +249,7 @@ async fn generate_mock_session_stats(
     let mut stats_batch: Vec<VpnSessionStats> = Vec::new();
 
     while collected_at <= session_end {
-        let minutes = collected_at.and_utc().timestamp() as f64 / 60.0;
+        let minutes = collected_at.assume_utc().unix_timestamp() as f64 / 60.0;
         let activity = |phase: f64| {
             (0.5 + 0.35 * (minutes * 0.5 + phase + location_seed).sin()).clamp(0.05, 1.0)
         };

@@ -1,6 +1,5 @@
 use std::{env, time::Duration};
 
-use chrono::Utc;
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
     db::{
@@ -14,6 +13,7 @@ use defguard_common::{
         setup_pool,
     },
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
 };
 use reqwest::Url;
 use sqlx::{
@@ -352,7 +352,7 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     set_smtp_settings(&pool).await;
 
     let mut conn = pool.begin().await.unwrap();
-    let created = Utc::now().naive_utc();
+    let created = now_naive_utc();
     templates::new_device_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, created)
         .await
         .unwrap();
@@ -470,7 +470,7 @@ fn send_certificate_expiration(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let expiration = Utc::now().naive_utc();
+    let expiration = now_naive_utc();
     let mut conn = pool.begin().await.unwrap();
     templates::certificate_expiration_mail(
         &env::var("SMTP_TO").unwrap(),
@@ -490,7 +490,7 @@ fn send_certificate_expired(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let expiration = Utc::now().naive_utc();
+    let expiration = now_naive_utc();
     let mut conn = pool.begin().await.unwrap();
     templates::certificate_expired_mail(
         &env::var("SMTP_TO").unwrap(),

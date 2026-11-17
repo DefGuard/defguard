@@ -20,6 +20,7 @@ use defguard_common::{
         setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
         wizard::{ActiveWizard, Wizard},
     },
+    time_utils::{format_naive_iso, now_naive_utc},
     types::proxy::ProxyInfo,
 };
 use defguard_core::{
@@ -375,7 +376,7 @@ pub async fn get_ca(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResu
     if let Some(ca_cert_der) = certs.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
-        let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+        let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
 
         debug!(
             "Certificate authority details prepared: subject_common_name={}, valid_for_days={}",
@@ -390,8 +391,8 @@ pub async fn get_ca(_: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResu
             json!({
                 "ca_cert_pem": ca_pem,
                 "subject_common_name": info.subject_common_name,
-                "not_before": info.not_before,
-                "not_after": info.not_after,
+                "not_before": format_naive_iso(info.not_before),
+                "not_after": format_naive_iso(info.not_after),
                 "valid_for_days": valid_for_days
             }),
             StatusCode::OK,

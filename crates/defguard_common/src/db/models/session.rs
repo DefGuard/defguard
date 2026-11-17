@@ -1,10 +1,11 @@
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
+use time::{OffsetDateTime, PrimitiveDateTime, SignedDuration};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
 use crate::{
     db::{Id, models::Settings},
     random::gen_alphanumeric,
+    time_utils::{OffsetDateTimeExt, now_naive_utc},
 };
 
 #[derive(Clone, PartialEq, Type)]
@@ -22,8 +23,8 @@ pub struct Session {
     pub id: String,
     pub user_id: Id,
     pub state: SessionState,
-    pub created: NaiveDateTime,
-    pub expires: NaiveDateTime,
+    pub created: PrimitiveDateTime,
+    pub expires: PrimitiveDateTime,
     pub webauthn_challenge: Option<Vec<u8>>,
     pub ip_address: String,
     pub device_info: Option<String>,
@@ -37,15 +38,15 @@ impl Session {
         ip_address: String,
         device_info: Option<String>,
     ) -> Self {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
         Self {
             id: gen_alphanumeric(24),
             user_id,
             state,
-            created: now.naive_utc(),
-            expires: (now + TimeDelta::seconds(timeout.as_secs() as i64)).naive_utc(),
+            created: now.to_naive_utc(),
+            expires: (now + SignedDuration::seconds(timeout.as_secs() as i64)).to_naive_utc(),
             webauthn_challenge: None,
             ip_address,
             device_info,
@@ -54,7 +55,7 @@ impl Session {
 
     #[must_use]
     pub fn expired(&self) -> bool {
-        self.expires < Utc::now().naive_utc()
+        self.expires < now_naive_utc()
     }
 
     pub async fn find_by_id(pool: &PgPool, id: &str) -> sqlx::Result<Option<Self>> {

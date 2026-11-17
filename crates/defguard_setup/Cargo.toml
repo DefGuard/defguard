@@ -18,7 +18,6 @@ defguard_web_ui.workspace = true
 anyhow.workspace = true
 axum-extra.workspace = true
 axum.workspace = true
-chrono.workspace = true
 ipnetwork.workspace = true
 rcgen.workspace = true
 reqwest.workspace = true
@@ -26,6 +25,7 @@ semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
+time = { workspace = true, features = ["std"] }
 tokio.workspace = true
 tonic.workspace = true
 tracing.workspace = true

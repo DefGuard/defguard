@@ -885,7 +885,6 @@ mod test {
 
     use axum::http::HeaderMap;
     use axum_extra::extract::cookie::Key;
-    use chrono::Utc;
     use defguard_common::{
         config::{DefGuardConfig, SERVER_CONFIG},
         db::{
@@ -904,6 +903,7 @@ mod test {
         },
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use time::{OffsetDateTime, SignedDuration};
     use tokio::sync::{broadcast, mpsc};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
@@ -920,6 +920,7 @@ mod test {
             limits::{Counts, set_counts},
         },
         grpc::proto::enterprise::license::LicenseLimits,
+        handlers::openid_flow::oidc_time,
     };
 
     #[test]
@@ -1149,13 +1150,13 @@ mod test {
             TokenUrl::new(format!("{}/token", server.uri())).unwrap(),
         ));
 
-        let issue_time = Utc::now();
+        let issue_time = OffsetDateTime::now_utc();
         let id_token = CoreIdToken::new(
             CoreIdTokenClaims::new(
                 issuer,
                 vec![Audience::new(TEST_CLIENT_ID.to_owned())],
-                issue_time + chrono::Duration::hours(1),
-                issue_time,
+                oidc_time(issue_time + SignedDuration::hours(1)),
+                oidc_time(issue_time),
                 StandardClaims::new(SubjectIdentifier::new(TEST_SUB.to_owned()))
                     .set_email(Some(EndUserEmail::new(email.to_owned()))),
                 EmptyAdditionalClaims {},

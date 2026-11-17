@@ -1,7 +1,6 @@
 use std::{collections::HashSet, fmt, net::IpAddr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use rand::{
@@ -12,6 +11,7 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
+use time::{Date, Month, PrimitiveDateTime};
 use tracing::{debug, error, info};
 
 use crate::{
@@ -28,6 +28,7 @@ use crate::{
         },
     },
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
 };
 
 #[derive(Serialize)]
@@ -118,7 +119,8 @@ pub struct Device<I = NoId> {
     pub name: String,
     pub wireguard_pubkey: String,
     pub user_id: Id,
-    pub created: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub created: PrimitiveDateTime,
     #[model(enum)]
     pub device_type: DeviceType,
     pub description: Option<String>,
@@ -129,7 +131,8 @@ pub struct Device<I = NoId> {
     #[model(enum)]
     #[serde(default)]
     pub attestation_status: DeviceAttestationStatus,
-    pub attested_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub attested_at: Option<PrimitiveDateTime>,
     #[model(enum)]
     #[serde(default)]
     pub state: DeviceState,
@@ -157,13 +160,13 @@ impl Distribution<Device> for Standard {
             name: Alphanumeric.sample_string(rng, 8),
             wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
             user_id: rng.r#gen(),
-            created: NaiveDate::from_ymd_opt(
+            created: Date::from_calendar_date(
                 rng.gen_range(2000..2026),
-                rng.gen_range(1..13),
+                Month::try_from(rng.gen_range(1..13)).unwrap(),
                 rng.gen_range(1..29),
             )
             .unwrap()
-            .and_hms_opt(
+            .with_hms(
                 rng.gen_range(1..24),
                 rng.gen_range(1..60),
                 rng.gen_range(1..60),
@@ -282,7 +285,8 @@ pub struct UserDeviceNetworkInfo {
     pub network_gateway_ip: String,
     pub device_wireguard_ips: Vec<String>,
     pub last_connected_ip: Option<String>,
-    pub last_connected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub last_connected_at: Option<PrimitiveDateTime>,
     pub is_active: bool,
     pub mfa_enabled: bool,
 }
@@ -672,13 +676,8 @@ impl Device {
         description: Option<String>,
         configured: bool,
     ) -> Self {
-        // FIXME: this is a workaround for reducing timestamp precision.
-        // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
-        // It avoids issues when comparing to objects fetched from DB.
-        let created = Utc::now().naive_utc();
-        let created = created
-            .with_nanosecond((created.nanosecond() / 1_000) * 1_000)
-            .expect("failed to truncate timestamp precision");
+        // Postgres keeps microseconds, so this matches the value read back from the DB
+        let created = now_naive_utc().truncate_to_microsecond();
 
         Self {
             id: NoId,
@@ -1018,7 +1017,7 @@ impl Device<Id> {
         &self,
         executor: E,
         location_id: Id,
-    ) -> sqlx::Result<Option<NaiveDateTime>> {
+    ) -> sqlx::Result<Option<PrimitiveDateTime>> {
         query_scalar!(
             "SELECT connected_at \"connected_at!\" FROM vpn_client_session \
     		WHERE location_id = $1 AND device_id = $2 AND connected_at IS NOT NULL \

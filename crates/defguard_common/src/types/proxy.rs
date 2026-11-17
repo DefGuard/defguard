@@ -1,5 +1,5 @@
-use chrono::NaiveDateTime;
 use serde::Serialize;
+use time::PrimitiveDateTime;
 
 use crate::db::{Id, models::proxy::Proxy};
 
@@ -29,13 +29,17 @@ pub struct ProxyInfo {
     pub name: String,
     pub address: String,
     pub port: i32,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
+    #[serde(with = "crate::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
+    #[serde(with = "crate::time_utils::serde_naive::option")]
+    pub disconnected_at: Option<PrimitiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
     pub certificate_serial: Option<String>,
-    pub certificate_expiry: Option<NaiveDateTime>,
-    pub modified_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive::option")]
+    pub certificate_expiry: Option<PrimitiveDateTime>,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
 }
 

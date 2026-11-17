@@ -3,8 +3,9 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use chrono::Utc;
-use defguard_common::{db::models::user::User, random::gen_alphanumeric};
+use defguard_common::{
+    db::models::user::User, random::gen_alphanumeric, time_utils::now_naive_utc,
+};
 use serde_json::json;
 
 use super::LicenseInfo;
@@ -98,14 +99,9 @@ pub async fn add_api_token(
     // all API tokens start with a `dg-` prefix
     let token_string = format!("dg-{}", gen_alphanumeric(API_TOKEN_LENGTH));
 
-    let token = ApiToken::new(
-        user.id,
-        Utc::now().naive_utc(),
-        data.name.clone(),
-        &token_string,
-    )
-    .save(&appstate.pool)
-    .await?;
+    let token = ApiToken::new(user.id, now_naive_utc(), data.name.clone(), &token_string)
+        .save(&appstate.pool)
+        .await?;
 
     info!("Added new API token {} for user {username}", data.name);
     if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {

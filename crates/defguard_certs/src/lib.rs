@@ -1,7 +1,6 @@
 use std::{net::IpAddr, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::NaiveDateTime;
 pub use rcgen::ExtendedKeyUsagePurpose;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
@@ -9,7 +8,7 @@ use rcgen::{
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
 use thiserror::Error;
-use time::{Duration, OffsetDateTime};
+use time::{Duration, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 use x509_parser::{
     extensions::{GeneralName, ParsedExtension},
     parse_x509_certificate,
@@ -186,7 +185,7 @@ impl CertificateAuthority<'_> {
         self.issuer.key().serialized_der()
     }
 
-    pub fn expiry(&self) -> Result<NaiveDateTime, CertificateError> {
+    pub fn expiry(&self) -> Result<PrimitiveDateTime, CertificateError> {
         let CertificateInfo { not_after, .. } = CertificateInfo::from_der(&self.cert_der)?;
         Ok(not_after)
     }
@@ -201,14 +200,14 @@ pub struct CoreClientCert {
     /// DER-encoded private key for the client certificate.
     pub key_der: Vec<u8>,
     /// Certificate expiry timestamp (UTC).
-    pub expiry: NaiveDateTime,
+    pub expiry: PrimitiveDateTime,
 }
 
 pub struct CertificateInfo {
     pub subject_common_name: String,
     pub subject_email: Option<String>,
-    pub not_before: NaiveDateTime,
-    pub not_after: NaiveDateTime,
+    pub not_before: PrimitiveDateTime,
+    pub not_after: PrimitiveDateTime,
     pub serial: String,
 }
 
@@ -251,23 +250,16 @@ impl CertificateInfo {
         Ok(Self {
             subject_common_name: cn.to_owned(),
             subject_email,
-            not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
-                .ok_or_else(|| {
-                    CertificateError::ParsingError(format!(
-                        "Failed to convert certificate not_before {not_before} to NaiveDateTime",
-                    ))
-                })?
-                .naive_utc(),
-            not_after: chrono::DateTime::from_timestamp(not_after.unix_timestamp(), 0)
-                .ok_or_else(|| {
-                    CertificateError::ParsingError(format!(
-                        "Failed to convert certificate not_after {not_after} to NaiveDateTime",
-                    ))
-                })?
-                .naive_utc(),
+            not_before: to_naive_utc(not_before),
+            not_after: to_naive_utc(not_after),
             serial,
         })
     }
+}
+
+fn to_naive_utc(datetime: OffsetDateTime) -> PrimitiveDateTime {
+    let utc = datetime.to_offset(UtcOffset::UTC);
+    PrimitiveDateTime::new(utc.date(), utc.time())
 }
 
 pub struct Csr<'a> {

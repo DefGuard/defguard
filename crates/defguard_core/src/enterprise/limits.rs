@@ -124,7 +124,7 @@ impl Counts {
 
 #[cfg(test)]
 mod test {
-    use chrono::{TimeDelta, Utc};
+    use time::{OffsetDateTime, SignedDuration};
 
     use super::*;
     use crate::{
@@ -235,7 +235,7 @@ mod test {
         let license = License::new(
             "test".to_owned(),
             true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
             None,
             None,
             LicenseTier::Business,

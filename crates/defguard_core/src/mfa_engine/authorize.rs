@@ -1,4 +1,3 @@
-use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
@@ -10,6 +9,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
 };
 use sqlx::PgConnection;
 use thiserror::Error;
@@ -155,7 +155,7 @@ pub async fn disconnect_session(
             AuthorizeError::Db(err)
         })?;
 
-    let disconnect_timestamp = Utc::now().naive_utc();
+    let disconnect_timestamp = now_naive_utc();
     session.disconnected_at = Some(disconnect_timestamp);
     session.state = VpnClientSessionState::Disconnected;
     session.save(&mut *conn).await.map_err(|err| {

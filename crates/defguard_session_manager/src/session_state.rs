@@ -3,7 +3,6 @@ use std::{
     net::IpAddr,
 };
 
-use chrono::{NaiveDateTime, TimeDelta};
 use defguard_common::{
     db::{
         Id,
@@ -14,8 +13,10 @@ use defguard_common::{
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
+    time_utils::now_naive_utc,
 };
-use sqlx::{PgConnection, types::chrono::Utc};
+use sqlx::PgConnection;
+use time::{PrimitiveDateTime, SignedDuration};
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, warn};
 
@@ -46,8 +47,8 @@ impl LastGatewayUpdate {
 
 #[derive(Debug)]
 struct LastStatsUpdate {
-    collected_at: NaiveDateTime,
-    latest_handshake: NaiveDateTime,
+    collected_at: PrimitiveDateTime,
+    latest_handshake: PrimitiveDateTime,
     total_upload: i64,
     total_download: i64,
 }
@@ -204,7 +205,7 @@ impl SessionState {
 impl SessionEventContextData {
     fn build_context(
         &self,
-        timestamp: NaiveDateTime,
+        timestamp: PrimitiveDateTime,
         public_ip: IpAddr,
     ) -> SessionManagerEventContext {
         SessionManagerEventContext {
@@ -366,8 +367,8 @@ impl ActiveSessionsMap {
         }
 
         // check if a given peer is considered active and should be added to active sessions
-        if Utc::now().naive_utc() - stats_update.latest_handshake
-            > TimeDelta::seconds(location.peer_disconnect_threshold.into())
+        if now_naive_utc() - stats_update.latest_handshake
+            > SignedDuration::seconds(location.peer_disconnect_threshold.into())
         {
             warn!(
                 "Received peer stats update for an inactive peer. Skipping creating a new session..."

@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 
-use chrono::{NaiveDateTime, Utc};
+use time::PrimitiveDateTime;
 
-use crate::db::Id;
+use crate::{db::Id, time_utils::now_naive_utc};
 
 /// Represents stats read from a WireGuard interface
 /// sent from a gateway
@@ -11,13 +11,13 @@ pub struct PeerStatsUpdate {
     pub location_id: Id,
     pub gateway_id: Id,
     pub device_pubkey: String,
-    pub collected_at: NaiveDateTime,
+    pub collected_at: PrimitiveDateTime,
     pub endpoint: SocketAddr,
     // bytes sent to peer
     pub upload: u64,
     // bytes received from peer
     pub download: u64,
-    pub latest_handshake: NaiveDateTime,
+    pub latest_handshake: PrimitiveDateTime,
 }
 
 impl PeerStatsUpdate {
@@ -29,9 +29,9 @@ impl PeerStatsUpdate {
         endpoint: SocketAddr,
         upload: u64,
         download: u64,
-        latest_handshake: NaiveDateTime,
+        latest_handshake: PrimitiveDateTime,
     ) -> Self {
-        let collected_at = Utc::now().naive_utc();
+        let collected_at = now_naive_utc();
         Self {
             location_id,
             gateway_id,

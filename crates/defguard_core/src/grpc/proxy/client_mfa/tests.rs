@@ -8,7 +8,6 @@ use std::{
 };
 
 use base64::{Engine as _, prelude::BASE64_STANDARD};
-use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
@@ -30,6 +29,7 @@ use defguard_common::{
         setup_pool,
     },
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
 };
 use defguard_proto::{
     client_types::{
@@ -48,6 +48,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use time::{OffsetDateTime, SignedDuration};
 use tokio::{
     sync::{mpsc, oneshot},
     time::{sleep, timeout},
@@ -182,7 +183,7 @@ async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
         location.id,
         user.id,
         device.id,
-        Some(Utc::now().naive_utc()),
+        Some(now_naive_utc()),
         false,
     );
     old_session.preshared_key = Some("old-posture-psk".to_owned().into());
@@ -383,7 +384,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
         location.id,
         user.id,
         victim.id,
-        Some(Utc::now().naive_utc()),
+        Some(now_naive_utc()),
         false,
     );
     victim_session.preshared_key = Some("victim-psk".to_owned().into());
@@ -766,7 +767,7 @@ async fn test_posture_check_failure_revokes_active_session(
         location.id,
         user.id,
         device.id,
-        Some(Utc::now().naive_utc()),
+        Some(now_naive_utc()),
         false,
     );
     active_session.preshared_key = Some("active-posture-psk".to_owned().into());
@@ -913,13 +914,8 @@ async fn test_mfa_start_posture_failure_revokes_active_session(
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
-    let mut active_session = VpnClientSession::new(
-        location.id,
-        user.id,
-        device.id,
-        Some(Utc::now().naive_utc()),
-        true,
-    );
+    let mut active_session =
+        VpnClientSession::new(location.id, user.id, device.id, Some(now_naive_utc()), true);
     active_session.preshared_key = Some("active-mfa-psk".to_owned().into());
     let active_session = active_session
         .save(&pool)
@@ -1065,7 +1061,7 @@ async fn test_session_revocation_survives_unavailable_side_effect_consumers(
         location.id,
         user.id,
         device.id,
-        Some(Utc::now().naive_utc()),
+        Some(now_naive_utc()),
         false,
     )
     .save(&pool)
@@ -1116,16 +1112,11 @@ async fn test_replacing_connected_mfa_session_emits_session_superseded_event(
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
-    let old_session = VpnClientSession::new(
-        location.id,
-        user.id,
-        device.id,
-        Some(Utc::now().naive_utc()),
-        true,
-    )
-    .save(&pool)
-    .await
-    .expect("failed to create existing MFA session");
+    let old_session =
+        VpnClientSession::new(location.id, user.id, device.id, Some(now_naive_utc()), true)
+            .save(&pool)
+            .await
+            .expect("failed to create existing MFA session");
 
     let (gateway_tx, mut gateway_rx) = mpsc::unbounded_channel();
     let (bidi_event_tx, mut event_rx) = mpsc::unbounded_channel();
@@ -1313,13 +1304,8 @@ async fn test_create_new_mfa_session_disconnects_previous_active_session(
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
 
-    let mut previous_session = VpnClientSession::new(
-        location.id,
-        user.id,
-        device.id,
-        Some(Utc::now().naive_utc()),
-        true,
-    );
+    let mut previous_session =
+        VpnClientSession::new(location.id, user.id, device.id, Some(now_naive_utc()), true);
     previous_session.preshared_key = Some("old-psk".to_owned().into());
     previous_session.state = VpnClientSessionState::Connected;
     let previous_session = previous_session
@@ -3055,7 +3041,7 @@ fn set_enterprise_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() + chrono::TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
         Some(LicenseLimits {
             users: 100,
             devices: 100,

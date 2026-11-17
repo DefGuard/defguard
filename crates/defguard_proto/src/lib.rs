@@ -222,7 +222,7 @@ impl From<Device<Id>> for client_types::Device {
             name: device.name,
             pubkey: device.wireguard_pubkey,
             user_id: device.user_id,
-            created_at: device.created.and_utc().timestamp(),
+            created_at: device.created.assume_utc().unix_timestamp(),
         }
     }
 }

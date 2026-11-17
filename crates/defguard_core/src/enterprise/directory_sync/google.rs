@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+use time::{OffsetDateTime, SignedDuration};
 use tokio::time::sleep;
 
 use super::{
@@ -31,8 +31,7 @@ struct Claims {
 impl Claims {
     #[must_use]
     fn new(iss: &str, sub: &str) -> Self {
-        let now = Utc::now();
-        let now_timestamp = now.timestamp();
+        let now_timestamp = OffsetDateTime::now_utc().unix_timestamp();
         let exp = now_timestamp + 3600;
         Self {
             iss: iss.into(),
@@ -54,7 +53,7 @@ pub struct ServiceAccountConfig {
 pub(crate) struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
     access_token: Option<String>,
-    token_expiry: Option<DateTime<Utc>>,
+    token_expiry: Option<OffsetDateTime>,
     admin_email: String,
     access_token_url: String,
     groups_url: String,
@@ -164,16 +163,17 @@ impl GoogleDirectorySync {
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
         let token_response = self.query_access_token().await?;
-        let expires_in = TimeDelta::seconds(token_response.expires_in);
+        let expires_in = SignedDuration::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
-        self.token_expiry = Some(Utc::now() + expires_in);
+        self.token_expiry = Some(OffsetDateTime::now_utc() + expires_in);
         Ok(())
     }
 
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Google directory sync token is expired");
         // No token = expired token
-        self.token_expiry.is_none_or(|expiry| expiry < Utc::now())
+        self.token_expiry
+            .is_none_or(|expiry| expiry < OffsetDateTime::now_utc())
     }
 
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
@@ -519,7 +519,7 @@ pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> Go
             &format!("{}/users", mock_server.uri()),
         );
     dirsync.access_token = Some("test_token".into());
-    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync.token_expiry = Some(OffsetDateTime::now_utc() + SignedDuration::seconds(3600));
     dirsync
 }
 

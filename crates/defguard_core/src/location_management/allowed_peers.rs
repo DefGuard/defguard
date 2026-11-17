@@ -112,7 +112,6 @@ pub async fn get_location_allowed_peers(
 mod test {
     use std::{net::IpAddr, str::FromStr};
 
-    use chrono::Utc;
     use defguard_common::{
         db::{
             models::{
@@ -123,6 +122,7 @@ mod test {
         },
         gateway_types::WireguardPeer,
         secret::SecretStringWrapper,
+        time_utils::now_naive_utc,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -455,7 +455,7 @@ mod test {
             network.id,
             user.id,
             connected_device.id,
-            Some(Utc::now().naive_utc()),
+            Some(now_naive_utc()),
             false,
         );
         connected_session.preshared_key = Some("connected-session-psk".to_owned().into());
@@ -559,7 +559,7 @@ mod test {
                     network.id,
                     user.id,
                     device.id,
-                    Some(Utc::now().naive_utc()),
+                    Some(now_naive_utc()),
                     false,
                 );
                 session.preshared_key = Some(format!("psk-{}", device.id).into());

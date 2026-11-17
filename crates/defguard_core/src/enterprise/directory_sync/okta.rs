@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use parse_link_header::parse_with_rel;
+use time::{OffsetDateTime, SignedDuration};
 use tokio::time::sleep;
 
 use super::{
@@ -49,8 +49,7 @@ struct Claims {
 impl Claims {
     #[must_use]
     fn new(client_id: &str, base_url: &str) -> Self {
-        let now = Utc::now();
-        let now_timestamp = now.timestamp();
+        let now_timestamp = OffsetDateTime::now_utc().unix_timestamp();
         let exp = now_timestamp + 3600;
         Self {
             iss: client_id.into(),
@@ -64,7 +63,7 @@ impl Claims {
 
 pub struct OktaDirectorySync {
     access_token: Option<String>,
-    token_expiry: Option<DateTime<Utc>>,
+    token_expiry: Option<OffsetDateTime>,
     jwk_private_key: String,
     client_id: String,
     base_url: String,
@@ -151,20 +150,22 @@ impl OktaDirectorySync {
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
         debug!("Refreshing Okta directory sync access token");
         let token_response = self.query_access_token().await?;
-        let expires_in = TimeDelta::seconds(token_response.expires_in);
+        let expires_in = SignedDuration::seconds(token_response.expires_in);
         debug!(
             "Access token refreshed, the new token expires in {} seconds",
             token_response.expires_in
         );
         self.access_token = Some(token_response.token);
-        self.token_expiry = Some(Utc::now() + expires_in);
+        self.token_expiry = Some(OffsetDateTime::now_utc() + expires_in);
         Ok(())
     }
 
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Okta directory sync token is expired");
         // No token = expired token
-        let result = self.token_expiry.is_none_or(|expiry| expiry < Utc::now());
+        let result = self
+            .token_expiry
+            .is_none_or(|expiry| expiry < OffsetDateTime::now_utc());
         debug!("Token is expired: {}", result);
         result
     }
@@ -495,7 +496,7 @@ pub(crate) fn dirsync_with_mock_server(mock_server: &wiremock::MockServer) -> Ok
     let mut dirsync =
         OktaDirectorySync::new(TEST_JWK_PRIVATE_KEY, "test_client_id", &mock_server.uri());
     dirsync.access_token = Some("test_token".into());
-    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(3600));
+    dirsync.token_expiry = Some(OffsetDateTime::now_utc() + SignedDuration::seconds(3600));
     dirsync
 }
 

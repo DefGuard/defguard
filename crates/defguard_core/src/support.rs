@@ -9,6 +9,7 @@ use defguard_common::{
             proxy::Proxy,
         },
     },
+    time_utils::format_naive_iso,
 };
 use serde::Serialize;
 use serde_json::{Value, json, value::to_value};
@@ -64,7 +65,7 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
                     "name": p.name,
                     "version": p.version.as_deref().unwrap_or("unknown"),
                     "address": p.address,
-                    "connected_at": p.connected_at
+                    "connected_at": p.connected_at.map(format_naive_iso)
                 }))
                 .collect::<Vec<_>>()
         ),
@@ -82,7 +83,7 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
                     "address": g.address,
                     "port": g.port,
                     "name": g.name,
-                    "connected_at": g.connected_at,
+                    "connected_at": g.connected_at.map(format_naive_iso),
                 }))
                 .collect::<Vec<_>>()
         ),

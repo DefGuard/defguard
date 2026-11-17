@@ -74,8 +74,8 @@ strum.workspace = true
 strum_macros.workspace = true
 tera.workspace = true
 thiserror.workspace = true
+time = { workspace = true, features = ["formatting", "macros", "parsing", "std"] }
 # match axum-extra -> cookies
-time.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true

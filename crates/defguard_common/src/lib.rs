@@ -16,6 +16,7 @@ pub mod random;
 pub mod secret;
 #[cfg(feature = "test-support")]
 pub mod testing;
+pub mod time_utils;
 pub mod types;
 pub mod utils;
 

@@ -1,11 +1,14 @@
 use std::fmt;
 
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, query, query_as};
+use time::PrimitiveDateTime;
 
-use crate::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    time_utils::now_naive_utc,
+};
 
 #[derive(Clone, Deserialize, Model, Serialize, PartialEq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -15,19 +18,24 @@ pub struct Proxy<I = NoId> {
     pub name: String,
     pub address: String,
     pub port: i32,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub disconnected_at: Option<PrimitiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
     pub certificate_serial: Option<String>,
-    pub certificate_expiry: Option<NaiveDateTime>,
-    pub modified_at: NaiveDateTime,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub certificate_expiry: Option<PrimitiveDateTime>,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
     #[serde(skip)]
     pub core_client_cert_der: Option<Vec<u8>>,
     #[serde(skip)]
     pub core_client_cert_key_der: Option<Vec<u8>>,
-    pub core_client_cert_expiry: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub core_client_cert_expiry: Option<PrimitiveDateTime>,
 }
 
 impl<I: fmt::Debug> fmt::Debug for Proxy<I> {
@@ -89,7 +97,7 @@ impl Proxy {
             version: None,
             enabled: true,
             modified_by: modified_by.into(),
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             core_client_cert_der: None,
             core_client_cert_key_der: None,
             core_client_cert_expiry: None,
@@ -155,14 +163,14 @@ impl Proxy<Id> {
 
     pub async fn mark_connected(&mut self, pool: &PgPool, version: String) -> sqlx::Result<()> {
         self.version = Some(version);
-        self.connected_at = Some(Utc::now().naive_utc());
+        self.connected_at = Some(now_naive_utc());
         self.save(pool).await?;
 
         Ok(())
     }
 
     pub async fn mark_disconnected(&mut self, pool: &PgPool) -> sqlx::Result<()> {
-        self.disconnected_at = Some(Utc::now().naive_utc());
+        self.disconnected_at = Some(now_naive_utc());
         self.save(pool).await?;
 
         Ok(())

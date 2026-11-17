@@ -1,6 +1,9 @@
-use chrono::{DateTime, NaiveDateTime};
-use defguard_common::db::{models::WireguardNetwork, setup_pool};
+use defguard_common::{
+    db::{models::WireguardNetwork, setup_pool},
+    time_utils::NAIVE_EPOCH,
+};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::PrimitiveDateTime;
 
 use crate::enterprise::{
     db::models::acl::{AclRule, AclRuleNetwork, RuleState},
@@ -18,7 +21,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -27,7 +30,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -58,7 +61,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     acl_rule_1.expires = None;
     acl_rule_1.save(&pool).await.unwrap();
 
-    acl_rule_2.expires = Some(NaiveDateTime::MAX);
+    acl_rule_2.expires = Some(PrimitiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
     let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
@@ -82,7 +85,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -91,7 +94,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -122,7 +125,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     acl_rule_1.expires = None;
     acl_rule_1.save(&pool).await.unwrap();
 
-    acl_rule_2.expires = Some(NaiveDateTime::MAX);
+    acl_rule_2.expires = Some(PrimitiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
     let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
@@ -149,7 +152,7 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -158,7 +161,7 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         enabled: true,
         state: RuleState::Applied,
         ..Default::default()
@@ -189,7 +192,7 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     acl_rule_1.expires = None;
     acl_rule_1.save(&pool).await.unwrap();
 
-    acl_rule_2.expires = Some(NaiveDateTime::MAX);
+    acl_rule_2.expires = Some(PrimitiveDateTime::MAX);
     acl_rule_2.save(&pool).await.unwrap();
 
     let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)

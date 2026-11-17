@@ -5,10 +5,12 @@ use std::{
     ops::{Bound, RangeInclusive},
 };
 
-use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{
-    Id, NoId,
-    models::{Device, DeviceType, WireguardNetwork, group::Group, user::User},
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{Device, DeviceType, WireguardNetwork, group::Group, user::User},
+    },
+    time_utils::now_naive_utc,
 };
 use ipnetwork::IpNetwork;
 use model_derive::Model;
@@ -17,6 +19,7 @@ use sqlx::{
     query, query_as, query_scalar,
 };
 use thiserror::Error;
+use time::PrimitiveDateTime;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -164,11 +167,11 @@ pub struct AclRuleInfo<I = NoId> {
     pub parent_id: Option<Id>,
     pub state: RuleState,
     pub name: String,
-    pub modified_at: NaiveDateTime,
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
     pub all_locations: bool,
     pub locations: Vec<WireguardNetwork<Id>>,
-    pub expires: Option<NaiveDateTime>,
+    pub expires: Option<PrimitiveDateTime>,
     pub enabled: bool,
     // source
     pub allow_all_users: bool,
@@ -268,12 +271,12 @@ pub struct AclRule<I = NoId> {
     #[model(ref)]
     pub protocols: Vec<Protocol>,
     pub enabled: bool,
-    pub expires: Option<NaiveDateTime>,
+    pub expires: Option<PrimitiveDateTime>,
     pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
     pub use_manual_destination_settings: bool,
-    pub modified_at: NaiveDateTime,
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
 }
 
@@ -300,7 +303,7 @@ impl Default for AclRule {
             any_port: true,
             any_protocol: true,
             use_manual_destination_settings: true,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         }
     }
@@ -308,7 +311,7 @@ impl Default for AclRule {
 
 impl<I> AclRule<I> {
     pub(crate) fn stamp_modified(&mut self, actor: &str) {
-        self.modified_at = Utc::now().naive_utc();
+        self.modified_at = now_naive_utc();
         actor.clone_into(&mut self.modified_by);
     }
 }
@@ -943,7 +946,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             any_port: rule.any_port,
             any_protocol: rule.any_protocol,
             use_manual_destination_settings: rule.use_manual_destination_settings,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         })
     }
@@ -1672,7 +1675,7 @@ pub struct AclAlias<I = NoId> {
     pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
-    pub modified_at: NaiveDateTime,
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
 }
 
@@ -1690,7 +1693,7 @@ impl Default for AclAlias {
             any_address: false,
             any_port: false,
             any_protocol: false,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         }
     }
@@ -1698,7 +1701,7 @@ impl Default for AclAlias {
 
 impl<I> AclAlias<I> {
     pub(crate) fn stamp_modified(&mut self, actor: &str) {
-        self.modified_at = Utc::now().naive_utc();
+        self.modified_at = now_naive_utc();
         actor.clone_into(&mut self.modified_by);
     }
 }
@@ -1728,7 +1731,7 @@ impl AclAlias {
             any_address,
             any_port,
             any_protocol,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         }
     }
@@ -1918,7 +1921,7 @@ impl TryFrom<&EditAclAlias> for AclAlias {
             any_address: false,
             any_port: false,
             any_protocol: false,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         })
     }
@@ -1979,7 +1982,7 @@ impl TryFrom<&EditAclDestination> for AclAlias {
             any_address: alias.any_address,
             any_port: alias.any_port,
             any_protocol: alias.any_protocol,
-            modified_at: Utc::now().naive_utc(),
+            modified_at: now_naive_utc(),
             modified_by: "admin".into(),
         })
     }

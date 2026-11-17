@@ -1,4 +1,3 @@
-use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
@@ -9,6 +8,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
+    time_utils::now_naive_utc,
 };
 use sqlx::{PgConnection, PgPool};
 use tokio::{
@@ -286,7 +286,7 @@ impl SessionManager {
         location: &WireguardNetwork<Id>,
         session_authorization_required: bool,
     ) -> Result<(), SessionManagerError> {
-        let disconnect_timestamp = Utc::now().naive_utc();
+        let disconnect_timestamp = now_naive_utc();
         let is_connected = session.connected_at.is_some();
         let is_mfa_session = session.is_mfa_session;
 

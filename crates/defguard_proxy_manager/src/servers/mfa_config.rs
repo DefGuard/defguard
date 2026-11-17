@@ -381,7 +381,7 @@ impl MfaConfigServer {
             session_token: token.id,
             available_methods,
             email_fallback,
-            deadline_timestamp: token.expires_at.and_utc().timestamp(),
+            deadline_timestamp: token.expires_at.assume_utc().unix_timestamp(),
         })
     }
 
@@ -639,7 +639,7 @@ impl MfaConfigServer {
         );
 
         Ok(MfaConfigAuthorizeResponse {
-            deadline_timestamp: deadline.and_utc().timestamp(),
+            deadline_timestamp: deadline.assume_utc().unix_timestamp(),
             recovery_codes,
         })
     }

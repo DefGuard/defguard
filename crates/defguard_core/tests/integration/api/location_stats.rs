@@ -1,21 +1,25 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use chrono::{Duration, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, gateway::Gateway,
-        vpn_client_session::VpnClientSession, vpn_session_stats::VpnSessionStats,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, WireguardNetwork, device::WireguardNetworkDevice, gateway::Gateway,
+            vpn_client_session::VpnClientSession, vpn_session_stats::VpnSessionStats,
+        },
     },
+    time_utils::now_naive_utc,
 };
 use defguard_core::handlers::Auth;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::{SignedDuration, format_description::BorrowedFormatItem, macros::format_description};
 
 use super::common::{make_network, make_test_client, setup_pool};
 
-static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
+const DATE_FORMAT: &[BorrowedFormatItem<'static>] =
+    format_description!("[year]-[month]-[day]T[hour]:[minute]:00Z");
 
 #[derive(Deserialize)]
 struct PaginatedResponse<T> {
@@ -105,7 +109,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         .await
         .unwrap();
 
-    let now = Utc::now().naive_utc();
+    let now = now_naive_utc();
     let user_session = VpnClientSession::new(
         network.id,
         client_state.test_user.id,
@@ -157,7 +161,9 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
     .await
     .unwrap();
 
-    let from = (Utc::now().naive_utc() - Duration::minutes(10)).format(DATE_FORMAT);
+    let from = (now_naive_utc() - SignedDuration::minutes(10))
+        .format(DATE_FORMAT)
+        .unwrap();
 
     let response = client
         .get(format!(

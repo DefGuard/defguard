@@ -1,4 +1,3 @@
-use chrono::Duration;
 use defguard_common::db::models::{Settings, User, settings::update_current_settings};
 use defguard_core::{
     db::models::enrollment::Token,
@@ -8,6 +7,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::SignedDuration;
 
 use super::common::{
     configure_ldap, configure_smtp, fetch_user_details, get_db_user, make_client_with_db,
@@ -292,7 +292,10 @@ async fn test_enrollment_token_expiration_time(_: PgPoolOptions, options: PgConn
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
     let token = tokens.first().unwrap();
-    assert_eq!(token.expires_at, token.created_at + Duration::hours(24));
+    assert_eq!(
+        token.expires_at,
+        token.created_at + SignedDuration::hours(24)
+    );
 
     // request enrollment with different expiration time
     let response = client
@@ -306,7 +309,10 @@ async fn test_enrollment_token_expiration_time(_: PgPoolOptions, options: PgConn
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
     let token = tokens.first().unwrap();
-    assert_eq!(token.expires_at, token.created_at + Duration::hours(72));
+    assert_eq!(
+        token.expires_at,
+        token.created_at + SignedDuration::hours(72)
+    );
 
     // request enrollment with different expiration time
     let response = client
@@ -320,7 +326,7 @@ async fn test_enrollment_token_expiration_time(_: PgPoolOptions, options: PgConn
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
     let token = tokens.first().unwrap();
-    assert_eq!(token.expires_at, token.created_at + Duration::days(7));
+    assert_eq!(token.expires_at, token.created_at + SignedDuration::days(7));
 
     // request enrollment with different expiration time
     let response = client
@@ -334,7 +340,10 @@ async fn test_enrollment_token_expiration_time(_: PgPoolOptions, options: PgConn
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(tokens.len(), 1);
     let token = tokens.first().unwrap();
-    assert_eq!(token.expires_at, token.created_at + Duration::hours(2));
+    assert_eq!(
+        token.expires_at,
+        token.created_at + SignedDuration::hours(2)
+    );
 }
 
 #[sqlx::test]

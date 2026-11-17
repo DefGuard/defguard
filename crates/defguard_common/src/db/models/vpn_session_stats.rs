@@ -1,6 +1,6 @@
-use chrono::NaiveDateTime;
 use model_derive::Model;
 use sqlx::{PgExecutor, query_as};
+use time::PrimitiveDateTime;
 
 use crate::db::{Id, NoId};
 
@@ -10,9 +10,9 @@ pub struct VpnSessionStats<I = NoId> {
     pub id: I,
     pub session_id: Id,
     pub gateway_id: Id,
-    pub collected_at: NaiveDateTime,
+    pub collected_at: PrimitiveDateTime,
     // handshake must have occured for a session to be considered active
-    pub latest_handshake: NaiveDateTime,
+    pub latest_handshake: PrimitiveDateTime,
     pub endpoint: String,
     // total bytes sent to peer as read from WireGuard interface
     pub total_upload: i64,
@@ -30,8 +30,8 @@ impl VpnSessionStats {
     pub fn new(
         session_id: Id,
         gateway_id: Id,
-        collected_at: NaiveDateTime,
-        latest_handshake: NaiveDateTime,
+        collected_at: PrimitiveDateTime,
+        latest_handshake: PrimitiveDateTime,
         endpoint: String,
         total_upload: i64,
         total_download: i64,

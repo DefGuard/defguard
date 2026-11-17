@@ -10,7 +10,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::DateTime;
 use defguard_common::{
     VERSION,
     db::{
@@ -19,6 +18,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
+    time_utils::naive_from_unix_timestamp,
 };
 use defguard_core::{
     enterprise::firewall::try_get_location_firewall_config,
@@ -766,8 +766,7 @@ fn try_protos_into_stats_message(
 
     let latest_handshake = proto_stats
         .latest_handshake
-        .and_then(|ts| DateTime::from_timestamp(ts.seconds, ts.nanos as u32))?
-        .naive_utc();
+        .and_then(|ts| naive_from_unix_timestamp(ts.seconds, ts.nanos as u32))?;
 
     Some(PeerStatsUpdate::new(
         location_id,

@@ -1,6 +1,5 @@
 use std::ops::Bound;
 
-use chrono::{NaiveDateTime, Timelike};
 use defguard_common::{
     db::{models::wireguard::ServiceLocationMode, setup_pool},
     utils::parse_address_list,
@@ -9,12 +8,6 @@ use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-
-fn truncate_timestamp_to_microseconds(timestamp: NaiveDateTime) -> NaiveDateTime {
-    timestamp
-        .with_nanosecond((timestamp.nanosecond() / 1_000) * 1_000)
-        .expect("microsecond timestamp truncation should produce a valid NaiveDateTime")
-}
 
 #[sqlx::test]
 async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
@@ -310,7 +303,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     let info = rule.to_info(&mut conn).await.unwrap();
 
     assert_eq!(info.destinations.len(), 1);
-    alias1.modified_at = truncate_timestamp_to_microseconds(alias1.modified_at);
+    alias1.modified_at = alias1.modified_at.truncate_to_microsecond();
     assert_eq!(info.destinations[0], alias1);
 
     assert_eq!(info.allowed_users.len(), 1);
@@ -322,14 +315,14 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(info.allowed_groups.len(), 1);
     assert_eq!(info.allowed_groups[0], group1);
 
-    device1.created = truncate_timestamp_to_microseconds(device1.created);
+    device1.created = device1.created.truncate_to_microsecond();
     assert_eq!(info.denied_groups.len(), 1);
     assert_eq!(info.denied_groups[0], group2);
 
     assert_eq!(info.allowed_network_devices.len(), 1);
     assert_eq!(info.allowed_network_devices[0], device1);
 
-    device2.created = truncate_timestamp_to_microseconds(device2.created);
+    device2.created = device2.created.truncate_to_microsecond();
     assert_eq!(info.denied_network_devices.len(), 1);
     assert_eq!(info.denied_network_devices[0], device2);
 

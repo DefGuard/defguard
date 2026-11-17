@@ -5,10 +5,10 @@ use axum::{
     http::StatusCode,
 };
 use axum_extra::extract::Query;
-use chrono::{DateTime, NaiveDateTime, Utc};
-use defguard_common::db::Id;
+use defguard_common::{db::Id, time_utils::OffsetDateTimeExt};
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
+use time::{OffsetDateTime, PrimitiveDateTime};
 
 use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
 #[cfg(feature = "openapi")]
@@ -22,8 +22,10 @@ use crate::{
 
 #[derive(Debug, Deserialize, Default)]
 pub struct FilterParams {
-    pub from: Option<DateTime<Utc>>,
-    pub until: Option<DateTime<Utc>>,
+    #[serde(default, with = "defguard_common::time_utils::serde_utc::option")]
+    pub from: Option<OffsetDateTime>,
+    #[serde(default, with = "defguard_common::time_utils::serde_utc::option")]
+    pub until: Option<OffsetDateTime>,
     #[serde(default)]
     pub username: Vec<String>,
     #[serde(default)]
@@ -93,7 +95,8 @@ impl fmt::Display for SortOrder {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApiActivityLogEvent {
     pub id: Id,
-    pub timestamp: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub timestamp: PrimitiveDateTime,
     pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
@@ -267,12 +270,12 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     if let Some(from) = filters.from {
         query_builder
             .push(" AND timestamp >= ")
-            .push_bind(from.naive_utc());
+            .push_bind(from.to_naive_utc());
     }
     if let Some(until) = filters.until {
         query_builder
             .push(" AND timestamp <= ")
-            .push_bind(until.naive_utc());
+            .push_bind(until.to_naive_utc());
     }
 
     // user filter

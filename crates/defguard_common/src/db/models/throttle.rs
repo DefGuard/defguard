@@ -1,6 +1,8 @@
-use chrono::{TimeDelta, Utc};
 use sqlx::{PgExecutor, PgPool, Type, query, query_scalar};
+use time::SignedDuration;
 use tracing::debug;
+
+use crate::time_utils::now_naive_utc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Type)]
 #[sqlx(type_name = "throttle_scope", rename_all = "snake_case")]
@@ -24,10 +26,10 @@ impl ThrottleScope {
         }
     }
 
-    const fn window(self) -> TimeDelta {
+    const fn window(self) -> SignedDuration {
         match self {
-            Self::WebLogin => TimeDelta::minutes(5),
-            Self::VpnMfaCode | Self::VpnMfaInitiate => TimeDelta::minutes(15),
+            Self::WebLogin => SignedDuration::minutes(5),
+            Self::VpnMfaCode | Self::VpnMfaInitiate => SignedDuration::minutes(15),
         }
     }
 
@@ -35,7 +37,7 @@ impl ThrottleScope {
     ///
     /// Call it before the credential is examined, and [`Self::refund`] a correct one.
     pub async fn hit<'e, E: PgExecutor<'e>>(self, executor: E, key: &str) -> sqlx::Result<bool> {
-        let now = Utc::now().naive_utc();
+        let now = now_naive_utc();
         let expires_at = now + self.window();
         let attempts = query_scalar!(
             "INSERT INTO throttle AS t (scope, key, attempts, expires_at) \
@@ -78,7 +80,7 @@ impl ThrottleScope {
             "SELECT attempts FROM throttle WHERE scope = $1 AND key = $2 AND expires_at > $3",
             self as Self,
             key,
-            Utc::now().naive_utc(),
+            now_naive_utc(),
         )
         .fetch_optional(executor)
         .await?;

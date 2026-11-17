@@ -5,9 +5,10 @@ use std::sync::{PoisonError, RwLock};
 use std::{borrow::Cow, collections::BTreeMap, iter, sync::LazyLock};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::{DateTime, NaiveDateTime};
+use defguard_common::time_utils::OffsetDateTimeExt;
 use serde::Deserialize;
 use thiserror::Error;
+use time::PrimitiveDateTime;
 use webauthn_rs::prelude::{
     AttestationCaList, AttestationCaListBuilder, AttestationMetadata, AttestedPasskey,
     ParsedAttestationData, Uuid,
@@ -64,7 +65,7 @@ pub struct HardwareKey {
     pub aaguid: Uuid,
     pub description: Option<String>,
     // earliest expiry across the attestation chain and its trusted root
-    pub valid_until: NaiveDateTime,
+    pub valid_until: PrimitiveDateTime,
     // DER certificates from leaf to the trusted root, root included once
     pub chain: Vec<Vec<u8>>,
     pub chain_sha256: Vec<String>,
@@ -200,7 +201,7 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
         .iter()
         .chain(iter::once(&root))
         .map(|der| certificate_not_after(der))
-        .try_fold(NaiveDateTime::MAX, |earliest, not_after| {
+        .try_fold(PrimitiveDateTime::MAX, |earliest, not_after| {
             not_after.map(|not_after| earliest.min(not_after))
         })?;
     if chain.last() != Some(&root) {
@@ -217,12 +218,14 @@ pub fn verify_hardware_key(passkey: &AttestedPasskey) -> Result<HardwareKey, Har
     })
 }
 
-fn certificate_not_after(der: &[u8]) -> Result<NaiveDateTime, HardwareKeyError> {
+fn certificate_not_after(der: &[u8]) -> Result<PrimitiveDateTime, HardwareKeyError> {
     let (_, certificate) =
         parse_x509_certificate(der).map_err(|_| HardwareKeyError::MalformedCertificate)?;
-    DateTime::from_timestamp(certificate.validity().not_after.timestamp(), 0)
-        .map(|not_after| not_after.naive_utc())
-        .ok_or(HardwareKeyError::MalformedCertificate)
+    Ok(certificate
+        .validity()
+        .not_after
+        .to_datetime()
+        .to_naive_utc())
 }
 
 /// Many vendors omit the transports extension, so only an extension that lists no removable
@@ -249,8 +252,8 @@ fn certificate_denies_roaming(der: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use chrono::NaiveDate;
     use rcgen::{CertificateParams, CustomExtension, KeyPair, date_time_ymd};
+    use time::macros::datetime;
 
     use super::*;
 
@@ -354,12 +357,7 @@ mod tests {
             .expect("self signed certificate")
             .der()
             .to_vec();
-        assert_eq!(
-            certificate_not_after(&der),
-            Ok(NaiveDate::from_ymd_opt(2031, 1, 2)
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .expect("valid date"))
-        );
+        assert_eq!(certificate_not_after(&der), Ok(datetime!(2031-01-02 0:00)));
         assert_eq!(
             certificate_not_after(b"not a certificate"),
             Err(HardwareKeyError::MalformedCertificate)

@@ -18,12 +18,12 @@ defguard_version.workspace = true
 
 axum-extra.workspace = true
 axum.workspace = true
-chrono.workspace = true
 openidconnect.workspace = true
 reqwest.workspace = true
 semver.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
+time = { workspace = true, features = ["std"] }
 tokio-stream.workspace = true
 tokio.workspace = true
 tonic.workspace = true

@@ -3,9 +3,9 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use chrono::Utc;
 use defguard_common::{
     db::{Id, models::proxy::Proxy},
+    time_utils::now_naive_utc,
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
 use serde_json::Value;
@@ -139,7 +139,7 @@ pub(crate) async fn update_proxy(
     proxy.name = data.name;
     proxy.enabled = data.enabled;
     proxy.modified_by = session.user.fullname();
-    proxy.modified_at = Utc::now().naive_utc();
+    proxy.modified_at = now_naive_utc();
     proxy.save(&appstate.pool).await?;
 
     if before.enabled != proxy.enabled {

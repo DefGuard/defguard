@@ -1,14 +1,15 @@
 use std::{collections::HashSet, time::Duration};
 
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     db::models::{
         Certificates, CoreCertSource, ProxyCertSource, User, WireguardNetwork, throttle,
         vpn_client_mfa_session,
     },
+    time_utils::{format_naive, now_naive_utc},
     types::proxy::ProxyControlMessage,
 };
 use sqlx::{PgConnection, PgPool, query_as};
+use time::{PrimitiveDateTime, SignedDuration};
 use tokio::{
     sync::{broadcast, mpsc},
     time::{Instant, sleep},
@@ -43,7 +44,7 @@ const EXPIRED_ROWS_REAP_INTERVAL: u64 = 60 * 5;
 const LICENSE_CHECK_INTERVAL: u64 = 60 * 5;
 const LETSENCRYPT_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24;
 const CERTIFICATE_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24; // 1 day
-const SELF_SIGNED_REFRESH_THRESHOLD: TimeDelta = TimeDelta::days(14);
+const SELF_SIGNED_REFRESH_THRESHOLD: SignedDuration = SignedDuration::days(14);
 const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 
 #[instrument(skip_all)]
@@ -347,21 +348,21 @@ async fn expired_acl_rules_check(
 }
 
 /// Check if certificate is about to expire, or got expired. Send mail accordingly.
-async fn expiry_check(conn: &mut PgConnection, certificate_type: &str, expiry: NaiveDateTime) {
-    const TIME_CHECK: &[TimeDelta] = &[
-        TimeDelta::days(-14),
-        TimeDelta::days(-7),
-        TimeDelta::days(-3),
-        TimeDelta::days(-1),
-        TimeDelta::days(0),
+async fn expiry_check(conn: &mut PgConnection, certificate_type: &str, expiry: PrimitiveDateTime) {
+    const TIME_CHECK: &[SignedDuration] = &[
+        SignedDuration::days(-14),
+        SignedDuration::days(-7),
+        SignedDuration::days(-3),
+        SignedDuration::days(-1),
+        SignedDuration::days(0),
     ];
 
-    let now = Utc::now().naive_utc();
+    let now = now_naive_utc();
     let time_delta = now - expiry;
     for check in TIME_CHECK {
-        if check.num_days() == time_delta.num_days() {
+        if check.whole_days() == time_delta.whole_days() {
             // Send email to admins.
-            if time_delta.num_days() >= 0 {
+            if time_delta.whole_days() >= 0 {
                 debug!("Certificate {certificate_type} has expired; notifying admins");
             } else {
                 debug!("Certificate {certificate_type} is about to expire; notifying admins");
@@ -371,7 +372,7 @@ async fn expiry_check(conn: &mut PgConnection, certificate_type: &str, expiry: N
                 return;
             };
             for user in admin_users {
-                let _ = if time_delta.num_days() >= 0 {
+                let _ = if time_delta.whole_days() >= 0 {
                     templates::certificate_expired_mail(
                         &user.email,
                         &mut *conn,
@@ -430,7 +431,7 @@ async fn check_certificates(
     }
 
     // Auto-refresh self-signed certs when close to expiry
-    let now = Utc::now().naive_utc();
+    let now = now_naive_utc();
 
     if let CoreCertSource::SelfSigned = cert.core_http_cert_source
         && let Some(expiry) = cert.core_http_cert_expiry
@@ -439,11 +440,14 @@ async fn check_certificates(
         if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
             info!(
                 "Core self-signed HTTPS certificate expires in {} days, refreshing",
-                expire_in.num_days()
+                expire_in.whole_days()
             );
             match refresh_core_self_signed_cert(pool).await {
                 Ok((_, _, new_expiry)) => {
-                    info!("Core self-signed HTTPS certificate refreshed, new expiry: {new_expiry}");
+                    info!(
+                        "Core self-signed HTTPS certificate refreshed, new expiry: {}",
+                        format_naive(new_expiry)
+                    );
                     if let Err(err) = web_reload_tx.send(()) {
                         error!("Failed to trigger core web server reload: {err}");
                     }
@@ -462,12 +466,13 @@ async fn check_certificates(
         if expire_in <= SELF_SIGNED_REFRESH_THRESHOLD {
             info!(
                 "Proxy self-signed HTTPS certificate expires in {} days, refreshing",
-                expire_in.num_days()
+                expire_in.whole_days()
             );
             match refresh_proxy_self_signed_cert(pool).await {
                 Ok((cert_pem, key_pem, new_expiry)) => {
                     info!(
-                        "Proxy self-signed HTTPS certificate refreshed, new expiry: {new_expiry}"
+                        "Proxy self-signed HTTPS certificate refreshed, new expiry: {}",
+                        format_naive(new_expiry)
                     );
                     if let Err(err) = proxy_control_tx
                         .send(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem })

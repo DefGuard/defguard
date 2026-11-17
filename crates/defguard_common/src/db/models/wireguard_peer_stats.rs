@@ -1,17 +1,21 @@
-use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query_as};
+use time::PrimitiveDateTime;
 
-use crate::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    time_utils::now_naive_utc,
+};
 
 #[derive(Debug, Deserialize, Model, Serialize)]
 #[table(wireguard_peer_stats)]
 pub struct WireguardPeerStats<I = NoId> {
     pub id: I,
     pub device_id: Id,
-    pub collected_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub collected_at: PrimitiveDateTime,
     pub network: i64,
     // optional because it's not available until a peer actually connects
     pub endpoint: Option<String>,
@@ -19,7 +23,8 @@ pub struct WireguardPeerStats<I = NoId> {
     pub upload: i64,
     // bytes received from peer
     pub download: i64,
-    pub latest_handshake: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub latest_handshake: PrimitiveDateTime,
     // FIXME: can contain multiple IP addresses
     pub allowed_ips: Option<String>,
 }
@@ -79,7 +84,6 @@ impl WireguardPeerStats<Id> {
 
 #[cfg(test)]
 mod test {
-    use chrono::Utc;
 
     use super::*;
 
@@ -88,12 +92,12 @@ mod test {
         let mut stats = WireguardPeerStats {
             id: 1,
             device_id: 1,
-            collected_at: Utc::now().naive_utc(),
+            collected_at: now_naive_utc(),
             network: 1,
             endpoint: None,
             upload: 100,
             download: 100,
-            latest_handshake: Utc::now().naive_utc(),
+            latest_handshake: now_naive_utc(),
             allowed_ips: None,
         };
         assert!(stats.trim_allowed_ips().is_empty());

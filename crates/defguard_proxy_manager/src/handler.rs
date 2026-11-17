@@ -10,7 +10,6 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use chrono::NaiveDateTime;
 use defguard_common::{
     VERSION,
     db::{
@@ -68,6 +67,7 @@ use openidconnect::{
 use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
+use time::PrimitiveDateTime;
 use tokio::{
     select,
     sync::{
@@ -1660,7 +1660,7 @@ impl ProxyServices {
 ///
 /// Returns `None` if the PEM is unparseable (e.g. empty or malformed), so the
 /// caller can still proceed without a stored expiry.
-fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+fn parse_cert_expiry(cert_pem: &str) -> Option<PrimitiveDateTime> {
     use defguard_certs::{CertificateInfo, parse_pem_certificate};
 
     let der = parse_pem_certificate(cert_pem)

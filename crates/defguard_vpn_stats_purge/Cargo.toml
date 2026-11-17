@@ -8,14 +8,12 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chrono.workspace = true
+defguard_common.workspace = true
 humantime.workspace = true
 sqlx.workspace = true
+time = { workspace = true, features = ["std"] }
 tokio.workspace = true
 tracing.workspace = true
-
-[dev-dependencies]
-defguard_common.workspace = true
 
 [lints]
 workspace = true

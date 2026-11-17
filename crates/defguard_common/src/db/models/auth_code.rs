@@ -1,6 +1,6 @@
-use chrono::Utc;
 use model_derive::Model;
 use sqlx::{PgExecutor, query_as};
+use time::OffsetDateTime;
 
 use crate::{
     db::{Id, NoId},
@@ -40,7 +40,7 @@ impl AuthCode {
             code,
             redirect_uri,
             scope,
-            auth_time: Utc::now().timestamp(),
+            auth_time: OffsetDateTime::now_utc().unix_timestamp(),
             nonce,
             code_challenge,
         }

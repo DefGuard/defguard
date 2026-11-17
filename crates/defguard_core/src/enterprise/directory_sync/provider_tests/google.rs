@@ -117,12 +117,12 @@ async fn test_token() {
 
     // expired token
     dirsync.access_token = Some("test_token".into());
-    dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
+    dirsync.token_expiry = Some(OffsetDateTime::now_utc() - SignedDuration::seconds(10000));
     assert!(dirsync.is_token_expired());
 
     // valid token
     dirsync.access_token = Some("test_token".into());
-    dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
+    dirsync.token_expiry = Some(OffsetDateTime::now_utc() + SignedDuration::seconds(10000));
     assert!(!dirsync.is_token_expired());
 }
 

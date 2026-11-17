@@ -1,9 +1,12 @@
 use std::net::SocketAddr;
 
-use chrono::{TimeDelta, Utc};
-use defguard_common::db::{models::vpn_client_session::VpnClientSession, setup_pool};
+use defguard_common::{
+    db::{models::vpn_client_session::VpnClientSession, setup_pool},
+    time_utils::now_naive_utc,
+};
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::SignedDuration;
 use tokio::time::{Duration, timeout};
 
 use crate::common::{
@@ -29,7 +32,7 @@ async fn test_session_manager_emits_connected_event_for_first_stats(
     let mut harness = SessionManagerHarness::new(pool);
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let handshake = Utc::now().naive_utc() - TimeDelta::seconds(5);
+    let handshake = now_naive_utc() - SignedDuration::seconds(5);
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -71,7 +74,7 @@ async fn test_reusing_existing_connected_session_does_not_emit_duplicate_connect
     let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let connected_at = Utc::now().naive_utc() - TimeDelta::seconds(5);
+    let connected_at = now_naive_utc() - SignedDuration::seconds(5);
     let _session = create_session(
         &pool,
         location.id,

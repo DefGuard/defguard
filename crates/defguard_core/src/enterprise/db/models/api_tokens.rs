@@ -1,21 +1,27 @@
-use chrono::NaiveDateTime;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use sqlx::{PgExecutor, query_as};
+use time::PrimitiveDateTime;
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 #[table(api_token)]
 pub struct ApiToken<I = NoId> {
     pub id: I,
     pub user_id: Id,
-    pub created_at: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
     pub name: String,
     pub token_hash: String,
 }
 
 impl ApiToken {
     #[must_use]
-    pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_string: &str) -> Self {
+    pub fn new(
+        user_id: Id,
+        created_at: PrimitiveDateTime,
+        name: String,
+        token_string: &str,
+    ) -> Self {
         let token_hash = Self::hash_token(token_string);
         Self {
             id: NoId,
@@ -73,7 +79,8 @@ impl ApiToken<Id> {
 pub struct ApiTokenInfo {
     pub id: Id,
     pub name: String,
-    pub created_at: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
 }
 
 impl From<ApiToken<Id>> for ApiTokenInfo {

@@ -2,8 +2,10 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use chrono::Utc;
-use defguard_common::db::models::{gateway::Gateway, proxy::Proxy};
+use defguard_common::{
+    db::models::{gateway::Gateway, proxy::Proxy},
+    time_utils::{format_naive, format_naive_iso, now_naive_utc},
+};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -130,7 +132,7 @@ pub async fn send_support_data(
             "name": p.name,
             "version": p.version.as_deref().unwrap_or("unknown"),
             "address": p.address,
-            "connected_at": p.connected_at
+            "connected_at": p.connected_at.map(format_naive_iso)
         })).collect::<Vec<_>>(),
         "gateways": gateways.iter().map(|g| json!({
             "id": g.id,
@@ -140,10 +142,10 @@ pub async fn send_support_data(
             "port": g.port,
             "certificate": g.certificate_serial,
             "name": g.name,
-            "connected_at": g.connected_at,
+            "connected_at": g.connected_at.map(format_naive_iso),
         })).collect::<Vec<_>>(),
     });
-    let now = Utc::now();
+    let now = format!("{} UTC", format_naive(now_naive_utc()));
     let components_json =
         serde_json::to_vec(&components_info).unwrap_or(b"JSON formatting error".into());
     let components = Attachment::new(format!("defguard-components-{now}.json"), components_json);

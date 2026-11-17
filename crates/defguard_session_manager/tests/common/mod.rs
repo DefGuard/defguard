@@ -3,7 +3,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::{NaiveDateTime, TimeDelta, Timelike, Utc};
 use defguard_common::{
     db::{
         Id, NoId,
@@ -18,6 +17,7 @@ use defguard_common::{
     },
     gateway_event::GatewayCommand,
     messages::peer_stats_update::PeerStatsUpdate,
+    time_utils::now_naive_utc,
 };
 use defguard_core::enterprise::db::models::device_posture::{
     DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
@@ -28,6 +28,7 @@ use defguard_session_manager::{
 };
 use ipnetwork::IpNetwork;
 use sqlx::{PgExecutor, PgPool, query, query_scalar};
+use time::{PrimitiveDateTime, SignedDuration};
 use tokio::{sync::mpsc, time::interval};
 
 pub(crate) struct SessionManagerHarness {
@@ -263,7 +264,7 @@ pub(crate) async fn authorize_device_in_location(
         location_id,
         user_id,
         device_id,
-        Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
+        Some(now_naive_utc().truncate_to_microsecond()),
         true,
     );
     session.preshared_key = Some(preshared_key.to_owned().into());
@@ -279,34 +280,28 @@ pub(crate) fn build_stats_update(
     location_id: Id,
     gateway_id: Id,
     device_pubkey: impl Into<String>,
-    collected_at: NaiveDateTime,
+    collected_at: PrimitiveDateTime,
     endpoint: SocketAddr,
     upload: u64,
     download: u64,
-    latest_handshake: NaiveDateTime,
+    latest_handshake: PrimitiveDateTime,
 ) -> PeerStatsUpdate {
     PeerStatsUpdate {
         location_id,
         gateway_id,
         device_pubkey: device_pubkey.into(),
-        collected_at: truncate_timestamp(collected_at),
+        collected_at: collected_at.truncate_to_microsecond(),
         endpoint,
         upload,
         download,
-        latest_handshake: truncate_timestamp(latest_handshake),
+        latest_handshake: latest_handshake.truncate_to_microsecond(),
     }
 }
 
-pub(crate) fn truncate_timestamp(timestamp: NaiveDateTime) -> NaiveDateTime {
-    timestamp
-        .with_nanosecond((timestamp.nanosecond() / 1_000) * 1_000)
-        .expect("failed to truncate timestamp precision")
-}
-
-pub(crate) fn stale_session_timestamp(location: &WireguardNetwork<Id>) -> NaiveDateTime {
-    let reference_time = Utc::now().naive_utc();
+pub(crate) fn stale_session_timestamp(location: &WireguardNetwork<Id>) -> PrimitiveDateTime {
+    let reference_time = now_naive_utc();
     reference_time
-        .checked_sub_signed(TimeDelta::seconds(
+        .checked_sub(SignedDuration::seconds(
             i64::from(location.peer_disconnect_threshold) + 1,
         ))
         .expect("reference timestamp should stay within range")
@@ -317,7 +312,7 @@ pub(crate) async fn create_session(
     location_id: Id,
     user_id: Id,
     device_id: Id,
-    connected_at: Option<NaiveDateTime>,
+    connected_at: Option<PrimitiveDateTime>,
     is_mfa_session: bool,
     preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
@@ -340,8 +335,8 @@ pub(crate) async fn create_session_stats(
     pool: &PgPool,
     session_id: Id,
     gateway_id: Id,
-    collected_at: NaiveDateTime,
-    latest_handshake: NaiveDateTime,
+    collected_at: PrimitiveDateTime,
+    latest_handshake: PrimitiveDateTime,
     endpoint: SocketAddr,
     total_upload: i64,
     total_download: i64,
@@ -367,7 +362,7 @@ pub(crate) async fn create_session_stats(
 pub(crate) async fn set_session_created_at<'e, E: PgExecutor<'e>>(
     executor: E,
     session_id: Id,
-    created_at: NaiveDateTime,
+    created_at: PrimitiveDateTime,
 ) {
     query("UPDATE vpn_client_session SET created_at = $1 WHERE id = $2")
         .bind(created_at)

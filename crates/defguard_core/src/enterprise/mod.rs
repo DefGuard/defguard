@@ -120,9 +120,9 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
 
 #[cfg(test)]
 mod test {
-    use chrono::{TimeDelta, Utc};
     use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;
     use strum::VariantArray;
+    use time::{OffsetDateTime, SignedDuration};
 
     use crate::{
         enterprise::{
@@ -147,7 +147,7 @@ mod test {
         License::new(
             "test".to_owned(),
             true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
             Some(license_limits()),
             None,
             tier,
@@ -179,7 +179,7 @@ mod test {
         let license = License::new(
             "test".to_owned(),
             true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
             Some(license_limits()),
             None,
             LicenseTier::Business,
@@ -197,7 +197,7 @@ mod test {
         let license = License::new(
             "test".to_owned(),
             true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
             Some(license_limits()),
             None,
             LicenseTier::Enterprise,
@@ -221,7 +221,7 @@ mod test {
         let license = License::new(
             "test".to_owned(),
             true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
             Some(license_limits()),
             None,
             LicenseTier::Business,
@@ -301,7 +301,7 @@ mod test {
         set_counts(Counts::new(1, 1, 5, 1));
 
         let mut license = make_license(LicenseTier::Business, vec![LicenseFeature::DevicePosture]);
-        license.valid_until = Some(Utc::now() - TimeDelta::days(365));
+        license.valid_until = Some(OffsetDateTime::now_utc() - SignedDuration::days(365));
         set_cached_license(Some(license));
 
         assert!(!has_enterprise_access(Some(LicenseFeature::DevicePosture)));

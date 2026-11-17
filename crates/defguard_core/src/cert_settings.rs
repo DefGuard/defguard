@@ -1,16 +1,19 @@
 use axum_server::tls_rustls::RustlsConfig;
-use chrono::{NaiveDateTime, Utc};
 use defguard_certs::{
     CertificateError, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
     parse_pem_certificate,
 };
-use defguard_common::db::models::{
-    Certificates, CoreCertSource, ProxyCertSource, Settings,
-    settings::{SettingsSaveError, update_current_settings},
+use defguard_common::{
+    db::models::{
+        Certificates, CoreCertSource, ProxyCertSource, Settings,
+        settings::{SettingsSaveError, update_current_settings},
+    },
+    time_utils::{format_naive, now_naive_utc},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use thiserror::Error;
+use time::PrimitiveDateTime;
 
 /// Errors arising from certificate settings operations.
 #[derive(Debug, Error)]
@@ -51,7 +54,7 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, Ce
     let info = CertificateInfo::from_der(cert_der.as_ref())?;
 
     // Validate cert dates
-    let now = Utc::now().naive_utc();
+    let now = now_naive_utc();
 
     if info.not_after <= info.not_before {
         return Err(CertSettingsError::InvalidValidityPeriod);
@@ -192,7 +195,7 @@ pub async fn apply_internal_url_settings(
             let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
             let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
             let info = CertificateInfo::from_der(&cert_der)?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
             let expiry = info.not_after;
 
             certs.core_http_cert_source = CoreCertSource::SelfSigned;
@@ -207,8 +210,8 @@ pub async fn apply_internal_url_settings(
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
                 valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
+                not_before: format_naive(info.not_before),
+                not_after: format_naive(info.not_after),
             })
         }
         InternalSslType::OwnCert => {
@@ -216,7 +219,7 @@ pub async fn apply_internal_url_settings(
             let key_pem_str = config.key_pem.ok_or(CertSettingsError::MissingKeyPem)?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
             let expiry = info.not_after;
 
             certs.core_http_cert_source = CoreCertSource::Custom;
@@ -231,8 +234,8 @@ pub async fn apply_internal_url_settings(
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
                 valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
+                not_before: format_naive(info.not_before),
+                not_after: format_naive(info.not_after),
             })
         }
     };
@@ -313,7 +316,7 @@ pub async fn apply_external_url_settings(
             let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
             let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
             let info = CertificateInfo::from_der(&cert_der)?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
             let expiry = info.not_after;
 
             certs.proxy_http_cert_source = ProxyCertSource::SelfSigned;
@@ -329,8 +332,8 @@ pub async fn apply_external_url_settings(
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
                 valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
+                not_before: format_naive(info.not_before),
+                not_after: format_naive(info.not_after),
             })
         }
         ExternalSslType::OwnCert => {
@@ -338,7 +341,7 @@ pub async fn apply_external_url_settings(
             let key_pem_str = config.key_pem.ok_or(CertSettingsError::MissingKeyPem)?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
             let expiry = info.not_after;
 
             certs.proxy_http_cert_source = ProxyCertSource::Custom;
@@ -354,8 +357,8 @@ pub async fn apply_external_url_settings(
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
                 valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
+                not_before: format_naive(info.not_before),
+                not_after: format_naive(info.not_after),
             })
         }
     };
@@ -368,7 +371,7 @@ pub async fn apply_external_url_settings(
 /// Returns `(cert_pem, key_pem, expiry)` on success.
 pub(crate) async fn refresh_core_self_signed_cert(
     pool: &PgPool,
-) -> Result<(String, String, NaiveDateTime), CertSettingsError> {
+) -> Result<(String, String, PrimitiveDateTime), CertSettingsError> {
     let settings = Settings::get_current_settings();
     let hostname = extract_hostname(&settings.defguard_url, "defguard URL")?;
 
@@ -402,7 +405,7 @@ pub(crate) async fn refresh_core_self_signed_cert(
 /// Returns `(cert_pem, key_pem, expiry)` on success.
 pub(crate) async fn refresh_proxy_self_signed_cert(
     pool: &PgPool,
-) -> Result<(String, String, NaiveDateTime), CertSettingsError> {
+) -> Result<(String, String, PrimitiveDateTime), CertSettingsError> {
     let settings = Settings::get_current_settings();
     let hostname = extract_hostname(&settings.public_proxy_url, "public proxy URL")?;
 
@@ -435,17 +438,19 @@ pub(crate) async fn refresh_proxy_self_signed_cert(
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
     use defguard_certs::{
         CertificateAuthority, Csr, DnType, ExtendedKeyUsagePurpose, PemLabel, der_to_pem,
         generate_key_pair,
     };
-    use defguard_common::db::{
-        models::{
-            Certificates, CoreCertSource, ProxyCertSource, Settings,
-            settings::{initialize_current_settings, set_settings},
+    use defguard_common::{
+        db::{
+            models::{
+                Certificates, CoreCertSource, ProxyCertSource, Settings,
+                settings::{initialize_current_settings, set_settings},
+            },
+            setup_pool,
         },
-        setup_pool,
+        time_utils::now_naive_utc,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -614,7 +619,7 @@ mod tests {
             "key_pem should be a valid private key"
         );
 
-        let days_valid = (expiry.and_utc() - Utc::now()).num_days();
+        let days_valid = (expiry - now_naive_utc()).whole_days();
         assert!(
             (98..=100).contains(&days_valid),
             "expected ~100 days validity, got {days_valid}"
@@ -656,7 +661,7 @@ mod tests {
             "key_pem should be a valid private key"
         );
 
-        let days_valid = (expiry.and_utc() - Utc::now()).num_days();
+        let days_valid = (expiry - now_naive_utc()).whole_days();
         assert!(
             (98..=100).contains(&days_valid),
             "expected ~100 days validity, got {days_valid}"

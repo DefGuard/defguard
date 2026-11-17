@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_scalar, types::Json};
+use time::PrimitiveDateTime;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -35,7 +35,8 @@ pub enum AutoAdoptionWizardStep {
 pub struct AutoAdoptionComponentResult {
     pub success: bool,
     pub logs: Vec<String>,
-    pub updated_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub updated_at: PrimitiveDateTime,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]

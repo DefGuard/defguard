@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", CAST(SUM(upload_diff) AS bigint) upload, CAST(SUM(download_diff) AS bigint) download FROM vpn_session_stats JOIN vpn_client_session s ON session_id = s.id WHERE s.device_id = $2 AND s.location_id = $3 AND s.state = 'connected' AND collected_at >= $4 GROUP BY 1 ORDER BY 1 LIMIT $5",
+  "query": "SELECT date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", CAST(SUM(upload_diff) AS bigint) upload, CAST(SUM(download_diff) AS bigint) download FROM vpn_session_stats JOIN vpn_client_session s ON session_id = s.id JOIN device d ON s.device_id = d.id WHERE s.user_id = $2 AND s.location_id = $3 AND s.state = 'connected' AND d.device_type = 'user' AND collected_at >= $4 GROUP BY 1 ORDER BY 1 LIMIT $5",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "collected_at: NaiveDateTime",
+        "name": "collected_at: PrimitiveDateTime",
         "type_info": "Timestamp",
         "origin": "Expression"
       },
@@ -37,5 +37,5 @@
       null
     ]
   },
-  "hash": "ad54a6c79202f121dcfb03a4d9128de8d1395d2233a5f5c24efcb421e12c98cc"
+  "hash": "19722cea3ec363bd73abc8ed4518a81e63a8a6405c38e9a5b87fe314f920781e"
 }

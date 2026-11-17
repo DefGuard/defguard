@@ -15,7 +15,6 @@ defguard_proto.workspace = true
 defguard_version.workspace = true
 
 anyhow.workspace = true
-chrono.workspace = true
 hyper-rustls.workspace = true
 prost-types.workspace = true
 reqwest.workspace = true
@@ -23,6 +22,7 @@ semver.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
+time = { workspace = true, features = ["std"] }
 tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true

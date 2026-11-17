@@ -5,7 +5,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::Utc;
 use defguard_common::{
     db::{
         Id,
@@ -20,6 +19,7 @@ use defguard_common::{
         wireguard_key::WireguardKey,
     },
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
     types::user_info::UserInfo,
 };
 use defguard_proto::{
@@ -1722,7 +1722,7 @@ impl ClientMfaServer {
         for mut session in active_sessions {
             let is_connected = session.state == VpnClientSessionState::Connected;
             let is_mfa_session = session.is_mfa_session;
-            let disconnect_timestamp = Utc::now().naive_utc();
+            let disconnect_timestamp = now_naive_utc();
             session.disconnected_at = Some(disconnect_timestamp);
             session.state = VpnClientSessionState::Disconnected;
             session.save(&mut *conn).await.map_err(|err| {

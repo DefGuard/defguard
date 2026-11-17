@@ -1,5 +1,5 @@
-use chrono::{TimeDelta, Utc};
 use sqlx::{PgPool, query, query_as};
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::{
     db::{Id, models::Settings},
@@ -20,14 +20,15 @@ impl OAuth2Token {
     pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
+        let expiration =
+            OffsetDateTime::now_utc() + SignedDuration::seconds(timeout.as_secs().cast_signed());
         Self {
             oauth2authorizedapp_id,
             access_token: gen_alphanumeric(24),
             refresh_token: gen_alphanumeric(24),
             redirect_uri,
             scope,
-            expires_in: expiration.timestamp(),
+            expires_in: expiration.unix_timestamp(),
         }
     }
 
@@ -43,8 +44,9 @@ impl OAuth2Token {
         let old_refresh_token = self.refresh_token.clone();
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
-        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs().cast_signed());
-        let expires_in = expiration.timestamp();
+        let expiration =
+            OffsetDateTime::now_utc() + SignedDuration::seconds(timeout.as_secs().cast_signed());
+        let expires_in = expiration.unix_timestamp();
 
         let result = query!(
             "UPDATE oauth2token SET access_token = $2, refresh_token = $3, expires_in = $4 \
@@ -69,7 +71,7 @@ impl OAuth2Token {
     /// Check if token has expired.
     #[must_use]
     pub fn is_expired(&self) -> bool {
-        self.expires_in < Utc::now().timestamp()
+        self.expires_in < OffsetDateTime::now_utc().unix_timestamp()
     }
 
     /// Store data in the database.

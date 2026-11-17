@@ -1,18 +1,21 @@
-use std::str::FromStr;
-
 use axum::extract::{Path, Query, State};
-use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        WireguardNetwork,
-        wireguard::{
-            DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
-            WireguardNetworkStats, networks_stats,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            WireguardNetwork,
+            wireguard::{
+                DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
+                WireguardNetworkStats, networks_stats,
+            },
         },
     },
+    time_utils::{OffsetDateTimeExt, now_naive_utc},
 };
 use reqwest::StatusCode;
+use time::{
+    OffsetDateTime, PrimitiveDateTime, SignedDuration, format_description::well_known::Rfc3339,
+};
 
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
@@ -33,10 +36,12 @@ pub(crate) struct QueryFrom {
 
 impl QueryFrom {
     /// If `datetime` is Some, parses the date string, otherwise returns `DateTime` one hour ago.
-    fn parse_timestamp(&self) -> Result<DateTime<Utc>, StatusCode> {
+    fn parse_timestamp(&self) -> Result<OffsetDateTime, StatusCode> {
         Ok(match &self.from {
-            Some(from) => DateTime::<Utc>::from_str(from).map_err(|_| StatusCode::BAD_REQUEST)?,
-            None => Utc::now() - TimeDelta::hours(1),
+            Some(from) => {
+                OffsetDateTime::parse(from, &Rfc3339).map_err(|_| StatusCode::BAD_REQUEST)?
+            }
+            None => OffsetDateTime::now_utc() - SignedDuration::hours(1),
         })
     }
 }
@@ -44,11 +49,11 @@ impl QueryFrom {
 /// Returns appropriate aggregation level depending on the `from` date param
 /// If `from` is >= than 6 hours ago, returns `Hour` aggregation
 /// Otherwise returns `Minute` aggregation
-fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCode> {
+fn get_aggregation(from: PrimitiveDateTime) -> Result<DateTimeAggregation, StatusCode> {
     // Use hourly aggregation for longer periods
-    let aggregation = match Utc::now().naive_utc() - from {
-        duration if duration >= TimeDelta::hours(6) => Ok(DateTimeAggregation::Hour),
-        duration if duration < TimeDelta::zero() => Err(StatusCode::BAD_REQUEST),
+    let aggregation = match now_naive_utc() - from {
+        duration if duration >= SignedDuration::hours(6) => Ok(DateTimeAggregation::Hour),
+        duration if duration < SignedDuration::ZERO => Err(StatusCode::BAD_REQUEST),
         _ => Ok(DateTimeAggregation::Minute),
     }?;
     Ok(aggregation)
@@ -89,7 +94,7 @@ pub(crate) async fn locations_overview_stats(
     Query(query_from): Query<QueryFrom>,
 ) -> ApiResult {
     debug!("Preparing networks overview stats");
-    let from = query_from.parse_timestamp()?.naive_utc();
+    let from = query_from.parse_timestamp()?.to_naive_utc();
     let aggregation = get_aggregation(from)?;
     let all_networks_stats = networks_stats(&appstate.pool, &from, &aggregation).await?;
     debug!("Finished processing networks overview stats");
@@ -139,7 +144,7 @@ pub(crate) async fn location_stats(
             "Requested location ({network_id}) not found"
         )));
     };
-    let from = query_from.parse_timestamp()?.naive_utc();
+    let from = query_from.parse_timestamp()?.to_naive_utc();
     let aggregation: DateTimeAggregation = get_aggregation(from)?;
     let stats: WireguardNetworkStats = location
         .network_stats(&appstate.pool, &from, &aggregation)
@@ -190,7 +195,7 @@ pub(crate) async fn location_connected_users(
             "Requested location ({location_id}) not found"
         )));
     };
-    let from = query_from.parse_timestamp()?.naive_utc();
+    let from = query_from.parse_timestamp()?.to_naive_utc();
     let aggregation = get_aggregation(from)?;
 
     let (connected_users, total_items) = location
@@ -251,7 +256,7 @@ pub(crate) async fn location_connected_network_devices(
             "Requested location ({location_id}) not found"
         )));
     };
-    let from = query_from.parse_timestamp()?.naive_utc();
+    let from = query_from.parse_timestamp()?.to_naive_utc();
     let aggregation = get_aggregation(from)?;
 
     let (connected_network_devices, total_items) = location
@@ -326,7 +331,7 @@ pub(crate) async fn location_connected_user_devices(
             path.location_id
         )));
     };
-    let from = query_from.parse_timestamp()?.naive_utc();
+    let from = query_from.parse_timestamp()?.to_naive_utc();
     let aggregation = get_aggregation(from)?;
 
     let connected_devices = location

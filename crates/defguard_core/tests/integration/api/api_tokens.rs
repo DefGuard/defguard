@@ -1,6 +1,6 @@
-use chrono::Utc;
 use defguard_common::{
     db::models::group::{Group, Permission},
+    time_utils::now_naive_utc,
     types::user_info::UserInfo,
 };
 use defguard_core::{
@@ -71,7 +71,7 @@ async fn test_normal_user_cannot_use_token_auth(_: PgPoolOptions, options: PgCon
     let token_string = "test-token-string";
     let token = ApiToken::new(
         state.test_user.id,
-        Utc::now().naive_utc(),
+        now_naive_utc(),
         "dummy token".into(),
         token_string,
     );

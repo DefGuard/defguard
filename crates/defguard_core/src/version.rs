@@ -4,14 +4,15 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_common::time_utils::now_naive_utc;
 use defguard_version::{ComponentInfo, Version, is_version_lower};
 use serde::Serialize;
+use time::{PrimitiveDateTime, SignedDuration};
 use tonic::{Status, service::Interceptor};
 
 pub const MIN_PROXY_VERSION: Version = Version::new(2, 1, 0);
 pub const MIN_GATEWAY_VERSION: Version = Version::new(2, 1, 0);
-static OUTDATED_COMPONENT_LIFETIME: TimeDelta = TimeDelta::hours(1);
+static OUTDATED_COMPONENT_LIFETIME: SignedDuration = SignedDuration::hours(1);
 
 /// Checks if Defguard Proxy version meets minimum version requirements.
 pub fn is_proxy_version_supported(version: Option<&Version>) -> bool {
@@ -158,7 +159,7 @@ impl IncompatibleComponents {
     /// Removes expired (older than `OUTDATED_COMPONENT_LIFETIME`) components.
     /// Avoids unnecessary write-locks.
     pub fn remove_expired(components: &Arc<RwLock<Self>>) -> bool {
-        let now = Utc::now().naive_utc();
+        let now = now_naive_utc();
         if !Self::contains_expired(components, now) {
             return false;
         }
@@ -178,7 +179,7 @@ impl IncompatibleComponents {
     }
 
     /// Returns true if expired (older than `OUTDATED_COMPONENT_LIFETIME`) components exist.
-    fn contains_expired(components: &Arc<RwLock<Self>>, now: NaiveDateTime) -> bool {
+    fn contains_expired(components: &Arc<RwLock<Self>>, now: PrimitiveDateTime) -> bool {
         if components
             .read()
             .expect("Failed to read-lock IncompatibleComponents")
@@ -209,7 +210,8 @@ pub struct IncompatibleGatewayData {
     pub version: Option<Version>,
     pub hostname: Option<String>,
     pub network_id: Option<String>,
-    created: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    created: PrimitiveDateTime,
 }
 
 impl PartialEq for IncompatibleGatewayData {
@@ -234,7 +236,7 @@ impl IncompatibleGatewayData {
         hostname: Option<String>,
         network_id: Option<String>,
     ) -> Self {
-        let created = Utc::now().naive_utc();
+        let created = now_naive_utc();
         Self {
             version,
             hostname,
@@ -264,7 +266,8 @@ impl IncompatibleGatewayData {
 #[derive(Clone, Serialize)]
 pub struct IncompatibleProxyData {
     pub version: Option<Version>,
-    created: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    created: PrimitiveDateTime,
 }
 
 impl PartialEq for IncompatibleProxyData {
@@ -278,7 +281,7 @@ impl Eq for IncompatibleProxyData {}
 impl IncompatibleProxyData {
     #[must_use]
     pub fn new(version: Option<Version>) -> Self {
-        let created = Utc::now().naive_utc();
+        let created = now_naive_utc();
         Self { version, created }
     }
 

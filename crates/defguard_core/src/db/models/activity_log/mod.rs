@@ -1,8 +1,8 @@
-use chrono::NaiveDateTime;
 use defguard_common::db::{Id, NoId};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
+use time::PrimitiveDateTime;
 
 pub mod metadata;
 
@@ -190,7 +190,8 @@ pub enum EventType {
 #[table(activity_log_event)]
 pub struct ActivityLogEvent<I = NoId> {
     pub id: I,
-    pub timestamp: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub timestamp: PrimitiveDateTime,
     #[model(option)]
     pub user_id: Option<Id>,
     pub username: String,

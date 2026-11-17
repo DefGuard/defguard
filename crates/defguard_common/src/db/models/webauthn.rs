@@ -1,12 +1,15 @@
-use chrono::{NaiveDateTime, Utc};
 use ctap_hid_fido2::public_key::{PublicKey, PublicKeyType};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as, query_scalar};
+use time::PrimitiveDateTime;
 use uuid::Uuid;
 use webauthn_rs::prelude::{COSEKeyType, ECDSACurve, EDDSACurve, Passkey};
 
-use crate::db::{Id, NoId, models::ModelError};
+use crate::{
+    db::{Id, NoId, models::ModelError},
+    time_utils::now_naive_utc,
+};
 
 /// Hardware only when a trusted vendor attestation was verified at registration.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -33,7 +36,7 @@ pub enum RegistrationSource {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AttestationAnchor {
     pub aaguid: Uuid,
-    pub valid_until: NaiveDateTime,
+    pub valid_until: PrimitiveDateTime,
     pub chain: Vec<Vec<u8>>,
     pub chain_sha256: Vec<String>,
 }
@@ -71,12 +74,12 @@ pub struct WebAuthn<I = NoId> {
     #[model(enum)]
     pub registration_source: RegistrationSource,
     pub attestation_aaguid: Option<Uuid>,
-    pub attestation_valid_until: Option<NaiveDateTime>,
+    pub attestation_valid_until: Option<PrimitiveDateTime>,
     #[model(option_ref)]
     pub attestation_chain: Option<Vec<Vec<u8>>>,
     #[model(option_ref)]
     pub attestation_chain_sha256: Option<Vec<String>>,
-    pub registered_at: Option<NaiveDateTime>,
+    pub registered_at: Option<PrimitiveDateTime>,
 }
 
 impl WebAuthn {
@@ -99,7 +102,7 @@ impl WebAuthn {
             attestation_valid_until: None,
             attestation_chain: None,
             attestation_chain_sha256: None,
-            registered_at: Some(Utc::now().naive_utc()),
+            registered_at: Some(now_naive_utc()),
         };
         if let Some(anchor) = authenticator.anchor {
             key.attestation_aaguid = Some(anchor.aaguid);
@@ -267,10 +270,10 @@ mod tests {
             authenticator_kind: AuthenticatorKind::Hardware,
             registration_source: RegistrationSource::Desktop,
             attestation_aaguid: Some(Uuid::nil()),
-            attestation_valid_until: Some(Utc::now().naive_utc()),
+            attestation_valid_until: Some(now_naive_utc()),
             attestation_chain: Some(vec![b"leaf".to_vec(), b"root".to_vec()]),
             attestation_chain_sha256: Some(vec![leaf_sha256.to_owned(), root_sha256.to_owned()]),
-            registered_at: Some(Utc::now().naive_utc()),
+            registered_at: Some(now_naive_utc()),
         }
         .save(&pool)
         .await

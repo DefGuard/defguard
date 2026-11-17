@@ -1,6 +1,6 @@
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query, query_as};
+use time::PrimitiveDateTime;
 
 /// Certificate source for the proxy HTTP/HTTPS listener.
 ///
@@ -43,12 +43,12 @@ pub struct Certificates {
     // Core CA
     pub ca_cert_der: Option<Vec<u8>>,
     pub ca_key_der: Option<Vec<u8>>,
-    pub ca_expiry: Option<NaiveDateTime>,
+    pub ca_expiry: Option<PrimitiveDateTime>,
     // Proxy HTTP/HTTPS certificate
     pub proxy_http_cert_source: ProxyCertSource,
     pub proxy_http_cert_pem: Option<String>,
     pub proxy_http_cert_key_pem: Option<String>,
-    pub proxy_http_cert_expiry: Option<NaiveDateTime>,
+    pub proxy_http_cert_expiry: Option<PrimitiveDateTime>,
     // ACME / Let's Encrypt state (only set when source = LetsEncrypt)
     pub acme_domain: Option<String>,
     /// JSON-serialized instant-acme AccountCredentials.
@@ -57,7 +57,7 @@ pub struct Certificates {
     pub core_http_cert_source: CoreCertSource,
     pub core_http_cert_pem: Option<String>,
     pub core_http_cert_key_pem: Option<String>,
-    pub core_http_cert_expiry: Option<NaiveDateTime>,
+    pub core_http_cert_expiry: Option<PrimitiveDateTime>,
 }
 
 impl Certificates {
@@ -126,17 +126,17 @@ impl Certificates {
                 core_http_cert_expiry    = EXCLUDED.core_http_cert_expiry",
             &self.ca_cert_der as &Option<Vec<u8>>,
             &self.ca_key_der as &Option<Vec<u8>>,
-            &self.ca_expiry as &Option<NaiveDateTime>,
+            &self.ca_expiry as &Option<PrimitiveDateTime>,
             &self.proxy_http_cert_source as &ProxyCertSource,
             self.proxy_http_cert_pem,
             self.proxy_http_cert_key_pem,
-            &self.proxy_http_cert_expiry as &Option<NaiveDateTime>,
+            &self.proxy_http_cert_expiry as &Option<PrimitiveDateTime>,
             self.acme_domain,
             self.acme_account_credentials,
             &self.core_http_cert_source as &CoreCertSource,
             self.core_http_cert_pem,
             self.core_http_cert_key_pem,
-            &self.core_http_cert_expiry as &Option<NaiveDateTime>,
+            &self.core_http_cert_expiry as &Option<PrimitiveDateTime>,
         )
         .execute(executor)
         .await?;

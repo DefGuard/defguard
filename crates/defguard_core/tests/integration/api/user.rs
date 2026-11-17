@@ -1,6 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use chrono::NaiveDate;
 use defguard_common::{
     db::{
         Id,
@@ -36,6 +35,7 @@ use defguard_core::{
 use reqwest::{StatusCode, header::USER_AGENT};
 use serde_json::{Value, json};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::macros::datetime;
 use tokio_stream::{self as stream, StreamExt};
 
 use super::{
@@ -712,10 +712,7 @@ async fn test_get_user_exposes_active_network_state(_: PgPoolOptions, options: P
         .await
         .unwrap();
 
-    let session_connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid connected_at date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid connected_at time");
+    let session_connected_at = datetime!(2026-01-02 3:04:05);
 
     VpnClientSession::new(
         network.id,
@@ -808,22 +805,10 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
         .await
         .unwrap();
 
-    let last_successful_connection = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid connected_at date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid connected_at time");
-    let last_successful_stats_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid collected_at date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid collected_at time");
-    let disconnected_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .expect("expected valid disconnected date")
-        .and_hms_opt(4, 5, 6)
-        .expect("expected valid disconnected time");
-    let disconnected_stats_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .expect("expected valid collected_at date")
-        .and_hms_opt(4, 6, 7)
-        .expect("expected valid collected_at time");
+    let last_successful_connection = datetime!(2026-01-02 3:04:05);
+    let last_successful_stats_at = datetime!(2026-01-02 3:05:06);
+    let disconnected_at = datetime!(2026-01-03 4:05:06);
+    let disconnected_stats_at = datetime!(2026-01-03 4:06:07);
 
     let mut connected_session = VpnClientSession::new(
         network.id,

@@ -1,10 +1,11 @@
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{PgExecutor, query_as};
+use time::PrimitiveDateTime;
 
 use crate::{
     db::{Id, NoId},
     random::gen_alphanumeric,
+    time_utils::now_naive_utc,
 };
 
 // Token used for polling requests.
@@ -13,7 +14,7 @@ pub struct PollingToken<I = NoId> {
     pub id: I,
     pub token: String,
     pub device_id: Id,
-    pub created_at: NaiveDateTime,
+    pub created_at: PrimitiveDateTime,
 }
 
 impl PollingToken {
@@ -23,7 +24,7 @@ impl PollingToken {
             id: NoId,
             device_id,
             token: gen_alphanumeric(32),
-            created_at: Utc::now().naive_utc(),
+            created_at: now_naive_utc(),
         }
     }
 }

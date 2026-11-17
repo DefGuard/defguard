@@ -1,17 +1,20 @@
 use std::collections::HashSet;
 
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, query, query_as, query_scalar};
 use thiserror::Error;
+use time::PrimitiveDateTime;
 
-use crate::db::{
-    Id, NoId,
-    models::{
-        vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
-        wireguard::LocationMfaMode,
+use crate::{
+    db::{
+        Id, NoId,
+        models::{
+            vpn_client_session::{VpnClientMfaMethod, mfa_method_set_serde},
+            wireguard::LocationMfaMode,
+        },
     },
+    time_utils::now_naive_utc,
 };
 
 /// An MFA flow is a named, ordered list of MFA steps.
@@ -21,8 +24,10 @@ use crate::db::{
 pub struct MfaFlow<I = NoId> {
     pub id: I,
     pub title: String,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub updated_at: PrimitiveDateTime,
 }
 
 /// A single step within an MFA flow.
@@ -42,8 +47,10 @@ pub struct MfaFlowWithStepCount {
     pub id: Id,
     pub title: String,
     pub step_count: i64,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub updated_at: PrimitiveDateTime,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -291,7 +298,7 @@ impl MfaFlow<NoId> {
         title: String,
         step_methods: Vec<Vec<VpnClientMfaMethod>>,
     ) -> sqlx::Result<(MfaFlow<Id>, Vec<MfaFlowStep<Id>>)> {
-        let now = Utc::now().naive_utc();
+        let now = now_naive_utc();
         let flow = Self {
             id: NoId,
             title,
@@ -316,11 +323,11 @@ impl MfaFlow<Id> {
     ) -> sqlx::Result<()> {
         // `updated_at` is bound from Rust rather than set with SQL `now()`: the column is
         // `timestamp without time zone`, so `now()` would be cast using the session time
-        // zone, while inserts write `Utc::now().naive_utc()`. Binding keeps both UTC.
+        // zone, while inserts write `now_naive_utc()`. Binding keeps both UTC.
         query!(
             "UPDATE mfa_flow SET title = $1, updated_at = $2 WHERE id = $3",
             title,
-            Utc::now().naive_utc(),
+            now_naive_utc(),
             flow_id,
         )
         .execute(&mut *conn)

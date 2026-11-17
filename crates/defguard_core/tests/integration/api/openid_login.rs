@@ -1,4 +1,3 @@
-use chrono::{Duration, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -23,6 +22,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use time::{OffsetDateTime, SignedDuration};
 
 use super::common::{
     exceed_enterprise_limits, make_client, make_network, setup_pool, update_location_mfa_flows,
@@ -117,7 +117,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
     let new_license = License::new(
         "test".to_owned(),
         false,
-        Some(Utc::now() - Duration::days(1)),
+        Some(OffsetDateTime::now_utc() - SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,
@@ -467,7 +467,7 @@ async fn test_delete_openid_provider_reports_affected_locations(
     set_cached_license(Some(License::new(
         "test".to_owned(),
         false,
-        Some(Utc::now() + Duration::days(365)),
+        Some(OffsetDateTime::now_utc() + SignedDuration::days(365)),
         None,
         None,
         LicenseTier::Business,

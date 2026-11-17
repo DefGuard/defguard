@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::time_utils::{format_naive, now_naive_utc};
 use humantime::format_duration;
 use sqlx::{PgExecutor, PgPool, query, query_scalar};
+use time::{PrimitiveDateTime, SignedDuration};
 use tokio::time::sleep;
 use tracing::{debug, error, info, instrument};
 
@@ -26,7 +27,7 @@ pub async fn run_periodic_stats_purge(
         // check time elapsed since last purge
         let time_since_last_purge = time_since_last_purge(&pool).await?;
         let purge_frequency =
-            TimeDelta::from_std(stats_purge_frequency).expect("Failed to parse duration");
+            SignedDuration::try_from(stats_purge_frequency).expect("Failed to parse duration");
         if match time_since_last_purge {
             Some(time_since) => time_since >= purge_frequency,
             None => true,
@@ -35,10 +36,8 @@ pub async fn run_periodic_stats_purge(
             info!("Executing VPN session stats purge");
             match purge_old_sessions(&pool, stats_purge_threshold).await {
                 Ok(()) => {
-                    let next_purge_timestamp = (Utc::now()
-                        + TimeDelta::from_std(stats_purge_frequency)
-                            .expect("Failed to parse duration"))
-                    .naive_utc();
+                    let next_purge_timestamp =
+                        format_naive(now_naive_utc() + stats_purge_frequency);
                     info!(
                         "VPN session stats purge successful. Next purge will be executed at {next_purge_timestamp}"
                     );
@@ -56,7 +55,7 @@ pub async fn run_periodic_stats_purge(
 }
 
 // Check how much time has elapsed since last recorded stats purge.
-async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<TimeDelta>, sqlx::Error>
+async fn time_since_last_purge<'e, E>(executor: E) -> Result<Option<SignedDuration>, sqlx::Error>
 where
     E: PgExecutor<'e>,
 {
@@ -67,7 +66,7 @@ where
         .await?;
 
     Ok(timestamp.map(|timestamp| {
-        let time_since = Utc::now().signed_duration_since(timestamp.and_utc());
+        let time_since = now_naive_utc() - timestamp;
         debug!("Time since last stats purge: {time_since}");
         time_since
     }))
@@ -81,15 +80,13 @@ async fn purge_old_sessions(
     pool: &PgPool,
     stats_purge_threshold: Duration,
 ) -> Result<(), sqlx::Error> {
-    let start = Utc::now();
+    let start = now_naive_utc();
     info!(
         "Purging VPN sessions older than {}",
         format_duration(stats_purge_threshold)
     );
 
-    let threshold = (Utc::now()
-        - TimeDelta::from_std(stats_purge_threshold).expect("Failed to parse duration"))
-    .naive_utc();
+    let threshold = now_naive_utc() - stats_purge_threshold;
 
     let result = query!(
         "DELETE FROM vpn_client_session \
@@ -103,7 +100,7 @@ async fn purge_old_sessions(
     .execute(pool)
     .await?;
 
-    let end = Utc::now();
+    let end = now_naive_utc();
     let rows_count = result.rows_affected();
 
     info!("Removed {rows_count} old records from wireguard_peer_stats",);
@@ -116,9 +113,9 @@ async fn purge_old_sessions(
 
 async fn record_stats_purge<'e, E>(
     executor: E,
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
-    removal_threshold: NaiveDateTime,
+    start: PrimitiveDateTime,
+    end: PrimitiveDateTime,
+    removal_threshold: PrimitiveDateTime,
     records_removed: i64,
 ) -> Result<(), sqlx::Error>
 where
@@ -126,7 +123,7 @@ where
 {
     debug!("Recording successful VPN session stats purge in database");
     query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",
-        start.naive_utc(), end.naive_utc(), removal_threshold, records_removed).execute(executor).await?;
+        start, end, removal_threshold, records_removed).execute(executor).await?;
 
     Ok(())
 }
@@ -152,8 +149,8 @@ mod tests {
     async fn test_time_since_last_purge_positive_case(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let recorded_at = Utc::now() - TimeDelta::minutes(10);
-        record_stats_purge(&pool, recorded_at, recorded_at, recorded_at.naive_utc(), 0)
+        let recorded_at = now_naive_utc() - SignedDuration::minutes(10);
+        record_stats_purge(&pool, recorded_at, recorded_at, recorded_at, 0)
             .await
             .unwrap();
 
@@ -161,7 +158,7 @@ mod tests {
             .await
             .unwrap()
             .expect("a purge was recorded");
-        assert!(time_since >= TimeDelta::minutes(10));
+        assert!(time_since >= SignedDuration::minutes(10));
     }
 
     #[sqlx::test]
@@ -172,8 +169,8 @@ mod tests {
         let pool = setup_pool(options).await;
 
         // Simulate a purge recorded while the clock was ahead of where it is now.
-        let recorded_at = Utc::now() + TimeDelta::minutes(10);
-        record_stats_purge(&pool, recorded_at, recorded_at, recorded_at.naive_utc(), 0)
+        let recorded_at = now_naive_utc() + SignedDuration::minutes(10);
+        record_stats_purge(&pool, recorded_at, recorded_at, recorded_at, 0)
             .await
             .unwrap();
 
@@ -181,6 +178,6 @@ mod tests {
             .await
             .unwrap()
             .expect("a purge was recorded");
-        assert!(time_since < TimeDelta::zero());
+        assert!(time_since < SignedDuration::ZERO);
     }
 }

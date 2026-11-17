@@ -1,22 +1,24 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use chrono::Utc;
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
-        WebAuthn, WireguardNetwork,
-        gateway::Gateway,
-        group::Group,
-        mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},
-        oauth2client::OAuth2Client,
-        proxy::Proxy,
-        settings::set_settings,
-        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
-        vpn_client_session::VpnClientMfaMethod,
-        webauthn::{AuthenticatorKind, RegistrationSource},
-        wireguard::ServiceLocationMode,
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings,
+            User, WebAuthn, WireguardNetwork,
+            gateway::Gateway,
+            group::Group,
+            mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},
+            oauth2client::OAuth2Client,
+            proxy::Proxy,
+            settings::set_settings,
+            vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
+            vpn_client_session::VpnClientMfaMethod,
+            webauthn::{AuthenticatorKind, RegistrationSource},
+            wireguard::ServiceLocationMode,
+        },
     },
+    time_utils::now_naive_utc,
 };
 use defguard_core::{
     db::models::{
@@ -97,7 +99,7 @@ fn sample_group() -> Group<Id> {
 fn test_activity_log_event_serialization_supports_null_ip() {
     let event = ActivityLogEvent {
         id: NoId,
-        timestamp: Utc::now().naive_utc(),
+        timestamp: now_naive_utc(),
         user_id: Some(1),
         username: "admin".to_owned(),
         location: None,
@@ -252,7 +254,7 @@ struct EventTestCase {
 
 fn test_context() -> EventContext {
     EventContext {
-        timestamp: Utc::now().naive_utc(),
+        timestamp: now_naive_utc(),
         user_id: Some(1),
         username: "admin".into(),
         location: None,
@@ -275,7 +277,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         name: "d2".into(),
         wireguard_pubkey: "pk".into(),
         user_id: 1,
-        created: Utc::now().naive_utc(),
+        created: now_naive_utc(),
         device_type: DeviceType::User,
         description: None,
         configured: true,
@@ -285,7 +287,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         verification: Default::default(),
     };
     let location = sample_location();
-    let timestamp = Utc::now().naive_utc();
+    let timestamp = now_naive_utc();
     let proxy = Proxy {
         id: 1,
         name: "px".into(),
@@ -484,8 +486,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         flow: MfaFlow {
             id: 1,
             title: "Strong MFA".into(),
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
+            created_at: now_naive_utc(),
+            updated_at: now_naive_utc(),
         },
         steps: vec![MfaFlowStep {
             id: 1,
@@ -498,8 +500,8 @@ fn api_event_cases() -> Vec<EventTestCase> {
         flow: MfaFlow {
             id: 1,
             title: "Stronger MFA".into(),
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
+            created_at: now_naive_utc(),
+            updated_at: now_naive_utc(),
         },
         steps: vec![
             MfaFlowStep {

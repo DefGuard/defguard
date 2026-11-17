@@ -1527,7 +1527,6 @@ name = "defguard_certs"
 version = "0.0.0"
 dependencies = [
  "base64 0.23.1",
- "chrono",
  "rcgen",
  "rustls-pki-types",
  "thiserror 2.0.21",
@@ -1543,7 +1542,6 @@ dependencies = [
  "argon2 0.6.0",
  "base32",
  "base64 0.23.1",
- "chrono",
  "claims",
  "clap",
  "ctap-hid-fido2",
@@ -1566,6 +1564,7 @@ dependencies = [
  "sqlx",
  "struct-patch",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "totp-lite",
  "tracing",
@@ -1680,7 +1679,6 @@ name = "defguard_event_logger"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "chrono",
  "defguard_common",
  "defguard_core",
  "defguard_session_manager",
@@ -1689,6 +1687,7 @@ dependencies = [
  "sqlx",
  "strum",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "tracing",
 ]
@@ -1711,7 +1710,6 @@ name = "defguard_gateway_manager"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "chrono",
  "defguard_common",
  "defguard_core",
  "defguard_grpc_tls",
@@ -1725,6 +1723,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "tokio-stream",
  "tonic",
@@ -1737,7 +1736,6 @@ name = "defguard_generator"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "chrono",
  "clap",
  "defguard_common",
  "defguard_core",
@@ -1746,6 +1744,7 @@ dependencies = [
  "rand 0.8.8",
  "serde_json",
  "sqlx",
+ "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1773,7 +1772,6 @@ dependencies = [
  "anyhow",
  "argon2 0.6.0",
  "base64 0.23.1",
- "chrono",
  "clap",
  "defguard_proto",
  "humantime",
@@ -1786,6 +1784,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "time",
  "tokio",
  "totp-lite",
  "tracing",
@@ -1813,7 +1812,6 @@ dependencies = [
  "axum-extra",
  "base32",
  "base64 0.23.1",
- "chrono",
  "defguard_certs",
  "defguard_common",
  "defguard_core",
@@ -1837,6 +1835,7 @@ dependencies = [
  "sha2 0.11.1",
  "sqlx",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "tokio-stream",
  "tonic",
@@ -1851,13 +1850,13 @@ dependencies = [
 name = "defguard_session_manager"
 version = "0.0.0"
 dependencies = [
- "chrono",
  "defguard_common",
  "defguard_core",
  "ipnetwork",
  "sqlx",
  "strum",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "tracing",
 ]
@@ -1869,7 +1868,6 @@ dependencies = [
  "anyhow",
  "axum",
  "axum-extra",
- "chrono",
  "defguard_certs",
  "defguard_common",
  "defguard_core",
@@ -1883,6 +1881,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "time",
  "tokio",
  "tonic",
  "tracing",
@@ -1920,10 +1919,10 @@ dependencies = [
 name = "defguard_vpn_stats_purge"
 version = "0.0.0"
 dependencies = [
- "chrono",
  "defguard_common",
  "humantime",
  "sqlx",
+ "time",
  "tokio",
  "tracing",
 ]
@@ -6401,7 +6400,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cfg-if",
- "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -6423,6 +6421,7 @@ dependencies = [
  "sha2 0.10.9",
  "smallvec",
  "thiserror 2.0.21",
+ "time",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -6478,7 +6477,6 @@ dependencies = [
  "bitflags 2.13.2",
  "byteorder",
  "bytes",
- "chrono",
  "crc",
  "digest 0.11.3",
  "dotenvy",
@@ -6493,6 +6491,7 @@ dependencies = [
  "sha2 0.11.1",
  "sqlx-core",
  "thiserror 2.0.21",
+ "time",
  "tracing",
  "uuid",
 ]
@@ -6507,7 +6506,6 @@ dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.2",
  "byteorder",
- "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -6530,6 +6528,7 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror 2.0.21",
+ "time",
  "tracing",
  "uuid",
  "whoami",
@@ -6542,7 +6541,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488e99c397a62007e4229aec669a179816339afc6d2620ca6fa420dbee2e982c"
 dependencies = [
  "atoi",
- "chrono",
  "flume",
  "form_urlencoded",
  "futures-channel",
@@ -6556,6 +6554,7 @@ dependencies = [
  "serde",
  "sqlx-core",
  "thiserror 2.0.21",
+ "time",
  "tracing",
  "url",
  "uuid",

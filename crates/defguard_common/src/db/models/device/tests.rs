@@ -2,6 +2,7 @@ use std::{net::Ipv4Addr, str::FromStr};
 
 use claims::{assert_err, assert_ok};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::macros::datetime;
 
 use super::*;
 use crate::{
@@ -399,7 +400,7 @@ async fn test_runtime_mfa_state_marks_mfa_session_without_preshared_key_as_unaut
         location_id: network.id,
         user_id: 1,
         device_id: wireguard_network_device.device_id,
-        created_at: Utc::now().naive_utc(),
+        created_at: now_naive_utc(),
         connected_at: None,
         disconnected_at: None,
         is_mfa_session: true,
@@ -450,8 +451,8 @@ async fn test_runtime_mfa_state_keeps_session_preshared_key_for_authorized_runti
         location_id: network.id,
         user_id: 1,
         device_id: wireguard_network_device.device_id,
-        created_at: Utc::now().naive_utc(),
-        connected_at: Some(Utc::now().naive_utc()),
+        created_at: now_naive_utc(),
+        connected_at: Some(now_naive_utc()),
         disconnected_at: None,
         is_mfa_session: true,
         state: VpnClientSessionState::Connected,
@@ -594,13 +595,8 @@ async fn test_device_info_keeps_mfa_session_preshared_key_for_authorized_full_sy
     );
     wireguard_network_device.insert(&pool).await.unwrap();
 
-    let mut session = VpnClientSession::new(
-        network.id,
-        user.id,
-        device.id,
-        Some(Utc::now().naive_utc()),
-        true,
-    );
+    let mut session =
+        VpnClientSession::new(network.id, user.id, device.id, Some(now_naive_utc()), true);
     session.preshared_key = Some("device-info-session-psk".to_owned().into());
     session.save(&pool).await.unwrap();
 
@@ -742,22 +738,10 @@ async fn test_user_device_from_device_keeps_latest_successful_connection_timesta
         .await
         .unwrap();
 
-    let last_successful_connection = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
-    let last_successful_stats_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid time");
-    let newer_session_created_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .expect("expected valid date")
-        .and_hms_opt(4, 5, 6)
-        .expect("expected valid time");
-    let newer_session_stats_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .expect("expected valid date")
-        .and_hms_opt(4, 6, 7)
-        .expect("expected valid time");
+    let last_successful_connection = datetime!(2026-01-02 3:04:05);
+    let last_successful_stats_at = datetime!(2026-01-02 3:05:06);
+    let newer_session_created_at = datetime!(2026-01-03 4:05:06);
+    let newer_session_stats_at = datetime!(2026-01-03 4:06:07);
 
     let mut connected_session = VpnClientSession::new(
         network.id,
@@ -871,19 +855,10 @@ async fn test_user_device_from_device_keeps_latest_successful_connection_timesta
     .await
     .unwrap();
 
-    let last_successful_connection = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
-    let newer_session_created_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .expect("expected valid date")
-        .and_hms_opt(4, 5, 6)
-        .expect("expected valid time");
+    let last_successful_connection = datetime!(2026-01-02 3:04:05);
+    let newer_session_created_at = datetime!(2026-01-03 4:05:06);
 
-    let disconnected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid time");
+    let disconnected_at = datetime!(2026-01-02 3:05:06);
 
     let mut connected_session = VpnClientSession::new(
         network.id,
@@ -970,14 +945,8 @@ async fn test_user_device_from_device_reads_latest_endpoint_from_session_stats(
         .await
         .unwrap();
 
-    let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
-    let collected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid time");
+    let connected_at = datetime!(2026-01-02 3:04:05);
+    let collected_at = datetime!(2026-01-02 3:05:06);
 
     let session = VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), false)
         .save(&pool)
@@ -1066,14 +1035,8 @@ async fn test_user_device_from_device_returns_empty_connection_fields_without_su
         .await
         .unwrap();
 
-    let attempted_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
-    let stats_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid time");
+    let attempted_at = datetime!(2026-01-02 3:04:05);
+    let stats_at = datetime!(2026-01-02 3:05:06);
 
     let mut attempted_session = VpnClientSession::new(network.id, user.id, device.id, None, false);
     attempted_session.created_at = attempted_at;
@@ -1156,10 +1119,7 @@ async fn test_user_device_from_device_returns_none_for_successful_session_withou
     .await
     .unwrap();
 
-    let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
+    let connected_at = datetime!(2026-01-02 3:04:05);
 
     VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), false)
         .save(&pool)
@@ -1233,14 +1193,8 @@ async fn test_user_device_from_device_uses_stats_id_as_tie_breaker_for_latest_su
         .await
         .unwrap();
 
-    let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 4, 5)
-        .expect("expected valid time");
-    let collected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .expect("expected valid date")
-        .and_hms_opt(3, 5, 6)
-        .expect("expected valid time");
+    let connected_at = datetime!(2026-01-02 3:04:05);
+    let collected_at = datetime!(2026-01-02 3:05:06);
 
     let session = VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), false)
         .save(&pool)

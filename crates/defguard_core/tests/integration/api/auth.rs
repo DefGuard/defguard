@@ -1,6 +1,5 @@
 use std::time::{Duration, SystemTime};
 
-use chrono::DateTime;
 use defguard_common::{
     db::models::{
         MFAInfo, MFAMethod, User, WebAuthn,
@@ -8,6 +7,7 @@ use defguard_common::{
         webauthn::{AuthenticatorKind, RegistrationSource},
     },
     testing::smtp::{CapturedMail, MockSmtpServer},
+    time_utils::NAIVE_EPOCH,
 };
 use defguard_core::{
     events::ApiEventType,
@@ -1048,7 +1048,7 @@ async fn test_session_cookie(_: PgPoolOptions, options: PgConnectOptions) {
     // Forcibly expire the session
     query!(
         "UPDATE session SET expires = $1 WHERE id = $2",
-        DateTime::UNIX_EPOCH.naive_utc(),
+        NAIVE_EPOCH,
         session_id
     )
     .execute(&pool)

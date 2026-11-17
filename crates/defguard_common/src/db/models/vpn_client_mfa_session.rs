@@ -1,13 +1,13 @@
 use std::{collections::HashSet, time::Duration};
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{
     Connection, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar, types::Json,
 };
+use time::{PrimitiveDateTime, SignedDuration};
 use tracing::debug;
 
 use crate::{
@@ -22,6 +22,7 @@ use crate::{
         },
     },
     random::gen_alphanumeric,
+    time_utils::now_naive_utc,
 };
 
 /// Fixed wall-clock window for the whole in-progress MFA flow, including collection.
@@ -144,8 +145,8 @@ pub struct VpnClientMfaSession<I = NoId> {
     #[model(json)]
     pub ephemeral_state: Option<Json<EphemeralState>>,
     pub failed_attempts: i32,
-    pub created_at: NaiveDateTime,
-    pub expires_at: NaiveDateTime,
+    pub created_at: PrimitiveDateTime,
+    pub expires_at: PrimitiveDateTime,
 }
 
 /// Hash an opaque token for storage and lookup: base64url-nopad SHA-256.
@@ -235,8 +236,8 @@ impl VpnClientMfaSession<Id> {
         let snapshot_json =
             serde_json::to_value(&snapshot).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
         let (step_attempt_id, state_json) = new_attempt_state(method, challenge)?;
-        let created_at = Utc::now().naive_utc();
-        let expires_at = created_at + TimeDelta::seconds(ttl.as_secs() as i64);
+        let created_at = now_naive_utc();
+        let expires_at = created_at + SignedDuration::seconds(ttl.as_secs() as i64);
 
         // Supersede any existing session for this (location, device), capturing its token hash so
         // the caller can cancel its waiter. The DELETE and the upsert run in one transaction so a

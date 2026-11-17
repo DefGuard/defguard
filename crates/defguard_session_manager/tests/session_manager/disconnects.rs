@@ -1,11 +1,14 @@
 use std::net::SocketAddr;
 
-use chrono::{TimeDelta, Utc};
-use defguard_common::db::{
-    models::vpn_client_session::{VpnClientSession, VpnClientSessionState},
-    setup_pool,
+use defguard_common::{
+    db::{
+        models::vpn_client_session::{VpnClientSession, VpnClientSessionState},
+        setup_pool,
+    },
+    time_utils::now_naive_utc,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::SignedDuration;
 
 use crate::common::{
     SessionManagerHarness, attach_device_to_location, create_device, create_gateway,
@@ -73,7 +76,7 @@ async fn test_recent_connected_sessions_remain_active(_: PgPoolOptions, options:
     let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let recent_handshake = Utc::now().naive_utc() - TimeDelta::seconds(30);
+    let recent_handshake = now_naive_utc() - SignedDuration::seconds(30);
     let session = create_session(
         &pool,
         location.id,

@@ -6,12 +6,12 @@ use std::{
 };
 
 use base64::prelude::{BASE64_STANDARD, Engine};
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
+use time::{PrimitiveDateTime, SignedDuration};
 use tracing::{debug, info};
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -29,6 +29,7 @@ use crate::{
             vpn_session_stats::{VpnSessionStats, endpoint_without_port},
         },
     },
+    time_utils::now_naive_utc,
     types::user_info::UserInfo,
 };
 
@@ -49,7 +50,7 @@ pub struct MappedDevice {
     pub wireguard_ips: Vec<IpAddr>,
 }
 
-pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
+pub const WIREGUARD_MAX_HANDSHAKE: SignedDuration = SignedDuration::minutes(8);
 pub const PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
@@ -125,7 +126,8 @@ pub struct WireguardNetwork<I = NoId> {
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     pub allowed_ips: Vec<IpNetwork>,
     pub allow_all_groups: bool,
-    pub connected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
     pub allowed_ips_from_acl: bool,
@@ -656,7 +658,7 @@ impl WireguardNetwork<Id> {
     where
         E: PgExecutor<'e>,
     {
-        self.connected_at = Some(Utc::now().naive_utc());
+        self.connected_at = Some(now_naive_utc());
         query!(
             "UPDATE wireguard_network SET connected_at = $2 WHERE name = $1",
             self.name,
@@ -673,7 +675,7 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
         devices: &[Device<Id>],
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
         if devices.is_empty() {
@@ -684,7 +686,7 @@ impl WireguardNetwork<Id> {
 
         let stats = query_as!(
             WireguardDeviceTransferRow,
-            "SELECT s.device_id, date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
+            "SELECT s.device_id, date_trunc($1, collected_at) \"collected_at!: PrimitiveDateTime\", \
             CAST(sum(download_diff) AS bigint) \"download!\", \
             CAST(sum(upload_diff) AS bigint) \"upload!\" \
 			FROM vpn_session_stats \
@@ -745,7 +747,7 @@ impl WireguardNetwork<Id> {
     pub async fn distinct_device_stats(
         &self,
         conn: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
     ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
@@ -771,7 +773,7 @@ impl WireguardNetwork<Id> {
     pub async fn user_stats(
         &self,
         conn: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> sqlx::Result<Vec<WireguardUserStatsRow>> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
@@ -803,7 +805,7 @@ impl WireguardNetwork<Id> {
     pub async fn connected_users_stats(
         &self,
         conn: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
         limit: u32,
         offset: u32,
@@ -814,7 +816,7 @@ impl WireguardNetwork<Id> {
             first_name: String,
             last_name: String,
             connected_devices_count: i64,
-            connected_at: NaiveDateTime,
+            connected_at: PrimitiveDateTime,
             wireguard_ips: Vec<IpAddr>,
             endpoint: String,
         }
@@ -861,7 +863,7 @@ impl WireguardNetwork<Id> {
             let stats = query_as!(
                 WireguardStatsRow,
                 "SELECT \
-                    date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                    date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", \
                     CAST(SUM(upload_diff) AS bigint) upload, \
                     CAST(SUM(download_diff) AS bigint) download \
                 FROM vpn_session_stats \
@@ -923,7 +925,7 @@ impl WireguardNetwork<Id> {
     pub async fn connected_network_devices_stats(
         &self,
         conn: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
         page: u32,
         page_size: u32,
@@ -932,7 +934,7 @@ impl WireguardNetwork<Id> {
         struct ConnectedNetworkDeviceRow {
             device_id: Id,
             device_name: String,
-            connected_at: NaiveDateTime,
+            connected_at: PrimitiveDateTime,
             wireguard_ips: Vec<IpAddr>,
             endpoint: String,
         }
@@ -975,7 +977,7 @@ impl WireguardNetwork<Id> {
             let stats = query_as!(
                 WireguardStatsRow,
                 "SELECT \
-                    date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                    date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", \
                     CAST(SUM(upload_diff) AS bigint) upload, \
                     CAST(SUM(download_diff) AS bigint) download \
                 FROM vpn_session_stats \
@@ -1035,14 +1037,14 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
         user_id: Id,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> sqlx::Result<Vec<LocationConnectedUserDevice>> {
         // helper struct used to fetch connected user devices from the DB
         struct ConnectedUserDeviceRow {
             device_id: Id,
             device_name: String,
-            connected_at: NaiveDateTime,
+            connected_at: PrimitiveDateTime,
             wireguard_ips: Vec<IpAddr>,
             endpoint: String,
         }
@@ -1082,7 +1084,7 @@ impl WireguardNetwork<Id> {
             let stats = query_as!(
                 WireguardStatsRow,
                 "SELECT \
-                    date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                    date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", \
                     CAST(SUM(upload_diff) AS bigint) upload, \
                     CAST(SUM(download_diff) AS bigint) download \
                 FROM vpn_session_stats \
@@ -1130,7 +1132,7 @@ impl WireguardNetwork<Id> {
     async fn total_activity(
         &self,
         pool: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
     ) -> sqlx::Result<WireguardNetworkActivityStats> {
         let total_activity = query_as!(
             WireguardNetworkActivityStats,
@@ -1174,13 +1176,13 @@ impl WireguardNetwork<Id> {
     async fn transfer_series(
         &self,
         pool: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> sqlx::Result<Vec<WireguardStatsRow>> {
         let stats = query_as!(
             WireguardStatsRow,
             "SELECT \
-                date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", \
                 cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
             FROM vpn_session_stats \
             JOIN vpn_client_session s ON session_id = s.id \
@@ -1203,7 +1205,7 @@ impl WireguardNetwork<Id> {
     pub async fn network_stats(
         &self,
         pool: &PgPool,
-        from: &NaiveDateTime,
+        from: &PrimitiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> sqlx::Result<WireguardNetworkStats> {
         let total_activity = self.total_activity(pool, from).await?;
@@ -1659,7 +1661,8 @@ impl Default for WireguardNetwork {
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WireguardStatsRow {
-    pub collected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub collected_at: Option<PrimitiveDateTime>,
     pub upload: Option<i64>,
     pub download: Option<i64>,
 }
@@ -1667,7 +1670,8 @@ pub struct WireguardStatsRow {
 #[derive(Clone, Debug, Deserialize, FromRow, PartialEq, Serialize)]
 pub struct WireguardDeviceTransferRow {
     pub device_id: Id,
-    pub collected_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub collected_at: PrimitiveDateTime,
     pub upload: i64,
     pub download: i64,
 }
@@ -1680,7 +1684,8 @@ pub struct WireguardDeviceStatsRow {
     pub name: String,
     pub wireguard_ips: Vec<String>,
     pub public_ip: Option<String>,
-    pub connected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -1725,7 +1730,8 @@ pub struct LocationConnectedUserStats {
     public_ip: String,
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     vpn_ips: Vec<IpAddr>,
-    connected_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    connected_at: PrimitiveDateTime,
     // agregated traffic stats
     total_upload: i64,
     total_download: i64,
@@ -1741,7 +1747,8 @@ pub struct LocationConnectedNetworkDevice {
     public_ip: String,
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     vpn_ips: Vec<IpAddr>,
-    connected_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    connected_at: PrimitiveDateTime,
     // agregated traffic stats
     total_upload: i64,
     total_download: i64,
@@ -1755,7 +1762,8 @@ pub struct LocationConnectedUserDevice {
     // active session data
     pub public_ip: String,
     pub vpn_ips: Vec<IpAddr>,
-    pub connected_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub connected_at: PrimitiveDateTime,
     // aggregated traffic stats
     pub total_upload: i64,
     pub total_download: i64,
@@ -1764,7 +1772,7 @@ pub struct LocationConnectedUserDevice {
 
 pub async fn networks_stats(
     pool: &PgPool,
-    from: &NaiveDateTime,
+    from: &PrimitiveDateTime,
     aggregation: &DateTimeAggregation,
 ) -> sqlx::Result<WireguardNetworkStats> {
     // get all active users/devices within specified time window
@@ -1800,7 +1808,7 @@ pub async fn networks_stats(
     let transfer_series = query_as!(
         WireguardStatsRow,
         "SELECT \
-            date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+            date_trunc($1, collected_at) \"collected_at: PrimitiveDateTime\", \
             cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
         FROM vpn_session_stats \
         JOIN vpn_client_session s ON session_id = s.id \

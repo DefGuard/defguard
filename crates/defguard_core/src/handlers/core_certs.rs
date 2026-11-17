@@ -2,6 +2,7 @@ use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::{
     db::models::{Certificates, Settings},
+    time_utils::{format_naive_iso, now_naive_utc},
     types::proxy::ProxyControlMessage,
 };
 use serde_json::json;
@@ -197,16 +198,16 @@ pub(crate) async fn get_ca(
     if let Some(ca_cert_der) = certs.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
-        let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+        let valid_for_days = (info.not_after - now_naive_utc()).whole_days();
 
         Ok(ApiResponse::new(
             json!({
                 "ca_cert_pem": ca_pem,
                 "subject_common_name": info.subject_common_name,
-                "not_before": info.not_before,
-                "not_after": info.not_after,
+                "not_before": format_naive_iso(info.not_before),
+                "not_after": format_naive_iso(info.not_after),
                 "valid_for_days": valid_for_days,
-                "ca_expiry": certs.ca_expiry,
+                "ca_expiry": certs.ca_expiry.map(format_naive_iso),
                 "subject_email": info.subject_email,
             }),
             StatusCode::OK,
@@ -253,10 +254,10 @@ pub(crate) async fn get_certs(
     Ok(ApiResponse::new(
         json!({
             "core_http_cert_source": certs.core_http_cert_source,
-            "core_http_cert_expiry": certs.core_http_cert_expiry,
+            "core_http_cert_expiry": certs.core_http_cert_expiry.map(format_naive_iso),
             "core_http_cert_domain": cert_common_name(certs.core_http_cert_pem.as_deref()),
             "proxy_http_cert_source": certs.proxy_http_cert_source,
-            "proxy_http_cert_expiry": certs.proxy_http_cert_expiry,
+            "proxy_http_cert_expiry": certs.proxy_http_cert_expiry.map(format_naive_iso),
             "proxy_http_cert_domain": cert_common_name(certs.proxy_http_cert_pem.as_deref()),
         }),
         StatusCode::OK,

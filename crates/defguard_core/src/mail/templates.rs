@@ -1,9 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use chrono::{Datelike, NaiveDateTime, Utc};
 use defguard_common::{
     VERSION,
     db::models::{Session, Settings, user::MFAMethod},
+    time_utils::{format_naive, now_naive_utc},
     types::UrlParseError,
 };
 use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd, html};
@@ -13,6 +13,7 @@ use serde_json::Value;
 use sqlx::PgConnection;
 use tera::{Context, Function, Tera};
 use thiserror::Error;
+use time::{PrimitiveDateTime, format_description::BorrowedFormatItem, macros::format_description};
 use tracing::{debug, warn};
 
 use super::{Attachment, Mail, MailError, MailMessage};
@@ -23,7 +24,15 @@ pub static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
 static BASE_MJML: &str = include_str!("templates/base.mjml");
 static MACROS_MJML: &str = include_str!("templates/macros.mjml");
-static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
+const MAIL_DATETIME_FORMAT: &[BorrowedFormatItem<'static>] = format_description!(
+    "[weekday], [month repr:long] [day], [year] at [hour repr:12]:[minute]:[second] [period]"
+);
+
+fn format_mail_datetime(datetime: PrimitiveDateTime) -> String {
+    datetime
+        .format(MAIL_DATETIME_FORMAT)
+        .expect("mail datetime format has only date and time components")
+}
 
 #[derive(Debug, Error)]
 pub enum TemplateError {
@@ -85,9 +94,9 @@ fn get_base_tera_mjml(
     tera.add_raw_template("macros.mjml", MACROS_MJML)?;
     // Supply context for the base template.
     context.insert("application_version", &VERSION);
-    let now = Utc::now();
+    let now = now_naive_utc();
     context.insert("current_year", &now.year().to_string());
-    context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
+    context.insert("date_now", &format_mail_datetime(now));
 
     if let Some(current_session) = session {
         let device_info = &current_session.device_info;
@@ -487,11 +496,11 @@ pub async fn new_device_login_mail(
     to: &str,
     conn: &mut PgConnection,
     session: Option<&SessionContext>,
-    created: NaiveDateTime,
+    created: PrimitiveDateTime,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    context.insert("created", &created.format(MAIL_DATETIME_FORMAT).to_string());
+    context.insert("created", &format_mail_datetime(created));
 
     let message = MailMessage::NewDeviceLogin;
     message.fill_context(conn, &mut context).await?;
@@ -552,7 +561,7 @@ pub async fn letsencrypt_cert_refresh_failed_mail(
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
     context.insert("error_message", error_message);
 
-    let now = Utc::now();
+    let now = format!("{} UTC", format_naive(now_naive_utc()));
     let attachment = Attachment::new(
         format!("defguard-letsencrypt-refresh-logs-{now}.txt"),
         logs.into(),
@@ -604,10 +613,7 @@ pub async fn mfa_activation_mail(
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("username", first_name);
-    context.insert(
-        "datetime",
-        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("datetime", &format_mail_datetime(now_naive_utc()));
 
     let message = MailMessage::MFAActivation;
     message.fill_context(conn, &mut context).await?;
@@ -636,10 +642,7 @@ pub async fn mfa_code_mail(
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
     context.insert("username", first_name);
-    context.insert(
-        "datetime",
-        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("datetime", &format_mail_datetime(now_naive_utc()));
 
     let message = MailMessage::MFACode;
     message.fill_context(conn, &mut context).await?;
@@ -721,15 +724,12 @@ pub async fn certificate_expiration_mail(
     to: &str,
     conn: &mut PgConnection,
     certificate_type: &str,
-    expiration: NaiveDateTime,
+    expiration: PrimitiveDateTime,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
 
     context.insert("cert_type", certificate_type);
-    context.insert(
-        "exp_date",
-        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("exp_date", &format_mail_datetime(expiration));
 
     let message = MailMessage::CertificateExpiration;
     message.fill_context(conn, &mut context).await?;
@@ -743,15 +743,12 @@ pub async fn certificate_expired_mail(
     to: &str,
     conn: &mut PgConnection,
     certificate_type: &str,
-    expiration: NaiveDateTime,
+    expiration: PrimitiveDateTime,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
 
     context.insert("cert_type", certificate_type);
-    context.insert(
-        "exp_date",
-        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+    context.insert("exp_date", &format_mail_datetime(expiration));
 
     let message = MailMessage::CertificateExpired;
     message.fill_context(conn, &mut context).await?;
@@ -764,7 +761,30 @@ pub async fn certificate_expired_mail(
 mod tests {
     use std::time::Duration;
 
-    use super::format_timeout;
+    use time::macros::datetime;
+
+    use super::{format_mail_datetime, format_timeout};
+
+    // expected strings were produced by chrono with "%A, %B %d, %Y at %r"
+    #[test]
+    fn test_mail_datetime_matches_chrono_format() {
+        assert_eq!(
+            format_mail_datetime(datetime!(2024-03-05 1:02:03)),
+            "Tuesday, March 05, 2024 at 01:02:03 AM"
+        );
+        assert_eq!(
+            format_mail_datetime(datetime!(2024-03-05 13:02:03.12)),
+            "Tuesday, March 05, 2024 at 01:02:03 PM"
+        );
+        assert_eq!(
+            format_mail_datetime(datetime!(2024-03-05 0:00:00.0001)),
+            "Tuesday, March 05, 2024 at 12:00:00 AM"
+        );
+        assert_eq!(
+            format_mail_datetime(datetime!(2024-03-05 23:59:59.123456789)),
+            "Tuesday, March 05, 2024 at 11:59:59 PM"
+        );
+    }
 
     #[test]
     fn test_formats_weeks() {

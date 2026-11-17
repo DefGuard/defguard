@@ -1,11 +1,11 @@
 use std::net::IpAddr;
 
-use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
     models::{Device, User, WireguardNetwork},
 };
 use strum::EnumCount;
+use time::PrimitiveDateTime;
 
 #[derive(Debug)]
 pub struct SessionManagerEvent {
@@ -45,7 +45,7 @@ impl SessionManagerEvent {
 
 #[derive(Debug)]
 pub struct SessionManagerEventContext {
-    pub timestamp: NaiveDateTime,
+    pub timestamp: PrimitiveDateTime,
     pub location: WireguardNetwork<Id>,
     pub user: User<Id>,
     pub device: Device<Id>,

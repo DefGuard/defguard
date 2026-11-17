@@ -1,4 +1,3 @@
-use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -8,6 +7,7 @@ use defguard_common::{
         },
     },
     testing::smtp::MockSmtpServer,
+    time_utils::OffsetDateTimeExt,
 };
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
@@ -19,6 +19,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query_scalar,
 };
+use time::{OffsetDateTime, SignedDuration};
 use tokio::time::timeout;
 
 use super::support::{
@@ -224,7 +225,7 @@ async fn test_password_reset_uses_password_reset_session_timeout(
         3600,
         Some(PASSWORD_RESET_TOKEN_TYPE.to_owned()),
     );
-    token.used_at = Some((Utc::now() - TimeDelta::minutes(2)).naive_utc());
+    token.used_at = Some((OffsetDateTime::now_utc() - SignedDuration::minutes(2)).to_naive_utc());
     token
         .save(&context.pool)
         .await

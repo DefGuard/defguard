@@ -324,7 +324,7 @@ impl EnrollmentServer {
             let response = defguard_proto::client_types::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
-                deadline_timestamp: session_deadline.and_utc().timestamp(),
+                deadline_timestamp: session_deadline.assume_utc().unix_timestamp(),
                 final_page_content,
                 instance: Some(instance_info.into()),
                 settings: Some(enrollment_settings),

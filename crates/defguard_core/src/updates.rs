@@ -1,9 +1,9 @@
 use std::{env, time::Duration};
 
-use chrono::NaiveDate;
 use defguard_common::{REPORTED_VERSION, global_value};
 use defguard_version::is_version_lower;
 use semver::Version;
+use time::Date;
 
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";
@@ -13,7 +13,8 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 #[cfg_attr(test, derive(Clone))]
 pub struct Update {
     version: String,
-    release_date: NaiveDate,
+    #[serde(with = "defguard_common::time_utils::serde_date")]
+    release_date: Date,
     release_notes_url: String,
     update_url: String,
     critical: bool,

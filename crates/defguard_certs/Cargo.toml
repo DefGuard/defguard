@@ -9,11 +9,10 @@ rust-version.workspace = true
 
 [dependencies]
 base64.workspace = true
-chrono.workspace = true
 rcgen.workspace = true
 rustls-pki-types.workspace = true
 thiserror.workspace = true
-time.workspace = true
+time = { workspace = true, features = ["std"] }
 x509-parser.workspace = true
 
 [lints]

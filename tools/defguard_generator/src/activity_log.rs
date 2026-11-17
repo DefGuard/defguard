@@ -1,14 +1,16 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group,
-        vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
-        vpn_client_session::VpnClientMfaMethod,
-        webauthn::{AuthenticatorKind, RegistrationSource},
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            Device, DeviceType, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+            group::Group,
+            vpn_client_mfa_session::{MfaAttribution, Step, StepsSnapshot},
+            vpn_client_session::VpnClientMfaMethod,
+            webauthn::{AuthenticatorKind, RegistrationSource},
+        },
     },
+    time_utils::now_naive_utc,
 };
 use defguard_core::{
     db::models::activity_log::{
@@ -28,6 +30,7 @@ use defguard_event_logger::description::{
     get_enrollment_event_description as get_core_enrollment_event_description,
 };
 use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
+use time::SignedDuration;
 
 #[allow(dead_code, clippy::large_enum_variant)]
 enum DefguardEvent {
@@ -475,9 +478,9 @@ pub async fn generate_activity_log(
 
     let kind_pool = build_kind_pool(locations_available, groups_available);
 
-    let now = Utc::now().naive_utc();
-    let span_seconds = Duration::minutes(config.time_span_minutes.max(1))
-        .num_seconds()
+    let now = now_naive_utc();
+    let span_seconds = SignedDuration::minutes(config.time_span_minutes.max(1))
+        .whole_seconds()
         .max(1);
 
     info!("Generating {} activity log events", config.num_events);
@@ -488,7 +491,7 @@ pub async fn generate_activity_log(
             .expect("user_devices is non-empty");
         let kind = *kind_pool.choose(&mut rng).expect("kind_pool is non-empty");
 
-        let timestamp = now - Duration::seconds(rng.gen_range(0..span_seconds));
+        let timestamp = now - SignedDuration::seconds(rng.gen_range(0..span_seconds));
 
         let ctx = BuildContext {
             user,

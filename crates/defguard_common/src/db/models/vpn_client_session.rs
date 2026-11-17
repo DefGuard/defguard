@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, Type, query_as};
+use time::PrimitiveDateTime;
 
 use crate::{
     db::{
@@ -17,6 +17,7 @@ use crate::{
         },
     },
     secret::SecretStringWrapper,
+    time_utils::now_naive_utc,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Type)]
@@ -155,9 +156,9 @@ pub struct VpnClientSession<I = NoId> {
     pub location_id: Id,
     pub user_id: Id,
     pub device_id: Id,
-    pub created_at: NaiveDateTime,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
+    pub created_at: PrimitiveDateTime,
+    pub connected_at: Option<PrimitiveDateTime>,
+    pub disconnected_at: Option<PrimitiveDateTime>,
     pub is_mfa_session: bool,
     #[model(enum)]
     pub state: VpnClientSessionState,
@@ -171,7 +172,7 @@ impl VpnClientSession {
         location_id: Id,
         user_id: Id,
         device_id: Id,
-        connected_at: Option<NaiveDateTime>,
+        connected_at: Option<PrimitiveDateTime>,
         is_mfa_session: bool,
     ) -> Self {
         // determine session state
@@ -186,7 +187,7 @@ impl VpnClientSession {
             location_id,
             user_id,
             device_id,
-            created_at: Utc::now().naive_utc(),
+            created_at: now_naive_utc(),
             connected_at,
             disconnected_at: None,
             is_mfa_session,

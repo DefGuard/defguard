@@ -1,6 +1,6 @@
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
+use time::PrimitiveDateTime;
 
 use crate::db::Id;
 
@@ -38,7 +38,7 @@ pub struct DeviceClientInfo {
     pub os_type: OsType,
     pub os_version: String,
     pub os_edition: Option<String>,
-    pub updated_at: NaiveDateTime,
+    pub updated_at: PrimitiveDateTime,
 }
 
 impl DeviceClientInfo {
@@ -88,13 +88,15 @@ impl DeviceClientInfo {
 
 #[cfg(test)]
 mod tests {
-    use chrono::DateTime;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::{DeviceClientInfo, OsType};
-    use crate::db::{
-        models::{Device, DeviceType, User},
-        setup_pool,
+    use crate::{
+        db::{
+            models::{Device, DeviceType, User},
+            setup_pool,
+        },
+        time_utils::naive_from_unix_timestamp,
     };
 
     #[sqlx::test]
@@ -123,12 +125,8 @@ mod tests {
         .await
         .unwrap();
 
-        let first_report_at = DateTime::from_timestamp(1_800_000_000, 0)
-            .unwrap()
-            .naive_utc();
-        let later_report_at = DateTime::from_timestamp(1_800_000_060, 0)
-            .unwrap()
-            .naive_utc();
+        let first_report_at = naive_from_unix_timestamp(1_800_000_000, 0).unwrap();
+        let later_report_at = naive_from_unix_timestamp(1_800_000_060, 0).unwrap();
         let mut report = DeviceClientInfo {
             device_id: device.id,
             client_version: Some("2.3.0".to_owned()),

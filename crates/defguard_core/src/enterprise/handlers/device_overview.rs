@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use axum::{Json, extract::State};
 use axum_extra::extract::Query;
-use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
     models::{
@@ -15,6 +14,7 @@ use defguard_common::db::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
+use time::PrimitiveDateTime;
 
 use super::EnterpriseTier;
 use crate::{
@@ -126,7 +126,8 @@ pub(crate) struct DeviceOverviewRow {
     os_version: Option<String>,
     client_version: Option<String>,
     connected: bool,
-    last_connected_at: Option<NaiveDateTime>,
+    #[serde(with = "defguard_common::time_utils::serde_naive::option")]
+    last_connected_at: Option<PrimitiveDateTime>,
     /// Public endpoint IP, not the VPN address.
     last_connected_ip: Option<String>,
     last_connected_location: Option<String>,

@@ -1,6 +1,5 @@
 use std::{fmt, time::Duration};
 
-use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     db::{
@@ -8,12 +7,14 @@ use defguard_common::{
         models::{Settings, user::User},
     },
     random::gen_alphanumeric,
+    time_utils::{OffsetDateTimeExt, now_naive_utc},
     types::UrlParseError,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;
+use time::{OffsetDateTime, PrimitiveDateTime, SignedDuration};
 use tonic::{Code, Status};
 
 use crate::mail::templates;
@@ -116,9 +117,9 @@ pub struct Token {
     pub user_id: Id,
     pub admin_id: Option<Id>,
     pub email: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub expires_at: NaiveDateTime,
-    pub used_at: Option<NaiveDateTime>,
+    pub created_at: PrimitiveDateTime,
+    pub expires_at: PrimitiveDateTime,
+    pub used_at: Option<PrimitiveDateTime>,
     pub token_type: Option<String>,
     pub device_id: Option<Id>,
     /// CBOR-serialized ceremony state. An unauthorized MFA configuration session holds
@@ -150,14 +151,15 @@ impl Token {
         token_timeout_seconds: u64,
         token_type: Option<String>,
     ) -> Self {
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         Self {
             id: gen_alphanumeric(32),
             user_id,
             admin_id,
             email,
-            created_at: now.naive_utc(),
-            expires_at: (now + TimeDelta::seconds(token_timeout_seconds as i64)).naive_utc(),
+            created_at: now.to_naive_utc(),
+            expires_at: (now + SignedDuration::seconds(token_timeout_seconds as i64))
+                .to_naive_utc(),
             used_at: None,
             token_type,
             device_id: None,
@@ -168,7 +170,7 @@ impl Token {
     /// Duration for which the token is valid, i.e. `expires_at - created_at`, clamped to zero.
     #[must_use]
     pub fn validity_duration(&self) -> Duration {
-        let seconds = (self.expires_at - self.created_at).num_seconds().max(0);
+        let seconds = (self.expires_at - self.created_at).whole_seconds().max(0);
         Duration::from_secs(u64::try_from(seconds).unwrap_or_default())
     }
 
@@ -339,7 +341,7 @@ impl Token {
     // check if token has already expired
     #[must_use]
     pub fn is_expired(&self) -> bool {
-        self.expires_at < Utc::now().naive_utc()
+        self.expires_at < now_naive_utc()
     }
 
     // check if token has already been used
@@ -353,9 +355,9 @@ impl Token {
     #[must_use]
     pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
         if let Some(used_at) = self.used_at {
-            let now = Utc::now();
-            return now.naive_utc()
-                < (used_at + TimeDelta::seconds(session_timeout_seconds as i64));
+            let now = OffsetDateTime::now_utc();
+            return now.to_naive_utc()
+                < (used_at + SignedDuration::seconds(session_timeout_seconds as i64));
         }
         false
     }
@@ -367,7 +369,7 @@ impl Token {
         &mut self,
         transaction: &mut PgConnection,
         session_timeout_seconds: u64,
-    ) -> Result<NaiveDateTime, TokenError> {
+    ) -> Result<PrimitiveDateTime, TokenError> {
         // check if token can be used
         debug!("Creating a new session.");
         if self.is_expired() {
@@ -378,7 +380,7 @@ impl Token {
             // session started but still valid
             Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
                 debug!("Session already exists yet it is still valid.");
-                Ok(used_at + TimeDelta::seconds(session_timeout_seconds as i64))
+                Ok(used_at + SignedDuration::seconds(session_timeout_seconds as i64))
             }
             // session expired
             Some(_) => {
@@ -387,7 +389,7 @@ impl Token {
             }
             // session not yet started
             None => {
-                let now = Utc::now().naive_utc();
+                let now = now_naive_utc();
                 // Authorization ends any pending MFA configuration authorization attempt.
                 query!(
                     "UPDATE token SET used_at = $1, mfa_setup_state = NULL WHERE id = $2",
@@ -400,7 +402,7 @@ impl Token {
                 self.mfa_setup_state = None;
 
                 debug!("Generate a new session successfully.");
-                Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
+                Ok(now + SignedDuration::seconds(session_timeout_seconds as i64))
             }
         }
     }
@@ -411,11 +413,11 @@ impl Token {
         &mut self,
         transaction: &mut PgConnection,
         session_timeout_seconds: u64,
-    ) -> Result<NaiveDateTime, TokenError> {
+    ) -> Result<PrimitiveDateTime, TokenError> {
         if self.is_expired() {
             return Err(TokenError::TokenExpired);
         }
-        let now = Utc::now().naive_utc();
+        let now = now_naive_utc();
         // Authorization ends any pending MFA configuration authorization attempt.
         let result = query!(
             "UPDATE token SET used_at = $1, mfa_setup_state = NULL \
@@ -431,7 +433,7 @@ impl Token {
         self.used_at = Some(now);
         self.mfa_setup_state = None;
 
-        Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
+        Ok(now + SignedDuration::seconds(session_timeout_seconds as i64))
     }
 
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
@@ -851,8 +853,8 @@ mod tests {
             .unwrap()
             .used_at
             .unwrap();
-        let expected = deadline - TimeDelta::seconds(60);
-        assert!((expected - stored).abs() < TimeDelta::milliseconds(1));
+        let expected = deadline - SignedDuration::seconds(60);
+        assert!((expected - stored).abs() < SignedDuration::milliseconds(1));
     }
 
     #[sqlx::test]

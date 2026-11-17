@@ -20,6 +20,7 @@ use defguard_common::db::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
+use time::PrimitiveDateTime;
 
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
@@ -43,8 +44,10 @@ pub struct MfaFlowListItemResponse {
     pub title: String,
     pub step_count: i64,
     pub steps: Vec<MfaFlowStepResponse>,
-    pub created_at: chrono::NaiveDateTime,
-    pub updated_at: chrono::NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub updated_at: PrimitiveDateTime,
     /// The first license or configuration condition that prevents the flow from running.
     /// `None` = usable
     pub unavailable_reason: Option<MethodAvailabilityReason>,
@@ -98,8 +101,10 @@ pub struct MfaFlowDetailResponse {
     pub id: Id,
     pub title: String,
     pub steps: Vec<MfaFlowStepResponse>,
-    pub created_at: chrono::NaiveDateTime,
-    pub updated_at: chrono::NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub updated_at: PrimitiveDateTime,
 }
 
 /// A single step in a flow detail response.

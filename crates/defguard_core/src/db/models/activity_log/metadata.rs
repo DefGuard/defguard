@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id,
     models::{
@@ -16,6 +15,7 @@ use defguard_common::db::{
         vpn_client_mfa_session::MfaAttribution,
     },
 };
+use time::PrimitiveDateTime;
 
 use crate::{
     db::WebHook,
@@ -255,7 +255,8 @@ pub struct ApiTokenMetadata {
 pub struct ApiTokenNoSecrets {
     id: Id,
     pub user_id: Id,
-    pub created_at: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub created_at: PrimitiveDateTime,
     pub name: String,
 }
 

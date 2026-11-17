@@ -1,10 +1,12 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use chrono::DateTime;
-use defguard_common::db::{
-    Id, NoId,
-    models::{WireguardNetwork, group::Group, user::User},
-    setup_pool,
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{WireguardNetwork, group::Group, user::User},
+        setup_pool,
+    },
+    time_utils::NAIVE_EPOCH,
 };
 use ipnetwork::IpNetwork;
 use sqlx::{
@@ -561,7 +563,7 @@ async fn test_expired_rule_excluded(_: PgPoolOptions, options: PgConnectOptions)
     // Expired rule - expires at the Unix epoch (well in the past).
     let expired_rule = AclRule {
         allow_all_users: true,
-        expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
+        expires: Some(NAIVE_EPOCH),
         ..applied_rule_with_addresses("expired", vec!["192.168.1.0/24".parse().unwrap()])
     };
     create_acl_rule(&pool, expired_rule, &[location.id], &[], &[], &[], &[], &[]).await;

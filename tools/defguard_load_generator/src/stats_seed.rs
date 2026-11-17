@@ -1,16 +1,16 @@
 use anyhow::Context;
-use chrono::{Duration as ChronoDuration, Utc};
 use secrecy::ExposeSecret;
 use sqlx::{
     FromRow, Postgres, QueryBuilder, Transaction,
     postgres::{PgConnectOptions, PgPoolOptions},
     query_as, query_scalar,
 };
+use time::{OffsetDateTime, PrimitiveDateTime, SignedDuration};
 
 use crate::config::SeedStatsArgs;
 
-const HORIZON: ChronoDuration = ChronoDuration::days(30);
-const SAMPLE_INTERVAL: ChronoDuration = ChronoDuration::seconds(30);
+const HORIZON: SignedDuration = SignedDuration::days(30);
+const SAMPLE_INTERVAL: SignedDuration = SignedDuration::seconds(30);
 const BATCH_SIZE: usize = 1_000;
 // RFC 2544 benchmarking address; no network connection is made.
 const ENDPOINT: &str = "198.18.0.1:51820";
@@ -56,7 +56,8 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
     .fetch_all(&pool)
     .await?;
 
-    let started_at = Utc::now().naive_utc();
+    let now = OffsetDateTime::now_utc();
+    let started_at = PrimitiveDateTime::new(now.date(), now.time());
     let first_sample = started_at - HORIZON;
     let mut transaction = pool.begin().await?;
     let mut skipped_devices = 0_u64;
@@ -184,10 +185,10 @@ pub async fn run(args: SeedStatsArgs) -> anyhow::Result<()> {
 }
 
 /// Generates deterministic, non-zero traffic deltas for a sample.
-fn sample_diffs(collected_at: chrono::NaiveDateTime) -> (i64, i64) {
+fn sample_diffs(collected_at: PrimitiveDateTime) -> (i64, i64) {
     (
-        50_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 100_000) as i64,
-        75_000 + (collected_at.and_utc().timestamp().unsigned_abs() % 150_000) as i64,
+        50_000 + (collected_at.assume_utc().unix_timestamp().unsigned_abs() % 100_000) as i64,
+        75_000 + (collected_at.assume_utc().unix_timestamp().unsigned_abs() % 150_000) as i64,
     )
 }
 
@@ -225,8 +226,8 @@ async fn insert_batch(
     batch: &[(
         i64,
         i64,
-        chrono::NaiveDateTime,
-        chrono::NaiveDateTime,
+        PrimitiveDateTime,
+        PrimitiveDateTime,
         &str,
         i64,
         i64,

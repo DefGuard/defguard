@@ -1,5 +1,7 @@
-use chrono::Utc;
-use defguard_common::db::{Id, setup_pool};
+use defguard_common::{
+    db::{Id, setup_pool},
+    time_utils::now_naive_utc,
+};
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     query, query_scalar,
@@ -16,7 +18,7 @@ async fn insert_session(
     device_id: Id,
     state: &str,
 ) -> Result<Id, sqlx::Error> {
-    let connected_at = (state == "connected").then(|| Utc::now().naive_utc());
+    let connected_at = (state == "connected").then(now_naive_utc);
 
     query_scalar(
         "INSERT INTO vpn_client_session (location_id, user_id, device_id, connected_at, is_mfa_session, state, preshared_key) \

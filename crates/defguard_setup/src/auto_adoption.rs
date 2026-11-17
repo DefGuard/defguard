@@ -21,6 +21,7 @@ use defguard_common::{
         },
         wireguard::ServiceLocationMode,
     },
+    time_utils::{format_naive, now_naive_utc},
     utils::strip_scheme,
 };
 use defguard_core::{
@@ -517,7 +518,8 @@ async fn run_edge_adoption_attempt_scoped(
     };
     debug!(
         "Edge adoption handshake complete hostname={hostname} cert_serial={} expires={}",
-        cert_info.serial, cert_info.not_after
+        cert_info.serial,
+        format_naive(cert_info.not_after)
     );
 
     let mut logs = collect_stream_logs(&mut log_rx);
@@ -843,7 +845,8 @@ async fn run_gateway_adoption_attempt_scoped(
     };
     debug!(
         "Gateway adoption handshake complete hostname={hostname} cert_serial={} expires={}",
-        cert_info.serial, cert_info.not_after
+        cert_info.serial,
+        format_naive(cert_info.not_after)
     );
 
     let mut logs = collect_stream_logs(&mut log_rx);
@@ -933,7 +936,7 @@ async fn process_startup_auto_adoption(
         AutoAdoptionComponentResult {
             success: status,
             logs: logs_to_persist(status, logs),
-            updated_at: chrono::Utc::now().naive_utc(),
+            updated_at: now_naive_utc(),
         },
     );
     auto_state.save(pool).await?;
@@ -1135,7 +1138,7 @@ pub async fn attempt_auto_adoption(
                 AutoAdoptionComponentResult {
                     success: false,
                     logs: vec![format!("Startup auto-adoption failed: {err}")],
-                    updated_at: chrono::Utc::now().naive_utc(),
+                    updated_at: now_naive_utc(),
                 },
             );
             auto_state.save(pool).await?;
@@ -1162,7 +1165,7 @@ pub async fn attempt_auto_adoption(
                 AutoAdoptionComponentResult {
                     success: false,
                     logs: vec![format!("Startup auto-adoption failed: {err}")],
-                    updated_at: chrono::Utc::now().naive_utc(),
+                    updated_at: now_naive_utc(),
                 },
             );
             auto_state.save(pool).await?;

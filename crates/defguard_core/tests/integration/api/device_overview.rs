@@ -1,17 +1,19 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use chrono::{NaiveDate, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, DeviceState, DeviceType, DeviceVerification, User, WireguardNetwork,
-        device::WireguardNetworkDevice,
-        device_client_info::{DeviceClientInfo, OsType},
-        device_identity::DeviceAttestationStatus,
-        gateway::Gateway,
-        vpn_client_session::{VpnClientSession, VpnClientSessionState},
-        vpn_session_stats::VpnSessionStats,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceState, DeviceType, DeviceVerification, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            device_client_info::{DeviceClientInfo, OsType},
+            device_identity::DeviceAttestationStatus,
+            gateway::Gateway,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+            vpn_session_stats::VpnSessionStats,
+        },
     },
+    time_utils::now_naive_utc,
 };
 use defguard_core::{events::ApiEventType, grpc::GatewayCommand, handlers::Auth};
 use reqwest::StatusCode;
@@ -20,6 +22,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use time::macros::datetime;
 
 use super::common::{
     client::TestClient, make_network, make_test_client, set_enterprise_license, setup_pool,
@@ -61,7 +64,7 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
         os_type: OsType::Ios,
         os_version: "27.1".to_owned(),
         os_edition: None,
-        updated_at: Utc::now().naive_utc(),
+        updated_at: now_naive_utc(),
     }
     .upsert(&client_state.pool)
     .await
@@ -79,14 +82,8 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
-    let earlier_connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
-        .unwrap()
-        .and_hms_opt(3, 4, 5)
-        .unwrap();
-    let latest_connected_at = NaiveDate::from_ymd_opt(2026, 1, 3)
-        .unwrap()
-        .and_hms_opt(4, 5, 6)
-        .unwrap();
+    let earlier_connected_at = datetime!(2026-01-02 3:04:05);
+    let latest_connected_at = datetime!(2026-01-03 4:05:06);
     let mut disconnected_session = VpnClientSession::new(
         network.id,
         client_state.test_user.id,
@@ -231,23 +228,17 @@ async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: Pg
             os_type,
             os_version: "1".to_owned(),
             os_edition: None,
-            updated_at: Utc::now().naive_utc(),
+            updated_at: now_naive_utc(),
         }
         .upsert(pool)
         .await
         .unwrap();
     }
     let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
-    VpnClientSession::new(
-        network.id,
-        harry,
-        phone.id,
-        Some(Utc::now().naive_utc()),
-        false,
-    )
-    .save(pool)
-    .await
-    .unwrap();
+    VpnClientSession::new(network.id, harry, phone.id, Some(now_naive_utc()), false)
+        .save(pool)
+        .await
+        .unwrap();
 
     let (a, b, d) = (phone.id, laptop.id, desktop.id);
     let cases: &[(&str, Vec<Id>)] = &[

@@ -1,9 +1,9 @@
-use chrono::TimeZone;
 use defguard_common::db::{
     models::{User, WireguardNetwork},
     setup_pool,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::{OffsetDateTime, SignedDuration, macros::datetime};
 use tokio::sync::mpsc;
 
 use super::*;
@@ -16,7 +16,7 @@ fn test_license() {
     assert!(!license.subscription);
     assert_eq!(
         license.valid_until.unwrap(),
-        Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
+        datetime!(2024-12-26 13:57:54 UTC)
     );
     assert!(license.is_expired());
 
@@ -99,7 +99,7 @@ fn test_legacy_license() {
     assert!(!license.subscription);
     assert_eq!(
         license.valid_until.unwrap(),
-        Utc.with_ymd_and_hms(2025, 1, 1, 10, 26, 30).unwrap()
+        datetime!(2025-01-01 10:26:30 UTC)
     );
 
     assert!(license.is_expired());
@@ -122,7 +122,7 @@ fn test_new_license() {
     assert!(!license.subscription);
     assert_eq!(
         license.valid_until.unwrap(),
-        Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
+        datetime!(2024-12-26 13:57:54 UTC)
     );
 
     // pre-1.6 license defaults to Business tier
@@ -140,7 +140,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         false,
-        Some(Utc::now() - TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,
@@ -153,7 +153,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         false,
-        Some(Utc::now() + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,
@@ -179,7 +179,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - MAX_OVERDUE_TIME - SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,
@@ -192,7 +192,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - MAX_OVERDUE_TIME + SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,
@@ -207,7 +207,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - MAX_OVERDUE_TIME + SignedDuration::days(1)),
         Some(LicenseLimits {
             users: 1,
             devices: 1,
@@ -225,7 +225,7 @@ fn test_invalid_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - MAX_OVERDUE_TIME + SignedDuration::days(1)),
         Some(LicenseLimits {
             users: 10,
             devices: 10,
@@ -420,7 +420,7 @@ async fn test_subscription_license_past_max_overdue_stays_loaded(
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() - MAX_OVERDUE_TIME - SignedDuration::days(1)),
         None,
         None,
         LicenseTier::Business,

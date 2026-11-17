@@ -8,7 +8,6 @@ use base64::{
     Engine as _,
     prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
 };
-use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -41,6 +40,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use time::{OffsetDateTime, SignedDuration};
 use tokio::sync::mpsc;
 use tonic::{Code, Status};
 use totp_lite::{Sha1, totp_custom};
@@ -91,7 +91,7 @@ fn set_test_license_business() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
         Some(LicenseLimits {
             users: 100,
             devices: 100,

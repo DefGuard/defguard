@@ -2,12 +2,12 @@ use axum::{
     Json,
     extract::{Path, State, rejection::JsonRejection},
 };
-use chrono::NaiveDateTime;
 use defguard_common::db::{Id, models::gateway::Gateway};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{PgPool, query_as};
+use time::PrimitiveDateTime;
 
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
@@ -27,14 +27,18 @@ pub struct GatewayInfo {
     pub name: String,
     pub address: String,
     pub port: i32,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
+    #[serde(with = "defguard_common::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
+    #[serde(with = "defguard_common::time_utils::serde_naive::option")]
+    pub disconnected_at: Option<PrimitiveDateTime>,
     pub connected: bool,
     pub certificate_serial: Option<String>,
-    pub certificate_expiry: Option<NaiveDateTime>,
+    #[serde(with = "defguard_common::time_utils::serde_naive::option")]
+    pub certificate_expiry: Option<PrimitiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
-    pub modified_at: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
     pub location_name: String,
 }

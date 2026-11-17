@@ -1,11 +1,14 @@
 use std::fmt;
 
-use chrono::{NaiveDateTime, Timelike, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as, query_scalar};
+use time::PrimitiveDateTime;
 
-use crate::db::{Id, NoId};
+use crate::{
+    db::{Id, NoId},
+    time_utils::now_naive_utc,
+};
 
 #[derive(Clone, Deserialize, Model, Serialize, PartialEq)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -16,19 +19,24 @@ pub struct Gateway<I = NoId> {
     pub name: String,
     pub address: String,
     pub port: i32,
-    pub connected_at: Option<NaiveDateTime>,
-    pub disconnected_at: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub connected_at: Option<PrimitiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub disconnected_at: Option<PrimitiveDateTime>,
     pub certificate_serial: Option<String>,
-    pub certificate_expiry: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub certificate_expiry: Option<PrimitiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
-    pub modified_at: NaiveDateTime,
+    #[serde(with = "crate::time_utils::serde_naive")]
+    pub modified_at: PrimitiveDateTime,
     pub modified_by: String,
     #[serde(skip)]
     pub core_client_cert_der: Option<Vec<u8>>,
     #[serde(skip)]
     pub core_client_cert_key_der: Option<Vec<u8>>,
-    pub core_client_cert_expiry: Option<NaiveDateTime>,
+    #[serde(default, with = "crate::time_utils::serde_naive::option")]
+    pub core_client_cert_expiry: Option<PrimitiveDateTime>,
 }
 
 impl fmt::Debug for Gateway<Id> {
@@ -84,13 +92,8 @@ impl Gateway {
         port: i32,
         modified_by: S,
     ) -> Self {
-        // FIXME: this is a workaround for reducing timestamp precision.
-        // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
-        // It avoids issues when comparing to objects fetched from DB.
-        let modified_at = Utc::now().naive_utc();
-        let modified_at = modified_at
-            .with_nanosecond((modified_at.nanosecond() / 1_000) * 1_000)
-            .expect("failed to truncate timestamp precision");
+        // Postgres keeps microseconds, so this matches the value read back from the DB
+        let modified_at = now_naive_utc().truncate_to_microsecond();
 
         Self {
             id: NoId,
@@ -149,7 +152,7 @@ impl Gateway<Id> {
     where
         E: PgExecutor<'e>,
     {
-        self.connected_at = Some(Utc::now().naive_utc());
+        self.connected_at = Some(now_naive_utc());
         query!(
             "UPDATE gateway SET connected_at = $2 WHERE id = $1",
             self.id,
@@ -166,7 +169,7 @@ impl Gateway<Id> {
     where
         E: PgExecutor<'e>,
     {
-        self.disconnected_at = Some(Utc::now().naive_utc());
+        self.disconnected_at = Some(now_naive_utc());
         query!(
             "UPDATE gateway SET disconnected_at = $2 WHERE id = $1",
             self.id,

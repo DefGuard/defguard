@@ -72,6 +72,9 @@ feature-depth = 1
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "https://github.com/RustCrypto/RSA/issues/19" },
     { id = "RUSTSEC-2026-0387", reason = "Transitive dependency of jsonwebtoken" },
+    { id = "RUSTSEC-2026-0543", reason = "chrono, transitive via openidconnect, oauth2 and tera, expires 2026-12-17" },
+    { id = "RUSTSEC-2026-0555", reason = "chrono-tz, transitive via tera builtins, expires 2026-12-17" },
+    { id = "RUSTSEC-2026-0559", reason = "chrono-tz-build, transitive via tera builtins, expires 2026-12-17" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.

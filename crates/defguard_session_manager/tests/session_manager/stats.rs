@@ -1,11 +1,14 @@
 use std::net::SocketAddr;
 
-use chrono::{TimeDelta, Utc};
-use defguard_common::db::{
-    models::{vpn_client_session::VpnClientSession, vpn_session_stats::VpnSessionStats},
-    setup_pool,
+use defguard_common::{
+    db::{
+        models::{vpn_client_session::VpnClientSession, vpn_session_stats::VpnSessionStats},
+        setup_pool,
+    },
+    time_utils::now_naive_utc,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::SignedDuration;
 
 use crate::common::{
     SessionManagerHarness, attach_device_to_location, build_stats_update, count_session_stats,
@@ -27,7 +30,7 @@ async fn test_session_manager_updates_stats_deltas_across_iterations(
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let base_time = Utc::now().naive_utc();
+    let base_time = now_naive_utc();
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -36,7 +39,7 @@ async fn test_session_manager_updates_stats_deltas_across_iterations(
         endpoint,
         100,
         200,
-        base_time - TimeDelta::seconds(5),
+        base_time - SignedDuration::seconds(5),
     ));
     let _ = harness.run_iteration().await;
 
@@ -51,11 +54,11 @@ async fn test_session_manager_updates_stats_deltas_across_iterations(
         location.id,
         gateway.id,
         &device.wireguard_pubkey,
-        base_time + TimeDelta::seconds(10),
+        base_time + SignedDuration::seconds(10),
         endpoint,
         150,
         260,
-        base_time + TimeDelta::seconds(10),
+        base_time + SignedDuration::seconds(10),
     ));
     let _ = harness.run_iteration().await;
 
@@ -70,11 +73,11 @@ async fn test_session_manager_updates_stats_deltas_across_iterations(
         location.id,
         gateway.id,
         &device.wireguard_pubkey,
-        base_time + TimeDelta::seconds(20),
+        base_time + SignedDuration::seconds(20),
         endpoint,
         180,
         330,
-        base_time + TimeDelta::seconds(20),
+        base_time + SignedDuration::seconds(20),
     ));
     let _ = harness.run_iteration().await;
 
@@ -101,7 +104,7 @@ async fn test_session_manager_calculates_stats_per_gateway(
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let base_time = Utc::now().naive_utc();
+    let base_time = now_naive_utc();
     harness.send_stats(build_stats_update(
         location.id,
         gateway_one.id,
@@ -118,11 +121,11 @@ async fn test_session_manager_calculates_stats_per_gateway(
         location.id,
         gateway_one.id,
         &device.wireguard_pubkey,
-        base_time + TimeDelta::seconds(10),
+        base_time + SignedDuration::seconds(10),
         endpoint,
         130,
         240,
-        base_time + TimeDelta::seconds(10),
+        base_time + SignedDuration::seconds(10),
     ));
     let _ = harness.run_iteration().await;
 
@@ -130,11 +133,11 @@ async fn test_session_manager_calculates_stats_per_gateway(
         location.id,
         gateway_two.id,
         &device.wireguard_pubkey,
-        base_time + TimeDelta::seconds(20),
+        base_time + SignedDuration::seconds(20),
         endpoint,
         500,
         700,
-        base_time + TimeDelta::seconds(20),
+        base_time + SignedDuration::seconds(20),
     ));
     let _ = harness.run_iteration().await;
 
@@ -142,11 +145,11 @@ async fn test_session_manager_calculates_stats_per_gateway(
         location.id,
         gateway_two.id,
         &device.wireguard_pubkey,
-        base_time + TimeDelta::seconds(30),
+        base_time + SignedDuration::seconds(30),
         endpoint,
         560,
         780,
-        base_time + TimeDelta::seconds(30),
+        base_time + SignedDuration::seconds(30),
     ));
     let _ = harness.run_iteration().await;
 
@@ -195,7 +198,7 @@ async fn test_out_of_order_updates_for_existing_db_session_are_discarded(
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let first_handshake = Utc::now().naive_utc() - TimeDelta::seconds(5);
+    let first_handshake = now_naive_utc() - SignedDuration::seconds(5);
     let existing_session = create_session(
         &pool,
         location.id,
@@ -224,7 +227,7 @@ async fn test_out_of_order_updates_for_existing_db_session_are_discarded(
         location.id,
         gateway.id,
         &device.wireguard_pubkey,
-        first_handshake - TimeDelta::seconds(1),
+        first_handshake - SignedDuration::seconds(1),
         endpoint,
         110,
         210,

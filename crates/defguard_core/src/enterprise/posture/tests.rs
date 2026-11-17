@@ -1,4 +1,3 @@
-use chrono::{TimeDelta, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{WireguardNetwork, wireguard::ServiceLocationMode},
@@ -9,6 +8,7 @@ use defguard_proto::enterprise::posture::{
     int32_check, string_check,
 };
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use time::{OffsetDateTime, SignedDuration};
 
 use crate::{
     enterprise::{
@@ -38,7 +38,7 @@ fn set_enterprise_license() {
     let license = License::new(
         "test".to_owned(),
         true,
-        Some(Utc::now() + TimeDelta::days(1)),
+        Some(OffsetDateTime::now_utc() + SignedDuration::days(1)),
         Some(limits),
         None,
         LicenseTier::Enterprise,
@@ -1437,8 +1437,8 @@ async fn pass_android_security_patch_within_max_age(_: PgPoolOptions, options: P
     save_android_policy(&pool, location_id, Some(30)).await;
 
     // Patch date 15 days ago — within the 30-day limit.
-    let patch_date = (Utc::now() - TimeDelta::days(15))
-        .format("%Y-%m-%d")
+    let patch_date = (OffsetDateTime::now_utc() - SignedDuration::days(15))
+        .date()
         .to_string();
     let data = android_posture_data(&patch_date);
 
@@ -1458,8 +1458,8 @@ async fn fail_android_security_patch_too_old(_: PgPoolOptions, options: PgConnec
     save_android_policy(&pool, location_id, Some(30)).await;
 
     // Patch date 90 days ago — exceeds the 30-day limit.
-    let patch_date = (Utc::now() - TimeDelta::days(90))
-        .format("%Y-%m-%d")
+    let patch_date = (OffsetDateTime::now_utc() - SignedDuration::days(90))
+        .date()
         .to_string();
     let data = android_posture_data(&patch_date);
 

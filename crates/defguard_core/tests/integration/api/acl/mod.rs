@@ -28,6 +28,7 @@ use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use time::PrimitiveDateTime;
 use tokio::net::TcpListener;
 
 use super::common::{
@@ -138,7 +139,7 @@ fn edit_rule_data_into_api_response(
     id: Id,
     parent_id: Option<Id>,
     state: RuleState,
-    modified_at: chrono::NaiveDateTime,
+    modified_at: PrimitiveDateTime,
     modified_by: String,
 ) -> ApiAclRule {
     ApiAclRule {

@@ -1,20 +1,23 @@
 use std::net::IpAddr;
 
-use chrono::{NaiveDateTime, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        gateway::Gateway,
-        group::Group,
-        mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
-        oauth2client::OAuth2Client,
-        proxy::Proxy,
-        vpn_client_mfa_session::MfaAttribution,
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+            gateway::Gateway,
+            group::Group,
+            mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
+            oauth2client::OAuth2Client,
+            proxy::Proxy,
+            vpn_client_mfa_session::MfaAttribution,
+        },
     },
+    time_utils::now_naive_utc,
 };
 use defguard_proto::{client_types::MfaMethod, enterprise::posture::DevicePostureData};
 use strum::EnumCount;
+use time::PrimitiveDateTime;
 
 use crate::{
     db::WebHook,
@@ -35,7 +38,7 @@ use crate::{
 /// This is done in order to avoid circular imports once we split the project into multiple crates.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiRequestContext {
-    pub timestamp: NaiveDateTime,
+    pub timestamp: PrimitiveDateTime,
     /// `None` for events about a user that doesn't have an account yet, e.g. an
     /// OpenID login blocked before the corresponding account could be created.
     pub user_id: Option<Id>,
@@ -52,7 +55,7 @@ impl ApiRequestContext {
         ip: impl Into<Option<IpAddr>>,
         device: String,
     ) -> Self {
-        let timestamp = Utc::now().naive_utc();
+        let timestamp = now_naive_utc();
         Self {
             timestamp,
             user_id: user_id.into(),
@@ -68,7 +71,7 @@ impl ApiRequestContext {
 /// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the activity log.
 #[derive(Debug)]
 pub struct GrpcRequestContext {
-    pub timestamp: NaiveDateTime,
+    pub timestamp: PrimitiveDateTime,
     pub user_id: Id,
     pub username: String,
     pub ip: Option<IpAddr>,
@@ -87,7 +90,7 @@ impl GrpcRequestContext {
         device_name: String,
         location: WireguardNetwork<Id>,
     ) -> Self {
-        let timestamp = Utc::now().naive_utc();
+        let timestamp = now_naive_utc();
         Self {
             timestamp,
             user_id,
@@ -422,7 +425,7 @@ pub struct ApiEvent {
 /// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the activity log.
 #[derive(Debug)]
 pub struct BidiRequestContext {
-    pub timestamp: NaiveDateTime,
+    pub timestamp: PrimitiveDateTime,
     pub user_id: Id,
     pub username: String,
     pub ip: Option<IpAddr>,
@@ -437,7 +440,7 @@ impl BidiRequestContext {
         ip: impl Into<Option<IpAddr>>,
         device_name: String,
     ) -> Self {
-        let timestamp = Utc::now().naive_utc();
+        let timestamp = now_naive_utc();
         Self {
             timestamp,
             user_id,

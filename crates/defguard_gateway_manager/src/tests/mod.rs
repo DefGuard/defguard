@@ -1,8 +1,10 @@
 mod common;
 mod gateway_manager;
 
-use chrono::Utc;
-use defguard_common::db::{Id, models::gateway::Gateway};
+use defguard_common::{
+    db::{Id, models::gateway::Gateway},
+    time_utils::now_naive_utc,
+};
 
 fn base_gateway() -> Gateway<Id> {
     Gateway {
@@ -17,7 +19,7 @@ fn base_gateway() -> Gateway<Id> {
         certificate_expiry: None,
         version: None,
         enabled: true,
-        modified_at: Utc::now().naive_utc(),
+        modified_at: now_naive_utc(),
         modified_by: "test".to_owned(),
         core_client_cert_der: None,
         core_client_cert_key_der: None,
@@ -36,10 +38,10 @@ fn test_needs_restart_detects_connection_relevant_field_changes() {
     let mut no_restart = base.clone();
     no_restart.version = Some("2.0.0".to_owned());
     no_restart.modified_by = "someone-else".to_owned();
-    no_restart.connected_at = Some(Utc::now().naive_utc());
-    no_restart.disconnected_at = Some(Utc::now().naive_utc());
+    no_restart.connected_at = Some(now_naive_utc());
+    no_restart.disconnected_at = Some(now_naive_utc());
     no_restart.certificate_serial = Some("abc".to_owned());
-    no_restart.core_client_cert_expiry = Some(Utc::now().naive_utc());
+    no_restart.core_client_cert_expiry = Some(now_naive_utc());
     assert!(!base.needs_restart(&no_restart));
 
     // location_id change - restart required.

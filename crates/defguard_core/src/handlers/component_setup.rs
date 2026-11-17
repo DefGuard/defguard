@@ -27,6 +27,7 @@ use defguard_common::{
             wizard::Wizard,
         },
     },
+    time_utils::format_naive,
     types::proxy::ProxyControlMessage,
     utils::{strip_scheme, validate_host_only},
 };
@@ -640,7 +641,10 @@ pub async fn setup_proxy_tls_stream(
                 }
             };
 
-        debug!("Certificate expiry date determined: {expiry}");
+        debug!(
+        "Certificate expiry date determined: {}",
+        format_naive(expiry)
+    );
 
         let mut proxy = Proxy::new(
             request.common_name.as_str(),
@@ -996,7 +1000,10 @@ async fn perform_gateway_adoption(
     } = defguard_certs::CertificateInfo::from_der(cert.der())
         .map_err(|e| format!("Failed to get certificate expiry: {e}"))?;
 
-    debug!("Certificate expiry date determined: {expiry}");
+    debug!(
+        "Certificate expiry date determined: {}",
+        format_naive(expiry)
+    );
 
     let mut gateway = Gateway::new(
         network_id,

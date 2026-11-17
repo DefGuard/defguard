@@ -14,7 +14,6 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::Utc;
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -43,6 +42,7 @@ use serde::{
 };
 use sqlx::PgPool;
 use thiserror::Error;
+use time::OffsetDateTime;
 
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
 #[cfg(feature = "openapi")]
@@ -874,15 +874,15 @@ impl TokenRequest {
             let id_token = if token.scope.split(' ').any(|scope| scope == "openid") {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
-                let issue_time = Utc::now();
+                let issue_time = OffsetDateTime::now_utc();
                 let settings = Settings::get_current_settings();
                 let timeout = settings.authentication_timeout();
                 let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
-                    expiration,
-                    issue_time,
+                    oidc_time(expiration),
+                    oidc_time(issue_time),
                     claims,
                     group_claims,
                 )
@@ -1288,4 +1288,10 @@ pub async fn openid_configuration() -> ApiResult {
     )));
 
     Ok(ApiResponse::json(provider_metadata, StatusCode::OK))
+}
+
+/// openidconnect only accepts chrono timestamps, keep chrono confined to this conversion.
+pub(crate) fn oidc_time(datetime: OffsetDateTime) -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::from_timestamp(datetime.unix_timestamp(), datetime.nanosecond())
+        .expect("time range fits in chrono range")
 }

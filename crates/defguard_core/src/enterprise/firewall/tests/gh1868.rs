@@ -1,6 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use chrono::NaiveDateTime;
 use defguard_common::{
     db::{
         Id, NoId,
@@ -8,6 +7,7 @@ use defguard_common::{
         setup_pool,
     },
     gateway_types::{FirewallPolicy, IpVersion},
+    time_utils::NAIVE_EPOCH,
 };
 use ipnetwork::IpNetwork;
 use rand::{Rng, rngs::ThreadRng, thread_rng};
@@ -36,7 +36,7 @@ async fn setup_user_and_device(
         device_type: DeviceType::User,
         description: None,
         wireguard_pubkey: String::default(),
-        created: NaiveDateTime::default(),
+        created: NAIVE_EPOCH,
         configured: true,
         attestation_status: Default::default(),
         attested_at: None,

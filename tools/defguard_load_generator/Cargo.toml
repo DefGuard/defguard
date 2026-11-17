@@ -9,7 +9,6 @@ publish = false
 
 [dependencies]
 anyhow.workspace = true
-chrono.workspace = true
 defguard_proto.workspace = true
 ldap3.workspace = true
 argon2.workspace = true
@@ -24,6 +23,7 @@ secrecy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
+time = { workspace = true, features = ["std"] }
 totp-lite.workspace = true
 tokio.workspace = true
 tracing.workspace = true

@@ -7,7 +7,6 @@ use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
 };
-use chrono::NaiveDateTime;
 use defguard_common::{
     csv::AsCsv,
     db::{
@@ -22,6 +21,7 @@ use defguard_common::{
 };
 use serde_json::json;
 use sqlx::PgConnection;
+use time::PrimitiveDateTime;
 
 use super::{ApiResponse, ApiResult, WebError};
 #[cfg(feature = "openapi")]
@@ -60,7 +60,8 @@ pub(crate) struct NetworkDeviceInfo {
     assigned_ips: Vec<IpAddr>,
     description: Option<String>,
     added_by: String,
-    added_date: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    added_date: PrimitiveDateTime,
     location: NetworkDeviceLocation,
     wireguard_pubkey: String,
     configured: bool,

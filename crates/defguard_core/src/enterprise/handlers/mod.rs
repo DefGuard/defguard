@@ -13,6 +13,7 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
 };
+use defguard_common::time_utils::format_utc;
 use serde::Serialize;
 
 use super::{
@@ -195,7 +196,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
         };
 
         serde_json::json!({
-            "valid_until": license.valid_until,
+            "valid_until": license.valid_until.map(format_utc),
             "subscription": license.subscription,
             "expired": license.is_max_overdue(),
             "limits_exceeded": counts.is_over_license_limits(license),

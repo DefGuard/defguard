@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 
-use chrono::{TimeDelta, Utc};
 use defguard_common::{
     db::{
         models::{
@@ -10,9 +9,11 @@ use defguard_common::{
         setup_pool,
     },
     gateway_event::GatewayCommand,
+    time_utils::now_naive_utc,
 };
 use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use time::SignedDuration;
 use tokio::time::{Duration, timeout};
 
 use crate::common::{
@@ -20,7 +21,7 @@ use crate::common::{
     attach_device_to_location, authorize_device_in_location, build_stats_update,
     count_session_stats, count_stats_for_device_location, create_device, create_gateway,
     create_location_with_mfa_mode, create_session, create_session_stats, create_user,
-    set_session_created_at, stale_session_timestamp, truncate_timestamp,
+    set_session_created_at, stale_session_timestamp,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -39,7 +40,7 @@ async fn test_mfa_location_stats_do_not_create_missing_session(
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let timestamp = Utc::now().naive_utc();
+    let timestamp = now_naive_utc();
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -81,7 +82,7 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     let session = create_session(&pool, location.id, user.id, device.id, None, true, None).await;
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let handshake = truncate_timestamp(Utc::now().naive_utc());
+    let handshake = now_naive_utc().truncate_to_microsecond();
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -119,8 +120,8 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(connected_event.context.device.id, device.id);
     assert_eq!(connected_event.context.public_ip, Some(endpoint.ip()));
 
-    let second_collected_at = handshake + TimeDelta::seconds(30);
-    let second_handshake = handshake + TimeDelta::seconds(25);
+    let second_collected_at = handshake + SignedDuration::seconds(30);
+    let second_handshake = handshake + SignedDuration::seconds(25);
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -184,7 +185,7 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     let session = create_session(&pool, location.id, user.id, device.id, None, true, None).await;
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let handshake = truncate_timestamp(Utc::now().naive_utc());
+    let handshake = now_naive_utc().truncate_to_microsecond();
     let duplicate_update = || {
         build_stats_update(
             location.id,
@@ -260,7 +261,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     let session = create_session(&pool, location.id, user.id, device.id, None, true, None).await;
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let first_handshake = truncate_timestamp(Utc::now().naive_utc() - TimeDelta::seconds(30));
+    let first_handshake = (now_naive_utc() - SignedDuration::seconds(30)).truncate_to_microsecond();
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -297,8 +298,8 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     assert_no_session_manager_events(&mut harness);
     assert_no_gateway_events(&mut harness);
 
-    let later_collected_at = first_handshake + TimeDelta::seconds(30);
-    let later_handshake = first_handshake + TimeDelta::seconds(20);
+    let later_collected_at = first_handshake + SignedDuration::seconds(30);
+    let later_handshake = first_handshake + SignedDuration::seconds(20);
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -356,9 +357,9 @@ async fn test_closed_event_channel_keeps_mfa_first_stats_upgrade_idempotent(
     let session = create_session(&pool, location.id, user.id, device.id, None, true, None).await;
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
-    let first_handshake = truncate_timestamp(Utc::now().naive_utc() - TimeDelta::seconds(30));
-    let second_collected_at = first_handshake + TimeDelta::seconds(30);
-    let second_handshake = first_handshake + TimeDelta::seconds(20);
+    let first_handshake = (now_naive_utc() - SignedDuration::seconds(30)).truncate_to_microsecond();
+    let second_collected_at = first_handshake + SignedDuration::seconds(30);
+    let second_handshake = first_handshake + SignedDuration::seconds(20);
 
     harness.close_event_channel();
     harness.send_stats(build_stats_update(

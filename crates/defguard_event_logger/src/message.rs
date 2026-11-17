@@ -1,9 +1,11 @@
 use std::net::IpAddr;
 
-use chrono::NaiveDateTime;
-use defguard_common::db::{
-    Id,
-    models::{Device, Settings, WireguardNetwork},
+use defguard_common::{
+    db::{
+        Id,
+        models::{Device, Settings, WireguardNetwork},
+    },
+    time_utils::now_naive_utc,
 };
 use defguard_core::events::{
     ApiEvent, ApiEventType, ApiRequestContext, BidiRequestContext, BidiStreamEvent,
@@ -13,6 +15,7 @@ use defguard_core::events::{
 use defguard_session_manager::events::{
     SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType,
 };
+use time::PrimitiveDateTime;
 use tokio::sync::Notify;
 
 /// Thin wrapper around source event types.
@@ -178,7 +181,7 @@ fn extract_api_location(event: &ApiEventType) -> Option<WireguardNetwork<Id>> {
 
 /// Shared context that's included in all activity log events
 pub struct EventContext {
-    pub timestamp: NaiveDateTime,
+    pub timestamp: PrimitiveDateTime,
     pub user_id: Option<Id>,
     pub username: String,
     pub location: Option<String>,
@@ -236,7 +239,7 @@ impl EventContext {
     #[must_use]
     pub fn system_ldap_sync() -> Self {
         Self {
-            timestamp: chrono::Utc::now().naive_utc(),
+            timestamp: now_naive_utc(),
             user_id: None,
             username: "system:ldap-sync".to_owned(),
             location: None,
@@ -248,7 +251,7 @@ impl EventContext {
     #[must_use]
     pub fn system_oidc_directory_sync() -> Self {
         Self {
-            timestamp: chrono::Utc::now().naive_utc(),
+            timestamp: now_naive_utc(),
             user_id: None,
             username: "system:oidc-directory-sync".to_owned(),
             location: None,
@@ -260,7 +263,7 @@ impl EventContext {
     #[must_use]
     pub fn system_gateway() -> Self {
         Self {
-            timestamp: chrono::Utc::now().naive_utc(),
+            timestamp: now_naive_utc(),
             user_id: None,
             username: "system:gateway".to_owned(),
             location: None,
@@ -272,7 +275,7 @@ impl EventContext {
     #[must_use]
     pub fn system_proxy() -> Self {
         Self {
-            timestamp: chrono::Utc::now().naive_utc(),
+            timestamp: now_naive_utc(),
             user_id: None,
             username: "system:edge".to_owned(),
             location: None,

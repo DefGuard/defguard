@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
-use chrono::{NaiveDateTime, TimeDelta, Timelike, Utc};
-use defguard_common::db::{Id, NoId, models::User, setup_pool};
+use defguard_common::{
+    db::{Id, NoId, models::User, setup_pool},
+    time_utils::now_naive_utc,
+};
 use defguard_core::db::models::activity_log::{ActivityLogEvent, ActivityLogModule, EventType};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use time::{OffsetDateTime, PrimitiveDateTime, SignedDuration};
 
 use super::common::{client::TestClient, get_db_user, make_client_with_db};
 
@@ -24,7 +27,8 @@ struct PaginationMeta {
 #[derive(Clone, Deserialize)]
 struct ApiActivityLogEvent {
     id: Id,
-    timestamp: NaiveDateTime,
+    #[serde(with = "defguard_common::time_utils::serde_naive")]
+    timestamp: PrimitiveDateTime,
     username: String,
     module: String,
     ip: Option<String>,
@@ -34,7 +38,7 @@ struct ApiActivityLogEvent {
 fn unique_marker(prefix: &str) -> String {
     format!(
         "{prefix}-{}",
-        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        OffsetDateTime::now_utc().unix_timestamp_nanos()
     )
 }
 
@@ -69,9 +73,9 @@ async fn save_activity_log_event(
     user: &User<Id>,
     marker: &str,
     description_suffix: &str,
-    timestamp: NaiveDateTime,
+    timestamp: PrimitiveDateTime,
 ) -> ActivityLogEvent<Id> {
-    let persisted_timestamp = truncate_timestamp_to_microseconds(timestamp);
+    let persisted_timestamp = timestamp.truncate_to_microsecond();
 
     ActivityLogEvent {
         id: NoId,
@@ -91,12 +95,6 @@ async fn save_activity_log_event(
     .expect("activity log event should persist")
 }
 
-fn truncate_timestamp_to_microseconds(timestamp: NaiveDateTime) -> NaiveDateTime {
-    timestamp
-        .with_nanosecond((timestamp.nanosecond() / 1_000) * 1_000)
-        .expect("microsecond timestamp truncation should produce a valid NaiveDateTime")
-}
-
 #[sqlx::test]
 async fn test_activity_log_persists_and_returns_null_ip(
     _: PgPoolOptions,
@@ -114,7 +112,7 @@ async fn test_activity_log_persists_and_returns_null_ip(
         &admin,
         &marker,
         "saved",
-        Utc::now().naive_utc() + TimeDelta::seconds(5),
+        now_naive_utc() + SignedDuration::seconds(5),
     )
     .await;
 
@@ -151,7 +149,7 @@ async fn test_activity_log_timestamp_desc_uses_id_desc_for_equal_timestamps(
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("equal-timestamp-desc");
-    let shared_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let shared_timestamp = now_naive_utc() + SignedDuration::seconds(5);
     let first_event =
         save_activity_log_event(&db, &admin, &marker, "first", shared_timestamp).await;
     let second_event =
@@ -185,7 +183,7 @@ async fn test_activity_log_timestamp_desc_orders_by_timestamp_then_id(
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("near-simultaneous-desc");
-    let base_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let base_timestamp = now_naive_utc() + SignedDuration::seconds(5);
     let earlier_event =
         save_activity_log_event(&db, &admin, &marker, "earlier", base_timestamp).await;
     let later_same_time_first = save_activity_log_event(
@@ -193,7 +191,7 @@ async fn test_activity_log_timestamp_desc_orders_by_timestamp_then_id(
         &admin,
         &marker,
         "later-first",
-        base_timestamp + TimeDelta::milliseconds(1),
+        base_timestamp + SignedDuration::milliseconds(1),
     )
     .await;
     let later_same_time_second = save_activity_log_event(
@@ -201,7 +199,7 @@ async fn test_activity_log_timestamp_desc_orders_by_timestamp_then_id(
         &admin,
         &marker,
         "later-second",
-        base_timestamp + TimeDelta::milliseconds(1),
+        base_timestamp + SignedDuration::milliseconds(1),
     )
     .await;
 
@@ -235,7 +233,7 @@ async fn test_activity_log_timestamp_asc_uses_id_asc_for_equal_timestamps(
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("timestamp-asc");
-    let base_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let base_timestamp = now_naive_utc() + SignedDuration::seconds(5);
     let first_event = save_activity_log_event(&db, &admin, &marker, "first", base_timestamp).await;
     let second_event =
         save_activity_log_event(&db, &admin, &marker, "second", base_timestamp).await;
@@ -244,7 +242,7 @@ async fn test_activity_log_timestamp_asc_uses_id_asc_for_equal_timestamps(
         &admin,
         &marker,
         "later",
-        base_timestamp + TimeDelta::milliseconds(1),
+        base_timestamp + SignedDuration::milliseconds(1),
     )
     .await;
 
@@ -275,7 +273,7 @@ async fn test_activity_log_non_timestamp_sort_uses_id_as_stable_tiebreaker(
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("username-sort");
-    let shared_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let shared_timestamp = now_naive_utc() + SignedDuration::seconds(5);
     let admin_first =
         save_activity_log_event(&db, &admin, &marker, "admin-first", shared_timestamp).await;
     let hpotter_event =
@@ -313,7 +311,7 @@ async fn test_activity_log_pagination_is_stable_across_pages_for_equal_timestamp
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("pagination-boundary");
-    let shared_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let shared_timestamp = now_naive_utc() + SignedDuration::seconds(5);
     let mut inserted_ids = Vec::new();
 
     for index in 0..55 {
@@ -379,7 +377,7 @@ async fn test_activity_log_module_sort_is_alphabetical(
     client.login_user("admin", "pass123").await;
 
     let marker = unique_marker("module-sort");
-    let shared_timestamp = Utc::now().naive_utc() + TimeDelta::seconds(5);
+    let shared_timestamp = now_naive_utc() + SignedDuration::seconds(5);
 
     // Insert in enum declaration order (defguard=0, client=1, vpn=2, enrollment=3).
     // If sorting used enum position instead of text, asc order would be:
@@ -392,7 +390,7 @@ async fn test_activity_log_module_sort_is_alphabetical(
     ] {
         ActivityLogEvent {
             id: NoId,
-            timestamp: truncate_timestamp_to_microseconds(shared_timestamp),
+            timestamp: shared_timestamp.truncate_to_microsecond(),
             user_id: Some(admin.id),
             username: admin.username.clone(),
             location: None,

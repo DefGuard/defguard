@@ -2,7 +2,6 @@ use std::{fmt, time::Duration};
 
 use anyhow::Result;
 use base64::prelude::*;
-use chrono::{DateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
@@ -24,6 +23,7 @@ use prost::Message;
 use sqlx::PgPool;
 use strum::VariantArray;
 use thiserror::Error;
+use time::{OffsetDateTime, SignedDuration};
 use tokio::{sync::mpsc, time::sleep};
 
 use crate::{
@@ -207,9 +207,11 @@ fn map_license_features(values: &[i32]) -> Vec<LicenseFeature> {
 pub struct License {
     pub customer_id: String,
     pub subscription: bool,
-    pub valid_until: Option<DateTime<Utc>>,
+    #[serde(default, with = "defguard_common::time_utils::serde_utc::option")]
+    pub valid_until: Option<OffsetDateTime>,
     pub limits: Option<LicenseLimits>,
-    pub version_date_limit: Option<DateTime<Utc>>,
+    #[serde(default, with = "defguard_common::time_utils::serde_utc::option")]
+    pub version_date_limit: Option<OffsetDateTime>,
     pub tier: LicenseTier,
     pub support_type: SupportType,
     pub features: Vec<LicenseFeature>,
@@ -220,9 +222,9 @@ impl License {
     pub fn new(
         customer_id: String,
         subscription: bool,
-        valid_until: Option<DateTime<Utc>>,
+        valid_until: Option<OffsetDateTime>,
         limits: Option<LicenseLimits>,
-        version_date_limit: Option<DateTime<Utc>>,
+        version_date_limit: Option<OffsetDateTime>,
         tier: LicenseTier,
         support_type: SupportType,
         features: Vec<LicenseFeature>,
@@ -310,15 +312,13 @@ impl License {
                     LicenseError::DecodeError("Failed to decode the license metadata")
                 })?;
 
-                let valid_until = match metadata.valid_until {
-                    Some(until) => DateTime::from_timestamp(until, 0),
-                    None => None,
-                };
+                let valid_until = metadata
+                    .valid_until
+                    .and_then(|until| OffsetDateTime::from_unix_timestamp(until).ok());
 
-                let version_date_limit = match metadata.version_date_limit {
-                    Some(date) => DateTime::from_timestamp(date, 0),
-                    None => None,
-                };
+                let version_date_limit = metadata
+                    .version_date_limit
+                    .and_then(|date| OffsetDateTime::from_unix_timestamp(date).ok());
 
                 let license_tier = LicenseTierProto::try_from(metadata.tier)
                     .map_err(|err| {
@@ -434,31 +434,32 @@ impl License {
     #[must_use]
     pub(crate) fn is_expired(&self) -> bool {
         match self.valid_until {
-            Some(time) => time < Utc::now(),
+            Some(time) => time < OffsetDateTime::now_utc(),
             None => false,
         }
     }
 
     /// Checks how much time has left until the `valid_until` time.
     #[must_use]
-    pub fn time_left(&self) -> Option<TimeDelta> {
-        self.valid_until.map(|time| time - Utc::now())
+    pub fn time_left(&self) -> Option<SignedDuration> {
+        self.valid_until
+            .map(|time| time - OffsetDateTime::now_utc())
     }
 
     /// Gets the time the license is past its expiry date.
     /// If the license doesn't have a `valid_until` field, it will return 0.
     #[must_use]
-    pub(crate) fn time_overdue(&self) -> TimeDelta {
+    pub(crate) fn time_overdue(&self) -> SignedDuration {
         match self.valid_until {
             Some(time) => {
-                let delta = Utc::now() - time;
-                if delta <= TimeDelta::zero() {
-                    TimeDelta::zero()
+                let delta = OffsetDateTime::now_utc() - time;
+                if delta <= SignedDuration::ZERO {
+                    SignedDuration::ZERO
                 } else {
                     delta
                 }
             }
-            None => TimeDelta::zero(),
+            None => SignedDuration::ZERO,
         }
     }
 
@@ -607,8 +608,8 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
     Ok(())
 }
 /// Amount of time before the license expiry date we should start the renewal attempts.
-const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
-const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
+const RENEWAL_TIME: SignedDuration = SignedDuration::hours(24);
+const MAX_OVERDUE_TIME: SignedDuration = SignedDuration::days(14);
 
 /// Keep one enabled Gateway per location and one Edge per instance.
 async fn trim_gateways_and_edges(

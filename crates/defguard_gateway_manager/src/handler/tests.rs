@@ -5,7 +5,6 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
 };
 
-use chrono::{DateTime, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -21,6 +20,7 @@ use defguard_common::{
     gateway_event::GatewayCommand,
     gateway_types::WireguardPeer,
     secret::SecretStringWrapper,
+    time_utils::{naive_from_unix_timestamp, now_naive_utc},
 };
 use defguard_proto::gateway::{Configuration, PeerStats, core_response};
 use prost_types::Timestamp;
@@ -121,9 +121,7 @@ fn try_protos_into_stats_message_maps_valid_peer_stats() {
     assert_eq!(stats.download, 456);
     assert_eq!(
         stats.latest_handshake,
-        DateTime::from_timestamp(1_700_000_000, 0)
-            .expect("valid handshake timestamp")
-            .naive_utc()
+        naive_from_unix_timestamp(1_700_000_000, 0).expect("valid handshake timestamp")
     );
 }
 
@@ -402,7 +400,7 @@ async fn test_send_configuration_includes_mfa_peers_with_session_preshared_key(
         network.id,
         user.id,
         connected_device.id,
-        Some(Utc::now().naive_utc()),
+        Some(now_naive_utc()),
         false,
     );
     connected_session.preshared_key = Some("connected-session-psk".into());

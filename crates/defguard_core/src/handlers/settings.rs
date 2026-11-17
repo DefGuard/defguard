@@ -514,7 +514,7 @@ pub(crate) async fn ldap_dry_run(
 
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeDelta, Utc};
+    use time::{OffsetDateTime, SignedDuration};
 
     use super::is_license_reactivation;
     use crate::enterprise::{
@@ -526,7 +526,7 @@ mod tests {
         License::new(
             "test-customer".into(),
             subscription,
-            Some(Utc::now() + TimeDelta::days(valid_until_days)),
+            Some(OffsetDateTime::now_utc() + SignedDuration::days(valid_until_days)),
             None,
             None,
             LicenseTier::Business,
