@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, testsConfig } from '../config';
+import { defaultUserAdmin, routes, testsConfig } from '../config';
+import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart, dockerRestartGateway } from '../utils/docker';
+import { waitForBase } from '../utils/waitForBase';
+import { waitForRoute } from '../utils/waitForRoute';
 
 const GATEWAY_IP_OR_DOMAIN = 'gateway';
 const GATEWAY_GRPC_PORT = 50066;
@@ -132,5 +135,47 @@ test.describe('Gateway Adoption', () => {
     expect((gateway as { name: string }).name).toBe('test-gateway-rest');
 
     await assertGatewayPersisted(request, networkId, 'test-gateway-rest');
+  });
+
+  test('UI wizard adopts gateway and returns to locations', async ({ page, request }) => {
+    const networksRes = await request.get('/api/v1/network');
+    expect(networksRes.ok()).toBe(true);
+    const networks = await networksRes.json();
+    expect(networks.length).toBeGreaterThan(0);
+    const networkId = (networks[0] as { id: number }).id;
+
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.locations);
+    await page
+      .locator('.virtual-row')
+      .filter({ hasText: 'test-vpn' })
+      .locator('.icon-button')
+      .click();
+    await page.locator('.menu').getByText('Gateway setup', { exact: true }).click();
+
+    await page.getByRole('button', { name: 'Configure gateway' }).click();
+    const continueButton = page.getByRole('button', { name: 'Continue' });
+    await expect(continueButton).toBeDisabled();
+    await page.locator('.checkbox').click();
+    await continueButton.click();
+
+    await page.getByTestId('field-common_name').fill('test-gateway-ui');
+    await page.getByTestId('field-ip_or_domain').fill(GATEWAY_IP_OR_DOMAIN);
+    await page.getByRole('button', { name: 'Adopt Gateway component' }).click();
+
+    await expect(page.locator('.loading-step.variant-success')).toHaveCount(6, {
+      timeout: testsConfig.TEST_TIMEOUT * 1000,
+    });
+    await expect(page.locator('.loading-step.variant-error')).toHaveCount(0);
+    await continueButton.click();
+
+    await expect(
+      page.getByText('Gateway component configured successfully.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Go to locations' }).click();
+    await waitForRoute(page, routes.locations);
+
+    await assertGatewayPersisted(request, networkId, 'test-gateway-ui');
   });
 });

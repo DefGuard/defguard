@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
-import { apiCreateUser } from '../utils/api/users';
+import { apiCreateUser, apiLogin } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -122,5 +122,27 @@ test.describe('Test users bulk actions', () => {
 
     await expect(firstUser).toHaveCount(0);
     await expect(secondUser).toHaveCount(0);
+  });
+
+  test('Delete single user', async ({ page, request }) => {
+    const testUser = { ...testUserTemplate, username: 'testuserfirst' };
+
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await apiCreateUser(page, testUser);
+    expect(await apiLogin(request, testUser.username, testUser.password)).toBe(200);
+    await page.goto(routes.base + routes.identity.users);
+
+    const userRow = page.locator('.virtual-row').filter({ hasText: testUser.username });
+    await userRow.locator('.icon-button').click();
+    await page.locator('.menu').getByText('Delete account', { exact: true }).click();
+    await page
+      .locator('.modal')
+      .getByRole('button', { name: 'Delete account', exact: true })
+      .click();
+    await page.locator('.modal').waitFor({ state: 'hidden' });
+
+    await expect(userRow).toHaveCount(0);
+    expect(await apiLogin(request, testUser.username, testUser.password)).toBe(401);
   });
 });
