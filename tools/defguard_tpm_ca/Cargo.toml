@@ -19,7 +19,7 @@ serde.workspace = true
 serde_json.workspace = true
 sha256.workspace = true
 tempfile = "3.27"
-x509-parser.workspace = true
+x509-parser = { workspace = true, features = ["verify"] }
 
 [dev-dependencies]
 rcgen.workspace = true
