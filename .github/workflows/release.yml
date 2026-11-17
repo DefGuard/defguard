@@ -17,9 +17,6 @@ concurrency:
 
 jobs:
   build-docker-release:
-    # Ignore tags with -, like v1.0.0-alpha
-    # This job will build the docker container with the "latest" tag which
-    # is a tag used in production, thus it should only be run for full releases.
     if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
     name: Build Release Docker image
     uses: ./.github/workflows/build-docker.yml
@@ -27,7 +24,6 @@ jobs:
       tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
-        type=semver,pattern={{major}}
         type=sha
       # Explicitly disable latest tag. It will be added otherwise.
       flavor: |
