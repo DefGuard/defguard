@@ -301,10 +301,7 @@ impl<I> User<I> {
             // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
             return true;
         }
-        if self.password_hash.is_some() || self.openid_sub.is_some() {
-            return true;
-        }
-        false
+        self.password_hash.is_some() || self.openid_sub.is_some()
     }
 
     /// Like [`Self::is_enrolled`], but also treats LDAP-origin users whose enrollment is
