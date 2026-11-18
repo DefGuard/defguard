@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fs::read_to_string,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
     time::Duration,
 };
 
@@ -35,7 +35,7 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     gateway_config,
-    grpc::{WorkerState, run_grpc_server},
+    grpc::run_grpc_server,
     init_dev_env, init_vpn_location,
     log_file::open_log_writer,
     run_web_server, set_admin_group,
@@ -326,8 +326,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let (gateway_tx, gateway_rx) = unbounded_channel::<GatewayCommand>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
     let certs = Certificates::get_or_default(&pool).await?;
@@ -390,13 +388,13 @@ async fn main() -> Result<(), anyhow::Error> {
         res = &mut proxy_manager_run => bail!("ProxyManager returned early: {res:?}"),
         res = &mut gateway_manager_run => bail!("GatewayManager returned early: {res:?}"),
         res = run_grpc_server(
-            Arc::clone(&worker_state),
-            pool.clone(),
+
+
             grpc_cert,
             grpc_key,
         ) => bail!("gRPC server returned early: {res:?}"),
         res = run_web_server(
-            worker_state,
+
             webhook_tx,
             webhook_rx,
             gateway_tx.clone(),

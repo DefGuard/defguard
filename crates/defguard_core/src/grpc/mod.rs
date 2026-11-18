@@ -1,12 +1,9 @@
 use std::{
-    collections::hash_map::HashMap,
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use defguard_common::{
-    auth::claims::ClaimsType,
     config::server_config,
     db::{
         Id,
@@ -20,33 +17,26 @@ use defguard_common::{
     types::UrlParseError,
 };
 use reqwest::Url;
-use serde::Serialize;
 use sqlx::{PgExecutor, PgPool};
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{
-    db::AppEvent,
-    enterprise::{
-        LicenseFeature,
-        db::models::{
-            enterprise_settings::{
-                ClientTrafficPolicy, EnterpriseSettings, resolve_client_traffic_policy,
-            },
-            group_client_traffic_policy::GroupClientTrafficPolicy,
-            openid_provider::{OpenIdProvider, OpenIdProviderKind},
+use crate::enterprise::{
+    LicenseFeature,
+    db::models::{
+        enterprise_settings::{
+            ClientTrafficPolicy, EnterpriseSettings, resolve_client_traffic_policy,
         },
-        has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
-        license::LicenseTier,
-        licensed_mfa_setup_methods,
+        group_client_traffic_policy::GroupClientTrafficPolicy,
+        openid_provider::{OpenIdProvider, OpenIdProviderKind},
     },
-    grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
+    has_enterprise_access, is_business_license_active, is_oidc_mfa_available,
+    license::LicenseTier,
+    licensed_mfa_setup_methods,
 };
 
 pub mod client_version;
 pub mod interceptor;
 pub mod proxy;
 pub mod utils;
-pub mod worker;
 
 pub mod proto {
     pub mod enterprise {
@@ -56,11 +46,8 @@ pub mod proto {
     }
 }
 
-use defguard_proto::{
-    client_types::{
-        MfaCapabilities, MfaMethod, MfaUserState, OpenIdProviderKind as ProtoOpenIdProviderKind,
-    },
-    worker::worker_service_server::WorkerServiceServer,
+use defguard_proto::client_types::{
+    MfaCapabilities, MfaMethod, MfaUserState, OpenIdProviderKind as ProtoOpenIdProviderKind,
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
@@ -74,8 +61,6 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 /// Runs gRPC server with core services.
 #[instrument(skip_all)]
 pub async fn run_grpc_server(
-    worker_state: Arc<Mutex<WorkerState>>,
-    pool: PgPool,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
 ) -> Result<(), anyhow::Error> {
@@ -87,7 +72,7 @@ pub async fn run_grpc_server(
         Server::builder()
     };
 
-    let router = build_grpc_service_router(server, pool, worker_state).await?;
+    let router = build_grpc_service_router(server).await?;
 
     // Run gRPC server
     let addr = SocketAddr::new(
@@ -102,68 +87,14 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub async fn build_grpc_service_router(
-    server: Server,
-    pool: PgPool,
-    worker_state: Arc<Mutex<WorkerState>>,
-) -> Result<Router, anyhow::Error> {
-    let worker_service = WorkerServiceServer::with_interceptor(
-        WorkerServer::new(pool.clone(), worker_state),
-        JwtInterceptor::new(ClaimsType::YubiBridge),
-    );
-
-    let (health_reporter, health_service) = tonic_health::server::health_reporter();
-    health_reporter
-        .set_serving::<WorkerServiceServer<WorkerServer>>()
-        .await;
-    health_reporter
-        .set_serving::<WorkerServiceServer<WorkerServer>>()
-        .await;
-
+pub async fn build_grpc_service_router(server: Server) -> Result<Router, anyhow::Error> {
+    let (_health_reporter, health_service) = tonic_health::server::health_reporter();
     let router = server
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
-        .add_service(health_service)
-        .add_service(worker_service);
+        .add_service(health_service);
 
     Ok(router)
-}
-
-pub struct Job {
-    id: u32,
-    first_name: String,
-    last_name: String,
-    email: String,
-    username: String,
-}
-
-#[derive(Serialize)]
-pub struct JobResponse {
-    pub success: bool,
-    pub serial: String,
-    pub error: String,
-    #[serde(skip)]
-    pub username: String,
-}
-
-pub struct WorkerInfo {
-    last_seen: Instant,
-    ip: IpAddr,
-    jobs: Vec<Job>,
-}
-
-pub struct WorkerState {
-    current_job_id: u32,
-    workers: HashMap<String, WorkerInfo>,
-    job_status: HashMap<u32, JobResponse>,
-    webhook_tx: UnboundedSender<AppEvent>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct WorkerDetail {
-    id: String,
-    ip: IpAddr,
-    connected: bool,
 }
 
 #[derive(Debug)]

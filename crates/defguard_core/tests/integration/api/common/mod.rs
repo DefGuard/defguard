@@ -2,7 +2,7 @@ pub(crate) mod client;
 
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, atomic::AtomicBool},
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use axum_extra::extract::cookie::Key;
@@ -28,7 +28,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayCommand, WorkerState},
+    grpc::GatewayCommand,
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};
@@ -54,7 +54,6 @@ pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri
 
 pub(crate) struct ClientState {
     pub pool: PgPool,
-    pub worker_state: Arc<Mutex<WorkerState>>,
     pub gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
     pub proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
     pub test_user: User<Id>,
@@ -65,7 +64,7 @@ pub(crate) struct ClientState {
 impl ClientState {
     pub fn new(
         pool: PgPool,
-        worker_state: Arc<Mutex<WorkerState>>,
+
         gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
         proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
         test_user: User<Id>,
@@ -73,7 +72,6 @@ impl ClientState {
     ) -> Self {
         Self {
             pool,
-            worker_state,
             gateway_rx,
             proxy_control_rx,
             test_user,
@@ -89,7 +87,7 @@ pub(crate) async fn make_base_client(
 ) -> (TestClient, ClientState) {
     let (api_event_tx, api_event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (tx, rx) = mpsc::unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
+
     let (gateway_tx, gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
     let license = License::new(
@@ -110,7 +108,6 @@ pub(crate) async fn make_base_client(
 
     let client_state = ClientState::new(
         pool.clone(),
-        worker_state.clone(),
         gateway_rx,
         proxy_control_rx,
         User::find_by_username(&pool, "hpotter")
@@ -147,7 +144,6 @@ pub(crate) async fn make_base_client(
         rx,
         gateway_tx,
         web_reload_tx,
-        worker_state,
         pool,
         key,
         api_event_tx,
