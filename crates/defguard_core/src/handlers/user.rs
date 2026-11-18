@@ -1407,7 +1407,7 @@ pub(crate) async fn reset_password(
             ));
         }
 
-        if !user.has_password() && !user.has_external_identity() {
+        if !user.has_external_identity() && !user.is_enrolled() {
             debug!("Cannot reset password for unenrolled user {username}");
             return Ok(ApiResponse::new(
                 json!({"msg": "Password reset is not allowed for users who have not completed enrollment"}),
