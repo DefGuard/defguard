@@ -22,7 +22,8 @@
               "Enum": [
                 "none",
                 "starttls",
-                "implicittls"
+                "implicittls",
+                "xoauth2"
               ]
             }
           }

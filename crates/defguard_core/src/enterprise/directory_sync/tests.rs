@@ -275,7 +275,7 @@ mod test {
             None,
             LicenseTier::Business,
             SupportType::Basic,
-            vec![],
+            Vec::new(),
         );
         set_cached_license(Some(license));
         update_counts(&pool).await.unwrap();

@@ -93,7 +93,6 @@ ua-parser.workspace = true
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 uuid.workspace = true
-webauthn-authenticator-rs.workspace = true
 webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true

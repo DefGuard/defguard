@@ -19,6 +19,7 @@ function getLabelMap(): Map<string, () => string> {
   _labelMap = new Map([
     ['/vpn-overview', () => m.cmp_nav_item_overview()],
     ['/locations', () => m.cmp_nav_item_locations()],
+    ['/traffic', () => m.cmp_nav_item_traffic()],
     ['/users', () => m.cmp_nav_item_users()],
     ['/groups', () => m.cmp_nav_item_groups()],
     ['/enrollment', () => m.cmp_nav_item_enrollment()],

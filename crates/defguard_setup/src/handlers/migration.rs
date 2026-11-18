@@ -185,7 +185,7 @@ mod tests {
 
         let message = value["msg"].as_str().expect("Expected error message");
         let logs = value["logs"].as_array().expect("Expected logs array");
-        assert!(!message.is_empty());
+        assert_ne!(message, "");
         assert!(!logs.is_empty());
     }
 }
