@@ -306,6 +306,11 @@ impl<I> User<I> {
     }
 
     #[must_use]
+    pub fn has_external_identity(&self) -> bool {
+        self.openid_sub.is_some() || self.from_ldap
+    }
+
+    #[must_use]
     pub fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
@@ -1900,6 +1905,15 @@ mod test {
             openid_sub: openid_sub.map(String::from),
             ..User::new("testuser", None, "Test", "User", "test@example.com", None)
         }
+    }
+
+    #[test]
+    fn test_has_external_identity() {
+        assert!(!make_user(false, None, None).has_external_identity());
+        assert!(!make_user(false, None, Some("hash")).has_external_identity());
+        assert!(make_user(true, None, None).has_external_identity());
+        assert!(make_user(false, Some("sub"), None).has_external_identity());
+        assert!(make_user(true, Some("sub"), Some("hash")).has_external_identity());
     }
 
     fn settings_with_ldap_password_management(password_management_disabled: bool) -> Settings {

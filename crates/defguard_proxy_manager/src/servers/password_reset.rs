@@ -186,7 +186,7 @@ impl PasswordResetServer {
                     error!("Failed to send password reset disabled email: {err}");
                 }
                 return Ok(());
-            } else if user.openid_sub.is_some() || user.from_ldap {
+            } else if user.has_external_identity() {
                 // IdP-linked user allowed to hold a local password: let them set
                 // their first one through the normal reset flow below.
                 debug!(

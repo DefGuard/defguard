@@ -2846,9 +2846,9 @@ async fn test_password_management_disabled_allowed_with_local_password(
     client.verify_api_events_with_user(&[(ApiEventType::PasswordChanged, hpotter.id, "hpotter")]);
 }
 
-/// Password management is disabled for an OIDC-sourced non-admin user when the provider flag is on.
+/// Passwordless OIDC users are blocked when the provider disables local passwords and allowed otherwise.
 #[sqlx::test]
-async fn test_password_management_disabled_for_oidc_user(
+async fn test_password_management_disabled_and_enabled_for_oidc_user(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -2888,12 +2888,15 @@ async fn test_password_management_disabled_for_oidc_user(
         .save(&pool)
         .await
         .unwrap();
-    sqlx::query("UPDATE \"user\" SET openid_sub = $1, password_hash = NULL WHERE id = $2")
-        .bind("sub-123")
-        .bind(oidc_user.id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE \"user\" SET openid_sub = $1, password_hash = NULL, enrollment_pending = true WHERE id = $2",
+    )
+    .bind("sub-123")
+    .bind(oidc_user.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert!(!get_db_user(&pool, "oidcuser").await.is_enrolled());
 
     // Login as admin to exercise admin-level password operations on the OIDC user.
     client.login_user("admin", "pass123").await;
@@ -2914,6 +2917,109 @@ async fn test_password_management_disabled_for_oidc_user(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // Allowing a local password lets the linked, passwordless user reset their password.
+    sqlx::query("UPDATE openidprovider SET disable_password_management = false")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://proxy.example.com".to_owned();
+    update_current_settings(&pool, settings).await.unwrap();
+    let smtp = MockSmtpServer::start().await;
+    smtp.configure(&pool).await;
+    let response = client
+        .post("/api/v1/user/oidcuser/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn test_reset_password_rejects_unenrolled_local_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    let user = User::new(
+        "unenrolled",
+        None,
+        "Not",
+        "Enrolled",
+        "unenrolled@example.com",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    assert!(!user.is_enrolled());
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .post("/api/v1/user/unenrolled/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response.json::<Value>().await,
+        json!({"msg": "Password reset is not allowed for users who have not completed enrollment"})
+    );
+
+    let token_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
+    )
+    .bind(user.id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(token_count, 0);
+}
+
+#[sqlx::test]
+async fn test_reset_password_rejects_local_user_during_reenrollment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+    let user = get_db_user(&pool, "hpotter").await;
+    assert!(user.is_enrolled());
+    assert!(user.has_password());
+
+    let response = client
+        .post("/api/v1/user/bulk-start-enrollment")
+        .json(&json!({
+            "users": [user.id],
+            "send_enrollment_notification": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.json::<Value>().await["started"], 1);
+    let user = get_db_user(&pool, "hpotter").await;
+    assert!(user.enrollment_pending);
+    assert!(user.has_password());
+    assert!(!user.is_enrolled());
+
+    let response = client
+        .post("/api/v1/user/hpotter/reset_password")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response.json::<Value>().await,
+        json!({"msg": "Password reset is not allowed for users who have not completed enrollment"})
+    );
+    let token_count = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM token WHERE user_id = $1 AND token_type = 'PASSWORD_RESET'",
+    )
+    .bind(user.id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(token_count, 0);
 }
 
 #[sqlx::test]
