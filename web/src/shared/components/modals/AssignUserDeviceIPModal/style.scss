@@ -1,31 +1,38 @@
 .assign-user-device-ip-modal {
   display: flex;
-  flex-direction: column;
+  flex-flow: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  row-gap: var(--spacing-2xl);
 
-  .device-ip-card {
+  & > .device-ip-card {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    padding-bottom: var(--spacing-2xl);
+    flex-flow: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    row-gap: var(--spacing-xs);
 
-    .card-title {
+    & > .title {
       font: var(--t-body-sm-500);
+      color: var(--fg-default);
     }
 
-    .card-description {
-      color: var(--fg-neutral);
+    & > .description {
       font: var(--t-body-sm-400);
+      color: var(--fg-neutral);
     }
   }
 
-  .locations-list {
+  & > .locations-list {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
+    flex-flow: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    row-gap: var(--spacing-md);
 
-    .no-locations {
-      color: var(--fg-neutral);
+    & > .no-locations {
       font: var(--t-body-sm-400);
+      color: var(--fg-neutral);
     }
   }
 }
