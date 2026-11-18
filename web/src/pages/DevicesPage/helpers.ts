@@ -7,7 +7,7 @@ import { mobileOsTypes } from './consts';
 export const isMobileOs = (osType: PolicyOsVariant) => mobileOsTypes.includes(osType);
 
 export const platformIcon = (osType: PolicyOsVariant): IconKindValue =>
-  isMobileOs(osType) ? 'mobile' : 'desktop';
+  isMobileOs(osType) ? 'mobile' : 'system-theme';
 
 export const platformText = (osType: PolicyOsVariant) =>
   isMobileOs(osType) ? m.devices_platform_mobile() : m.devices_platform_desktop();

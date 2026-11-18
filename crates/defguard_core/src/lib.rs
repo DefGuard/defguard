@@ -123,8 +123,8 @@ use crate::{
             check_enterprise_info,
             connection_event::{get_connection_event_filter_options, list_connection_events},
             device_overview::{
-                bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
-                bulk_verify_devices, list_devices_overview,
+                bulk_block_devices, bulk_delete_devices, bulk_enable_devices,
+                bulk_revoke_device_verification, bulk_verify_devices, list_devices_overview,
             },
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
@@ -674,6 +674,7 @@ pub fn build_webapp(
                 post(bulk_revoke_device_verification),
             )
             .route("/device/bulk/block", post(bulk_block_devices))
+            .route("/device/bulk/enable", post(bulk_enable_devices))
             .route("/device/bulk/delete", post(bulk_delete_devices))
             .route("/device/user/{username}", get(list_user_devices))
             .route(

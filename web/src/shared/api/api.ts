@@ -458,6 +458,8 @@ const api = {
       client.post('/device/bulk/revoke-verification', { devices }),
     bulkBlockDevices: (devices: number[]) =>
       client.post('/device/bulk/block', { devices }),
+    bulkEnableDevices: (devices: number[]) =>
+      client.post('/device/bulk/enable', { devices }),
     bulkDeleteDevices: (devices: number[]) =>
       client.post('/device/bulk/delete', { devices }),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
