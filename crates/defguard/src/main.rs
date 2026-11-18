@@ -1,6 +1,5 @@
 use std::{
     collections::HashSet,
-    fs::read_to_string,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -34,9 +33,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
-    gateway_config,
-    grpc::run_grpc_server,
-    init_dev_env, init_vpn_location,
+    gateway_config, init_dev_env, init_vpn_location,
     log_file::open_log_writer,
     run_web_server, set_admin_group,
     setup_logs::CoreSetupLogLayer,
@@ -333,16 +330,6 @@ async fn main() -> Result<(), anyhow::Error> {
         bail!("CA certificate or key were not found, despite completing setup.")
     }
 
-    // read grpc TLS cert and key from legacy config values
-    let grpc_cert = config
-        .grpc_cert
-        .as_ref()
-        .and_then(|path| read_to_string(path).ok());
-    let grpc_key = config
-        .grpc_key
-        .as_ref()
-        .and_then(|path| read_to_string(path).ok());
-
     update_counts(&pool).await?;
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
@@ -387,14 +374,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::select! {
         res = &mut proxy_manager_run => bail!("ProxyManager returned early: {res:?}"),
         res = &mut gateway_manager_run => bail!("GatewayManager returned early: {res:?}"),
-        res = run_grpc_server(
-
-
-            grpc_cert,
-            grpc_key,
-        ) => bail!("gRPC server returned early: {res:?}"),
         res = run_web_server(
-
             webhook_tx,
             webhook_rx,
             gateway_tx.clone(),

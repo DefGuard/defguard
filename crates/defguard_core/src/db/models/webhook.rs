@@ -11,17 +11,6 @@ pub enum AppEvent {
     UserCreated(UserInfo),
     UserModified(UserInfo),
     UserDeleted(String),
-    HWKeyProvision(HWKeyUserData),
-}
-
-/// User data send on HWKeyProvision AppEvent
-#[derive(Debug, Serialize)]
-pub struct HWKeyUserData {
-    pub username: String,
-    pub email: String,
-    pub ssh_key: String,
-    pub pgp_key: String,
-    pub serial: String,
 }
 
 impl AppEvent {
@@ -32,7 +21,6 @@ impl AppEvent {
             Self::UserCreated(_) => "user created",
             Self::UserModified(_) => "user modified",
             Self::UserDeleted(_) => "user deleted",
-            Self::HWKeyProvision(_) => "hwkey provisioned",
         }
     }
 
@@ -43,7 +31,6 @@ impl AppEvent {
             Self::UserCreated(_) => "on_user_created",
             Self::UserModified(_) => "on_user_modified",
             Self::UserDeleted(_) => "on_user_deleted",
-            Self::HWKeyProvision(_) => "on_hwkey_provision",
         }
     }
 }

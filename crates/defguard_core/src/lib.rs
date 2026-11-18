@@ -305,7 +305,6 @@ pub fn build_webapp(
     webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
     gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
     web_reload_tx: broadcast::Sender<()>,
-
     pool: PgPool,
     key: Key,
     event_tx: mpsc::UnboundedSender<ApiEvent>,

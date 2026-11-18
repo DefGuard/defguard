@@ -1,3 +1,3 @@
 pub mod models;
 
-pub use models::webhook::{AppEvent, HWKeyUserData, WebHook};
+pub use models::webhook::{AppEvent, WebHook};

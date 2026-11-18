@@ -64,7 +64,6 @@ pub(crate) struct ClientState {
 impl ClientState {
     pub fn new(
         pool: PgPool,
-
         gateway_rx: mpsc::UnboundedReceiver<GatewayCommand>,
         proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
         test_user: User<Id>,
@@ -87,7 +86,6 @@ pub(crate) async fn make_base_client(
 ) -> (TestClient, ClientState) {
     let (api_event_tx, api_event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (tx, rx) = mpsc::unbounded_channel::<AppEvent>();
-
     let (gateway_tx, gateway_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
     let license = License::new(

@@ -80,7 +80,6 @@ tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true
 tonic.workspace = true
-tonic-health.workspace = true
 totp-lite.workspace = true
 tower-http.workspace = true
 tower_governor.workspace = true
@@ -99,7 +98,7 @@ x25519-dalek.workspace = true
 x509-parser.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["fs"] }
+nix = { version = "0.32", features = ["fs"] }
 
 [features]
 default = ["openapi"]

@@ -1,10 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    time::Duration,
-};
-
 use defguard_common::{
-    config::server_config,
     db::{
         Id,
         models::{
@@ -34,7 +28,6 @@ use crate::enterprise::{
 };
 
 pub mod client_version;
-pub mod interceptor;
 pub mod proxy;
 pub mod utils;
 
@@ -49,53 +42,6 @@ pub mod proto {
 use defguard_proto::client_types::{
     MfaCapabilities, MfaMethod, MfaUserState, OpenIdProviderKind as ProtoOpenIdProviderKind,
 };
-use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-
-// gRPC header for passing auth token from clients
-pub static AUTHORIZATION_HEADER: &str = "authorization";
-
-// gRPC header for passing hostname from clients
-pub static HOSTNAME_HEADER: &str = "hostname";
-const TEN_SECS: Duration = Duration::from_secs(10);
-
-/// Runs gRPC server with core services.
-#[instrument(skip_all)]
-pub async fn run_grpc_server(
-    grpc_cert: Option<String>,
-    grpc_key: Option<String>,
-) -> Result<(), anyhow::Error> {
-    // Build gRPC services
-    let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(cert, key);
-        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
-    } else {
-        Server::builder()
-    };
-
-    let router = build_grpc_service_router(server).await?;
-
-    // Run gRPC server
-    let addr = SocketAddr::new(
-        server_config()
-            .grpc_bind_address
-            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config().grpc_port,
-    );
-    debug!("Starting gRPC services");
-    router.serve(addr).await?;
-    info!("gRPC server started on {addr}");
-    Ok(())
-}
-
-pub async fn build_grpc_service_router(server: Server) -> Result<Router, anyhow::Error> {
-    let (_health_reporter, health_service) = tonic_health::server::health_reporter();
-    let router = server
-        .http2_keepalive_interval(Some(TEN_SECS))
-        .tcp_keepalive(Some(TEN_SECS))
-        .add_service(health_service);
-
-    Ok(router)
-}
 
 #[derive(Debug)]
 pub struct InstanceInfo {
