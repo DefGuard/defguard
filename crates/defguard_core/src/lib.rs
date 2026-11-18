@@ -19,7 +19,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use axum_extra::extract::cookie::Key;
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server::tls_rustls::{RustlsAcceptor, RustlsConfig};
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
@@ -219,6 +219,7 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod letsencrypt;
+mod listener;
 pub mod location_management;
 pub mod log_file;
 pub mod mail;
@@ -953,14 +954,26 @@ pub async fn run_web_server(
                     RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
                         .await
                         .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
-                axum_server::bind_rustls(addr, tls_config)
-                    .handle(handle_clone.clone())
+                let mut server = axum_server::bind(addr)
+                    .acceptor(RustlsAcceptor::new(tls_config).acceptor(listener::KeepaliveAcceptor))
+                    .handle(handle_clone.clone());
+                listener::configure_http_builder(
+                    server.http_builder(),
+                    listener::ConnectionTimeouts::default(),
+                );
+                server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))
             } else {
-                axum_server::bind(addr)
-                    .handle(handle_clone)
+                let mut server = axum_server::bind(addr)
+                    .acceptor(listener::KeepaliveAcceptor)
+                    .handle(handle_clone);
+                listener::configure_http_builder(
+                    server.http_builder(),
+                    listener::ConnectionTimeouts::default(),
+                );
+                server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))

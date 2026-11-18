@@ -41,6 +41,7 @@ chrono.workspace = true
 ctap-hid-fido2.workspace = true
 futures.workspace = true
 humantime.workspace = true
+hyper-util.workspace = true
 # match version used by sqlx
 ipnetwork.workspace = true
 jsonwebkey.workspace = true
@@ -67,6 +68,7 @@ serde_json.workspace = true
 serde_urlencoded.workspace = true
 sha-1.workspace = true
 sha256.workspace = true
+socket2.workspace = true
 sqlx.workspace = true
 ssh-key.workspace = true
 struct-patch.workspace = true
@@ -123,7 +125,6 @@ defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
 ed25519-dalek.workspace = true
 getrandom.workspace = true
-hyper-util.workspace = true
 rcgen.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
