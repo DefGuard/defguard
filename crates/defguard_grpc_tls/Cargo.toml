@@ -17,3 +17,6 @@ tonic.workspace = true
 tower-service = "0.3"
 x509-parser = "0.18"
 tracing.workspace = true
+
+[lints]
+workspace = true
