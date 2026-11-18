@@ -56,24 +56,43 @@ export const useDeviceActions = () => {
         .filter((device) => device.verification === DeviceVerification.Verified)
         .map(({ id }) => id);
       const showRevoke = revokeIds.length > 0 && verifyIds.length === 0;
-      const blockIds = devices
-        .filter((device) => device.state !== DeviceState.Blocked)
-        .map(({ id }) => id);
-      const enableIds = devices
-        .filter((device) => device.state === DeviceState.Blocked)
-        .map(({ id }) => id);
+      const toBlock = devices.filter((device) => device.state !== DeviceState.Blocked);
+      const toEnable = devices.filter((device) => device.state === DeviceState.Blocked);
+      const blockIds = toBlock.map(({ id }) => id);
+      const enableIds = toEnable.map(({ id }) => id);
       const deleteIds = devices.map(({ id }) => id);
 
+      const withSuccess = (message: string) => ({
+        onSuccess: () => {
+          onSuccess?.();
+          Snackbar.default(message);
+        },
+      });
+
+      const handleVerify = () => {
+        verifyDevices(verifyIds, withSuccess(m.devices_verify_success()));
+      };
+
+      const handleRevoke = () => {
+        revokeVerification(
+          revokeIds,
+          withSuccess(m.devices_revoke_verification_success()),
+        );
+      };
+
+      const handleEnable = () => {
+        enableDevices(enableIds, withSuccess(m.devices_enable_success()));
+      };
+
       const handleBlock = () => {
-        const blocked = devices.filter((device) => blockIds.includes(device.id));
-        const single = blocked.length === 1;
+        const single = toBlock.length === 1;
         openModal(ModalName.ConfirmAction, {
           title: single
             ? m.devices_modal_block_single_title()
             : m.devices_modal_block_title(),
           contentMd: single
-            ? m.devices_modal_block_single_content({ name: blocked[0].name })
-            : m.devices_modal_block_content({ count: blockIds.length }),
+            ? m.devices_modal_block_single_content({ name: toBlock[0].name })
+            : m.devices_modal_block_content({ count: toBlock.length }),
           actionPromise: () => api.device.bulkBlockDevices(blockIds),
           invalidateKeys: [['device']],
           submitProps: { text: m.devices_action_block(), variant: 'critical' },
@@ -111,26 +130,14 @@ export const useDeviceActions = () => {
           text: m.devices_action_revoke_verification(),
           icon: 'close',
           testId: `${testIdPrefix}-revoke-verification`,
-          onClick: () =>
-            revokeVerification(revokeIds, {
-              onSuccess: () => {
-                onSuccess?.();
-                Snackbar.default(m.devices_revoke_verification_success());
-              },
-            }),
+          onClick: handleRevoke,
         });
       } else if (isEnterprise && verifyIds.length > 0) {
         verificationItems.push({
           text: m.devices_action_verify(),
           icon: 'device-attestation',
           testId: `${testIdPrefix}-verify`,
-          onClick: () =>
-            verifyDevices(verifyIds, {
-              onSuccess: () => {
-                onSuccess?.();
-                Snackbar.default(m.devices_verify_success());
-              },
-            }),
+          onClick: handleVerify,
         });
       }
 
@@ -140,13 +147,7 @@ export const useDeviceActions = () => {
           text: m.devices_action_enable(),
           icon: 'check',
           testId: `${testIdPrefix}-enable`,
-          onClick: () =>
-            enableDevices(enableIds, {
-              onSuccess: () => {
-                onSuccess?.();
-                Snackbar.default(m.devices_enable_success());
-              },
-            }),
+          onClick: handleEnable,
         });
       }
       if (blockIds.length > 0) {
