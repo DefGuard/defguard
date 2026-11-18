@@ -121,6 +121,7 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            connection_event::{get_connection_event_filter_options, list_connection_events},
             device_overview::{
                 bulk_block_devices, bulk_delete_devices, bulk_revoke_device_verification,
                 bulk_verify_devices, list_devices_overview,
@@ -472,6 +473,12 @@ pub fn build_webapp(
             // activity log
             .route("/activity_log", get(get_activity_log_events))
             .route("/activity_log/{id}", get(get_activity_log_event))
+            // connection events (traffic monitoring)
+            .route("/connection_event", get(list_connection_events))
+            .route(
+                "/connection_event/filter_options",
+                get(get_connection_event_filter_options),
+            )
             // Proxy routes
             .route("/proxy", get(proxy_list))
             .route(
