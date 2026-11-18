@@ -393,7 +393,6 @@ export interface SecurityKey {
 
 export type UserProfileResponse = {
   user: User;
-  devices: Device[];
   security_keys: SecurityKey[];
   biometric_enabled_devices: number[];
 };
