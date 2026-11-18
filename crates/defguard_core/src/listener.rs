@@ -36,6 +36,7 @@ impl Default for ConnectionTimeouts {
 }
 
 /// Hyper ignores its timeouts unless a timer is configured.
+/// HTTP/2 keepalive detects unresponsive peers but does not expire responsive idle connections.
 pub(crate) fn configure_http_builder(
     builder: &mut Builder<TokioExecutor>,
     timeouts: ConnectionTimeouts,
