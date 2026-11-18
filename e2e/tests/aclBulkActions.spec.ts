@@ -37,6 +37,19 @@ const bulkAction = async (page: Page, area: string, action: string): Promise<voi
   await page.getByTestId(`${area}-bulk-${action}`).click();
 };
 
+const ruleRowAction = async (page: Page, name: string, action: string): Promise<void> => {
+  await row(page, name).locator('.icon-button').click();
+  await page.locator('.menu').getByText(action, { exact: true }).click();
+};
+
+const expectDeletionBlocked = async (page: Page, ruleName: string): Promise<void> => {
+  const modal = page.locator('#deletion-blocked-modal');
+  await expect(modal).toContainText('Deletion blocked');
+  await expect(modal).toContainText(ruleName);
+  await modal.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(modal).toBeHidden();
+};
+
 test.describe('ACL bulk actions', () => {
   test.beforeEach(() => {
     test.skip(
@@ -129,6 +142,34 @@ test.describe('ACL bulk actions', () => {
     await expect(row(page, 'rule-two')).toContainText('Active');
   });
 
+  test('Disable and enable single deployed rule', async ({ page }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    const id = await apiCreateRule(page, 'rule-one');
+    await apiApplyRules(page, [id]);
+
+    await page.goto(routes.base + routes.firewall.rules);
+    await expect(row(page, 'rule-one')).toContainText('Active');
+
+    await ruleRowAction(page, 'rule-one', 'Disable');
+    await page.getByTestId('rules-tab-pending').click();
+    await expect(row(page, 'rule-one')).toContainText('Modified');
+    await ruleRowAction(page, 'rule-one', 'Deploy');
+    await expect(row(page, 'rule-one')).toHaveCount(0);
+
+    await page.getByTestId('rules-tab-deployed').click();
+    await expect(row(page, 'rule-one')).toContainText('Disabled');
+
+    await ruleRowAction(page, 'rule-one', 'Enable');
+    await page.getByTestId('rules-tab-pending').click();
+    await expect(row(page, 'rule-one')).toContainText('Modified');
+    await ruleRowAction(page, 'rule-one', 'Deploy');
+    await expect(row(page, 'rule-one')).toHaveCount(0);
+
+    await page.getByTestId('rules-tab-deployed').click();
+    await expect(row(page, 'rule-one')).toContainText('Active');
+  });
+
   test('Bulk disable warns when every selected rule is already disabled', async ({
     page,
   }) => {
@@ -196,6 +237,22 @@ test.describe('ACL bulk actions', () => {
     await expect(page.locator('.snackbar')).toBeVisible();
     await expect(page.locator('.modal')).toBeHidden();
 
+    const remaining = await apiGetAliases(page);
+    expect(remaining.map((alias) => alias.name)).toEqual(['alias-used']);
+  });
+
+  test('Single delete of an alias used by a rule is blocked', async ({ page }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    const usedId = await apiCreateAlias(page, 'alias-used');
+    await apiCreateRule(page, 'rule-one', { aliases: [usedId] });
+
+    await page.goto(routes.base + routes.firewall.aliases);
+    await row(page, 'alias-used').getByTestId('alias-row-menu').click();
+    await page.getByTestId('alias-row-delete').click();
+    await expectDeletionBlocked(page, 'rule-one');
+
+    await expect(row(page, 'alias-used')).toBeVisible();
     const remaining = await apiGetAliases(page);
     expect(remaining.map((alias) => alias.name)).toEqual(['alias-used']);
   });
@@ -274,6 +331,27 @@ test.describe('ACL bulk actions', () => {
     await expect(page.locator('.snackbar')).toBeVisible();
     await expect(page.locator('.modal')).toBeHidden();
 
+    const remaining = await apiGetDestinations(page);
+    expect(remaining.map((destination) => destination.name)).toEqual([
+      'destination-used',
+    ]);
+  });
+
+  test('Single delete of a destination used by a rule is blocked', async ({ page }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    const usedId = await apiCreateDestination(page, 'destination-used');
+    await apiCreateRule(page, 'rule-one', {
+      destinations: [usedId],
+      use_manual_destination_settings: false,
+    });
+
+    await page.goto(routes.base + routes.firewall.destinations);
+    await row(page, 'destination-used').getByTestId('destination-row-menu').click();
+    await page.getByTestId('destination-row-delete').click();
+    await expectDeletionBlocked(page, 'rule-one');
+
+    await expect(row(page, 'destination-used')).toBeVisible();
     const remaining = await apiGetDestinations(page);
     expect(remaining.map((destination) => destination.name)).toEqual([
       'destination-used',

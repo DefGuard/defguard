@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"connection_event\" SET \"location_id\" = $2,\"gateway_id\" = $3,\"timestamp\" = $4,\"direction\" = $5,\"status\" = $6,\"protocol\" = $7,\"source_ip\" = $8,\"source_port\" = $9,\"destination_ip\" = $10,\"destination_port\" = $11,\"rule_id\" = $12,\"device_id\" = $13,\"upload_bytes\" = $14,\"download_bytes\" = $15,\"count\" = $16 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "connection_direction",
+            "kind": {
+              "Enum": [
+                "inbound",
+                "outbound"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "connection_status",
+            "kind": {
+              "Enum": [
+                "allowed",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Inet",
+        "Int4",
+        "Inet",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b28372bf2b35e8ed8fc3a3c4fc2b1cb594c4e49032874eabcf1b51caf1acb6c4"
+}
