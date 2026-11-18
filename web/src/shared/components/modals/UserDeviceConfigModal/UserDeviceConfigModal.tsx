@@ -59,7 +59,6 @@ const ModalContent = ({ data }: { data: AddDeviceResponse }) => {
       />
       <Divider orientation="horizontal" />
       <ModalDeviceConfigSection data={data} />
-      <Divider />
       <ModalControls
         submitProps={{
           text: m.controls_close(),

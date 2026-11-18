@@ -41,10 +41,10 @@ export const useDeviceActions = () => {
     onError: () => Snackbar.error(m.devices_revoke_verification_error()),
   });
 
-  const { mutate: blockDevices } = useMutation({
-    mutationFn: api.device.bulkBlockDevices,
+  const { mutate: enableDevices } = useMutation({
+    mutationFn: api.device.bulkEnableDevices,
     meta: { invalidate: ['device'] },
-    onError: () => Snackbar.error(m.devices_block_error()),
+    onError: () => Snackbar.error(m.devices_enable_error()),
   });
 
   const getMenuItems = useCallback(
@@ -59,7 +59,31 @@ export const useDeviceActions = () => {
       const blockIds = devices
         .filter((device) => device.state !== DeviceState.Blocked)
         .map(({ id }) => id);
+      const enableIds = devices
+        .filter((device) => device.state === DeviceState.Blocked)
+        .map(({ id }) => id);
       const deleteIds = devices.map(({ id }) => id);
+
+      const handleBlock = () => {
+        const blocked = devices.filter((device) => blockIds.includes(device.id));
+        const single = blocked.length === 1;
+        openModal(ModalName.ConfirmAction, {
+          title: single
+            ? m.devices_modal_block_single_title()
+            : m.devices_modal_block_title(),
+          contentMd: single
+            ? m.devices_modal_block_single_content({ name: blocked[0].name })
+            : m.devices_modal_block_content({ count: blockIds.length }),
+          actionPromise: () => api.device.bulkBlockDevices(blockIds),
+          invalidateKeys: [['device']],
+          submitProps: { text: m.devices_action_block(), variant: 'critical' },
+          onSuccess: () => {
+            onSuccess?.();
+            Snackbar.default(m.devices_block_success());
+          },
+          onError: () => Snackbar.error(m.devices_block_error()),
+        });
+      };
 
       const handleDelete = () => {
         const single = devices.length === 1;
@@ -81,67 +105,79 @@ export const useDeviceActions = () => {
         });
       };
 
-      const verificationItem: MenuItemProps = showRevoke
-        ? {
-            text: m.devices_action_revoke_verification(),
-            icon: 'close',
-            testId: `${testIdPrefix}-revoke-verification`,
-            onClick: () =>
-              revokeVerification(revokeIds, {
-                onSuccess: () => {
-                  onSuccess?.();
-                  Snackbar.default(m.devices_revoke_verification_success());
-                },
-              }),
-          }
-        : {
-            text: m.devices_action_verify(),
-            icon: 'device-attestation',
-            testId: `${testIdPrefix}-verify`,
-            disabled: verifyIds.length === 0,
-            onClick: () =>
-              verifyDevices(verifyIds, {
-                onSuccess: () => {
-                  onSuccess?.();
-                  Snackbar.default(m.devices_verify_success());
-                },
-              }),
-          };
+      const verificationItems: MenuItemProps[] = [];
+      if (isEnterprise && showRevoke) {
+        verificationItems.push({
+          text: m.devices_action_revoke_verification(),
+          icon: 'close',
+          testId: `${testIdPrefix}-revoke-verification`,
+          onClick: () =>
+            revokeVerification(revokeIds, {
+              onSuccess: () => {
+                onSuccess?.();
+                Snackbar.default(m.devices_revoke_verification_success());
+              },
+            }),
+        });
+      } else if (isEnterprise && verifyIds.length > 0) {
+        verificationItems.push({
+          text: m.devices_action_verify(),
+          icon: 'device-attestation',
+          testId: `${testIdPrefix}-verify`,
+          onClick: () =>
+            verifyDevices(verifyIds, {
+              onSuccess: () => {
+                onSuccess?.();
+                Snackbar.default(m.devices_verify_success());
+              },
+            }),
+        });
+      }
 
-      return [
-        {
-          items: [
-            ...(isEnterprise ? [verificationItem] : []),
-            {
-              text: m.devices_action_block(),
-              icon: 'cancel',
-              testId: `${testIdPrefix}-block`,
-              disabled: blockIds.length === 0,
-              onClick: () =>
-                blockDevices(blockIds, {
-                  onSuccess: () => {
-                    onSuccess?.();
-                    Snackbar.default(m.devices_block_success());
-                  },
-                }),
-            },
-          ],
-        },
-        {
-          items: [
-            {
-              text: m.controls_delete(),
-              icon: 'delete',
-              variant: 'danger',
-              testId: `${testIdPrefix}-delete`,
-              disabled: deleteIds.length === 0,
-              onClick: handleDelete,
-            },
-          ],
-        },
+      const stateItems: MenuItemProps[] = [];
+      if (enableIds.length > 0) {
+        stateItems.push({
+          text: m.devices_action_enable(),
+          icon: 'check',
+          testId: `${testIdPrefix}-enable`,
+          onClick: () =>
+            enableDevices(enableIds, {
+              onSuccess: () => {
+                onSuccess?.();
+                Snackbar.default(m.devices_enable_success());
+              },
+            }),
+        });
+      }
+      if (blockIds.length > 0) {
+        stateItems.push({
+          text: m.devices_action_block(),
+          icon: 'cancel',
+          testId: `${testIdPrefix}-block`,
+          onClick: handleBlock,
+        });
+      }
+
+      const deleteItems: MenuItemProps[] =
+        deleteIds.length > 0
+          ? [
+              {
+                text: m.controls_delete(),
+                icon: 'delete',
+                variant: 'danger',
+                testId: `${testIdPrefix}-delete`,
+                onClick: handleDelete,
+              },
+            ]
+          : [];
+
+      const groups: MenuItemsGroup[] = [
+        { items: [...verificationItems, ...stateItems] },
+        { items: deleteItems },
       ];
+      return groups.filter((group) => group.items.length > 0);
     },
-    [verifyDevices, revokeVerification, blockDevices, isEnterprise],
+    [verifyDevices, revokeVerification, enableDevices, isEnterprise],
   );
 
   const getRowMenuItems = useCallback(

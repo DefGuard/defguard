@@ -1,12 +1,12 @@
 .assign-user-device-ip-modal {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2xl);
 
   .device-ip-card {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    padding-bottom: var(--spacing-2xl);
 
     .card-title {
       font: var(--t-body-sm-500);

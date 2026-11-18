@@ -165,6 +165,7 @@ fn extract_api_location(event: &ApiEventType) -> Option<WireguardNetwork<Id>> {
         | ApiEventType::NetworkDeviceVerified { location, .. }
         | ApiEventType::NetworkDeviceVerificationRevoked { location, .. }
         | ApiEventType::NetworkDeviceBlocked { location, .. }
+        | ApiEventType::NetworkDeviceEnabled { location, .. }
         | ApiEventType::NetworkDeviceRemoved { location, .. }
         | ApiEventType::VpnLocationAdded { location }
         | ApiEventType::VpnLocationRemoved { location }
