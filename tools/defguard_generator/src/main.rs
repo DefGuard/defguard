@@ -55,7 +55,7 @@ enum Commands {
         #[arg(long)]
         activity_log_events: Option<usize>,
     },
-    /// Generates users with user devices and network devices, without VPN sessions or locations.
+    /// Generates users with user devices and network devices, optionally assigned to locations.
     Devices {
         #[arg(long)]
         num_users: usize,
@@ -63,6 +63,9 @@ enum Commands {
         devices_per_user: usize,
         #[arg(long, default_value_t = 0)]
         network_devices: usize,
+        /// number of locations to create; user devices are assigned to all of them
+        #[arg(long, default_value_t = 0)]
+        locations: usize,
     },
     /// Generates ACL rules
     AclRules {
@@ -124,11 +127,13 @@ async fn main() -> Result<()> {
             num_users,
             devices_per_user,
             network_devices,
+            locations,
         } => {
             let config = DevicesGeneratorConfig {
                 num_users,
                 devices_per_user,
                 network_devices,
+                locations,
             };
             generate_devices(pool, config).await?;
         }

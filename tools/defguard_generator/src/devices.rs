@@ -10,6 +10,7 @@ use sqlx::PgPool;
 use tracing::info;
 
 use crate::{
+    locations::{assign_devices_to_locations, prepare_locations},
     user_devices::{prepare_user_devices, unique_device_name},
     users::prepare_users,
 };
@@ -29,6 +30,7 @@ pub struct DevicesGeneratorConfig {
     pub num_users: usize,
     pub devices_per_user: usize,
     pub network_devices: usize,
+    pub locations: usize,
 }
 
 /// Tops up the database to the requested counts, so repeated runs with the same arguments
@@ -36,6 +38,7 @@ pub struct DevicesGeneratorConfig {
 pub async fn generate_devices(pool: PgPool, config: DevicesGeneratorConfig) -> Result<()> {
     let mut rng = rand::thread_rng();
 
+    let locations = prepare_locations(&pool, config.locations).await?;
     let users = prepare_users(&pool, &mut rng, config.num_users).await?;
     for (i, user) in users.iter().enumerate() {
         info!(
@@ -44,7 +47,8 @@ pub async fn generate_devices(pool: PgPool, config: DevicesGeneratorConfig) -> R
             users.len(),
             config.devices_per_user
         );
-        prepare_user_devices(&pool, &mut rng, user, config.devices_per_user).await?;
+        let devices = prepare_user_devices(&pool, &mut rng, user, config.devices_per_user).await?;
+        assign_devices_to_locations(&pool, &devices, &locations).await?;
     }
 
     prepare_network_devices(&pool, &mut rng, config.network_devices).await?;

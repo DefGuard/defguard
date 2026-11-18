@@ -1743,6 +1743,7 @@ dependencies = [
  "defguard_core",
  "defguard_event_logger",
  "dotenvy",
+ "ipnetwork",
  "rand 0.8.8",
  "serde_json",
  "sqlx",

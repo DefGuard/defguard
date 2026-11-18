@@ -10,6 +10,7 @@ rust-version = "1.87.0"
 [dependencies]
 anyhow.workspace = true
 dotenvy = "0.15"
+ipnetwork.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["derive"] }
 defguard_common.workspace = true
