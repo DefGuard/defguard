@@ -15,8 +15,8 @@ use super::{
     enterprise::{
         handlers::{
             self as enterprise_handlers, acl, activity_log_stream, api_tokens, connection_event,
-            device_attestation,
-            device_posture, enterprise_settings, openid_login, openid_providers,
+            device_attestation, device_posture, enterprise_settings, openid_login,
+            openid_providers,
         },
         snat::handlers as snat,
     },

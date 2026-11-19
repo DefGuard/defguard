@@ -32,8 +32,8 @@ const INTERMEDIATES_PEM: &str = "tpm-intermediate-ca-certificates.pem";
 const TRUSTED_TPM_CAB_URL: &str = "https://go.microsoft.com/fwlink/?linkid=2097925";
 const MICROSOFT_SIGNER: &str =
     "/C=US/ST=Washington/L=Redmond/O=Microsoft Corporation/CN=Microsoft Corporation";
-const MICROSOFT_ROOT_2011_PEM: &[u8] = include_bytes!("../microsoft_root_ca_2011.pem");
-const MICROSOFT_ROOT_2010_PEM: &[u8] = include_bytes!("../microsoft_root_ca_2010.pem");
+const MICROSOFT_ROOT_2011_PEM: &[u8] = include_cert!("microsoft_root_ca_2011.pem");
+const MICROSOFT_ROOT_2010_PEM: &[u8] = include_cert!("microsoft_root_ca_2010.pem");
 const MICROSOFT_CRL_PREFIXES: [&str; 2] =
     ["http://www.microsoft.com/", "https://www.microsoft.com/"];
 const CERTIFICATE_EXTENSIONS: [&str; 4] = ["cer", "crt", "der", "pem"];

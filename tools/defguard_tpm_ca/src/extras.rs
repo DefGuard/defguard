@@ -19,7 +19,7 @@ macro_rules! extra {
     ($file:literal, $vendor:literal, $sha256:literal) => {
         Extra {
             file: $file,
-            pem: include_bytes!(concat!("../extras/", $file)),
+            pem: include_cert!($file),
             vendor: $vendor,
             sha256: $sha256,
         }
@@ -55,17 +55,17 @@ pub fn extra_certificates(vendors: &mut Vendors) -> anyhow::Result<Vec<SourceCer
         .iter()
         .map(|extra| {
             let der = CertificateDer::from_pem_slice(extra.pem)
-                .with_context(|| format!("extras/{} is not a PEM certificate", extra.file))?;
+                .with_context(|| format!("certs/{} is not a PEM certificate", extra.file))?;
             ensure!(
                 sha256::digest(der.as_ref()) == extra.sha256,
-                "extras/{} does not match its pinned SHA-256",
+                "certs/{} does not match its pinned SHA-256",
                 extra.file
             );
             Ok(SourceCertificate {
                 kind: Kind::Intermediate,
                 vendor: vendors.canonical(extra.vendor),
                 der: der.to_vec(),
-                origin: format!("extras/{}", extra.file),
+                origin: format!("certs/{}", extra.file),
             })
         })
         .collect()

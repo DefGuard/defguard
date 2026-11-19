@@ -1,3 +1,10 @@
+// defined before the modules so they can use it
+macro_rules! include_cert {
+    ($file:literal) => {
+        include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/certs/", $file))
+    };
+}
+
 mod bundle;
 mod extras;
 mod sources;
