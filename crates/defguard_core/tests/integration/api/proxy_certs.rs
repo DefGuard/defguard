@@ -8,7 +8,7 @@
 /// were sent after successful certificate operations without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, atomic::AtomicBool},
+    sync::{Arc, atomic::AtomicBool},
     time::Duration,
 };
 
@@ -29,7 +29,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
     events::ApiEvent,
-    grpc::{GatewayCommand, WorkerState},
+    grpc::GatewayCommand,
     handlers::Auth,
 };
 use reqwest::StatusCode;
@@ -138,7 +138,6 @@ async fn make_test_client_with_proxy_rx(
 
     let (api_event_tx, api_event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (tx, rx) = mpsc::unbounded_channel::<AppEvent>();
-    let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (gateway_tx, _wg_rx) = mpsc::unbounded_channel::<GatewayCommand>();
 
     let license = License::new(
@@ -168,7 +167,6 @@ async fn make_test_client_with_proxy_rx(
         rx,
         gateway_tx,
         web_reload_tx,
-        worker_state,
         pool.clone(),
         key,
         api_event_tx,

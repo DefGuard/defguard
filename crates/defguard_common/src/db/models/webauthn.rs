@@ -298,6 +298,6 @@ mod tests {
         let found = WebAuthn::find_by_attestation_certs(&pool, &["unknown".to_owned()])
             .await
             .unwrap();
-        assert!(found.is_empty());
+        assert_eq!(found, [] as [WebAuthn<Id>; 0]);
     }
 }

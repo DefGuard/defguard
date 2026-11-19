@@ -2,7 +2,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
-        Arc, LazyLock, Mutex, RwLock,
+        Arc, LazyLock, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     time::Duration,
@@ -144,7 +144,7 @@ use crate::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::{GatewayCommand, WorkerState},
+    grpc::GatewayCommand,
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -204,7 +204,6 @@ use crate::{
             list_devices, list_networks, list_user_devices, modify_device, modify_network,
             network_details, user_device_configs,
         },
-        worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
     location_management::{
         allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
@@ -307,7 +306,6 @@ pub fn build_webapp(
     webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
     gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
     web_reload_tx: broadcast::Sender<()>,
-    worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     key: Key,
     event_tx: mpsc::UnboundedSender<ApiEvent>,
@@ -773,16 +771,6 @@ pub fn build_webapp(
             .route("/license/check", post(license_check)),
     );
 
-    let api_router = api_router.nest(
-        "/api/v1/worker",
-        Router::new()
-            .route("/job", post(create_job))
-            .route("/token", get(create_worker_token))
-            .route("/", get(list_workers))
-            .route("/{id}", delete(remove_worker).get(job_status))
-            .layer(Extension(worker_state)),
-    );
-
     // Setup rate limiter
     debug!(
         "Configuring rate limiter, per_second: {}, burst: {}",
@@ -921,7 +909,6 @@ pub fn apply_security_layers(router: Router, tls_active: Arc<AtomicBool>) -> Rou
 /// Runs core web server exposing REST API.
 #[instrument(skip_all)]
 pub async fn run_web_server(
-    worker_state: Arc<Mutex<WorkerState>>,
     webhook_tx: mpsc::UnboundedSender<AppEvent>,
     webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
     gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
@@ -945,7 +932,6 @@ pub async fn run_web_server(
         webhook_rx,
         gateway_tx,
         web_reload_tx.clone(),
-        worker_state,
         pool.clone(),
         key,
         event_tx,

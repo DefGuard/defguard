@@ -219,7 +219,6 @@ pub(crate) async fn update_settings(
             "nav_logo_url": "/svg/defguard-nav-logo.svg",
             "wireguard_enabled": true,
             "webhooks_enabled": true,
-            "worker_enabled": false,
             "openid_enabled": true
         })),
         (status = 500, description = "Unable to get essential settings.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),

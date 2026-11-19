@@ -1147,7 +1147,6 @@ export interface SettingsEssentials {
   nav_logo_url: string;
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
-  worker_enabled: boolean;
   openid_enabled: boolean;
 }
 
@@ -1252,7 +1251,6 @@ export interface SettingsModules {
   openid_enabled: boolean;
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
-  worker_enabled: boolean;
 }
 
 export interface SettingsBranding {
