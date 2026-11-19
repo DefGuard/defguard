@@ -371,7 +371,6 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
     device
 }
 
-/// Insert a network device attached to `network` with an optional static preshared key.
 pub(crate) async fn create_network_device(
     pool: &PgPool,
     user_id: Id,
@@ -406,7 +405,6 @@ pub(crate) async fn create_network_device(
     device
 }
 
-/// Insert an enrollment token bound to a network device, as `dg enroll` uses.
 pub(crate) async fn create_network_device_enrollment_token(
     pool: &PgPool,
     user_id: Id,

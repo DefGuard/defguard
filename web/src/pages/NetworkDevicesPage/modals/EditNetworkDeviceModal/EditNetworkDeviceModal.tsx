@@ -364,7 +364,11 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
   );
 };
 
-const GeneratedPresharedKeyStep = ({ presharedKey }: { presharedKey: string }) => {
+type Props = {
+  presharedKey: string;
+};
+
+const GeneratedPresharedKeyStep = ({ presharedKey }: Props) => {
   return (
     <>
       <DescriptionBlock title={m.modal_network_device_psk_generated_title()}>

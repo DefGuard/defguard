@@ -111,7 +111,6 @@ async fn test_new_device_creates_device_and_returns_configs(
     context.finish().await.expect_server_finished().await;
 }
 
-/// `dg enroll` for a network device must receive the device's static preshared key.
 #[sqlx::test]
 async fn test_network_device_enrollment_returns_static_preshared_key(
     _: PgPoolOptions,

@@ -38,41 +38,43 @@ export const PresharedKeyFields = withFieldGroup({
     generatePresharedKey: true,
     preshared_key: null,
   } as PresharedKeyValues,
-  render: ({ group }) => (
-    <>
-      <group.AppField name="generatePresharedKey">
-        {(field) => (
-          <>
-            <field.FormRadio
-              value={true}
-              text={m.modal_network_device_psk_choice_generate()}
-            />
-            <SizedBox height={ThemeSpacing.Md} />
-            <field.FormRadio
-              value={false}
-              text={m.modal_network_device_psk_choice_manual()}
-            />
-          </>
-        )}
-      </group.AppField>
-      <group.Subscribe selector={(state) => state.values.generatePresharedKey}>
-        {(generatePresharedKey) =>
-          !generatePresharedKey && (
+  render: ({ group }) => {
+    return (
+      <>
+        <group.AppField name="generatePresharedKey">
+          {(field) => (
             <>
-              <SizedBox height={ThemeSpacing.Lg} />
-              <group.AppField name="preshared_key">
-                {(field) => (
-                  <field.FormSecretInput
-                    required
-                    stored={false}
-                    label={m.form_label_preshared_key()}
-                  />
-                )}
-              </group.AppField>
+              <field.FormRadio
+                value={true}
+                text={m.modal_network_device_psk_choice_generate()}
+              />
+              <SizedBox height={ThemeSpacing.Md} />
+              <field.FormRadio
+                value={false}
+                text={m.modal_network_device_psk_choice_manual()}
+              />
             </>
-          )
-        }
-      </group.Subscribe>
-    </>
-  ),
+          )}
+        </group.AppField>
+        <group.Subscribe selector={(state) => state.values.generatePresharedKey}>
+          {(generatePresharedKey) =>
+            !generatePresharedKey && (
+              <>
+                <SizedBox height={ThemeSpacing.Lg} />
+                <group.AppField name="preshared_key">
+                  {(field) => (
+                    <field.FormSecretInput
+                      required
+                      stored={false}
+                      label={m.form_label_preshared_key()}
+                    />
+                  )}
+                </group.AppField>
+              </>
+            )
+          }
+        </group.Subscribe>
+      </>
+    );
+  },
 });

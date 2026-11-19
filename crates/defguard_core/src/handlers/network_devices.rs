@@ -1001,7 +1001,7 @@ pub struct ModifyNetworkDevice {
     description: Option<String>,
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     assigned_ips: Vec<IpAddr>,
-    /// Omit to keep the current key, `null` to remove it.
+    /// Omit to keep the current key, null to remove it.
     #[serde(default, deserialize_with = "deserialize_optional_field")]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     preshared_key: Option<Option<SecretStringWrapper>>,
