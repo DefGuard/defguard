@@ -613,7 +613,7 @@ async fn test_network_device_preshared_key(_: PgPoolOptions, options: PgConnectO
         device_info.network_info[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(PRESHARED_KEY)
     );
 
@@ -657,7 +657,7 @@ async fn test_network_device_preshared_key(_: PgPoolOptions, options: PgConnectO
             .await
             .unwrap()
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(PRESHARED_KEY)
     );
 
@@ -692,7 +692,7 @@ async fn test_network_device_preshared_key(_: PgPoolOptions, options: PgConnectO
         device_info.network_info[0]
             .preshared_key
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(NEW_PRESHARED_KEY)
     );
 
@@ -763,7 +763,7 @@ async fn test_network_device_preshared_key(_: PgPoolOptions, options: PgConnectO
             .await
             .unwrap()
             .as_ref()
-            .map(|key| key.expose_secret()),
+            .map(defguard_common::secret::SecretStringWrapper::expose_secret),
         Some(PRESHARED_KEY)
     );
 }

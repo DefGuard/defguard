@@ -182,11 +182,11 @@ fn get_user_agent_device_login_data(
     DeviceLoginEvent::new(
         user_id,
         ip_address,
-        user_agent.device_model().map(ToString::to_string),
-        user_agent.device_family().to_string(),
-        user_agent.device_brand().map(ToString::to_string),
-        user_agent.os_family().to_string(),
-        user_agent.browser_family().to_string(),
+        user_agent.device_model().map(str::to_owned),
+        user_agent.device_family().to_owned(),
+        user_agent.device_brand().map(str::to_owned),
+        user_agent.os_family().to_owned(),
+        user_agent.browser_family().to_owned(),
         event_type,
     )
 }
