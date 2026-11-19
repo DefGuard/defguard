@@ -84,6 +84,13 @@ export const startNetworkDeviceEnrollment = async (
     await page.getByTestId('field-generateKeys-false').click();
     await page.getByTestId('field-wireguard_pubkey').fill(device.pubKey);
   }
+  if (device.presharedKey || device.generatePresharedKey) {
+    await page.getByTestId('field-usePresharedKey').locator('.interactive').click();
+    if (device.presharedKey) {
+      await page.getByTestId('field-generatePresharedKey-false').click();
+      await page.getByTestId('field-preshared_key').fill(device.presharedKey);
+    }
+  }
   await page.getByTestId('submit').click();
   await page.getByTestId('copy-config').waitFor({ state: 'visible' });
   await page.getByTestId('copy-config').click();

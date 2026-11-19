@@ -17,7 +17,7 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_proto::{
-    client_types::{DeviceConfig, LocationMfaMode, MfaMethod, MfaStep},
+    client_types::{LocationMfaMode, MfaMethod, MfaStep},
     proxy::DeviceInfo,
 };
 use ipnetwork::IpNetwork;
@@ -238,7 +238,7 @@ async fn test_polling_returns_only_attached_locations(_: PgPoolOptions, options:
     let response = build_device_config_response(&pool, device.clone(), None, None)
         .await
         .expect("failed to build config without attachments");
-    assert_eq!(response.configs, [] as [DeviceConfig; 0]);
+    assert!(response.configs.is_empty());
 
     attach_device(&pool, first.id, device.id).await;
     attach_device(&pool, last.id, device.id).await;
@@ -454,6 +454,61 @@ async fn test_network_device_rejected_on_mfa_locations(
         .expect("network device on MFA-disabled location should get config");
     assert_eq!(response.configs.len(), 1);
     assert_eq!(response.configs[0].network_name, "disabled-location");
+}
+
+#[sqlx::test]
+async fn test_network_device_config_carries_static_preshared_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    const PRESHARED_KEY: &str = "oZFW7IISUedr8RLjI1On2ZoEg4RkCppwGu4BILPwj9Q=";
+
+    let pool = setup_pool(options).await;
+    init_settings(&pool).await;
+    let user = create_user(&pool).await;
+
+    let psk_location = create_disabled_location(&pool, "psk-location", 1).await;
+    let psk_device = create_network_device(&pool, user.id, "psk-device", "psk-pubkey").await;
+    psk_device
+        .set_preshared_key(&pool, Some(&PRESHARED_KEY.into()))
+        .await
+        .expect("failed to set preshared key");
+    attach_device(&pool, psk_location.id, psk_device.id).await;
+
+    let response = build_device_config_response(&pool, psk_device, None, None)
+        .await
+        .expect("network device with preshared key should get config");
+    assert_eq!(response.configs.len(), 1);
+    assert_eq!(
+        response.configs[0].preshared_key.as_deref(),
+        Some(PRESHARED_KEY)
+    );
+    assert!(
+        response.configs[0]
+            .config
+            .contains("PresharedKey = YOUR_PRESHARED_KEY")
+    );
+
+    let plain_location = create_disabled_location(&pool, "plain-location", 2).await;
+    let plain_device = create_network_device(&pool, user.id, "plain-device", "plain-pubkey").await;
+    attach_device(&pool, plain_location.id, plain_device.id).await;
+
+    let response = build_device_config_response(&pool, plain_device, None, None)
+        .await
+        .expect("network device without preshared key should get config");
+    assert_eq!(response.configs.len(), 1);
+    assert_eq!(response.configs[0].preshared_key, None);
+    assert!(!response.configs[0].config.contains("PresharedKey"));
+
+    let user_location = create_disabled_location(&pool, "user-location", 3).await;
+    let user_device = create_device(&pool, user.id).await;
+    attach_device(&pool, user_location.id, user_device.id).await;
+
+    let response = build_device_config_response(&pool, user_device, None, None)
+        .await
+        .expect("user device should get config");
+    assert_eq!(response.configs.len(), 1);
+    assert_eq!(response.configs[0].preshared_key, None);
 }
 
 /// Asserts every cell of the per-client-version config-shape matrix: four location

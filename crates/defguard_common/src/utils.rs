@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use ipnetwork::IpNetwork;
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
 
 /// Strip any `http://` or `https://` scheme prefix a user may have accidentally
@@ -152,6 +152,27 @@ pub fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
         modifiable_part,
         network_prefix: network_prefix.to_string(),
     }
+}
+
+/// Custom deserializer for `Option<T>` fields in patch structs.
+///
+/// By default serde cannot distinguish between a missing JSON key and an explicit `null` value
+/// when deserializing into `Option<Option<T>>` (the shape struct-patch generates for nullable
+/// fields) — both map to the outer `None`, causing a PATCH with `"field": null` to be silently
+/// ignored instead of clearing the field.
+///
+/// This deserializer always wraps the result in `Some(...)`, so:
+/// - JSON key absent  → `None`          (handled by `#[serde(default)]` before this is called)
+/// - `"field": null`  → `Some(None)`    → field gets cleared
+/// - `"field": "val"` → `Some(Some(v))` → field gets updated
+///
+/// See <https://github.com/serde-rs/serde/issues/1042> and the struct-patch test suite.
+pub fn deserialize_optional_field<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
 }
 
 #[cfg(test)]

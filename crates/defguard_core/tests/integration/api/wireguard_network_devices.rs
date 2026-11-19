@@ -2,7 +2,7 @@ use std::{assert_matches, net::IpAddr, str::FromStr};
 
 use defguard_common::db::{
     Id,
-    models::{Device, WireguardNetwork},
+    models::{Device, DeviceType, WireguardNetwork},
 };
 use defguard_core::{
     grpc::GatewayCommand,
@@ -194,6 +194,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         assigned_ips: ips.iter().map(|ip| ip.ip.to_string()).collect(),
         location_id: 1,
         description: None,
+        preshared_key: None,
     };
     let response = client
         .post("/api/v1/device/network")
@@ -520,6 +521,7 @@ async fn test_network_device_config_skips_mfa_location(
         assigned_ips: vec!["10.7.0.2".to_owned()],
         location_id: location.id,
         description: None,
+        preshared_key: None,
     };
     let response = client
         .post("/api/v1/device/network")
@@ -540,5 +542,228 @@ async fn test_network_device_config_skips_mfa_location(
     assert!(
         configs.is_empty(),
         "MFA-enabled location config must be skipped"
+    );
+}
+
+#[sqlx::test]
+async fn test_network_device_preshared_key(_: PgPoolOptions, options: PgConnectOptions) {
+    const PRESHARED_KEY: &str = "oZFW7IISUedr8RLjI1On2ZoEg4RkCppwGu4BILPwj9Q=";
+    const NEW_PRESHARED_KEY: &str = "nEYgUj37nR2RFhX7i29cCrMQWeSwiHriFKKsjtjjWgY=";
+    const INVALID_PRESHARED_KEY: &str = "not-a-valid-preshared-key";
+
+    let pool = setup_pool(options).await;
+    let (client, client_state) = make_test_client(pool).await;
+    let mut gateway_rx = client_state.gateway_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = make_first_network(&client).await;
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert_matches!(
+        gateway_rx.try_recv().unwrap(),
+        GatewayCommand::NetworkCreated(..)
+    );
+
+    let response = client
+        .post("/api/v1/device/network")
+        .json(&json!({
+            "name": "psk-device",
+            "description": null,
+            "location_id": network.id,
+            "assigned_ips": ["10.1.1.2"],
+            "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+            "preshared_key": INVALID_PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(!response.text().await.contains(INVALID_PRESHARED_KEY));
+    assert!(gateway_rx.try_recv().is_err());
+
+    let response = client
+        .post("/api/v1/device/network")
+        .json(&json!({
+            "name": "psk-device",
+            "description": null,
+            "location_id": network.id,
+            "assigned_ips": ["10.1.1.2"],
+            "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+            "preshared_key": PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = response.text().await;
+    assert!(!body.contains(PRESHARED_KEY));
+    let json: Value = serde_json::from_str(&body).unwrap();
+    let device_id = json["device"]["id"].as_i64().unwrap();
+    assert_eq!(json["device"]["preshared_key_set"], true);
+    assert!(
+        json["config"]["config"]
+            .as_str()
+            .unwrap()
+            .contains("PresharedKey = YOUR_PRESHARED_KEY\n")
+    );
+    let GatewayCommand::DeviceCreated(device_info) = gateway_rx.try_recv().unwrap() else {
+        panic!("expected DeviceCreated");
+    };
+    assert_eq!(
+        device_info.network_info[0]
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(PRESHARED_KEY)
+    );
+
+    let response = client
+        .get(format!("/api/v1/device/network/{device_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.text().await;
+    assert!(!body.contains(PRESHARED_KEY));
+    let json: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(json["preshared_key_set"], true);
+
+    let response = client
+        .get(format!("/api/v1/device/network/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs = response.json::<Vec<DeviceWireGuardConfig>>().await;
+    assert!(
+        configs[0]
+            .config
+            .contains("PresharedKey = YOUR_PRESHARED_KEY\n")
+    );
+
+    // a missing preshared_key keeps the stored key and needs no gateway update
+    let response = client
+        .put(format!("/api/v1/device/network/{device_id}"))
+        .json(&json!({
+            "name": "psk-device-renamed",
+            "description": null,
+            "assigned_ips": ["10.1.1.2"],
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.json::<Value>().await["preshared_key_set"], true);
+    assert!(gateway_rx.try_recv().is_err());
+    assert_eq!(
+        Device::find_preshared_key(&client_state.pool, device_id)
+            .await
+            .unwrap()
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(PRESHARED_KEY)
+    );
+
+    let response = client
+        .put(format!("/api/v1/device/network/{device_id}"))
+        .json(&json!({
+            "name": "psk-device-renamed",
+            "description": null,
+            "assigned_ips": ["10.1.1.2"],
+            "preshared_key": INVALID_PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(gateway_rx.try_recv().is_err());
+
+    let response = client
+        .put(format!("/api/v1/device/network/{device_id}"))
+        .json(&json!({
+            "name": "psk-device-renamed",
+            "description": null,
+            "assigned_ips": ["10.1.1.2"],
+            "preshared_key": NEW_PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let GatewayCommand::DeviceModified(device_info) = gateway_rx.try_recv().unwrap() else {
+        panic!("expected DeviceModified");
+    };
+    assert_eq!(
+        device_info.network_info[0]
+            .preshared_key
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(NEW_PRESHARED_KEY)
+    );
+
+    let response = client
+        .put(format!("/api/v1/device/network/{device_id}"))
+        .json(&json!({
+            "name": "psk-device-renamed",
+            "description": null,
+            "assigned_ips": ["10.1.1.2"],
+            "preshared_key": null,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.json::<Value>().await["preshared_key_set"], false);
+    // gateways keep a peer's key on modify, so removal re-creates the peer
+    assert_matches!(
+        gateway_rx.try_recv().unwrap(),
+        GatewayCommand::DeviceDeleted(..)
+    );
+    let GatewayCommand::DeviceCreated(device_info) = gateway_rx.try_recv().unwrap() else {
+        panic!("expected DeviceCreated");
+    };
+    assert!(device_info.network_info[0].preshared_key.is_none());
+
+    let response = client
+        .get(format!("/api/v1/device/network/{device_id}/config"))
+        .send()
+        .await;
+    let configs = response.json::<Vec<DeviceWireGuardConfig>>().await;
+    assert!(!configs[0].config.contains("PresharedKey"));
+
+    let response = client
+        .post("/api/v1/device/network/start_cli")
+        .json(&json!({
+            "name": "psk-cli-device",
+            "description": null,
+            "location_id": network.id,
+            "assigned_ips": ["10.1.1.3"],
+            "preshared_key": INVALID_PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(!response.text().await.contains(INVALID_PRESHARED_KEY));
+
+    let response = client
+        .post("/api/v1/device/network/start_cli")
+        .json(&json!({
+            "name": "psk-cli-device",
+            "description": null,
+            "location_id": network.id,
+            "assigned_ips": ["10.1.1.3"],
+            "preshared_key": PRESHARED_KEY,
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert!(!response.text().await.contains(PRESHARED_KEY));
+    let cli_device = Device::find_by_type(&client_state.pool, DeviceType::Network)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|device| device.name == "psk-cli-device")
+        .unwrap();
+    assert_eq!(
+        Device::find_preshared_key(&client_state.pool, cli_device.id)
+            .await
+            .unwrap()
+            .as_ref()
+            .map(|key| key.expose_secret()),
+        Some(PRESHARED_KEY)
     );
 }

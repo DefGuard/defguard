@@ -30,12 +30,12 @@ use super::support::{
     assert_error_response_full, clear_test_license, complete_proxy_handshake, configure_ldap,
     configure_smtp, create_acl_network, create_enrollment_token, create_mfa_network,
     create_multi_step_mfa_network, create_multi_step_mfa_network_with_steps, create_network,
-    create_polling_token, create_user, create_user_with_device, generate_totp_code,
-    insert_acl_rule_for_network, make_device_info, send_activate_user,
-    send_activate_user_without_password, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    send_mfa_config_authorize, send_mfa_config_start, set_test_license_business,
-    set_test_license_enterprise, setup_user_totp_mfa, start_enrollment_session,
-    totp_code_from_base32_secret,
+    create_network_device, create_network_device_enrollment_token, create_polling_token,
+    create_user, create_user_with_device, generate_totp_code, insert_acl_rule_for_network,
+    make_device_info, send_activate_user, send_activate_user_without_password,
+    send_code_mfa_setup_finish, send_code_mfa_setup_start, send_mfa_config_authorize,
+    send_mfa_config_start, set_test_license_business, set_test_license_enterprise,
+    setup_user_totp_mfa, start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -107,6 +107,48 @@ async fn test_new_device_creates_device_and_returns_configs(
         devices.is_some(),
         "device should exist in DB after NewDevice"
     );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// `dg enroll` for a network device must receive the device's static preshared key.
+#[sqlx::test]
+async fn test_network_device_enrollment_returns_static_preshared_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    const PRESHARED_KEY: &str = "oZFW7IISUedr8RLjI1On2ZoEg4RkCppwGu4BILPwj9Q=";
+
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    let network = create_network(&context.pool).await;
+    let user = create_user(&context.pool).await;
+    let device = create_network_device(
+        &context.pool,
+        user.id,
+        &network,
+        "NOT_CONFIGURED",
+        false,
+        Some(PRESHARED_KEY),
+    )
+    .await;
+    let token = create_network_device_enrollment_token(&context.pool, user.id, device.id).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: String::new(),
+            pubkey: "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=".to_owned(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+    assert_eq!(cfg.configs.len(), 1);
+    assert_eq!(cfg.configs[0].preshared_key.as_deref(), Some(PRESHARED_KEY));
 
     context.finish().await.expect_server_finished().await;
 }

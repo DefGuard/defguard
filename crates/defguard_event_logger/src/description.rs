@@ -105,9 +105,7 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
             "Removed network device {device} from location {location}"
         )),
         ApiEventType::NetworkDeviceModified {
-            before: _,
-            after,
-            location,
+            after, location, ..
         } => Some(format!(
             "Modified network device {after} in location {location}"
         )),

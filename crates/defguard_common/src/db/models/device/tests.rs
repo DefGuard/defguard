@@ -408,7 +408,7 @@ async fn test_runtime_mfa_state_marks_mfa_session_without_preshared_key_as_unaut
     };
 
     let network_info =
-        wireguard_network_device.to_device_network_info(&network, Some(&active_session));
+        wireguard_network_device.to_device_network_info(&network, Some(&active_session), None);
 
     assert_eq!(network_info.preshared_key, None);
     assert!(!network_info.is_authorized);
@@ -459,7 +459,7 @@ async fn test_runtime_mfa_state_keeps_session_preshared_key_for_authorized_runti
     };
 
     let network_info =
-        wireguard_network_device.to_device_network_info(&network, Some(&active_session));
+        wireguard_network_device.to_device_network_info(&network, Some(&active_session), None);
 
     assert_eq!(
         network_info.preshared_key,

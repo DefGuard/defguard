@@ -1,4 +1,8 @@
-use std::{collections::HashSet, fmt, net::IpAddr};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    net::IpAddr,
+};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
@@ -59,6 +63,9 @@ pub struct DeviceConfig {
     /// when the location has MFA disabled or no flow resolves for the user.
     #[serde(skip)]
     pub steps: Vec<MfaFlowStep<Id>>,
+    // sent to Defguard CLI over gRPC only, never in REST responses
+    #[serde(skip)]
+    pub preshared_key: Option<SecretStringWrapper>,
 }
 
 // The type of a device:
@@ -196,7 +203,7 @@ impl DeviceInfo {
             "SELECT wnd.wireguard_network_id network_id, \
                 wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
                 CASE \
-                    WHEN NOT n.mfa_enabled THEN NULL::text \
+                    WHEN NOT n.mfa_enabled THEN d.preshared_key \
                     ELSE active_session.preshared_key \
                 END \"preshared_key?: _\", \
                 CASE \
@@ -205,6 +212,7 @@ impl DeviceInfo {
                 END \"is_authorized!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
+            JOIN device d ON d.id = wnd.device_id \
             LEFT JOIN LATERAL ( \
                 SELECT id, preshared_key \
                 FROM vpn_client_session \
@@ -370,13 +378,14 @@ impl WireguardNetworkDevice {
         &self,
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
+        static_preshared_key: Option<&SecretStringWrapper>,
     ) -> DeviceNetworkInfo {
         let (preshared_key, is_authorized) = if network.mfa_enabled {
             let preshared_key = active_session.and_then(|session| session.preshared_key.clone());
             let is_authorized = preshared_key.is_some();
             (preshared_key, is_authorized)
         } else {
-            (None, true)
+            (static_preshared_key.cloned(), true)
         };
 
         DeviceNetworkInfo {
@@ -395,9 +404,14 @@ impl WireguardNetworkDevice {
     where
         E: PgExecutor<'e>,
     {
-        let active_session = Self::latest_active_session(executor, network, self.device_id).await?;
+        if network.mfa_enabled {
+            let active_session =
+                Self::latest_active_session(executor, network, self.device_id).await?;
+            return Ok(self.to_device_network_info(network, active_session.as_ref(), None));
+        }
 
-        Ok(self.to_device_network_info(network, active_session.as_ref()))
+        let static_preshared_key = Device::find_preshared_key(executor, self.device_id).await?;
+        Ok(self.to_device_network_info(network, None, static_preshared_key.as_ref()))
     }
 
     #[must_use]
@@ -876,6 +890,84 @@ impl Device<Id> {
         }
 
         Err(format!("{pubkey} is not a valid pubkey"))
+    }
+
+    #[must_use]
+    pub fn is_valid_preshared_key(preshared_key: &SecretStringWrapper) -> bool {
+        BASE64_STANDARD
+            .decode(preshared_key.expose_secret())
+            .is_ok_and(|key| key.len() == KEY_LENGTH)
+    }
+
+    pub async fn find_preshared_key<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> sqlx::Result<Option<SecretStringWrapper>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT preshared_key \"preshared_key: SecretStringWrapper\" FROM device WHERE id = $1",
+            device_id
+        )
+        .fetch_optional(executor)
+        .await
+        .map(Option::flatten)
+    }
+
+    pub async fn has_preshared_key<'e, E>(executor: E, device_id: Id) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM device WHERE id = $1 AND preshared_key IS NOT NULL) \
+            \"exists!\"",
+            device_id
+        )
+        .fetch_one(executor)
+        .await
+    }
+
+    pub async fn set_preshared_key<'e, E>(
+        &self,
+        executor: E,
+        preshared_key: Option<&SecretStringWrapper>,
+    ) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE device SET preshared_key = $2 WHERE id = $1",
+            self.id,
+            preshared_key.map(SecretStringWrapper::expose_secret),
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn preshared_keys_for_network<'e, E>(
+        executor: E,
+        network_id: Id,
+    ) -> sqlx::Result<HashMap<Id, SecretStringWrapper>>
+    where
+        E: PgExecutor<'e>,
+    {
+        let rows = query!(
+            "SELECT d.id, d.preshared_key \"preshared_key!: SecretStringWrapper\" \
+            FROM device d \
+            JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
+            WHERE wnd.wireguard_network_id = $1 AND d.preshared_key IS NOT NULL",
+            network_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| (row.id, row.preshared_key))
+            .collect())
     }
 
     pub async fn find_by_type<'e, E>(

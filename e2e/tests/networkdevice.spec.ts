@@ -17,6 +17,8 @@ const testKeys = {
   public: 'n4/imOLXU35yYkWNHvZk2RZfI3l1NwVd4bJsuhTuRzw=',
 };
 
+const testPresharedKey = 'oZFW7IISUedr8RLjI1On2ZoEg4RkCppwGu4BILPwj9Q=';
+
 const testNetwork: NetworkForm = {
   name: 'test devices',
   address: '10.10.10.1/24',
@@ -106,5 +108,45 @@ test.describe('Network devices', () => {
       name: deviceName + '2',
       description: deviceDesc,
     });
+  });
+
+  test('Manual WireGuard Client network device with preshared key', async ({
+    page,
+    browser,
+  }) => {
+    await waitForBase(page);
+    const providedConfig = await startNetworkDeviceEnrollment(browser, defaultUserAdmin, {
+      name: 'psk-provided',
+      pubKey: testKeys.public,
+      presharedKey: testPresharedKey,
+    });
+    expect(providedConfig).toContain(`PresharedKey = ${testPresharedKey}`);
+    const generatedConfig = await startNetworkDeviceEnrollment(
+      browser,
+      defaultUserAdmin,
+      {
+        name: 'psk-generated',
+        generatePresharedKey: true,
+      },
+    );
+    expect(generatedConfig).toMatch(/PresharedKey = [A-Za-z0-9+/]{43}=/);
+
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.network_devices);
+    const deviceRow = page.locator('.virtual-row').filter({ hasText: 'psk-provided' });
+    await deviceRow.locator('.icon-button').click();
+    await page.getByTestId('edit-network-device').click();
+    const modal = page.locator('#edit-network-device-modal');
+    await expect(modal).toContainText('A preshared key is set');
+    await modal.getByTestId('field-usePresharedKey').locator('.interactive').click();
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/device/network/') &&
+        response.request().method() === 'PUT',
+    );
+    await modal.getByRole('button', { name: 'Save changes' }).click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(200);
+    expect((await response.json()).preshared_key_set).toBe(false);
   });
 });
