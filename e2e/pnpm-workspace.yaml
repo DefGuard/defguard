@@ -1,0 +1,4 @@
+auditConfig:
+  ignoreGhsas:
+    # picomatch ReDoS via repeated extglobs, no patched release yet; only reached through dev tooling (eslint). Review by 2026-12-18.
+    - GHSA-fc5q-39xc-vjpf

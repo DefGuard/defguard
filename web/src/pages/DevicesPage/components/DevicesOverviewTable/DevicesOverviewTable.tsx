@@ -57,13 +57,12 @@ import {
   osIconSize,
   verificationText,
 } from '../../consts';
-import { platformIcon, systemText } from '../../helpers';
+import { platformIcon, platformText, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
 import { useEnterpriseTier } from '../../hooks/useEnterpriseTier';
 import { BlockedBadge } from '../BlockedBadge/BlockedBadge';
-import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
 import { DeviceDetailsDrawer } from '../DeviceDetailsDrawer/DeviceDetailsDrawer';
-import { UnknownBadge } from '../UnknownBadge/UnknownBadge';
+import { OnlineBadge } from '../OnlineBadge/OnlineBadge';
 import { DeviceNameButton } from './components/DeviceNameButton/DeviceNameButton';
 
 const columnHelper = createColumnHelper<DeviceOverview>();
@@ -71,11 +70,7 @@ const columnHelper = createColumnHelper<DeviceOverview>();
 const verificationContent = (verification: DeviceVerificationValue) => {
   switch (verification) {
     case DeviceVerification.Verified:
-      return (
-        <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-          {m.devices_verification_verified()}
-        </AppText>
-      );
+      return <MutedText text={m.devices_verification_verified()} />;
     case DeviceVerification.Pending:
       return (
         <Badge
@@ -86,7 +81,7 @@ const verificationContent = (verification: DeviceVerificationValue) => {
         />
       );
     case DeviceVerification.Unverified:
-      return null;
+      return <MutedText text={m.devices_verification_unverified()} />;
   }
 };
 
@@ -274,12 +269,25 @@ export const DevicesOverviewTable = () => {
           const isEnabled = info.getValue() === DeviceState.Enabled;
           return (
             <TableCell>
-              {isEnabled && (
-                <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-                  {m.state_enabled()}
-                </AppText>
-              )}
+              {isEnabled && <MutedText text={m.state_enabled()} />}
               {!isEnabled && <BlockedBadge />}
+            </TableCell>
+          );
+        },
+      }),
+      columnHelper.accessor('connected', {
+        header: m.devices_col_connection(),
+        enableSorting: false,
+        enableColumnFilter: true,
+        meta: { filterOptions: filterOptions.connection },
+        size: 140,
+        minSize: 120,
+        cell: (info) => {
+          const connected = info.getValue();
+          return (
+            <TableCell>
+              {connected && <OnlineBadge />}
+              {!connected && <MutedText text={m.devices_connection_offline()} />}
             </TableCell>
           );
         },
@@ -296,7 +304,11 @@ export const DevicesOverviewTable = () => {
               cell: (info) => {
                 const status = info.getValue();
                 if (!isPresent(status) || status === DeviceAttestationStatus.NotAttested)
-                  return <TableCell />;
+                  return (
+                    <TableCell>
+                      <MutedText text={m.devices_attestation_not_attested()} />
+                    </TableCell>
+                  );
                 const { text, variant } = attestationBadge[status];
                 return (
                   <TableCell>
@@ -316,7 +328,7 @@ export const DevicesOverviewTable = () => {
                 const verification = info.getValue();
                 return (
                   <TableCell>
-                    {isPresent(verification) && verificationContent(verification)}
+                    {verificationContent(verification ?? DeviceVerification.Unverified)}
                   </TableCell>
                 );
               },
@@ -333,16 +345,20 @@ export const DevicesOverviewTable = () => {
         minSize: 120,
         cell: (info) => {
           const osType = info.getValue();
+          if (!isPresent(osType))
+            return (
+              <TableCell>
+                <MutedText text={m.devices_unknown()} />
+              </TableCell>
+            );
           return (
             <TableCell>
-              {isPresent(osType) && (
-                <Icon
-                  icon={platformIcon(osType)}
-                  size={osIconSize}
-                  staticColor={ThemeVariable.FgNeutral}
-                />
-              )}
-              {!isPresent(osType) && <UnknownBadge />}
+              <Icon
+                icon={platformIcon(osType)}
+                size={osIconSize}
+                staticColor={ThemeVariable.FgNeutral}
+              />
+              <span>{platformText(osType)}</span>
             </TableCell>
           );
         },
@@ -360,7 +376,7 @@ export const DevicesOverviewTable = () => {
           if (!isPresent(osType))
             return (
               <TableCell>
-                <UnknownBadge />
+                <MutedText text={m.devices_unknown()} />
               </TableCell>
             );
           const osVersion = info.row.original.os_version;
@@ -386,7 +402,7 @@ export const DevicesOverviewTable = () => {
           return (
             <TableCell>
               {isPresent(clientVersion) && <span>{clientVersion}</span>}
-              {!isPresent(clientVersion) && <UnknownBadge />}
+              {!isPresent(clientVersion) && <MutedText text={m.devices_unknown()} />}
             </TableCell>
           );
         },
@@ -401,22 +417,6 @@ export const DevicesOverviewTable = () => {
           return (
             <TableCell>
               <span>{usersDisplay?.[info.getValue()]}</span>
-            </TableCell>
-          );
-        },
-      }),
-      columnHelper.accessor('connected', {
-        header: m.devices_col_connection(),
-        enableSorting: false,
-        enableColumnFilter: true,
-        meta: { filterOptions: filterOptions.connection },
-        size: 140,
-        minSize: 120,
-        cell: (info) => {
-          const connected = info.getValue();
-          return (
-            <TableCell>
-              <ConnectionBadge connected={connected} removeBackground={!connected} />
             </TableCell>
           );
         },
@@ -513,5 +513,13 @@ export const DevicesOverviewTable = () => {
         onClose={() => setSelectedDeviceId(null)}
       />
     </>
+  );
+};
+
+const MutedText = ({ text }: { text: string }) => {
+  return (
+    <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+      {text}
+    </AppText>
   );
 };

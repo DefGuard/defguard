@@ -118,6 +118,24 @@ tasks:
       - CI=true pnpm install
       - pnpm lint
 
+  audit:
+    desc: Audit dependencies with cargo deny, Trivy and pnpm audit
+    cmds:
+      - cargo deny check --hide-inclusion-graph
+      - >-
+        TRIVY_SHOW_SUPPRESSED=1 TRIVY_IGNOREFILE=./.trivyignore.yaml
+        trivy fs --exit-code 1 --ignore-unfixed --severity CRITICAL,HIGH,MEDIUM --scanners vuln .
+      - task: audit-pnpm
+        vars: { DIR: web }
+      - task: audit-pnpm
+        vars: { DIR: e2e }
+
+  audit-pnpm:
+    internal: true
+    dir: "{{.DIR}}"
+    cmds:
+      - pnpm audit
+
   fix-clippy:
     desc: Apply automatic clippy fixes with extra pedantic lints
     cmds:

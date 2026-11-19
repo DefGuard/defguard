@@ -191,6 +191,10 @@ pub enum ApiEventType {
         owner: User<Id>,
         device: Device<Id>,
     },
+    UserDeviceEnabled {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
     NetworkDeviceAdded {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
@@ -213,6 +217,10 @@ pub enum ApiEventType {
         location: WireguardNetwork<Id>,
     },
     NetworkDeviceBlocked {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    NetworkDeviceEnabled {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
     },

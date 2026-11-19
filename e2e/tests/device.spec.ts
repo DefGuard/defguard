@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
-import { apiCreateUser, apiGetUserProfile } from '../utils/api/users';
+import { apiCreateUser, apiGetUserDevices } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
 import { createDevice } from '../utils/controllers/vpn/createDevice';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
@@ -22,9 +22,7 @@ const testNetwork: NetworkForm = {
   port: '5055',
 };
 
-test.describe.skip('Add user device', () => {
-  // Skipped: devices field missing from user profile API response.
-  // https://github.com/DefGuard/defguard/issues/2606
+test.describe('Add user device', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
   const device_name = 'test';
   test.beforeEach(async ({ browser }) => {
@@ -53,9 +51,9 @@ test.describe.skip('Add user device', () => {
     await page.goto(
       routes.base + routes.profile + testUser.username + routes.tab.devices,
     );
-    const testUserProfile = await apiGetUserProfile(page, testUser.username);
-    expect(testUserProfile.devices.length).toBe(1);
-    expect(testUserProfile.devices[0].name).toBe(device_name);
+    const devices = await apiGetUserDevices(page, testUser.username);
+    expect(devices.length).toBe(1);
+    expect(devices[0].name).toBe(device_name);
   });
 
   test('Add test user device with provided public key', async ({ page, browser }) => {
@@ -65,9 +63,9 @@ test.describe.skip('Add user device', () => {
       pubKey: testKeys.public,
     });
     await loginBasic(page, testUser);
-    const testUserProfile = await apiGetUserProfile(page, testUser.username);
-    expect(testUserProfile.devices.length).toBe(1);
-    expect(testUserProfile.devices[0].name).toBe(device_name);
-    expect(testUserProfile.devices[0].wireguard_pubkey).toBe(testKeys.public);
+    const devices = await apiGetUserDevices(page, testUser.username);
+    expect(devices.length).toBe(1);
+    expect(devices[0].name).toBe(device_name);
+    expect(devices[0].wireguard_pubkey).toBe(testKeys.public);
   });
 });

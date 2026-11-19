@@ -18,8 +18,6 @@ const testNetwork: NetworkForm = {
   port: '5055',
 };
 
-// TODO: Enable when https://github.com/DefGuard/defguard/issues/2424 is fixed.
-
 test.describe('Create user and enroll him', () => {
   let token: string;
   const user: User = { ...testUserTemplate, username: 'test' };
@@ -31,7 +29,7 @@ test.describe('Create user and enroll him', () => {
     await createRegularLocation(browser, testNetwork);
   });
 
-  test.skip('Complete user enrollment via API', async ({ request, page }) => {
+  test('Complete user enrollment via API', async ({ request, page }) => {
     expect(token).toBeDefined();
     await apiEnrollmentStart(request, token);
     await apiEnrollmentActivateUser(request, user.password, '+48123456789');
@@ -42,7 +40,7 @@ test.describe('Create user and enroll him', () => {
     const response = await responsePromise;
     expect(response.ok()).toBeTruthy();
   });
-  test.skip('Try to complete disabled user enrollment via API', async ({
+  test('Try to complete disabled user enrollment via API', async ({
     page,
     request,
     browser,

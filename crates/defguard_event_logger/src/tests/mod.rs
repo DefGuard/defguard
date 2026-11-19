@@ -6,6 +6,7 @@ use defguard_common::db::{
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
         WebAuthn, WireguardNetwork,
+        device_identity::DeviceAttestationStatus,
         gateway::Gateway,
         group::Group,
         mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},
@@ -279,7 +280,7 @@ fn api_event_cases() -> Vec<EventTestCase> {
         device_type: DeviceType::User,
         description: None,
         configured: true,
-        attestation_status: Default::default(),
+        attestation_status: DeviceAttestationStatus::default(),
         attested_at: None,
         state: Default::default(),
         verification: Default::default(),
@@ -776,6 +777,16 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("Blocked"),
         },
         EventTestCase {
+            name: "UserDeviceEnabled",
+            message: api_message(ApiEventType::UserDeviceEnabled {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceEnabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Enabled"),
+        },
+        EventTestCase {
             name: "NetworkDeviceAdded",
             message: api_message(ApiEventType::NetworkDeviceAdded {
                 device: device.clone(),
@@ -835,6 +846,16 @@ fn api_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::NetworkDeviceBlocked,
             module: ActivityLogModule::Defguard,
             description_contains: Some("Blocked"),
+        },
+        EventTestCase {
+            name: "NetworkDeviceEnabled",
+            message: api_message(ApiEventType::NetworkDeviceEnabled {
+                device: device.clone(),
+                location: location.clone(),
+            }),
+            event_type: EventType::NetworkDeviceEnabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Enabled"),
         },
         EventTestCase {
             name: "ActivityLogStreamCreated",

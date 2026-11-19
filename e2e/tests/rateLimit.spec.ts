@@ -8,7 +8,7 @@ import {
 } from '@playwright/test';
 import { TOTP } from 'totp-generator';
 
-import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import { User } from '../types';
 import {
   apiCreateDevice,
@@ -25,12 +25,14 @@ import {
 } from '../utils/api/clientMfa';
 import { apiLogin } from '../utils/api/users';
 import { createUser } from '../utils/controllers/createUser';
+import { loginBasic } from '../utils/controllers/login';
 import { enableEmailMFA } from '../utils/controllers/mfa/enableEmail';
 import { enableTOTP } from '../utils/controllers/mfa/enableTOTP';
 import { setupSMTP } from '../utils/controllers/settings';
 import { endThrottleWindows } from '../utils/db/endThrottleWindows';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
+import { waitForRoute } from '../utils/waitForRoute';
 
 const LOGIN_LIMIT = 5;
 const SESSION_FAILED_ATTEMPT_CAP = 5;
@@ -39,6 +41,10 @@ const VPN_INITIATE_LIMIT = 20;
 
 const WRONG_CODE = '000000';
 const EMAIL_CODE_PERIOD = 300;
+
+const INVALID_LOGIN_MESSAGE = 'username or password is incorrect.';
+const INCORRECT_CODE_MESSAGE = 'Incorrect code. Please check and try again.';
+const TOO_MANY_ATTEMPTS_MESSAGE = 'Too many login attempts. Please try again later.';
 
 const mfaCode = async (secret: string, method: MfaMethod): Promise<string> => {
   const options =
@@ -107,18 +113,42 @@ test.describe('Rate limiting', () => {
     expect(await login(testUser.username, testUser.password)).toBe(200);
   });
 
-  for (const { name, enable, verifyPath, method } of [
+  test('Failed logins in the login form show an error, then the lock', async ({
+    page,
+    browser,
+  }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    const fieldError = page.locator('.field-error');
+
+    await loginBasic(page, { username: 'unknownuser', password: 'wrong' });
+    await expect(fieldError).toHaveText(INVALID_LOGIN_MESSAGE);
+
+    for (let i = 0; i < LOGIN_LIMIT; i++) {
+      await loginBasic(page, { username: testUser.username, password: 'wrong' });
+      await expect(fieldError).toHaveText(INVALID_LOGIN_MESSAGE);
+    }
+
+    await loginBasic(page, testUser);
+    await expect(page.getByText(TOO_MANY_ATTEMPTS_MESSAGE)).toBeVisible();
+    await expect(page.getByTestId('sign-in')).toBeDisabled();
+    await expect(page).toHaveURL(new RegExp(routes.auth.login));
+  });
+
+  for (const { name, enable, verifyPath, method, route } of [
     {
       name: 'TOTP',
       enable: enableTOTP,
       verifyPath: '/auth/totp/verify',
       method: MfaMethod.TOTP,
+      route: routes.auth.totp,
     },
     {
       name: 'email',
       enable: enableEmailMFA,
       verifyPath: '/auth/email/verify',
       method: MfaMethod.EMAIL,
+      route: routes.auth.email,
     },
   ]) {
     test(`Failed ${name} codes lock the web login and its password step until the window ends`, async ({
@@ -145,6 +175,36 @@ test.describe('Rate limiting', () => {
       await endThrottleWindows();
       expect(await login()).toBe(201);
       expect(await verify(await mfaCode(secret, method))).toBe(200);
+    });
+
+    test(`Failed ${name} codes on the MFA screen show an error until the login is locked`, async ({
+      page,
+      browser,
+    }) => {
+      await waitForBase(page);
+      await createUser(browser, testUser);
+      const { secret } = await enable(browser, testUser);
+      await loginBasic(page, testUser);
+      await waitForRoute(page, route);
+      const fieldError = page.locator('.field-error');
+
+      const submitCode = async (code: string): Promise<number> => {
+        await page.getByTestId('field-code').fill(code);
+        const response = page.waitForResponse(
+          (resp) => resp.url().endsWith(verifyPath) && resp.request().method() === 'POST',
+        );
+        await page.locator('[type="submit"]').click();
+        return (await response).status();
+      };
+
+      for (let i = 0; i < LOGIN_LIMIT; i++) {
+        expect(await submitCode(String(i).padStart(6, '0'))).toBe(401);
+        await expect(fieldError).toHaveText(INCORRECT_CODE_MESSAGE);
+      }
+
+      expect(await submitCode(await mfaCode(secret, method))).toBe(429);
+      await expect(fieldError).toHaveText(TOO_MANY_ATTEMPTS_MESSAGE);
+      await expect(page).toHaveURL(new RegExp(route));
     });
   }
 

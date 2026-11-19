@@ -10,7 +10,7 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
-use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
+use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams, SortOrder};
 #[cfg(feature = "openapi")]
 use crate::handlers::ApiErrorResponse;
 use crate::{
@@ -67,23 +67,6 @@ impl fmt::Display for SortKey {
             Self::Event => "event",
             Self::Module => "module::text",
             Self::Device => "device",
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default, Type)]
-#[serde(rename_all = "lowercase")]
-pub enum SortOrder {
-    Asc,
-    #[default]
-    Desc,
-}
-
-impl fmt::Display for SortOrder {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Asc => "ASC",
-            Self::Desc => "DESC",
         })
     }
 }

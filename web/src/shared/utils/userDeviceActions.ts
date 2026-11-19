@@ -18,15 +18,16 @@ export const userDeviceActions = {
   ): Promise<UserDeviceContext | null> => {
     try {
       const { data } = await api.user.getUser(username);
-      const device = data.devices.find(({ id }) => id === deviceId);
+      const { devices } = data.user;
+      const device = devices.find(({ id }) => id === deviceId);
       if (!device) {
         Snackbar.error(m.devices_load_error());
         return null;
       }
       return {
         device,
-        reservedNames: data.devices.map(({ name }) => name),
-        reservedPubkeys: data.devices.map(({ wireguard_pubkey }) => wireguard_pubkey),
+        reservedNames: devices.map(({ name }) => name),
+        reservedPubkeys: devices.map(({ wireguard_pubkey }) => wireguard_pubkey),
       };
     } catch (error) {
       Snackbar.error(m.devices_load_error());

@@ -307,6 +307,7 @@ enum BulkDeviceAction {
     Verify,
     RevokeVerification,
     Block,
+    Enable,
 }
 
 impl BulkDeviceAction {
@@ -331,6 +332,12 @@ impl BulkDeviceAction {
                 }
                 device.state = DeviceState::Blocked;
             }
+            Self::Enable => {
+                if device.state != DeviceState::Blocked {
+                    return false;
+                }
+                device.state = DeviceState::Enabled;
+            }
         }
         true
     }
@@ -349,6 +356,7 @@ impl BulkDeviceAction {
                         ApiEventType::UserDeviceVerificationRevoked { owner, device }
                     }
                     Self::Block => ApiEventType::UserDeviceBlocked { owner, device },
+                    Self::Enable => ApiEventType::UserDeviceEnabled { owner, device },
                 }))
             }
             DeviceType::Network => {
@@ -369,6 +377,7 @@ impl BulkDeviceAction {
                         ApiEventType::NetworkDeviceVerificationRevoked { device, location }
                     }
                     Self::Block => ApiEventType::NetworkDeviceBlocked { device, location },
+                    Self::Enable => ApiEventType::NetworkDeviceEnabled { device, location },
                 }))
             }
         }
@@ -489,6 +498,33 @@ pub(crate) async fn bulk_block_devices(
 
     appstate.send_multiple_gateway_commands(gateway_commands);
     info!("User {username} blocked {blocked_count} device(s)");
+    emit_events(&appstate, &context, events)?;
+
+    Ok(ApiResponse::default())
+}
+
+pub(crate) async fn bulk_enable_devices(
+    _role: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+    Json(data): Json<BulkDeviceOperationRequest>,
+) -> ApiResult {
+    let username = &session.user.username;
+    debug!("User {username} enabling {} device(s)", data.devices.len());
+    let mut transaction = appstate.pool.begin().await?;
+    let (enabled, events) =
+        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Enable).await?;
+    let enabled_count = enabled.len();
+    let mut gateway_commands = Vec::with_capacity(enabled_count);
+    for device in enabled {
+        let device_info = DeviceInfo::from_device(&mut *transaction, device).await?;
+        gateway_commands.push(GatewayCommand::DeviceCreated(device_info));
+    }
+    transaction.commit().await?;
+
+    appstate.send_multiple_gateway_commands(gateway_commands);
+    info!("User {username} enabled {enabled_count} device(s)");
     emit_events(&appstate, &context, events)?;
 
     Ok(ApiResponse::default())

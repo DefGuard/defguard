@@ -429,6 +429,33 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     assert_eq!(first_removed.network_info[0].network_id, network.id);
 
     let response = client
+        .post("/api/v1/device/bulk/enable")
+        .json(&json!({"devices": [first.id, verified.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    for id in [first.id, verified.id] {
+        let device = Device::find_by_id(pool, id).await.unwrap().unwrap();
+        assert_eq!(device.state, DeviceState::Enabled);
+    }
+    let second_after = Device::find_by_id(pool, second.id).await.unwrap().unwrap();
+    assert_eq!(second_after.state, DeviceState::Blocked);
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::UserDeviceEnabled { .. }
+    ));
+    let mut added_peers = Vec::new();
+    while let Ok(command) = gateway_rx.try_recv() {
+        if let GatewayCommand::DeviceCreated(device_info) = command {
+            added_peers.push(device_info);
+        }
+    }
+    assert_eq!(added_peers.len(), 1);
+    assert_eq!(added_peers[0].device.id, first.id);
+
+    let response = client
         .post("/api/v1/device/bulk/delete")
         .json(&json!({"devices": [first.id, Id::MAX]}))
         .send()

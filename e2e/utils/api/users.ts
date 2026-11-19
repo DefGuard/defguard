@@ -1,7 +1,7 @@
 import { APIRequestContext, Page } from '@playwright/test';
 
 import { testsConfig } from '../../config';
-import { ApiUser, ApiUserAuthKey, ApiUserProfile, User } from '../../types';
+import { ApiDevice, ApiUser, ApiUserAuthKey, ApiUserProfile, User } from '../../types';
 
 export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
   const url = testsConfig.CORE_BASE_URL + '/user';
@@ -25,6 +25,15 @@ export const apiGetUserProfile = async (
   });
   const userProfile = await response.json();
   return userProfile;
+};
+
+export const apiGetUserDevices = async (
+  page: Page,
+  username: string,
+): Promise<ApiDevice[]> => {
+  const url = testsConfig.CORE_BASE_URL + '/device/user/' + username;
+  const response = await page.request.get(url);
+  return await response.json();
 };
 
 export const apiGetMe = async (page: Page): Promise<ApiUser> => {
