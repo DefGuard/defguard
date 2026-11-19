@@ -162,9 +162,8 @@ async fn test_repair_rolls_back_updates_when_a_later_candidate_fails(
         .unwrap();
     query("CREATE FUNCTION repair_update_guard() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF nextval('repair_update_sequence') = 2 THEN RAISE EXCEPTION 'expected repair failure'; END IF; RETURN NEW; END; $$").execute(&pool).await.unwrap();
     query("CREATE TRIGGER repair_update_trigger BEFORE UPDATE OF ldap_rdn, ldap_user_path ON \"user\" FOR EACH ROW EXECUTE FUNCTION repair_update_guard()").execute(&pool).await.unwrap();
-    let error = match repair(&pool).await {
-        Ok(_) => panic!("repair should fail on its second update"),
-        Err(error) => error,
+    let Err(error) = repair(&pool).await else {
+        panic!("repair should fail on its second update");
     };
     assert!(error.to_string().contains("expected repair failure"));
     let values: Vec<(String, String)> = query_as("SELECT ldap_rdn, ldap_user_path FROM \"user\" WHERE username IN ('rollback_first', 'rollback_second') ORDER BY username").fetch_all(&pool).await.unwrap();
