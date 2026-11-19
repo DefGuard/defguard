@@ -2,6 +2,7 @@ pub mod acl;
 pub mod activity_log_stream;
 pub mod api_tokens;
 pub mod connection_event;
+pub mod device_attestation;
 pub(crate) mod device_overview;
 pub mod device_posture;
 pub mod enterprise_settings;

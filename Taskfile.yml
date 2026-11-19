@@ -39,6 +39,12 @@ tasks:
       - cargo run --locked --release -p defguard_fido_mds -- crates/defguard_core/src/enterprise/fido2/trusted_authenticators.json
       - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib fido2::attestation
 
+  tpm-ca:
+    desc: Regenerate the TPM manufacturer CA bundle from tpm-ca-certificates and Microsoft TrustedTpm.cab (needs cosign and osslsigncode)
+    cmds:
+      - cargo run --locked --release -p defguard_tpm_ca -- crates/defguard_core/src/enterprise/tpm/tpm_ca_certificates.json {{.CLI_ARGS}}
+      - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib enterprise::tpm
+
   move-tag:
     desc: "Move tag to current commit (task move-tag -- <TAG>)"
     vars:

@@ -133,6 +133,9 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  TpmCaCertificate,
+  TpmCaCertificatePem,
+  TpmCaCertificatesRequestParams,
   UpdateInfo,
   UpdateMfaFlowRequest,
   UploadCARequest,
@@ -479,6 +482,12 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
+  },
+  deviceAttestation: {
+    getCertificates: (params?: TpmCaCertificatesRequestParams) =>
+      fetchPage<TpmCaCertificate>('/device-attestation/certificates', params),
+    getCertificatePem: (sha256: string) =>
+      client.get<TpmCaCertificatePem>(`/device-attestation/certificates/${sha256}/pem`),
   },
   devicePosture: {
     addDevicePosture: (data: EditDevicePostureRequest) =>

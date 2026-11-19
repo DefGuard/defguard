@@ -1919,6 +1919,50 @@ export interface UserListParams extends PaginationParams {
   sort_order?: SortDirectionValue;
 }
 
+export const TpmCaKind = {
+  Root: 'root',
+  Intermediate: 'intermediate',
+} as const;
+
+export type TpmCaKindValue = (typeof TpmCaKind)[keyof typeof TpmCaKind];
+
+export const TpmCaSource = {
+  TpmCaCertificates: 'tpm-ca-certificates',
+  Microsoft: 'microsoft',
+  Defguard: 'defguard',
+} as const;
+
+export type TpmCaSourceValue = (typeof TpmCaSource)[keyof typeof TpmCaSource];
+
+export interface TpmCaCertificate {
+  kind: TpmCaKindValue;
+  vendor: string;
+  common_name: string;
+  organization: string | null;
+  subject: string;
+  issuer: string;
+  serial_number: string;
+  self_signed: boolean;
+  key_algorithm: string;
+  not_before: string;
+  not_after: string;
+  sha256: string;
+  spki_sha256: string;
+  sources: TpmCaSourceValue[];
+}
+
+export type TpmCaCertificateSortKey = 'name' | 'not_after';
+
+export interface TpmCaCertificatesRequestParams extends PaginationParams {
+  search?: string;
+  sort_by?: TpmCaCertificateSortKey;
+  sort_order?: SortDirectionValue;
+}
+
+export interface TpmCaCertificatePem {
+  pem: string;
+}
+
 export const ConnectionDirection = {
   Inbound: 'inbound',
   Outbound: 'outbound',
