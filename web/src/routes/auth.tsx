@@ -95,6 +95,12 @@ function RouteComponent() {
           }
           return;
         }
+        const forwardAuthRedirect = useAuth.getState().forwardAuthRedirect;
+        if (isPresent(forwardAuthRedirect)) {
+          useAuth.setState({ forwardAuthRedirect: undefined });
+          window.location.replace(forwardAuthRedirect);
+          return;
+        }
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);
           return;
