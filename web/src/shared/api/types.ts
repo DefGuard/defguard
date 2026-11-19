@@ -1360,6 +1360,7 @@ export const OpenIdProviderKind = {
   Okta: 'Okta',
   JumpCloud: 'JumpCloud',
   Zitadel: 'Zitadel',
+  Keycloak: 'Keycloak',
 } as const;
 
 export type OpenIdProviderKindValue =

@@ -21,6 +21,8 @@ import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { mfaAvailabilityInvalidateKey } from '../../../../shared/query';
 import {
+  externalProviderBaseUrlHelper,
+  externalProviderBaseUrlLabel,
   formatMicrosoftBaseUrl,
   jumpcloudRegionOptions,
   providerUsernameHandlingOptions,
@@ -196,8 +198,8 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 {(field) => (
                   <field.FormInput
                     required
-                    label={m.settings_openid_provider_label_base_url()}
-                    helper={m.settings_openid_provider_helper_base_url()}
+                    label={externalProviderBaseUrlLabel[provider]()}
+                    helper={externalProviderBaseUrlHelper[provider]()}
                   />
                 )}
               </form.AppField>

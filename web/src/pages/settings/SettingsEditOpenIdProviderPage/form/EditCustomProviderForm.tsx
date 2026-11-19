@@ -7,7 +7,11 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { providerUsernameHandlingOptions } from '../../../AddExternalOpenIdWizardPage/consts';
+import {
+  externalProviderBaseUrlHelper,
+  externalProviderBaseUrlLabel,
+  providerUsernameHandlingOptions,
+} from '../../../AddExternalOpenIdWizardPage/consts';
 import { editExternalProviderConfigSchema } from '../../../AddExternalOpenIdWizardPage/steps/AddExternalOpenIdDirectoryStep/forms/schemas';
 import type { EditProviderFormProps } from '../types';
 
@@ -68,8 +72,8 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_base_url()}
-                helper={m.settings_openid_provider_helper_base_url()}
+                label={externalProviderBaseUrlLabel[provider.kind]()}
+                helper={externalProviderBaseUrlHelper[provider.kind]()}
               />
             )}
           </form.AppField>

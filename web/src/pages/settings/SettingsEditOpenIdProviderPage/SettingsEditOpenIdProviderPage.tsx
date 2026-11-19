@@ -158,6 +158,13 @@ export const SettingsEditOpenIdProviderPage = () => {
           onDelete={() => handleDelete(formData.name)}
         />
       )}
+      {formData.name === OpenIdProviderKind.Keycloak && (
+        <EditCustomProviderForm
+          onSubmit={handleSubmit}
+          provider={formData}
+          onDelete={() => handleDelete(formData.name)}
+        />
+      )}
     </EditPage>
   );
 };

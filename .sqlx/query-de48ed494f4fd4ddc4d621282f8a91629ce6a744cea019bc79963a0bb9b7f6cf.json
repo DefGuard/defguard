@@ -18,7 +18,8 @@
                 "Microsoft",
                 "Okta",
                 "JumpCloud",
-                "Zitadel"
+                "Zitadel",
+                "Keycloak"
               ]
             }
           }
