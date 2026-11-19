@@ -1505,3 +1505,89 @@ fn test_device_network_info_debug_redacts_preshared_key_and_skips_serialization(
     assert!(!serialized.contains("preshared_key"));
     assert!(!serialized.contains("device-network-secret"));
 }
+
+#[sqlx::test]
+async fn test_static_preshared_key_is_withheld_in_posture_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let user = User::new(
+        "testuser",
+        Some("password"),
+        "Tester",
+        "Test",
+        "test@test.com",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let device = Device::new(
+        "network-device".into(),
+        "pubkey".into(),
+        user.id,
+        DeviceType::Network,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let static_preshared_key: SecretStringWrapper = "static-psk".to_owned().into();
+    device
+        .set_preshared_key(&pool, Some(&static_preshared_key))
+        .await
+        .unwrap();
+
+    let network = WireguardNetwork::default()
+        .try_set_address("10.1.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    assert!(!network.mfa_enabled);
+
+    let wireguard_network_device = WireguardNetworkDevice::new(
+        network.id,
+        device.id,
+        [IpAddr::from_str("10.1.1.2").unwrap()],
+    );
+    wireguard_network_device.insert(&pool).await.unwrap();
+
+    let runtime_info = wireguard_network_device
+        .to_device_network_info_runtime(&pool, &network)
+        .await
+        .unwrap();
+    assert_eq!(runtime_info.preshared_key, Some(static_preshared_key));
+
+    let posture_id: Id =
+        sqlx::query_scalar("INSERT INTO device_posture (name) VALUES ('posture') RETURNING id")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    sqlx::query("INSERT INTO device_posture_location (posture_id, location_id) VALUES ($1, $2)")
+        .bind(posture_id)
+        .bind(network.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let runtime_info = wireguard_network_device
+        .to_device_network_info_runtime(&pool, &network)
+        .await
+        .unwrap();
+    assert_eq!(runtime_info.preshared_key, None);
+
+    let device_info = DeviceInfo::from_device(&pool, device).await.unwrap();
+    assert_eq!(device_info.network_info[0].preshared_key, None);
+
+    assert!(
+        Device::preshared_keys_for_network(&pool, network.id)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}

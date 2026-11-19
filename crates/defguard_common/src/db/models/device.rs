@@ -203,8 +203,11 @@ impl DeviceInfo {
             "SELECT wnd.wireguard_network_id network_id, \
                 wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
                 CASE \
-                    WHEN NOT n.mfa_enabled THEN d.preshared_key \
-                    ELSE active_session.preshared_key \
+                    WHEN n.mfa_enabled THEN active_session.preshared_key \
+                    WHEN EXISTS ( \
+                        SELECT 1 FROM device_posture_location dpl WHERE dpl.location_id = n.id \
+                    ) THEN NULL::text \
+                    ELSE d.preshared_key \
                 END \"preshared_key?: _\", \
                 CASE \
                     WHEN NOT n.mfa_enabled THEN TRUE \
@@ -410,7 +413,8 @@ impl WireguardNetworkDevice {
             return Ok(self.to_device_network_info(network, active_session.as_ref(), None));
         }
 
-        let static_preshared_key = Device::find_preshared_key(executor, self.device_id).await?;
+        let static_preshared_key =
+            Device::find_static_preshared_key(executor, self.device_id, network.id).await?;
         Ok(self.to_device_network_info(network, None, static_preshared_key.as_ref()))
     }
 
@@ -915,6 +919,30 @@ impl Device<Id> {
         .map(Option::flatten)
     }
 
+    /// Static preshared keys are only used in locations without MFA and posture checks, since
+    /// those require a runtime preshared key from an authorized VPN session.
+    pub async fn find_static_preshared_key<'e, E>(
+        executor: E,
+        device_id: Id,
+        location_id: Id,
+    ) -> sqlx::Result<Option<SecretStringWrapper>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT preshared_key \"preshared_key: SecretStringWrapper\" FROM device \
+            WHERE id = $1 \
+                AND NOT EXISTS ( \
+                    SELECT 1 FROM device_posture_location WHERE location_id = $2 \
+                )",
+            device_id,
+            location_id
+        )
+        .fetch_optional(executor)
+        .await
+        .map(Option::flatten)
+    }
+
     pub async fn has_preshared_key<'e, E>(executor: E, device_id: Id) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
@@ -958,7 +986,11 @@ impl Device<Id> {
             "SELECT d.id, d.preshared_key \"preshared_key!: SecretStringWrapper\" \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
-            WHERE wnd.wireguard_network_id = $1 AND d.preshared_key IS NOT NULL",
+            WHERE wnd.wireguard_network_id = $1 \
+                AND d.preshared_key IS NOT NULL \
+                AND NOT EXISTS ( \
+                    SELECT 1 FROM device_posture_location WHERE location_id = $1 \
+                )",
             network_id
         )
         .fetch_all(executor)

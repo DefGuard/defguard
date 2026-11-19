@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, d.preshared_key \"preshared_key!: SecretStringWrapper\" FROM device d JOIN wireguard_network_device wnd ON wnd.device_id = d.id WHERE wnd.wireguard_network_id = $1 AND d.preshared_key IS NOT NULL",
+  "query": "SELECT d.id, d.preshared_key \"preshared_key!: SecretStringWrapper\" FROM device d JOIN wireguard_network_device wnd ON wnd.device_id = d.id WHERE wnd.wireguard_network_id = $1 AND d.preshared_key IS NOT NULL AND NOT EXISTS ( SELECT 1 FROM device_posture_location WHERE location_id = $1 )",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       true
     ]
   },
-  "hash": "786b8e9bdb9a1924dbbb3e1458e97837ce8f78151adcbe7bc2b0342fc42e2974"
+  "hash": "3365fe0f698930889517bdbaafe317062980955df4e61b4fd24a66bc746657ff"
 }
