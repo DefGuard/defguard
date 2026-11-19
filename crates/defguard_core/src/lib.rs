@@ -200,6 +200,10 @@ use crate::{
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
+    listener::{
+        HTTP1_HEADER_READ_TIMEOUT, HTTP2_KEEPALIVE_INTERVAL, HTTP2_KEEPALIVE_TIMEOUT,
+        keepalive_acceptor,
+    },
     location_management::{
         allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
     },
@@ -949,43 +953,40 @@ pub async fn run_web_server(
             .into_make_service_with_connect_info::<SocketAddr>();
 
         let mut server_task = tokio::spawn(async move {
-            // HTTP/2 keepalive detects dead peers, not responsive idle connections.
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
                 let tls_config =
                     RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
                         .await
                         .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
                 let mut server = axum_server::bind(addr)
-                    .acceptor(
-                        RustlsAcceptor::new(tls_config).acceptor(listener::keepalive_acceptor()),
-                    )
+                    .acceptor(RustlsAcceptor::new(tls_config).acceptor(keepalive_acceptor()))
                     .handle(handle_clone.clone());
                 server
                     .http_builder()
                     .http1()
-                    .header_read_timeout(Duration::from_secs(30));
+                    .header_read_timeout(HTTP1_HEADER_READ_TIMEOUT);
                 server
                     .http_builder()
                     .http2()
-                    .keep_alive_interval(Duration::from_secs(20))
-                    .keep_alive_timeout(Duration::from_secs(20));
+                    .keep_alive_interval(HTTP2_KEEPALIVE_INTERVAL)
+                    .keep_alive_timeout(HTTP2_KEEPALIVE_TIMEOUT);
                 server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))
             } else {
                 let mut server = axum_server::bind(addr)
-                    .acceptor(listener::keepalive_acceptor())
+                    .acceptor(keepalive_acceptor())
                     .handle(handle_clone);
                 server
                     .http_builder()
                     .http1()
-                    .header_read_timeout(Duration::from_secs(30));
+                    .header_read_timeout(HTTP1_HEADER_READ_TIMEOUT);
                 server
                     .http_builder()
                     .http2()
-                    .keep_alive_interval(Duration::from_secs(20))
-                    .keep_alive_timeout(Duration::from_secs(20));
+                    .keep_alive_interval(HTTP2_KEEPALIVE_INTERVAL)
+                    .keep_alive_timeout(HTTP2_KEEPALIVE_TIMEOUT);
                 server
                     .serve(app)
                     .await
