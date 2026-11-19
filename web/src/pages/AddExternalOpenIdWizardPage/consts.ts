@@ -118,15 +118,13 @@ export const externalProviderBaseUrlHelper: Record<
   Keycloak: m.settings_openid_provider_helper_keycloak_base_url,
 };
 
-export const externalProviderBaseUrlLabel: Record<
-  OpenIdProviderKindValue,
-  () => string
-> = {
-  Custom: m.settings_openid_provider_label_base_url,
-  Google: m.settings_openid_provider_label_base_url,
-  JumpCloud: m.settings_openid_provider_label_base_url,
-  Microsoft: m.settings_openid_provider_label_base_url,
-  Okta: m.settings_openid_provider_label_base_url,
-  Zitadel: m.settings_openid_provider_label_base_url,
-  Keycloak: m.settings_openid_provider_label_keycloak_base_url,
-};
+export const externalProviderBaseUrlLabel: Record<OpenIdProviderKindValue, () => string> =
+  {
+    Custom: m.settings_openid_provider_label_base_url,
+    Google: m.settings_openid_provider_label_base_url,
+    JumpCloud: m.settings_openid_provider_label_base_url,
+    Microsoft: m.settings_openid_provider_label_base_url,
+    Okta: m.settings_openid_provider_label_base_url,
+    Zitadel: m.settings_openid_provider_label_base_url,
+    Keycloak: m.settings_openid_provider_label_keycloak_base_url,
+  };
