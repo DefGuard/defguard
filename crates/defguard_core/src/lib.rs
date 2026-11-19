@@ -949,30 +949,43 @@ pub async fn run_web_server(
             .into_make_service_with_connect_info::<SocketAddr>();
 
         let mut server_task = tokio::spawn(async move {
+            // HTTP/2 keepalive detects dead peers, not responsive idle connections.
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
                 let tls_config =
                     RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
                         .await
                         .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
                 let mut server = axum_server::bind(addr)
-                    .acceptor(RustlsAcceptor::new(tls_config).acceptor(listener::KeepaliveAcceptor))
+                    .acceptor(
+                        RustlsAcceptor::new(tls_config).acceptor(listener::keepalive_acceptor()),
+                    )
                     .handle(handle_clone.clone());
-                listener::configure_http_builder(
-                    server.http_builder(),
-                    listener::ConnectionTimeouts::default(),
-                );
+                server
+                    .http_builder()
+                    .http1()
+                    .header_read_timeout(Duration::from_secs(30));
+                server
+                    .http_builder()
+                    .http2()
+                    .keep_alive_interval(Duration::from_secs(20))
+                    .keep_alive_timeout(Duration::from_secs(20));
                 server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))
             } else {
                 let mut server = axum_server::bind(addr)
-                    .acceptor(listener::KeepaliveAcceptor)
+                    .acceptor(listener::keepalive_acceptor())
                     .handle(handle_clone);
-                listener::configure_http_builder(
-                    server.http_builder(),
-                    listener::ConnectionTimeouts::default(),
-                );
+                server
+                    .http_builder()
+                    .http1()
+                    .header_read_timeout(Duration::from_secs(30));
+                server
+                    .http_builder()
+                    .http2()
+                    .keep_alive_interval(Duration::from_secs(20))
+                    .keep_alive_timeout(Duration::from_secs(20));
                 server
                     .serve(app)
                     .await

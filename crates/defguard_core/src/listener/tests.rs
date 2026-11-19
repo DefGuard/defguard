@@ -5,14 +5,13 @@ use std::{
 
 use axum::{Router, routing::get};
 use axum_server::{Handle, accept::Accept};
-use socket2::SockRef;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpSocket, TcpStream},
     time::timeout,
 };
 
-use super::{ConnectionTimeouts, KeepaliveAcceptor, configure_http_builder};
+use super::keepalive_acceptor;
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(1);
 const CLOSE_DEADLINE: Duration = Duration::from_secs(5);
@@ -24,16 +23,12 @@ async fn spawn_server() -> (SocketAddr, Handle<SocketAddr>) {
     let handle = Handle::new();
     let mut server = axum_server::from_tcp(listener)
         .unwrap()
-        .acceptor(KeepaliveAcceptor)
+        .acceptor(keepalive_acceptor())
         .handle(handle.clone());
-    configure_http_builder(
-        server.http_builder(),
-        ConnectionTimeouts {
-            http1_header_read: TEST_TIMEOUT,
-            http2_keepalive_interval: TEST_TIMEOUT,
-            http2_keepalive_timeout: TEST_TIMEOUT,
-        },
-    );
+    server
+        .http_builder()
+        .http1()
+        .header_read_timeout(TEST_TIMEOUT);
     let app = Router::new().route("/", get(|| async { "ok" }));
     tokio::spawn(server.serve(app.into_make_service()));
     handle.listening().await;
@@ -81,9 +76,13 @@ async fn test_accepted_connections_have_tcp_keepalive() {
         .await
         .unwrap();
     let (stream, _) = listener.accept().await.unwrap();
-    assert!(!SockRef::from(&stream).keepalive().unwrap());
+    let stream = stream.into_std().unwrap();
+    let socket = TcpSocket::from_std_stream(stream.try_clone().unwrap());
+    assert!(!socket.keepalive().unwrap());
+    let stream = TcpStream::from_std(stream).unwrap();
 
-    let (stream, ()) = KeepaliveAcceptor.accept(stream, ()).await.unwrap();
+    let (stream, ()) = keepalive_acceptor().accept(stream, ()).await.unwrap();
 
-    assert!(SockRef::from(&stream).keepalive().unwrap());
+    let socket = TcpSocket::from_std_stream(stream.into_std().unwrap());
+    assert!(socket.keepalive().unwrap());
 }
