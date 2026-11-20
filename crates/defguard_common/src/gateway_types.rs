@@ -86,6 +86,7 @@ pub enum Port {
 /// A single ACL-derived firewall rule to be enforced on a gateway.
 #[derive(Clone, Debug)]
 pub struct FirewallRule {
+    /// ACL rule ID, echoed back in connection events.
     pub id: Id,
     pub source_addrs: Vec<IpAddress>,
     pub destination_addrs: Vec<IpAddress>,
