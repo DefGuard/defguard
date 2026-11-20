@@ -61,4 +61,35 @@ describe('switching users', () => {
     ).toBeUndefined();
     queryClient.clear();
   });
+
+  it.each([
+    ['login', { user: { username: 'admin', is_admin: true } as User }],
+    [
+      'the MFA step',
+      { user: { username: 'admin', is_admin: true } as User, url: undefined },
+    ],
+  ])('redirects to the forward auth url after %s', async (_name, response) => {
+    const replace = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace });
+    vi.spyOn(api, 'getSessionInfo').mockResolvedValue({
+      data: { authorized: true, is_admin: true, active_wizard: null, username: 'admin' },
+    } as Awaited<ReturnType<typeof api.getSessionInfo>>);
+    const queryClient = new QueryClient();
+    useAuth.setState({ forwardAuthRedirect: 'https://whoami.example.com/path' });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        {createElement(Route.options.component as ComponentType)}
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      useAuth.getState().authSubject.next(response);
+    });
+
+    expect(replace).toHaveBeenCalledWith('https://whoami.example.com/path');
+    expect(useAuth.getState().forwardAuthRedirect).toBeUndefined();
+    vi.unstubAllGlobals();
+    queryClient.clear();
+  });
 });
