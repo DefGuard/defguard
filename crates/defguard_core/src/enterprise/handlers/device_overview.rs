@@ -130,6 +130,8 @@ pub(crate) struct DeviceOverviewRow {
     /// Public endpoint IP, not the VPN address.
     last_connected_ip: Option<String>,
     last_connected_location: Option<String>,
+    /// Whether any assigned location has a config the UI can show: no MFA and no posture checks.
+    config_available: bool,
 }
 
 /// Internal endpoint for the devices page, intentionally left out of the OpenAPI spec.
@@ -157,7 +159,13 @@ pub(crate) async fn list_devices_overview(
         u.id user_id, u.username, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
         COALESCE(s.connected, false) connected, s.last_connected_at, \
-        ls.endpoint last_connected_ip, ls.location_name last_connected_location ",
+        ls.endpoint last_connected_ip, ls.location_name last_connected_location, \
+        EXISTS ( \
+            SELECT 1 FROM wireguard_network_device wnd \
+            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
+            WHERE wnd.device_id = d.id AND NOT n.mfa_enabled \
+            AND n.id NOT IN (SELECT location_id FROM device_posture_location) \
+        ) config_available ",
     );
     query_builder.push(DEVICE_OVERVIEW_FROM).push(
         "LEFT JOIN LATERAL ( \

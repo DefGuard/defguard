@@ -1882,6 +1882,7 @@ export interface DeviceOverview {
   last_connected_at: string | null;
   last_connected_ip: string | null;
   last_connected_location: string | null;
+  config_available: boolean;
 }
 
 export const DevicePlatform = {
