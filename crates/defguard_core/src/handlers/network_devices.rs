@@ -15,10 +15,12 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, Settings, User, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
+            settings::SecretFieldChange,
             wireguard::{LocationMfaMode, NetworkAddressError},
         },
     },
-    utils::{SplitIp, split_ip},
+    secret::SecretStringWrapper,
+    utils::{SplitIp, deserialize_optional_field, split_ip},
 };
 use serde_json::json;
 use sqlx::PgConnection;
@@ -65,6 +67,7 @@ pub(crate) struct NetworkDeviceInfo {
     wireguard_pubkey: String,
     configured: bool,
     split_ips: Vec<SplitIp>,
+    preshared_key_set: bool,
 }
 
 impl NetworkDeviceInfo {
@@ -87,6 +90,7 @@ impl NetworkDeviceInfo {
                     device.name, network.name
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
+        let preshared_key_set = Device::has_preshared_key(&mut *transaction, device.id).await?;
         let split_ips = wireguard_device
             .wireguard_ips
             .iter()
@@ -117,6 +121,7 @@ impl NetworkDeviceInfo {
             },
             configured: device.configured,
             split_ips,
+            preshared_key_set,
         })
     }
 }
@@ -338,6 +343,18 @@ pub struct AddNetworkDevice {
     pub location_id: i64,
     pub assigned_ips: Vec<String>,
     pub wireguard_pubkey: String,
+    #[serde(default, skip_serializing)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    pub preshared_key: Option<SecretStringWrapper>,
+}
+
+fn validate_preshared_key(preshared_key: Option<&SecretStringWrapper>) -> Result<(), WebError> {
+    match preshared_key {
+        Some(preshared_key) if !Device::is_valid_preshared_key(preshared_key) => Err(
+            WebError::BadRequest("Preshared key must be a base64-encoded 32-byte key".to_owned()),
+        ),
+        _ => Ok(()),
+    }
 }
 
 #[derive(Serialize)]
@@ -556,6 +573,9 @@ pub struct StartNetworkDeviceSetup {
     description: Option<String>,
     location_id: i64,
     assigned_ips: Vec<String>,
+    #[serde(default, skip_serializing)]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    preshared_key: Option<SecretStringWrapper>,
 }
 
 impl From<NetworkAddressError> for WebError {
@@ -578,7 +598,7 @@ impl From<NetworkAddressError> for WebError {
             "enrollment_token": "yZbTsF0m9Xq7cVwPnR2Ld1Ku",
             "enrollment_url": "https://vpn.example.com/"
         })),
-        (status = 400, description = "Invalid IP assignment.", body = ApiErrorResponse, example = json!({"msg": "Invalid IP address"})),
+        (status = 400, description = "Invalid IP assignment or preshared key.", body = ApiErrorResponse, example = json!({"msg": "Invalid IP address"})),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Unable to start network device setup.", body = ApiErrorResponse, example = json!({"msg": "Internal server error"})),
@@ -615,6 +635,7 @@ pub(crate) async fn start_network_device_setup(
         "Identified network location with ID {} as {}",
         setup_start.location_id, network.name
     );
+    validate_preshared_key(setup_start.preshared_key.as_ref())?;
 
     let mut transaction = appstate.pool.begin().await?;
     let device = Device::new(
@@ -627,6 +648,11 @@ pub(crate) async fn start_network_device_setup(
     )
     .save(&mut *transaction)
     .await?;
+    if let Some(preshared_key) = &setup_start.preshared_key {
+        device
+            .set_preshared_key(&mut *transaction, Some(preshared_key))
+            .await?;
+    }
 
     debug!(
         "Created a new unconfigured network device {device_name} with ID {}",
@@ -853,6 +879,7 @@ pub(crate) async fn add_network_device(
 
     Device::validate_pubkey(&add_network_device.wireguard_pubkey)
         .map_err(WebError::PubkeyValidation)?;
+    validate_preshared_key(add_network_device.preshared_key.as_ref())?;
 
     // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
     if Device::find_by_pubkey(&appstate.pool, &add_network_device.wireguard_pubkey)
@@ -876,6 +903,11 @@ pub(crate) async fn add_network_device(
     )
     .save(&mut *transaction)
     .await?;
+    if let Some(preshared_key) = &add_network_device.preshared_key {
+        device
+            .set_preshared_key(&mut *transaction, Some(preshared_key))
+            .await?;
+    }
 
     let ips = add_network_device
         .assigned_ips
@@ -948,6 +980,20 @@ pub(crate) async fn add_network_device(
     Ok(ApiResponse::json(result, StatusCode::CREATED))
 }
 
+// Gateways keep the old key when a peer update carries none, so removal re-creates the peer.
+fn send_network_device_peer_update(
+    appstate: &AppState,
+    device_info: DeviceInfo,
+    preshared_key_removed: bool,
+) {
+    if preshared_key_removed {
+        appstate.send_gateway_command(GatewayCommand::DeviceDeleted(device_info.clone()));
+        appstate.send_gateway_command(GatewayCommand::DeviceCreated(device_info));
+    } else {
+        appstate.send_gateway_command(GatewayCommand::DeviceModified(device_info));
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ModifyNetworkDevice {
@@ -955,6 +1001,10 @@ pub struct ModifyNetworkDevice {
     description: Option<String>,
     #[cfg_attr(feature = "openapi", schema(value_type = Vec<String>))]
     assigned_ips: Vec<IpAddr>,
+    /// Omit to keep the current key, null to remove it.
+    #[serde(default, deserialize_with = "deserialize_optional_field")]
+    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    preshared_key: Option<Option<SecretStringWrapper>>,
 }
 
 /// Update a network device
@@ -988,6 +1038,9 @@ pub async fn modify_network_device(
     Json(data): Json<ModifyNetworkDevice>,
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
+    if let Some(preshared_key) = &data.preshared_key {
+        validate_preshared_key(preshared_key.as_ref())?;
+    }
     let mut transaction = appstate.pool.begin().await?;
     let mut device = Device::find_by_id(&mut *transaction, device_id)
         .await?
@@ -1016,6 +1069,18 @@ pub async fn modify_network_device(
     device.description = data.description;
     device.save(&mut *transaction).await?;
 
+    let preshared_key_before = Device::find_preshared_key(&mut *transaction, device.id).await?;
+    let preshared_key_after = match data.preshared_key {
+        Some(preshared_key) => {
+            device
+                .set_preshared_key(&mut *transaction, preshared_key.as_ref())
+                .await?;
+            preshared_key
+        }
+        None => preshared_key_before.clone(),
+    };
+    let preshared_key_removed = preshared_key_before.is_some() && preshared_key_after.is_none();
+
     // IP address has changed, so remove device from network and add it again with new IP address.
     if data.assigned_ips != *wireguard_network_device.wireguard_ips {
         device_network
@@ -1025,7 +1090,7 @@ pub async fn modify_network_device(
         wireguard_network_device.wireguard_ips = data.assigned_ips;
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
-        appstate.send_gateway_command(GatewayCommand::DeviceModified(device_info));
+        send_network_device_peer_update(&appstate, device_info, preshared_key_removed);
 
         // send firewall update event if ACLs are enabled
         if device_network.acl_enabled
@@ -1046,7 +1111,12 @@ pub async fn modify_network_device(
             wireguard_network_device.wireguard_ips,
             device_network.name
         );
+    } else if preshared_key_before != preshared_key_after {
+        let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
+        send_network_device_peer_update(&appstate, device_info, preshared_key_removed);
     }
+    let preshared_key_change =
+        SecretFieldChange::new("preshared_key", &preshared_key_before, &preshared_key_after);
     let network_device_info =
         NetworkDeviceInfo::from_device(device.clone(), &mut transaction).await?;
     transaction.commit().await?;
@@ -1057,6 +1127,7 @@ pub async fn modify_network_device(
             location: device_network,
             before,
             after: device,
+            preshared_key: preshared_key_change,
         }),
     })?;
     Ok(ApiResponse::json(network_device_info, StatusCode::OK))

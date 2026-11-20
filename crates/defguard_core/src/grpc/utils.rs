@@ -317,6 +317,9 @@ pub fn to_wire_device_config(
         ),
         posture_check_required: Some(device_config.posture_check_required),
         steps,
+        preshared_key: device_config
+            .preshared_key
+            .map(|preshared_key| preshared_key.expose_secret().to_owned()),
     })
 }
 

@@ -9,6 +9,7 @@ pub fn create_wireguard_config(
     network: &WireguardNetwork<Id>,
     wireguard_network_device: &WireguardNetworkDevice,
     allowed_ips: &[IpNetwork],
+    has_preshared_key: bool,
 ) -> String {
     let dns = match &network.dns {
         Some(dns) if !dns.is_empty() => format!("DNS = {dns}"),
@@ -28,6 +29,12 @@ pub fn create_wireguard_config(
         )
     };
 
+    let preshared_key_line = if has_preshared_key {
+        "PresharedKey = YOUR_PRESHARED_KEY\n"
+    } else {
+        ""
+    };
+
     format!(
         "[Interface]\n\
         PrivateKey = YOUR_PRIVATE_KEY\n\
@@ -36,6 +43,7 @@ pub fn create_wireguard_config(
         \n\
         [Peer]\n\
         PublicKey = {}\n\
+        {preshared_key_line}\
         {allowed_ips_line}\
         Endpoint = {}:{}\n\
         PersistentKeepalive = {}",

@@ -433,9 +433,9 @@ impl From<StepFinishError> for Status {
             StepFinishError::MissingBiometricChallenge | StepFinishError::Internal => {
                 Code::Internal
             }
-            StepFinishError::Event(e) => return Status::from(e),
+            StepFinishError::Event(e) => return Self::from(e),
         };
-        Status::new(code, err.to_string())
+        Self::new(code, err.to_string())
     }
 }
 

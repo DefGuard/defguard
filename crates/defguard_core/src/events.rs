@@ -10,6 +10,7 @@ use defguard_common::db::{
         mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlowSnapshot},
         oauth2client::OAuth2Client,
         proxy::Proxy,
+        settings::SecretFieldChange,
         vpn_client_mfa_session::MfaAttribution,
     },
 };
@@ -191,6 +192,7 @@ pub enum ApiEventType {
         before: Device<Id>,
         after: Device<Id>,
         location: WireguardNetwork<Id>,
+        preshared_key: SecretFieldChange,
     },
     ActivityLogStreamCreated {
         stream: ActivityLogStream<Id>,

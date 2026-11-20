@@ -11,6 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "CodeMfaSetupFinishResponse",
             "CoreRequest",
             "CoreResponse",
+            "DeviceConfig",
             "DeviceConfigResponse",
             "InstanceInfoResponse",
             "MfaCompleted",

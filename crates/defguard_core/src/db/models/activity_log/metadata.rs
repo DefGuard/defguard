@@ -110,6 +110,7 @@ pub struct NetworkDeviceModifiedMetadata {
     pub location: WireguardNetwork<Id>,
     pub before: Device<Id>,
     pub after: Device<Id>,
+    pub preshared_key: SecretFieldChange,
 }
 
 #[derive(Serialize)]

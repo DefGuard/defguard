@@ -28,6 +28,7 @@ import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppTe
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -44,7 +45,13 @@ import { formChangeLogic } from '../../../../shared/formLogic';
 import { patternValidWireguardKey } from '../../../../shared/patterns';
 import { downloadText } from '../../../../shared/utils/download';
 import { formatFileName } from '../../../../shared/utils/formatFileName';
+import { generatePresharedKey } from '../../../../shared/utils/generatePresharedKey';
 import { generateWGKeys } from '../../../../shared/utils/generateWGKeys';
+import {
+  PresharedKeyFields,
+  presharedKeyFieldNames,
+  refinePresharedKey,
+} from '../../components/PresharedKeyFields/PresharedKeyFields';
 
 const modalNameValue = ModalName.AddNetworkDevice;
 
@@ -61,6 +68,7 @@ interface ModalState {
   manualDevice?: AddNetworkDeviceResponse;
   cliDevice?: StartEnrollmentResponse;
   privateKey?: string;
+  presharedKey?: string;
 }
 
 interface StepProps {
@@ -74,6 +82,7 @@ const defaultModalState: ModalState = {
   initialAvailableIps: [],
   locationOptions: [],
   privateKey: undefined,
+  presharedKey: undefined,
   cliDevice: undefined,
   manualDevice: undefined,
 };
@@ -132,6 +141,7 @@ export const AddNetworkDeviceModal = () => {
             <ManualStep
               manualDevice={modalState.manualDevice}
               privateKey={modalState.privateKey}
+              presharedKey={modalState.presharedKey}
             />
           )}
         </>
@@ -143,7 +153,8 @@ export const AddNetworkDeviceModal = () => {
 const ManualStep = ({
   manualDevice,
   privateKey,
-}: Pick<ModalState, 'manualDevice' | 'privateKey'>) => {
+  presharedKey,
+}: Pick<ModalState, 'manualDevice' | 'privateKey' | 'presharedKey'>) => {
   const { writeToClipboard } = useClipboard();
   const config = useMemo(() => {
     if (!isPresent(manualDevice)) return null;
@@ -151,8 +162,11 @@ const ManualStep = ({
     if (isPresent(privateKey)) {
       res = res.replace('YOUR_PRIVATE_KEY', privateKey);
     }
+    if (isPresent(presharedKey)) {
+      res = res.replace('YOUR_PRESHARED_KEY', presharedKey);
+    }
     return res;
-  }, [manualDevice, privateKey]);
+  }, [manualDevice, privateKey, presharedKey]);
 
   if (!config || !manualDevice) return null;
 
@@ -314,8 +328,14 @@ const FormStep = ({
           ),
           generateKeys: z.boolean(),
           wireguard_pubkey: z.string().trim().nullable(),
+          usePresharedKey: z.boolean(),
+          generatePresharedKey: z.boolean(),
+          preshared_key: z.string().trim().nullable().optional(),
         })
         .superRefine((values, ctx) => {
+          if (values.usePresharedKey) {
+            refinePresharedKey(values, ctx);
+          }
           if (!values.generateKeys) {
             const result = z
               .string(m.form_error_required())
@@ -342,6 +362,9 @@ const FormStep = ({
       modifiableIpParts: initialAvailableIps.map((item) => item.modifiable_part),
       description: null,
       wireguard_pubkey: null,
+      usePresharedKey: false,
+      generatePresharedKey: true,
+      preshared_key: null,
     }),
     [initialAvailableIps],
   );
@@ -385,6 +408,12 @@ const FormStep = ({
         privateKey = keys.privateKey;
         publicKey = keys.publicKey;
       }
+      let presharedKey: string | undefined;
+      if (value.usePresharedKey) {
+        presharedKey = value.generatePresharedKey
+          ? generatePresharedKey()
+          : (value.preshared_key ?? undefined);
+      }
 
       if (useCli) {
         const { data: enrollment } = await startCli({
@@ -393,6 +422,7 @@ const FormStep = ({
           name: value.name,
           description: value.description,
           wireguard_pubkey: publicKey,
+          preshared_key: presharedKey,
         });
         setModalState({
           step: 'cli-finish',
@@ -405,11 +435,13 @@ const FormStep = ({
           name: value.name,
           description: value.description,
           wireguard_pubkey: publicKey,
+          preshared_key: presharedKey,
         });
         setModalState({
           step: 'show-config',
           manualDevice: createdDevice,
           privateKey,
+          presharedKey,
         });
       }
     },
@@ -536,6 +568,30 @@ const FormStep = ({
             )}
           </>
         )}
+        <SizedBox height={ThemeSpacing.Xl3} />
+        <form.AppField name="usePresharedKey">
+          {(field) => (
+            <field.FormInteractiveBlock
+              variant="toggle"
+              data-testid="field-usePresharedKey"
+              title={m.modal_network_device_psk_title()}
+              content={
+                useCli
+                  ? m.modal_network_device_psk_cli_content()
+                  : m.modal_network_device_psk_content()
+              }
+            >
+              <form.Subscribe selector={(s) => s.values.usePresharedKey}>
+                {(usePresharedKey) => (
+                  <Fold open={usePresharedKey}>
+                    <SizedBox height={ThemeSpacing.Lg} />
+                    <PresharedKeyFields form={form} fields={presharedKeyFieldNames} />
+                  </Fold>
+                )}
+              </form.Subscribe>
+            </field.FormInteractiveBlock>
+          )}
+        </form.AppField>
         <ModalControls
           cancelProps={{
             disabled: isSubmitting,

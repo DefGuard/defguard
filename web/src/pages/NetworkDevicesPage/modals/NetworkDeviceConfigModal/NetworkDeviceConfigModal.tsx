@@ -70,6 +70,16 @@ const ModalContent = ({ config, device }: ModalData) => {
         icon={IconKind.WarningOutlined}
         text={m.modal_user_device_config_warning()}
       />
+      {device.preshared_key_set && (
+        <>
+          <SizedBox height={ThemeSpacing.Md} />
+          <InfoBanner
+            variant="info"
+            icon={IconKind.InfoOutlined}
+            text={m.modal_network_device_config_psk_note()}
+          />
+        </>
+      )}
       <SizedBox height={ThemeSpacing.Xl2} />
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />
       <SizedBox height={ThemeSpacing.Xl2} />

@@ -1,6 +1,7 @@
 use defguard_common::{
     db::{Id, models::WireguardNetwork},
     gateway_types::WireguardPeer,
+    secret::SecretStringWrapper,
 };
 use sqlx::{PgConnection, query};
 
@@ -39,6 +40,7 @@ pub async fn get_location_allowed_peers(
     if !location.mfa_enabled && !has_postures {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
+                    d.preshared_key \"preshared_key: SecretStringWrapper\", \
                     ARRAY( \
                         SELECT host(ip) \
                         FROM unnest(wnd.wireguard_ips) AS ip \
@@ -60,7 +62,7 @@ pub async fn get_location_allowed_peers(
             .map(|row| WireguardPeer {
                 pubkey: row.pubkey,
                 allowed_ips: row.allowed_ips,
-                preshared_key: None,
+                preshared_key: row.preshared_key,
                 keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
             })
             .collect());
@@ -373,6 +375,77 @@ mod test {
         assert_eq!(peers.len(), 1);
         assert_eq!(peers[0].pubkey, "pubkey1");
         assert_eq!(peers[0].preshared_key, None);
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_includes_network_device_static_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let mut conn = setup_pool(options).await.acquire().await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&mut *conn)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.5.1.1/24")
+            .unwrap();
+        network.name = "non-mfa-location".to_owned();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.mfa_enabled = false;
+        let network = network.save(&mut *conn).await.unwrap();
+
+        for (index, preshared_key) in [Some("static-psk"), None].into_iter().enumerate() {
+            let device = Device::new(
+                format!("network-device-{index}"),
+                format!("pubkey-{index}"),
+                user.id,
+                DeviceType::Network,
+                None,
+                true,
+            )
+            .save(&mut *conn)
+            .await
+            .unwrap();
+            device
+                .set_preshared_key(&mut *conn, preshared_key.map(Into::into).as_ref())
+                .await
+                .unwrap();
+            WireguardNetworkDevice::new(
+                network.id,
+                device.id,
+                vec![IpAddr::from_str(&format!("10.5.1.{}", index + 2)).unwrap()],
+            )
+            .insert(&mut *conn)
+            .await
+            .unwrap();
+        }
+
+        let peers = get_location_allowed_peers(&network, &mut conn)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            peers
+                .iter()
+                .map(|peer| (
+                    peer.pubkey.as_str(),
+                    peer.preshared_key
+                        .as_ref()
+                        .map(SecretStringWrapper::expose_secret)
+                ))
+                .collect::<Vec<_>>(),
+            [("pubkey-0", Some("static-psk")), ("pubkey-1", None)]
+        );
     }
 
     #[sqlx::test]

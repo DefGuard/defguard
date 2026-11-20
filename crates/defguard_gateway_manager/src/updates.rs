@@ -86,7 +86,7 @@ impl<'a> GatewayUpdatesHandler<'a> {
             return Some(Peer {
                 pubkey: peer_pubkey,
                 allowed_ips,
-                preshared_key: None,
+                preshared_key: preshared_key.map(|key| key.expose_secret().to_owned()),
                 keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
             });
         }

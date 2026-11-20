@@ -18,8 +18,8 @@ use sqlx::{
 
 use super::support::{
     assert_error_response, clear_test_license, complete_proxy_handshake, create_device_for_user,
-    create_network, create_polling_token, create_user, create_user_with_device,
-    set_test_license_business,
+    create_network, create_network_device, create_polling_token, create_user,
+    create_user_with_device, set_test_license_business,
 };
 use crate::tests::common::HandlerTestContext;
 
@@ -193,6 +193,75 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
             other.as_ref().map(std::mem::discriminant)
         ),
     }
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+async fn poll_network_device_preshared_key(
+    context: &mut HandlerTestContext,
+    token: &str,
+) -> Option<String> {
+    context.mock_proxy().send_request(CoreRequest {
+        id: 11,
+        device_info: None,
+        payload: Some(core_request::Payload::InstanceInfo(
+            client_types::InstanceInfoRequest {
+                token: token.to_owned(),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let Some(core_response::Payload::InstanceInfo(info)) = response.payload else {
+        panic!("expected InstanceInfo response");
+    };
+    let mut configs = info
+        .device_config
+        .expect("InstanceInfoResponse should contain a DeviceConfigResponse")
+        .configs;
+    assert_eq!(configs.len(), 1);
+    configs.remove(0).preshared_key
+}
+
+#[sqlx::test]
+async fn test_polling_returns_network_device_preshared_key(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    const PRESHARED_KEY: &str = "oZFW7IISUedr8RLjI1On2ZoEg4RkCppwGu4BILPwj9Q=";
+
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let network = create_network(&context.pool).await;
+    let user = create_user(&context.pool).await;
+    let device = create_network_device(
+        &context.pool,
+        user.id,
+        &network,
+        "AA0aJzRBTltodYKPnKm2w9Dd6vcEER4rOEVSX2x5hpM=",
+        true,
+        Some(PRESHARED_KEY),
+    )
+    .await;
+    let token = create_polling_token(&context.pool, device.id).await;
+
+    assert_eq!(
+        poll_network_device_preshared_key(&mut context, &token)
+            .await
+            .as_deref(),
+        Some(PRESHARED_KEY)
+    );
+
+    device
+        .set_preshared_key(&context.pool, None)
+        .await
+        .expect("failed to remove preshared key");
+    assert_eq!(
+        poll_network_device_preshared_key(&mut context, &token).await,
+        None
+    );
 
     clear_test_license();
     context.finish().await.expect_server_finished().await;

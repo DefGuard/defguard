@@ -782,6 +782,7 @@ export interface NetworkDevice {
   configured: boolean;
   // when configured is false this will be empty
   wireguard_pubkey?: string;
+  preshared_key_set: boolean;
   location: {
     id: number;
     name: string;
@@ -828,6 +829,8 @@ export type EditNetworkDeviceRequest = {
   assigned_ips: string[];
   description?: string;
   name: string;
+  // omitted keeps the stored key, null removes it
+  preshared_key?: string | null;
 };
 
 export interface AddNetworkDeviceRequest {
@@ -836,6 +839,7 @@ export interface AddNetworkDeviceRequest {
   assigned_ips: string[];
   wireguard_pubkey?: string | null;
   description?: string | null;
+  preshared_key?: string | null;
 }
 
 export interface NetworkLocation {
