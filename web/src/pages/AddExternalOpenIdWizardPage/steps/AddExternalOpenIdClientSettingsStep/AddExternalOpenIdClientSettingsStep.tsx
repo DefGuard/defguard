@@ -17,13 +17,24 @@ import {
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { mfaAvailabilityInvalidateKey } from '../../../../shared/query';
 import {
+  ClientAuthMethodField,
+  ClientCertificateFields,
+  clientAuthMethodFieldNames,
+  clientCertificateFieldNames,
+} from '../../components/ClientCertificateFields/ClientCertificateFields';
+import {
+  ClientAuthMethod,
+  clientCredentialsPayload,
+  clientCredentialsSchema,
   formatMicrosoftBaseUrl,
   jumpcloudRegionOptions,
   providerUsernameHandlingOptions,
+  refineClientCertificate,
   validateExternalProviderWizard,
 } from '../../consts';
 import { useAddExternalOpenIdStore } from '../../useAddExternalOpenIdStore';
@@ -38,10 +49,14 @@ export const AddExternalOpenIdClientSettingsStep = () => {
   const storeData = useAddExternalOpenIdStore((s) => s.providerState);
   const provider = useAddExternalOpenIdStore((s) => s.provider);
   const next = useAddExternalOpenIdStore((s) => s.next);
+  const certificateError = useAddExternalOpenIdStore((s) => s.certificateError);
+  const clearCertificateError = () =>
+    useAddExternalOpenIdStore.setState({ certificateError: null });
 
   const { mutateAsync } = useMutation({
     mutationFn: validateExternalProviderWizard,
     onSuccess: (result) => {
+      if (result === null) return;
       if (typeof result === 'boolean') {
         useAddExternalOpenIdStore.setState({
           testResult: result,
@@ -75,10 +90,8 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             .string(m.form_error_required())
             .trim()
             .min(1, m.form_error_required()),
-          client_secret: z
-            .string(m.form_error_required())
-            .trim()
-            .min(1, m.form_error_required()),
+          client_secret: z.string().trim(),
+          ...clientCredentialsSchema.shape,
           display_name: z
             .string(m.form_error_required())
             .trim()
@@ -90,6 +103,18 @@ export const AddExternalOpenIdClientSettingsStep = () => {
           jumpcloud_region: z.enum(['us', 'eu', 'in']),
         })
         .superRefine((values, ctx) => {
+          if (
+            values.client_auth_method === ClientAuthMethod.Secret &&
+            values.client_secret.length === 0
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              continue: true,
+              message: m.form_error_required(),
+              path: ['client_secret'],
+            });
+          }
+          refineClientCertificate(values, ctx);
           if (provider === OpenIdProviderKind.Microsoft) {
             const schema = z
               .string(m.form_error_required())
@@ -116,6 +141,12 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       base_url: storeData.base_url,
       client_id: storeData.client_id,
       client_secret: storeData.client_secret ?? '',
+      client_auth_method:
+        isPresent(storeData.client_certificate) || isPresent(storeData.client_private_key)
+          ? ClientAuthMethod.Certificate
+          : ClientAuthMethod.Secret,
+      client_certificate: storeData.client_certificate ?? null,
+      client_private_key: storeData.client_private_key ?? null,
       create_account: storeData.create_account,
       disable_password_management: storeData.disable_password_management,
       display_name: storeData.display_name,
@@ -134,14 +165,16 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      clearCertificateError();
       if (provider === OpenIdProviderKind.JumpCloud) {
         value.base_url = jumpcloudBaseUrls[value.jumpcloud_region];
       }
+      const data = clientCredentialsPayload(value);
       if (supportedSyncProviders.has(provider)) {
-        next(value);
+        next(data);
       } else {
         const storeState = useAddExternalOpenIdStore.getState().providerState;
-        await mutateAsync({ ...storeState, ...value });
+        await mutateAsync({ ...storeState, ...data });
       }
     },
   });
@@ -203,7 +236,19 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               </form.AppField>
             </>
           )}
-          <SizedBox height={ThemeSpacing.Xl2} />
+          {provider === OpenIdProviderKind.Microsoft && (
+            <>
+              <SizedBox height={ThemeSpacing.Xl3} />
+              <ClientAuthMethodField form={form} fields={clientAuthMethodFieldNames} />
+            </>
+          )}
+          <SizedBox
+            height={
+              provider === OpenIdProviderKind.Microsoft
+                ? ThemeSpacing.Xl
+                : ThemeSpacing.Xl2
+            }
+          />
           <form.AppField name="client_id">
             {(field) => (
               <field.FormInput
@@ -214,17 +259,36 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="client_secret">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.settings_openid_provider_label_client_secret()}
-                type="password"
-                helper={m.settings_openid_provider_helper_client_secret()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.Subscribe selector={(s) => s.values.client_auth_method}>
+            {(authMethod) =>
+              authMethod === ClientAuthMethod.Secret ? (
+                <form.AppField name="client_secret">
+                  {(field) => (
+                    <field.FormInput
+                      required
+                      label={m.settings_openid_provider_label_client_secret()}
+                      type="password"
+                      helper={m.settings_openid_provider_helper_client_secret()}
+                    />
+                  )}
+                </form.AppField>
+              ) : (
+                <ClientCertificateFields
+                  form={form}
+                  fields={clientCertificateFieldNames}
+                  error={certificateError}
+                  onChange={clearCertificateError}
+                />
+              )
+            }
+          </form.Subscribe>
+          <SizedBox
+            height={
+              provider === OpenIdProviderKind.Microsoft
+                ? ThemeSpacing.Xl3
+                : ThemeSpacing.Xl2
+            }
+          />
           <form.AppField name="username_handling">
             {(field) => (
               <field.FormSelect

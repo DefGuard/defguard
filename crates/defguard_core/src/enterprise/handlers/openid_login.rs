@@ -43,6 +43,7 @@ use crate::handlers::ApiErrorResponse;
 use crate::{
     appstate::AppState,
     enterprise::{
+        client_assertion::{CLIENT_ASSERTION_TYPE, client_assertion},
         db::models::openid_provider::OpenIdProvider,
         directory_sync::{sync_user_groups_if_configured, user_in_directory_groups},
         ldap::utils::ldap_update_user_state,
@@ -230,13 +231,15 @@ pub async fn make_oidc_client(
 > {
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id.clone());
-    let client_secret = ClientSecret::new(provider.client_secret.expose_secret().to_owned());
-    let core_client = CoreClient::from_provider_metadata(
-        provider_metadata,
-        client_id.clone(),
-        Some(client_secret),
-    )
-    .set_redirect_uri(RedirectUrl::from_url(url));
+    // `user_from_claims` authenticates this provider with a client assertion, so the client
+    // must carry no secret.
+    let client_secret = provider
+        .client_private_key
+        .is_none()
+        .then(|| ClientSecret::new(provider.client_secret.expose_secret().to_owned()));
+    let core_client =
+        CoreClient::from_provider_metadata(provider_metadata, client_id.clone(), client_secret)
+            .set_redirect_uri(RedirectUrl::from_url(url));
 
     Ok((client_id, core_client))
 }
@@ -274,15 +277,30 @@ pub async fn user_from_claims(
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
     let async_http_client = get_async_http_client()?;
     // Exchange code for ID token.
-    let token_response = match core_client
-        .exchange_code(code)
-        .map_err(|err| {
-            error!("Failed to exchange code for ID token: {err}");
+    let mut token_request = core_client.exchange_code(code).map_err(|err| {
+        error!("Failed to exchange code for ID token: {err}");
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
+    if let (Some(cert), Some(key)) = (&provider.client_certificate, &provider.client_private_key) {
+        let token_url = core_client.token_uri().ok_or_else(|| {
+            error!("OpenID provider metadata has no token endpoint");
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
-        })?
-        .request_async(&async_http_client)
-        .await
-    {
+        })?;
+        let assertion = client_assertion(
+            &provider.client_id,
+            cert,
+            key.expose_secret(),
+            token_url.as_str(),
+        )
+        .map_err(|err| {
+            error!("Failed to sign OpenID client assertion: {err}");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
+        token_request = token_request
+            .add_extra_param("client_assertion_type", CLIENT_ASSERTION_TYPE)
+            .add_extra_param("client_assertion", assertion);
+    }
+    let token_response = match token_request.request_async(&async_http_client).await {
         Ok(token) => token,
         Err(err) => {
             return Err(WebError::Authorization(format!(

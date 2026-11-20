@@ -21,14 +21,28 @@
       border-radius: var(--radius-md);
       background-color: var(--bg-muted);
 
+      &.with-end {
+        grid-template-columns: 20px 1fr auto 20px;
+      }
+
       & > p {
         font: var(--t-body-sm-500);
-        color: var(--fg-default);
+        color: var(--fg-action);
         text-wrap: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
         max-width: 100%;
         text-align: left;
+      }
+
+      & > .row-end {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        column-gap: var(--spacing-xs);
+        font: var(--t-body-xs-400);
+        color: var(--fg-muted);
+        text-wrap: nowrap;
       }
 
       & > button {

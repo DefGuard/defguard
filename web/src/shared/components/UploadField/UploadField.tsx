@@ -20,9 +20,13 @@ export const UploadField = ({
   disabled,
   testId,
   title,
+  stored,
+  label,
+  icon = IconKind.Config,
+  rowEnd,
   onChange,
 }: UploadFieldProps) => {
-  const valuePresent = isPresent(value);
+  const valuePresent = isPresent(value) || stored === true;
   const { mutate, isPending } = useMutation({
     mutationFn: getFile,
     onSuccess: (result) => {
@@ -34,9 +38,10 @@ export const UploadField = ({
     <div data-testid={testId} className={clsx('upload-field', className)} id={id}>
       <div className="inner-track">
         {valuePresent && (
-          <div className="file-row">
-            <Icon staticColor={ThemeVariable.FgAction} icon={IconKind.Config} size={20} />
-            <p>{value.name}</p>
+          <div className={clsx('file-row', { 'with-end': isPresent(rowEnd) })}>
+            <Icon staticColor={ThemeVariable.FgAction} icon={icon} size={20} />
+            <p>{label ?? value?.name}</p>
+            {isPresent(rowEnd) && <div className="row-end">{rowEnd}</div>}
             <button
               className="delete"
               type="button"

@@ -1,20 +1,34 @@
 import { omit } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import { EditPageControls } from '../../../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../../../shared/components/EditPageFormSection/EditPageFormSection';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { joinCsv, toCsvArray } from '../../../../shared/utils/csv';
 import {
+  ClientAuthMethodField,
+  ClientCertificateFields,
+  clientAuthMethodFieldNames,
+  clientCertificateFieldNames,
+} from '../../../AddExternalOpenIdWizardPage/components/ClientCertificateFields/ClientCertificateFields';
+import {
+  ClientAuthMethod,
+  type ClientCertificateError,
+  clientCertificateError,
+  clientCredentialsPayload,
+  clientCredentialsSchema,
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
   formatMicrosoftBaseUrl,
   providerUsernameHandlingOptions,
+  refineClientCertificate,
 } from '../../../AddExternalOpenIdWizardPage/consts';
 import {
   editExternalProviderConfigSchema,
@@ -32,7 +46,8 @@ const basicSchema = z
     directory_sync_group_match: z.string().trim().nullable(),
     directory_sync_user_groups: z.string().trim().nullable(),
   })
-  .extend(omit(editExternalProviderConfigSchema.shape, ['base_url']));
+  .extend(omit(editExternalProviderConfigSchema.shape, ['base_url']))
+  .extend(clientCredentialsSchema.shape);
 
 const syncSchema = basicSchema.extend(microsoftProviderSyncSchema.shape);
 
@@ -45,6 +60,7 @@ const validationSchema = syncSchema
   .omit({ directory_sync_interval: true })
   .extend({ directory_sync_interval: z.number() })
   .superRefine((val, ctx) => {
+    refineClientCertificate(val, ctx);
     if (
       val.directory_sync_enabled &&
       (typeof val.directory_sync_interval !== 'number' ||
@@ -65,12 +81,21 @@ export const EditMicrosoftProviderForm = ({
   onDelete,
   onSubmit,
 }: EditProviderFormProps) => {
+  const [certificateError, setCertificateError] = useState<ClientCertificateError | null>(
+    null,
+  );
   const defaultValues = useMemo((): FormFields => {
     const urlParts = provider.base_url.split('/');
     const tenantId = urlParts[urlParts.length - 2] ?? '';
     return {
       client_id: provider.client_id,
-      client_secret: provider.client_secret_set ? undefined : '',
+      client_secret:
+        provider.client_secret_set || provider.client_certificate_set ? undefined : '',
+      client_auth_method: provider.client_certificate_set
+        ? ClientAuthMethod.Certificate
+        : ClientAuthMethod.Secret,
+      client_certificate: provider.client_certificate_set ? undefined : null,
+      client_private_key: provider.client_certificate_set ? undefined : null,
       create_account: provider.create_account,
       disable_password_management: provider.disable_password_management,
       display_name: provider.display_name,
@@ -98,14 +123,24 @@ export const EditMicrosoftProviderForm = ({
       onSubmit: validationSchema,
       onChange: validationSchema,
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       const base_url = formatMicrosoftBaseUrl(value.microsoftTenantId);
-      await onSubmit({
-        ...value,
-        base_url,
-        directory_sync_group_match: value.directory_sync_group_match ?? '',
-        directory_sync_user_groups: value.directory_sync_user_groups ?? '',
-      });
+      setCertificateError(null);
+      try {
+        await onSubmit({
+          ...clientCredentialsPayload(value),
+          base_url,
+          directory_sync_group_match: value.directory_sync_group_match ?? '',
+          directory_sync_user_groups: value.directory_sync_user_groups ?? '',
+        });
+      } catch (e) {
+        const error = clientCertificateError(e);
+        if (!isPresent(error)) throw e;
+        if (error.field === 'client_certificate') {
+          formApi.setFieldValue('client_certificate', null);
+        }
+        setCertificateError(error);
+      }
     },
   });
 
@@ -138,7 +173,20 @@ export const EditMicrosoftProviderForm = ({
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <ClientAuthMethodField
+            form={form}
+            fields={clientAuthMethodFieldNames}
+            onChange={(value) => {
+              form.setFieldValue(
+                'client_secret',
+                value === ClientAuthMethod.Secret && !provider.client_secret_set
+                  ? ''
+                  : undefined,
+              );
+            }}
+          />
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="client_id">
             {(field) => (
               <field.FormInput
@@ -149,17 +197,31 @@ export const EditMicrosoftProviderForm = ({
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="client_secret">
-            {(field) => (
-              <field.FormSecretInput
-                required
-                stored={provider.client_secret_set ?? false}
-                label={m.settings_openid_provider_label_client_secret()}
-                helper={m.settings_openid_provider_helper_client_secret()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.Subscribe selector={(s) => s.values.client_auth_method}>
+            {(authMethod) =>
+              authMethod === ClientAuthMethod.Secret ? (
+                <form.AppField name="client_secret">
+                  {(field) => (
+                    <field.FormSecretInput
+                      required
+                      stored={provider.client_secret_set ?? false}
+                      label={m.settings_openid_provider_label_client_secret()}
+                      helper={m.settings_openid_provider_helper_client_secret()}
+                    />
+                  )}
+                </form.AppField>
+              ) : (
+                <ClientCertificateFields
+                  form={form}
+                  fields={clientCertificateFieldNames}
+                  error={certificateError}
+                  onChange={() => setCertificateError(null)}
+                  expiry={provider.client_certificate_expiry}
+                />
+              )
+            }
+          </form.Subscribe>
+          <Divider spacing={ThemeSpacing.Xl2} />
           <form.AppField name="username_handling">
             {(field) => (
               <field.FormSelect

@@ -1015,6 +1015,8 @@ pub(crate) async fn create_oidc_provider(
         prefetch_users: false,
         disable_password_management: false,
         directory_sync_user_groups: None,
+        client_certificate: None,
+        client_private_key: None,
     }
     .save(pool)
     .await

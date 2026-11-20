@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, google_service_account_key \"google_service_account_key?: _\", google_service_account_email, admin_email, directory_sync_enabled,\n            directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", okta_private_jwk \"okta_private_jwk?: _\", okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key \"jumpcloud_api_key?: _\", prefetch_users, disable_password_management, directory_sync_user_groups FROM openidprovider WHERE name = $1",
+  "query": "SELECT id, \"name\",\"base_url\",\"kind\" \"kind: _\",\"client_id\",\"client_secret\" \"client_secret: _\",\"display_name\",\"google_service_account_key\" \"google_service_account_key?: _\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\",\"okta_private_jwk\" \"okta_private_jwk?: _\",\"okta_dirsync_client_id\",\"directory_sync_group_match\" \"directory_sync_group_match: _\",\"jumpcloud_api_key\" \"jumpcloud_api_key?: _\",\"prefetch_users\",\"disable_password_management\",\"directory_sync_user_groups\" \"directory_sync_user_groups?: _\",\"client_certificate\",\"client_private_key\" \"client_private_key?: _\" FROM \"openidprovider\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
       },
       {
         "ordinal": 3,
-        "name": "kind: OpenIdProviderKind",
+        "name": "kind: _",
         "type_info": {
           "Custom": {
             "name": "openid_provider_kind",
@@ -74,7 +74,7 @@
       },
       {
         "ordinal": 5,
-        "name": "client_secret",
+        "name": "client_secret: _",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -151,7 +151,7 @@
       },
       {
         "ordinal": 12,
-        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_user_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -173,7 +173,7 @@
       },
       {
         "ordinal": 13,
-        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_admin_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -195,7 +195,7 @@
       },
       {
         "ordinal": 14,
-        "name": "directory_sync_target: DirectorySyncTarget",
+        "name": "directory_sync_target: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_target",
@@ -239,7 +239,7 @@
       },
       {
         "ordinal": 17,
-        "name": "directory_sync_group_match",
+        "name": "directory_sync_group_match: _",
         "type_info": "TextArray",
         "origin": {
           "Table": {
@@ -283,7 +283,7 @@
       },
       {
         "ordinal": 21,
-        "name": "directory_sync_user_groups",
+        "name": "directory_sync_user_groups?: _",
         "type_info": "TextArray",
         "origin": {
           "Table": {
@@ -291,11 +291,34 @@
             "name": "directory_sync_user_groups"
           }
         }
+      },
+      {
+        "ordinal": 22,
+        "name": "client_certificate",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "openidprovider",
+            "name": "client_certificate"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "client_private_key?: _",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "openidprovider",
+            "name": "client_private_key"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -320,8 +343,10 @@
       true,
       false,
       false,
+      true,
+      true,
       true
     ]
   },
-  "hash": "947e582ac133cd33281dc9c31f5fa8bb1bc31b4e4b500d561e0708caa51fa118"
+  "hash": "ca5bcef694302c34b82be74d031d7b40254c0a31c4f2ee327478c13d95d7c41a"
 }
