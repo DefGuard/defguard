@@ -164,9 +164,7 @@ pub(crate) async fn list_devices_overview(
             SELECT 1 FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             WHERE wnd.device_id = d.id AND NOT n.mfa_enabled \
-            AND NOT EXISTS ( \
-                SELECT 1 FROM device_posture_location dpl WHERE dpl.location_id = n.id \
-            ) \
+            AND n.id NOT IN (SELECT location_id FROM device_posture_location) \
         ) config_available ",
     );
     query_builder.push(DEVICE_OVERVIEW_FROM).push(

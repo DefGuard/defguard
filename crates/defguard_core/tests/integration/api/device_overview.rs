@@ -169,6 +169,21 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     let body: Value = response.json().await;
     assert_eq!(body["data"][0]["config_available"], false);
 
+    network.mfa_enabled = false;
+    network.save(&client_state.pool).await.unwrap();
+    sqlx::query(
+        "WITH posture AS (INSERT INTO device_posture (name) VALUES ('posture') RETURNING id) \
+        INSERT INTO device_posture_location (posture_id, location_id) \
+        SELECT id, $1 FROM posture",
+    )
+    .bind(network.id)
+    .execute(&client_state.pool)
+    .await
+    .unwrap();
+    let response = client.get("/api/v1/device/overview").send().await;
+    let body: Value = response.json().await;
+    assert_eq!(body["data"][0]["config_available"], false);
+
     let response = client
         .get("/api/v1/device/overview?search=LAPTOP&page=1&per_page=1")
         .send()
