@@ -191,35 +191,34 @@ export const useDeviceActions = () => {
         if (context) action(context);
       };
 
-      return [
+      const items: MenuItemProps[] = [
         {
-          items: [
-            {
-              text: m.controls_edit(),
-              icon: 'edit',
-              testId: 'device-edit-device',
-              onClick: withContext((context) =>
-                userDeviceActions.openEdit(username, context),
-              ),
-            },
-            {
-              text: m.profile_devices_menu_ip_settings(),
-              icon: 'gateway',
-              testId: 'assign-device-ip',
-              onClick: withContext(({ device }) =>
-                userDeviceActions.openIpSettings(username, device),
-              ),
-            },
-            {
-              text: m.profile_devices_menu_show_config(),
-              icon: 'config',
-              testId: 'device-show-config',
-              onClick: withContext(({ device }) => userDeviceActions.openConfig(device)),
-            },
-          ],
+          text: m.controls_edit(),
+          icon: 'edit',
+          testId: 'device-edit-device',
+          onClick: withContext((context) =>
+            userDeviceActions.openEdit(username, context),
+          ),
         },
-        ...actionGroups,
+        {
+          text: m.profile_devices_menu_ip_settings(),
+          icon: 'gateway',
+          testId: 'assign-device-ip',
+          onClick: withContext(({ device }) =>
+            userDeviceActions.openIpSettings(username, device),
+          ),
+        },
       ];
+      if (device.config_available) {
+        items.push({
+          text: m.profile_devices_menu_show_config(),
+          icon: 'config',
+          testId: 'device-show-config',
+          onClick: withContext(({ device }) => userDeviceActions.openConfig(device)),
+        });
+      }
+
+      return [{ items }, ...actionGroups];
     },
     [getMenuItems],
   );
