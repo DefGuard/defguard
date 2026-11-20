@@ -25,6 +25,7 @@ import { TransferText } from '../../shared/components/TransferText/TransferText'
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { DateInput } from '../../shared/defguard-ui/components/DateInput/DateInput';
 import type { DateRange } from '../../shared/defguard-ui/components/DateInput/types';
+import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -343,6 +344,11 @@ export const TrafficLogsTable = ({
     },
   });
 
+  const isFiltered =
+    search.trim() !== '' ||
+    isPresent(dateRange) ||
+    columnFilters.some(({ value }) => Array.isArray(value) && value.length > 0);
+
   return (
     <>
       <TableTop text={m.traffic_table_title()}>
@@ -371,6 +377,20 @@ export const TrafficLogsTable = ({
         onNextPage={onNextPage}
         loadingNextPage={loadingNextPage}
       />
+      {data.length === 0 &&
+        (isFiltered ? (
+          <EmptyStateFlexible
+            icon="search"
+            title={m.search_empty_common_title()}
+            subtitle={m.search_empty_common_subtitle()}
+          />
+        ) : (
+          <EmptyStateFlexible
+            icon="log"
+            title={m.traffic_empty_title()}
+            subtitle={m.traffic_empty_subtitle()}
+          />
+        ))}
     </>
   );
 };
