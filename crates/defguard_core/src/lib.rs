@@ -19,7 +19,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use axum_extra::extract::cookie::Key;
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server::tls_rustls::{RustlsAcceptor, RustlsConfig};
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
@@ -200,6 +200,10 @@ use crate::{
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
+    listener::{
+        HTTP1_HEADER_READ_TIMEOUT, HTTP2_KEEPALIVE_INTERVAL, HTTP2_KEEPALIVE_TIMEOUT,
+        keepalive_acceptor,
+    },
     location_management::{
         allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
     },
@@ -219,6 +223,7 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod letsencrypt;
+mod listener;
 pub mod location_management;
 pub mod log_file;
 pub mod mail;
@@ -953,14 +958,36 @@ pub async fn run_web_server(
                     RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
                         .await
                         .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
-                axum_server::bind_rustls(addr, tls_config)
-                    .handle(handle_clone.clone())
+                let mut server = axum_server::bind(addr)
+                    .acceptor(RustlsAcceptor::new(tls_config).acceptor(keepalive_acceptor()))
+                    .handle(handle_clone.clone());
+                server
+                    .http_builder()
+                    .http1()
+                    .header_read_timeout(HTTP1_HEADER_READ_TIMEOUT);
+                server
+                    .http_builder()
+                    .http2()
+                    .keep_alive_interval(HTTP2_KEEPALIVE_INTERVAL)
+                    .keep_alive_timeout(HTTP2_KEEPALIVE_TIMEOUT);
+                server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))
             } else {
-                axum_server::bind(addr)
-                    .handle(handle_clone)
+                let mut server = axum_server::bind(addr)
+                    .acceptor(keepalive_acceptor())
+                    .handle(handle_clone);
+                server
+                    .http_builder()
+                    .http1()
+                    .header_read_timeout(HTTP1_HEADER_READ_TIMEOUT);
+                server
+                    .http_builder()
+                    .http2()
+                    .keep_alive_interval(HTTP2_KEEPALIVE_INTERVAL)
+                    .keep_alive_timeout(HTTP2_KEEPALIVE_TIMEOUT);
+                server
                     .serve(app)
                     .await
                     .map_err(|err| anyhow!("Web server error: {err}"))

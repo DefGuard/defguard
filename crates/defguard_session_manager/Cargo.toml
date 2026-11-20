@@ -18,7 +18,7 @@ tracing.workspace = true
 strum.workspace = true
 
 [dev-dependencies]
-# TODO: remove this dependency once gateway events are moved
+# Integration tests use enterprise device posture models from core.
 defguard_core.workspace = true
 ipnetwork.workspace = true
 
