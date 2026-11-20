@@ -53,12 +53,23 @@ struct LastStatsUpdate {
 }
 
 impl LastStatsUpdate {
-    /// Checks if the next peer stats update is valid.
+    /// Checks if the next peer stats update is valid and returns its transfer change
+    /// (upload, download) since this update.
     ///
     /// This includes following checks:
     /// - new update was collected after previous
-    /// - transfer values are not decreased
-    fn validate_update(&self, new_update: &PeerStatsUpdate) -> Result<(), SessionManagerError> {
+    /// - latest handshake is not older
+    /// - transfer values are not decreased, unless the counters were reset
+    ///
+    /// Gateway transfer counters restart at zero when the gateway re-creates the peer, e.g. after
+    /// a gateway restart or an interface reconfiguration. A re-created peer has to handshake
+    /// again, and the gateway does not report peers before their first handshake, so a reset
+    /// always comes with a newer handshake. Lower counters with a newer handshake are therefore
+    /// counted as a reset; lower counters with the same handshake are out of order.
+    fn transfer_change(
+        &self,
+        new_update: &PeerStatsUpdate,
+    ) -> Result<(i64, i64), SessionManagerError> {
         if new_update.collected_at < self.collected_at {
             return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
         }
@@ -67,13 +78,21 @@ impl LastStatsUpdate {
             return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
         }
 
-        if (new_update.upload as i64) < self.total_upload
-            || (new_update.download as i64) < self.total_download
-        {
+        let upload = new_update.upload as i64;
+        let download = new_update.download as i64;
+        if upload < self.total_upload || download < self.total_download {
+            if new_update.latest_handshake > self.latest_handshake {
+                debug!(
+                    "Peer transfer counters decreased with a newer handshake, treating them as \
+                    reset: upload {} -> {upload}, download {} -> {download}",
+                    self.total_upload, self.total_download
+                );
+                return Ok((upload, download));
+            }
             return Err(SessionManagerError::PeerStatsUpdateOutOfOrderError);
         }
 
-        Ok(())
+        Ok((upload - self.total_upload, download - self.total_download))
     }
 }
 
@@ -167,14 +186,8 @@ impl SessionState {
         let (upload_diff, download_diff) =
             match self.try_get_last_stats_update(peer_stats_update.gateway_id) {
                 Some(last_stats_update) => {
-                    // validate current update against latest value
-                    last_stats_update.validate_update(&peer_stats_update)?;
-
-                    // calculate transfer change
-                    (
-                        peer_stats_update.upload as i64 - last_stats_update.total_upload,
-                        peer_stats_update.download as i64 - last_stats_update.total_download,
-                    )
+                    // validate current update against latest value and calculate transfer change
+                    last_stats_update.transfer_change(&peer_stats_update)?
                 }
                 None => (0, 0),
             };

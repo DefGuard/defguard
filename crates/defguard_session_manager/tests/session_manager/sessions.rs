@@ -533,6 +533,8 @@ async fn test_out_of_order_peer_updates_are_discarded(_: PgPoolOptions, options:
     let _ = harness.run_iteration().await;
     assert_eq!(count_session_stats(&pool, session.id).await, 1);
 
+    // Lower counters without a new handshake are not a counter reset: re-creating a peer always
+    // forces one. The reset case is covered in `test_counter_reset_with_newer_handshake_is_accepted`.
     harness.send_stats(build_stats_update(
         location.id,
         gateway.id,
@@ -541,7 +543,7 @@ async fn test_out_of_order_peer_updates_are_discarded(_: PgPoolOptions, options:
         endpoint,
         90,
         190,
-        base_time + TimeDelta::seconds(3),
+        base_time,
     ));
     let _ = harness.run_iteration().await;
     assert_eq!(count_session_stats(&pool, session.id).await, 1);
