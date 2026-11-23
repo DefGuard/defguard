@@ -4,7 +4,7 @@ import type { FormInputProps } from '../../defguard-ui/components/Input/types';
 import { useFormFieldError } from '../../defguard-ui/hooks/useFormFieldError';
 import { useFieldContext } from '../../form-context';
 
-type Props = Pick<FormInputProps, 'label' | 'helper' | 'required'> & {
+type Props = Pick<FormInputProps, 'label' | 'helper' | 'required' | 'disabled'> & {
   stored: boolean;
 };
 

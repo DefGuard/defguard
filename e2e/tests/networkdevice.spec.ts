@@ -137,7 +137,7 @@ test.describe('Network devices', () => {
     await deviceRow.locator('.icon-button').click();
     await page.getByTestId('edit-network-device').click();
     const modal = page.locator('#edit-network-device-modal');
-    await expect(modal).toContainText('A preshared key is set');
+    await expect(modal.getByTestId('field-preshared_key')).toBeVisible();
     await modal.getByTestId('field-usePresharedKey').locator('.interactive').click();
     const responsePromise = page.waitForResponse(
       (response) =>

@@ -29,6 +29,8 @@ import { DownloadButton } from '../../../../shared/components/DownloadButton/Dow
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
+import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
@@ -474,23 +476,25 @@ const FormStep = ({
         />
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="fields">
-          <Select
-            options={locationOptions}
-            value={selected}
-            onChange={handleLocationChange}
-            label={m.form_label_location()}
-            helper={m.form_helper_location()}
-            required
-          />
-          <form.AppField name="name">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.form_label_device_name()}
-                helper={m.form_helper_device_name()}
-              />
-            )}
-          </form.AppField>
+          <EvenSplit parts={2}>
+            <Select
+              options={locationOptions}
+              value={selected}
+              onChange={handleLocationChange}
+              label={m.form_label_location()}
+              helper={m.form_helper_location()}
+              required
+            />
+            <form.AppField name="name">
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.form_label_device_name()}
+                  helper={m.form_helper_device_name()}
+                />
+              )}
+            </form.AppField>
+          </EvenSplit>
           <form.AppField name="description">
             {(field) => (
               <field.FormInput
@@ -516,7 +520,6 @@ const FormStep = ({
             }
           </form.AppField>
         </div>
-        {/* Gen options only for manual flow */}
         {!useCli && (
           <>
             <SizedBox height={ThemeSpacing.Xl3} />
@@ -555,9 +558,10 @@ const FormStep = ({
                 </form.AppField>
               </>
             )}
+            <Divider spacing={ThemeSpacing.Xl} />
           </>
         )}
-        <SizedBox height={ThemeSpacing.Xl3} />
+        {useCli && <SizedBox height={ThemeSpacing.Xl} />}
         <form.AppField name="usePresharedKey">
           {(field) => (
             <field.FormInteractiveBlock
