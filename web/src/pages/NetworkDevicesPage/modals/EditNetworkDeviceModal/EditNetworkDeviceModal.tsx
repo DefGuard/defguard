@@ -17,27 +17,19 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../shared/api/api';
 import type { NetworkDevice } from '../../../../shared/api/types';
 import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
-import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { EvenSplit } from '../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
 import type { SelectSingleValue } from '../../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { generatePresharedKey } from '../../../../shared/utils/generatePresharedKey';
-import {
-  PresharedKeyFields,
-  presharedKeyFieldNames,
-  refinePresharedKey,
-} from '../../components/PresharedKeyFields/PresharedKeyFields';
+import { refinePresharedKey } from '../../components/PresharedKeyFields/PresharedKeyFields';
 
 const modalNameValue = ModalName.EditNetworkDevice;
 
@@ -76,7 +68,6 @@ export const EditNetworkDeviceModal = () => {
 
 type PresharedKeyFormValues = {
   usePresharedKey: boolean;
-  replacePresharedKey: boolean;
   generatePresharedKey: boolean;
   preshared_key?: string | null;
 };
@@ -85,9 +76,9 @@ const isPresharedKeyChanged = (
   device: NetworkDevice,
   values: PresharedKeyFormValues,
 ): boolean => {
-  return (
-    values.usePresharedKey && (!device.preshared_key_set || values.replacePresharedKey)
-  );
+  if (!values.usePresharedKey) return false;
+  const keyTyped = (values.preshared_key?.trim().length ?? 0) > 0;
+  return values.generatePresharedKey || !device.preshared_key_set || keyTyped;
 };
 
 const presharedKeyRequestValue = (
@@ -100,7 +91,7 @@ const presharedKeyRequestValue = (
   if (!isPresharedKeyChanged(device, values)) return undefined;
   return values.generatePresharedKey
     ? generatePresharedKey()
-    : (values.preshared_key ?? undefined);
+    : values.preshared_key?.trim();
 };
 
 const ModalContent = ({ device, reservedNames }: ModalData) => {
@@ -134,7 +125,6 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
             z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
           ),
           usePresharedKey: z.boolean(),
-          replacePresharedKey: z.boolean(),
           generatePresharedKey: z.boolean(),
           preshared_key: z.string().trim().nullable().optional(),
         })
@@ -154,9 +144,8 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       description: device.description ?? null,
       modifiableIpParts: device.split_ips.map((item) => item.modifiable_part),
       usePresharedKey: device.preshared_key_set,
-      replacePresharedKey: false,
-      generatePresharedKey: true,
-      preshared_key: null,
+      generatePresharedKey: false,
+      preshared_key: device.preshared_key_set ? undefined : null,
     }),
     [device],
   );
@@ -228,29 +217,30 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
           form.handleSubmit();
         }}
       >
-        <Select
-          label={m.form_label_location()}
-          helper={m.form_helper_location()}
-          value={locationOption}
-          options={[locationOption]}
-          onChange={() => {}}
-          required
-          disabled
-        />
         <form.AppForm>
-          <form.AppField name="name">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.form_label_device_name()}
-                helper={m.form_helper_device_name()}
-              />
-            )}
-          </form.AppField>
+          <EvenSplit parts={2}>
+            <Select
+              label={m.form_label_location()}
+              helper={m.form_helper_location()}
+              value={locationOption}
+              options={[locationOption]}
+              onChange={() => {}}
+              required
+              disabled
+            />
+            <form.AppField name="name">
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.form_label_device_name()}
+                  helper={m.form_helper_device_name()}
+                />
+              )}
+            </form.AppField>
+          </EvenSplit>
           <form.AppField name="description">
             {(field) => (
               <field.FormInput
-                required
                 label={m.form_label_description()}
                 helper={m.form_helper_description()}
               />
@@ -272,7 +262,6 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
               ))
             }
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="usePresharedKey">
             {(field) => (
               <field.FormInteractiveBlock
@@ -281,45 +270,42 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                 title={m.modal_network_device_psk_title()}
                 content={m.modal_network_device_psk_content()}
               >
-                <form.Subscribe selector={(s) => s.values.usePresharedKey}>
-                  {(usePresharedKey) => (
+                <form.Subscribe
+                  selector={(s) => ({
+                    usePresharedKey: s.values.usePresharedKey,
+                    generatePresharedKey: s.values.generatePresharedKey,
+                    keyChanged: isPresharedKeyChanged(device, s.values),
+                  })}
+                >
+                  {({ usePresharedKey, generatePresharedKey, keyChanged }) => (
                     <Fold open={usePresharedKey}>
                       <SizedBox height={ThemeSpacing.Lg} />
-                      {device.preshared_key_set && (
-                        <>
-                          <AppText
-                            font={TextStyle.TBodySm400}
-                            color={ThemeVariable.FgMuted}
-                          >
-                            {m.modal_network_device_psk_set()}
-                          </AppText>
-                          <SizedBox height={ThemeSpacing.Lg} />
-                          <form.AppField name="replacePresharedKey">
-                            {(field) => (
-                              <field.FormCheckbox
-                                text={m.modal_network_device_psk_replace()}
-                              />
-                            )}
-                          </form.AppField>
-                        </>
-                      )}
-                      <form.Subscribe selector={(s) => s.values.replacePresharedKey}>
-                        {(replacePresharedKey) => (
-                          <Fold open={!device.preshared_key_set || replacePresharedKey}>
-                            <SizedBox height={ThemeSpacing.Lg} />
-                            <PresharedKeyFields
-                              form={form}
-                              fields={presharedKeyFieldNames}
-                            />
-                          </Fold>
+                      <form.AppField name="preshared_key">
+                        {(field) => (
+                          <field.FormSecretInput
+                            required
+                            stored={device.preshared_key_set}
+                            disabled={generatePresharedKey}
+                            label={m.form_label_preshared_key()}
+                          />
                         )}
-                      </form.Subscribe>
+                      </form.AppField>
                       <SizedBox height={ThemeSpacing.Lg} />
-                      <InfoBanner
-                        variant="warning"
-                        icon={IconKind.WarningOutlined}
-                        text={m.modal_network_device_psk_edit_warning()}
-                      />
+                      <form.AppField name="generatePresharedKey">
+                        {(field) => (
+                          <field.FormCheckbox
+                            text={m.modal_network_device_psk_generate_new()}
+                          />
+                        )}
+                      </form.AppField>
+                      <Fold open={keyChanged}>
+                        <SizedBox height={ThemeSpacing.Xl} />
+                        <InfoBanner
+                          variant="warning"
+                          icon={IconKind.WarningOutlined}
+                          text={m.modal_network_device_psk_edit_warning()}
+                        />
+                      </Fold>
                     </Fold>
                   )}
                 </form.Subscribe>
@@ -330,14 +316,11 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
             <form.Subscribe selector={(s) => s.values.usePresharedKey}>
               {(usePresharedKey) =>
                 !usePresharedKey && (
-                  <>
-                    <SizedBox height={ThemeSpacing.Lg} />
-                    <InfoBanner
-                      variant="warning"
-                      icon={IconKind.WarningOutlined}
-                      text={m.modal_network_device_psk_remove_warning()}
-                    />
-                  </>
+                  <InfoBanner
+                    variant="warning"
+                    icon={IconKind.WarningOutlined}
+                    text={m.modal_network_device_psk_remove_warning()}
+                  />
                 )
               }
             </form.Subscribe>

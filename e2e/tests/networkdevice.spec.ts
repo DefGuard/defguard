@@ -134,19 +134,56 @@ test.describe('Network devices', () => {
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.network_devices);
     const deviceRow = page.locator('.virtual-row').filter({ hasText: 'psk-provided' });
-    await deviceRow.locator('.icon-button').click();
-    await page.getByTestId('edit-network-device').click();
     const modal = page.locator('#edit-network-device-modal');
-    await expect(modal).toContainText('A preshared key is set');
-    await modal.getByTestId('field-usePresharedKey').locator('.interactive').click();
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/api/v1/device/network/') &&
-        response.request().method() === 'PUT',
+    const openEditModal = async () => {
+      await deviceRow.locator('.icon-button').click();
+      await page.getByTestId('edit-network-device').click();
+      await expect(modal.getByTestId('field-preshared_key')).toBeVisible();
+    };
+    const saveChanges = async () => {
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/v1/device/network/') &&
+          response.request().method() === 'PUT',
+      );
+      await modal.getByRole('button', { name: 'Save changes' }).click();
+      const response = await responsePromise;
+      expect(response.status()).toBe(200);
+      return {
+        request: response.request().postDataJSON(),
+        device: await response.json(),
+      };
+    };
+
+    await openEditModal();
+    const untouched = await saveChanges();
+    expect(untouched.request).not.toHaveProperty('preshared_key');
+    expect(untouched.device.preshared_key_set).toBe(true);
+    await expect(modal).toBeHidden();
+
+    const replacementKey = 'k6V0JY0n8jXkhs1xMkRqTqJbE1hYyRnQbRUx5vtcO2s=';
+    await openEditModal();
+    await modal.getByTestId('field-preshared_key').fill(`  ${replacementKey}  `);
+    const replaced = await saveChanges();
+    expect(replaced.request.preshared_key).toBe(replacementKey);
+    expect(replaced.device.preshared_key_set).toBe(true);
+    await expect(modal).toBeHidden();
+
+    await openEditModal();
+    await modal.getByTestId('field-generatePresharedKey').click();
+    const generated = await saveChanges();
+    expect(generated.request.preshared_key).toMatch(/^[A-Za-z0-9+/]{43}=$/);
+    expect(generated.request.preshared_key).not.toBe(replacementKey);
+    await expect(modal.locator('.copy-field')).toContainText(
+      generated.request.preshared_key,
     );
-    await modal.getByRole('button', { name: 'Save changes' }).click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(200);
-    expect((await response.json()).preshared_key_set).toBe(false);
+    await modal.getByTestId('finish').click();
+    await expect(modal).toBeHidden();
+
+    await openEditModal();
+    await modal.getByTestId('field-usePresharedKey').locator('.interactive').click();
+    const removed = await saveChanges();
+    expect(removed.request.preshared_key).toBeNull();
+    expect(removed.device.preshared_key_set).toBe(false);
   });
 });
