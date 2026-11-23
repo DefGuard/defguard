@@ -6,7 +6,6 @@ use defguard_common::db::{
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, DeviceType, MFAMethod, Settings, User,
         WebAuthn, WireguardNetwork,
-        device_identity::DeviceAttestationStatus,
         gateway::Gateway,
         group::Group,
         mfa_flow::{LocationMfaFlowAssignmentSnapshot, MfaFlow, MfaFlowSnapshot, MfaFlowStep},

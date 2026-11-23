@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 RETURNING id, name, wireguard_pubkey, user_id, created, description, device_type AS \"device_type: DeviceType\", configured, attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at",
+  "query": "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 RETURNING id, name, wireguard_pubkey, user_id, created, description, device_type AS \"device_type: DeviceType\", configured, attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at, state AS \"state: _\", verification AS \"verification: _\"",
   "describe": {
     "columns": [
       {
@@ -135,6 +135,49 @@
             "name": "attested_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "verification: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification",
+            "kind": {
+              "Enum": [
+                "verified",
+                "unverified",
+                "pending"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "verification"
+          }
+        }
       }
     ],
     "parameters": {
@@ -167,8 +210,10 @@
       false,
       false,
       false,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "0e470a8c9b8deff9e89ea3540f02eefc27595f4d8228937fcecf7ad0d4e86440"
+  "hash": "23fee3560511c273b9750a58a8d326b4ff18b4aebf4d87384f4d8a1bf2413368"
 }
