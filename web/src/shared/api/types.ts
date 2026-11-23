@@ -1,4 +1,5 @@
 import type { MigrationWizardStepValue } from '../../pages/MigrationWizardPage/types';
+import type { PolicyOsVariant } from '../components/SystemSelector/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -392,7 +393,6 @@ export interface SecurityKey {
 
 export type UserProfileResponse = {
   user: User;
-  devices: Device[];
   security_keys: SecurityKey[];
   biometric_enabled_devices: number[];
 };
@@ -1147,7 +1147,6 @@ export interface SettingsEssentials {
   nav_logo_url: string;
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
-  worker_enabled: boolean;
   openid_enabled: boolean;
 }
 
@@ -1252,7 +1251,6 @@ export interface SettingsModules {
   openid_enabled: boolean;
   wireguard_enabled: boolean;
   webhooks_enabled: boolean;
-  worker_enabled: boolean;
 }
 
 export interface SettingsBranding {
@@ -1362,6 +1360,7 @@ export const OpenIdProviderKind = {
   Okta: 'Okta',
   JumpCloud: 'JumpCloud',
   Zitadel: 'Zitadel',
+  Keycloak: 'Keycloak',
 } as const;
 
 export type OpenIdProviderKindValue =
@@ -1841,6 +1840,77 @@ export type ActivityLogRequestParams = Partial<ActivityLogFilters> & {
   sort_order?: SortDirectionValue;
 } & PaginationParams;
 
+export const DeviceState = {
+  Enabled: 'enabled',
+  Blocked: 'blocked',
+} as const;
+
+export type DeviceStateValue = (typeof DeviceState)[keyof typeof DeviceState];
+
+export const DeviceVerification = {
+  Verified: 'verified',
+  Unverified: 'unverified',
+  Pending: 'pending',
+} as const;
+
+export type DeviceVerificationValue =
+  (typeof DeviceVerification)[keyof typeof DeviceVerification];
+
+export const DeviceAttestationStatus = {
+  NotAttested: 'not_attested',
+  Attested: 'attested',
+  Unrecognized: 'unrecognized',
+  AttestedManually: 'attested_manually',
+  AttestationFailed: 'attestation_failed',
+} as const;
+
+export type DeviceAttestationStatusValue =
+  (typeof DeviceAttestationStatus)[keyof typeof DeviceAttestationStatus];
+
+export interface DeviceOverview {
+  id: number;
+  name: string;
+  state: DeviceStateValue;
+  verification: DeviceVerificationValue | null;
+  attestation_status: DeviceAttestationStatusValue | null;
+  user_id: number;
+  username: string;
+  os_type: PolicyOsVariant | null;
+  os_version: string | null;
+  client_version: string | null;
+  connected: boolean;
+  last_connected_at: string | null;
+  last_connected_ip: string | null;
+  last_connected_location: string | null;
+  config_available: boolean;
+}
+
+export const DevicePlatform = {
+  Desktop: 'desktop',
+  Mobile: 'mobile',
+  Unknown: 'unknown',
+} as const;
+
+export type DevicePlatformValue = (typeof DevicePlatform)[keyof typeof DevicePlatform];
+
+export const deviceSystemUnknown = 'unknown';
+
+export type DeviceSystemFilterValue = PolicyOsVariant | typeof deviceSystemUnknown;
+
+export type DeviceOverviewSortKey = 'name' | 'user';
+
+export interface DeviceOverviewListParams extends PaginationParams {
+  search?: string;
+  sort_by?: DeviceOverviewSortKey;
+  sort_order?: SortDirectionValue;
+  state?: DeviceStateValue[];
+  verification?: DeviceVerificationValue[];
+  attestation_status?: DeviceAttestationStatusValue[];
+  platform?: DevicePlatformValue[];
+  system?: DeviceSystemFilterValue[];
+  connected?: boolean;
+}
+
 export interface UserListParams extends PaginationParams {
   groups?: string[];
   no_group?: boolean;
@@ -1848,3 +1918,129 @@ export interface UserListParams extends PaginationParams {
   sort_by?: UserSortKey;
   sort_order?: SortDirectionValue;
 }
+
+export const TpmCaKind = {
+  Root: 'root',
+  Intermediate: 'intermediate',
+} as const;
+
+export type TpmCaKindValue = (typeof TpmCaKind)[keyof typeof TpmCaKind];
+
+export const TpmCaSource = {
+  TpmCaCertificates: 'tpm-ca-certificates',
+  Microsoft: 'microsoft',
+  Defguard: 'defguard',
+} as const;
+
+export type TpmCaSourceValue = (typeof TpmCaSource)[keyof typeof TpmCaSource];
+
+export interface TpmCaCertificate {
+  kind: TpmCaKindValue;
+  vendor: string;
+  common_name: string;
+  organization: string | null;
+  subject: string;
+  issuer: string;
+  serial_number: string;
+  self_signed: boolean;
+  key_algorithm: string;
+  not_before: string;
+  not_after: string;
+  sha256: string;
+  spki_sha256: string;
+  sources: TpmCaSourceValue[];
+}
+
+export type TpmCaCertificateSortKey = 'name' | 'not_after';
+
+export interface TpmCaCertificatesRequestParams extends PaginationParams {
+  search?: string;
+  sort_by?: TpmCaCertificateSortKey;
+  sort_order?: SortDirectionValue;
+}
+
+export interface TpmCaCertificatePem {
+  pem: string;
+}
+
+export const ConnectionDirection = {
+  Inbound: 'inbound',
+  Outbound: 'outbound',
+} as const;
+
+export type ConnectionDirectionValue =
+  (typeof ConnectionDirection)[keyof typeof ConnectionDirection];
+
+export const ConnectionStatus = {
+  Allowed: 'allowed',
+  Blocked: 'blocked',
+} as const;
+
+export type ConnectionStatusValue =
+  (typeof ConnectionStatus)[keyof typeof ConnectionStatus];
+
+/** Traffic flow reported by a Gateway. */
+export interface ConnectionEvent {
+  id: number;
+  timestamp: string;
+  direction: ConnectionDirectionValue;
+  status: ConnectionStatusValue;
+  /** IANA protocol number. */
+  protocol: number;
+  source_ip: string;
+  source_port: number | null;
+  destination_ip: string;
+  destination_port: number | null;
+  location_id: number;
+  location_name: string;
+  gateway_id: number;
+  /** Null if the Gateway has been deleted. */
+  gateway_name: string | null;
+  /** Null if the default policy applied. */
+  rule_id: number | null;
+  /** Null if no rule matched or the rule has been deleted. */
+  rule_name: string | null;
+  device_id: number | null;
+  device_name: string | null;
+  /** Bytes sent by the VPN device. */
+  upload_bytes: number;
+  /** Bytes received by the VPN device. */
+  download_bytes: number;
+  /** Number of aggregated packets. */
+  count: number;
+}
+
+export interface ConnectionEventFilterOption {
+  id: number;
+  name: string;
+  /** Disambiguates options sharing a name: location of a Gateway, owner of a device. */
+  context: string | null;
+}
+
+export interface ConnectionEventFilterOptions {
+  locations: ConnectionEventFilterOption[];
+  gateways: ConnectionEventFilterOption[];
+  rules: ConnectionEventFilterOption[];
+  devices: ConnectionEventFilterOption[];
+}
+
+export type ConnectionEventSortKey =
+  | 'timestamp'
+  | 'upload_bytes'
+  | 'download_bytes'
+  | 'count';
+
+export type ConnectionEventRequestParams = {
+  from?: string;
+  until?: string;
+  status?: ConnectionStatusValue[];
+  direction?: ConnectionDirectionValue[];
+  protocol?: number[];
+  location?: number[];
+  gateway?: number[];
+  rule?: number[];
+  device?: number[];
+  search?: string;
+  sort_by?: ConnectionEventSortKey;
+  sort_order?: SortDirectionValue;
+} & PaginationParams;

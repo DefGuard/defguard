@@ -28,6 +28,11 @@ mod generated {
                     tonic::include_proto!("defguard.enterprise.firewall.v2");
                 }
             }
+            pub mod monitor {
+                pub mod v2 {
+                    tonic::include_proto!("defguard.enterprise.monitor.v2");
+                }
+            }
             pub mod posture {
                 pub mod v2 {
                     tonic::include_proto!("defguard.enterprise.posture.v2");
@@ -69,6 +74,9 @@ pub mod enterprise {
     pub mod firewall {
         pub use crate::generated::defguard::enterprise::firewall::v2::*;
     }
+    pub mod monitor {
+        pub use crate::generated::defguard::enterprise::monitor::v2::*;
+    }
     pub mod posture {
         pub use crate::generated::defguard::enterprise::posture::v2::*;
     }
@@ -86,19 +94,22 @@ pub mod common {
     pub use crate::generated::defguard::common::v2::*;
 }
 
-use client_types::MfaMethod;
+use self::{
+    client_types::MfaMethod,
+    enterprise::monitor::{Direction, Status as ConnStatus},
+    proxy::{CoreError, CoreErrorCode},
+};
 use defguard_common::{
     db::{
         Id,
         models::{
-            Device, User, WireguardNetwork,
+            ConnectionDirection, ConnectionStatus, Device, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     gateway_types::{FirewallConfig, WireguardPeer},
 };
-use proxy::{CoreError, CoreErrorCode};
 use serde::Serialize;
 use tonic::{Code, Status};
 
@@ -132,6 +143,32 @@ impl Serialize for MfaMethod {
                 serializer.serialize_unit_variant("MfaMethod", 4, "MobileApprove")
             }
             Self::Fido2 => serializer.serialize_unit_variant("MfaMethod", 5, "Fido2"),
+        }
+    }
+}
+
+/// Fails for `Unspecified`, which prost also uses for unknown values.
+impl TryFrom<Direction> for ConnectionDirection {
+    type Error = ();
+
+    fn try_from(direction: Direction) -> Result<Self, Self::Error> {
+        match direction {
+            Direction::Unspecified => Err(()),
+            Direction::Inbound => Ok(Self::Inbound),
+            Direction::Outbound => Ok(Self::Outbound),
+        }
+    }
+}
+
+/// Fails for `Unspecified`, which prost also uses for unknown values.
+impl TryFrom<ConnStatus> for ConnectionStatus {
+    type Error = ();
+
+    fn try_from(status: ConnStatus) -> Result<Self, Self::Error> {
+        match status {
+            ConnStatus::Unspecified => Err(()),
+            ConnStatus::Allowed => Ok(Self::Allowed),
+            ConnStatus::Blocked => Ok(Self::Blocked),
         }
     }
 }

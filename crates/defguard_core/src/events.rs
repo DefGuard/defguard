@@ -179,6 +179,22 @@ pub enum ApiEventType {
         before: Device<Id>,
         after: Device<Id>,
     },
+    UserDeviceVerified {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
+    UserDeviceVerificationRevoked {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
+    UserDeviceBlocked {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
+    UserDeviceEnabled {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
     NetworkDeviceAdded {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
@@ -190,6 +206,22 @@ pub enum ApiEventType {
     NetworkDeviceModified {
         before: Device<Id>,
         after: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    NetworkDeviceVerified {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    NetworkDeviceVerificationRevoked {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    NetworkDeviceBlocked {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+    },
+    NetworkDeviceEnabled {
+        device: Device<Id>,
         location: WireguardNetwork<Id>,
     },
     ActivityLogStreamCreated {

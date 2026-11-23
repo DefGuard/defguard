@@ -43,6 +43,9 @@ import type {
   ChangeWebhookStateRequest,
   CheckReservedParams,
   CheckReservedResponse,
+  ConnectionEvent,
+  ConnectionEventFilterOptions,
+  ConnectionEventRequestParams,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -54,6 +57,8 @@ import type {
   Device,
   DeviceAttestationStats,
   DeviceLocationIpsResponse,
+  DeviceOverview,
+  DeviceOverviewListParams,
   DevicePostureListFilters,
   DevicePostureVersionMetadata,
   Edge,
@@ -128,6 +133,9 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  TpmCaCertificate,
+  TpmCaCertificatePem,
+  TpmCaCertificatesRequestParams,
   UpdateInfo,
   UpdateMfaFlowRequest,
   UploadCARequest,
@@ -227,6 +235,7 @@ const api = {
     getMe: () => client.get<User>('/me'),
     getUsers: (params?: UserListParams) => fetchPage<User>('/user', params),
     getAllUsers: () => fetchAllPages<User>('/user'),
+    getUsersDisplay: () => client.get<ResourceDisplay[]>('/user-display'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
@@ -444,6 +453,18 @@ const api = {
     editDevice: (device: Device) => client.put<Device>(`/device/${device.id}`, device),
     getDevice: (deviceId: number) => client.get<Device>(`/device/${deviceId}`),
     getDevices: () => client.get<Device[]>('/device'),
+    getDevicesOverview: (params: DeviceOverviewListParams) =>
+      fetchPage<DeviceOverview>('/device/overview', params),
+    bulkVerifyDevices: (devices: number[]) =>
+      client.post('/device/bulk/verify', { devices }),
+    bulkRevokeDeviceVerification: (devices: number[]) =>
+      client.post('/device/bulk/revoke-verification', { devices }),
+    bulkBlockDevices: (devices: number[]) =>
+      client.post('/device/bulk/block', { devices }),
+    bulkEnableDevices: (devices: number[]) =>
+      client.post('/device/bulk/enable', { devices }),
+    bulkDeleteDevices: (devices: number[]) =>
+      client.post('/device/bulk/delete', { devices }),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
       const { data: configs } = await client.get<AddDeviceResponseConfig[]>(
         `/device/${device.id}/config`,
@@ -461,6 +482,12 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
+  },
+  deviceAttestation: {
+    getCertificates: (params?: TpmCaCertificatesRequestParams) =>
+      fetchPage<TpmCaCertificate>('/device-attestation/certificates', params),
+    getCertificatePem: (sha256: string) =>
+      client.get<TpmCaCertificatePem>(`/device-attestation/certificates/${sha256}/pem`),
   },
   devicePosture: {
     addDevicePosture: (data: EditDevicePostureRequest) =>
@@ -649,6 +676,10 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
+  getConnectionEvents: (data?: ConnectionEventRequestParams) =>
+    fetchPage<ConnectionEvent>(`/connection_event`, data),
+  getConnectionEventFilterOptions: () =>
+    client.get<ConnectionEventFilterOptions>(`/connection_event/filter_options`),
   getActivityLogEvent: (id: number) =>
     client.get<ActivityLogEventDetails>(`/activity_log/${id}`),
   getLicenseInfo: () =>

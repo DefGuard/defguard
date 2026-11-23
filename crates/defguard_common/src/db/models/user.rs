@@ -306,6 +306,11 @@ impl<I> User<I> {
     }
 
     #[must_use]
+    pub fn has_external_identity(&self) -> bool {
+        self.openid_sub.is_some() || self.from_ldap
+    }
+
+    #[must_use]
     pub fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
@@ -1030,7 +1035,7 @@ impl User<Id> {
         query_as!(
             Device,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at \
+            device_type \"device_type: DeviceType\", configured, attestation_status \"attestation_status: _\", attested_at, state \"state: _\", verification \"verification: _\" \
             FROM device WHERE user_id = $1 and device_type = 'user'::device_type \
             ORDER BY id",
             self.id
@@ -1900,6 +1905,15 @@ mod test {
             openid_sub: openid_sub.map(String::from),
             ..User::new("testuser", None, "Test", "User", "test@example.com", None)
         }
+    }
+
+    #[test]
+    fn test_has_external_identity() {
+        assert!(!make_user(false, None, None).has_external_identity());
+        assert!(!make_user(false, None, Some("hash")).has_external_identity());
+        assert!(make_user(true, None, None).has_external_identity());
+        assert!(make_user(false, Some("sub"), None).has_external_identity());
+        assert!(make_user(true, Some("sub"), Some("hash")).has_external_identity());
     }
 
     fn settings_with_ldap_password_management(password_management_disabled: bool) -> Settings {

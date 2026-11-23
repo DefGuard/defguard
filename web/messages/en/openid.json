@@ -23,6 +23,8 @@
   "settings_openid_provider_helper_display_name": "",
   "settings_openid_provider_label_base_url": "Base URL",
   "settings_openid_provider_helper_base_url": "",
+  "settings_openid_provider_label_keycloak_base_url": "Realm URL",
+  "settings_openid_provider_helper_keycloak_base_url": "e.g. https://keycloak.example.com/realms/myrealm",
   "settings_openid_provider_label_client_id": "Client ID",
   "settings_openid_provider_helper_client_id": "",
   "settings_openid_provider_label_client_secret": "Client secret",

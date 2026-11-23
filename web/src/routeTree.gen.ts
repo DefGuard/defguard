@@ -28,12 +28,14 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as ErrorMigrationAuthRouteImport } from './routes/error/migration-auth'
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
+import { Route as AuthorizedDefaultDevicesRouteImport } from './routes/_authorized/_default/devices'
 import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized/_default/edges'
 import { Route as AuthorizedDefaultEnrollmentRouteImport } from './routes/_authorized/_default/enrollment'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
 import { Route as AuthorizedDefaultSupportRouteImport } from './routes/_authorized/_default/support'
+import { Route as AuthorizedDefaultTrafficRouteImport } from './routes/_authorized/_default/traffic'
 import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized/_default/users'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
@@ -65,6 +67,7 @@ import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_au
 import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
 import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultSettingsDeviceAttestationRouteImport } from './routes/_authorized/_default/settings/device-attestation'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
@@ -174,6 +177,12 @@ const AuthorizedDefaultActivityRoute =
     path: '/activity',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultDevicesRoute =
+  AuthorizedDefaultDevicesRouteImport.update({
+    id: '/devices',
+    path: '/devices',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultEdgesRoute = AuthorizedDefaultEdgesRouteImport.update({
   id: '/edges',
   path: '/edges',
@@ -205,6 +214,12 @@ const AuthorizedDefaultSupportRoute =
   AuthorizedDefaultSupportRouteImport.update({
     id: '/support',
     path: '/support',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultTrafficRoute =
+  AuthorizedDefaultTrafficRouteImport.update({
+    id: '/traffic',
+    path: '/traffic',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultUsersRoute = AuthorizedDefaultUsersRouteImport.update({
@@ -387,6 +402,12 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsDeviceAttestationRoute =
+  AuthorizedDefaultSettingsDeviceAttestationRouteImport.update({
+    id: '/settings/device-attestation',
+    path: '/settings/device-attestation',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultSettingsEditOpenidRoute =
   AuthorizedDefaultSettingsEditOpenidRouteImport.update({
     id: '/settings/edit-openid',
@@ -490,12 +511,14 @@ export interface FileRoutesByFullPath {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/devices': typeof AuthorizedDefaultDevicesRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
   '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
   '/support': typeof AuthorizedDefaultSupportRoute
+  '/traffic': typeof AuthorizedDefaultTrafficRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -524,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -559,12 +583,14 @@ export interface FileRoutesByTo {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
+  '/devices': typeof AuthorizedDefaultDevicesRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
   '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
   '/support': typeof AuthorizedDefaultSupportRoute
+  '/traffic': typeof AuthorizedDefaultTrafficRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -593,6 +619,7 @@ export interface FileRoutesByTo {
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -632,12 +659,14 @@ export interface FileRoutesById {
   '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
+  '/_authorized/_default/devices': typeof AuthorizedDefaultDevicesRoute
   '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
   '/_authorized/_default/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
   '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
   '/_authorized/_default/support': typeof AuthorizedDefaultSupportRoute
+  '/_authorized/_default/traffic': typeof AuthorizedDefaultTrafficRoute
   '/_authorized/_default/users': typeof AuthorizedDefaultUsersRoute
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -666,6 +695,7 @@ export interface FileRoutesById {
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
+  '/_authorized/_default/settings/device-attestation': typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/_authorized/_default/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
@@ -704,12 +734,14 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth/'
     | '/activity'
+    | '/devices'
     | '/edges'
     | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
     | '/support'
+    | '/traffic'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -738,6 +770,7 @@ export interface FileRouteTypes {
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
+    | '/settings/device-attestation'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
     | '/settings/instance'
@@ -773,12 +806,14 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth'
     | '/activity'
+    | '/devices'
     | '/edges'
     | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
     | '/support'
+    | '/traffic'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -807,6 +842,7 @@ export interface FileRouteTypes {
     | '/settings/ca'
     | '/settings/certs'
     | '/settings/client'
+    | '/settings/device-attestation'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
     | '/settings/instance'
@@ -845,12 +881,14 @@ export interface FileRouteTypes {
     | '/error/migration-auth'
     | '/auth/'
     | '/_authorized/_default/activity'
+    | '/_authorized/_default/devices'
     | '/_authorized/_default/edges'
     | '/_authorized/_default/enrollment'
     | '/_authorized/_default/groups'
     | '/_authorized/_default/network-devices'
     | '/_authorized/_default/openid'
     | '/_authorized/_default/support'
+    | '/_authorized/_default/traffic'
     | '/_authorized/_default/users'
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
@@ -879,6 +917,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/settings/ca'
     | '/_authorized/_default/settings/certs'
     | '/_authorized/_default/settings/client'
+    | '/_authorized/_default/settings/device-attestation'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
     | '/_authorized/_default/settings/instance'
@@ -1049,6 +1088,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultActivityRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/devices': {
+      id: '/_authorized/_default/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AuthorizedDefaultDevicesRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/edges': {
       id: '/_authorized/_default/edges'
       path: '/edges'
@@ -1089,6 +1135,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof AuthorizedDefaultSupportRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/traffic': {
+      id: '/_authorized/_default/traffic'
+      path: '/traffic'
+      fullPath: '/traffic'
+      preLoaderRoute: typeof AuthorizedDefaultTrafficRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/users': {
@@ -1308,6 +1361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/device-attestation': {
+      id: '/_authorized/_default/settings/device-attestation'
+      path: '/settings/device-attestation'
+      fullPath: '/settings/device-attestation'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsDeviceAttestationRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/settings/edit-openid': {
       id: '/_authorized/_default/settings/edit-openid'
       path: '/settings/edit-openid'
@@ -1426,12 +1486,14 @@ const AuthorizedDefaultAclPostureChecksRouteWithChildren =
 
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
+  AuthorizedDefaultDevicesRoute: typeof AuthorizedDefaultDevicesRoute
   AuthorizedDefaultEdgesRoute: typeof AuthorizedDefaultEdgesRoute
   AuthorizedDefaultEnrollmentRoute: typeof AuthorizedDefaultEnrollmentRoute
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
   AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
   AuthorizedDefaultSupportRoute: typeof AuthorizedDefaultSupportRoute
+  AuthorizedDefaultTrafficRoute: typeof AuthorizedDefaultTrafficRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
@@ -1448,6 +1510,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
+  AuthorizedDefaultSettingsDeviceAttestationRoute: typeof AuthorizedDefaultSettingsDeviceAttestationRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   AuthorizedDefaultSettingsInstanceRoute: typeof AuthorizedDefaultSettingsInstanceRoute
@@ -1468,12 +1531,14 @@ interface AuthorizedDefaultRouteChildren {
 
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultActivityRoute: AuthorizedDefaultActivityRoute,
+  AuthorizedDefaultDevicesRoute: AuthorizedDefaultDevicesRoute,
   AuthorizedDefaultEdgesRoute: AuthorizedDefaultEdgesRoute,
   AuthorizedDefaultEnrollmentRoute: AuthorizedDefaultEnrollmentRoute,
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
   AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
   AuthorizedDefaultSupportRoute: AuthorizedDefaultSupportRoute,
+  AuthorizedDefaultTrafficRoute: AuthorizedDefaultTrafficRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
@@ -1493,6 +1558,8 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
+  AuthorizedDefaultSettingsDeviceAttestationRoute:
+    AuthorizedDefaultSettingsDeviceAttestationRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
   AuthorizedDefaultSettingsGatewayNotificationsRoute:

@@ -1,6 +1,9 @@
 pub mod acl;
 pub mod activity_log_stream;
 pub mod api_tokens;
+pub mod connection_event;
+pub mod device_attestation;
+pub(crate) mod device_overview;
 pub mod device_posture;
 pub mod enterprise_settings;
 pub mod openid_login;
@@ -67,16 +70,24 @@ where
     }
 }
 
-/// Marker type tying an extractor to a single enterprise feature flag.
+/// Marker type tying an extractor to a single enterprise feature flag, or to the Enterprise tier
+/// alone when `FEATURE` is `None`.
 pub trait EnterpriseFeature {
-    const FEATURE: LicenseFeature;
+    const FEATURE: Option<LicenseFeature>;
 }
 
 /// Marker for the device posture feature.
 pub struct DevicePostureFeature;
 
 impl EnterpriseFeature for DevicePostureFeature {
-    const FEATURE: LicenseFeature = LicenseFeature::DevicePosture;
+    const FEATURE: Option<LicenseFeature> = Some(LicenseFeature::DevicePosture);
+}
+
+/// Marker for features available on the Enterprise tier only.
+pub struct EnterpriseTierFeature;
+
+impl EnterpriseFeature for EnterpriseTierFeature {
+    const FEATURE: Option<LicenseFeature> = None;
 }
 
 /// Extractor that rejects with 403 unless the enterprise feature `F` is active for the current
@@ -92,8 +103,28 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if has_enterprise_access(Some(F::FEATURE)) {
+        if has_enterprise_access(F::FEATURE) {
             Ok(Self(PhantomData))
+        } else {
+            Err(WebError::Forbidden("Enterprise features are disabled"))
+        }
+    }
+}
+
+/// Extractor that rejects with 403 unless the license is Enterprise tier. Additive feature
+/// flags on a Business license do not grant access.
+pub struct EnterpriseTier;
+
+impl<S> FromRequestParts<S> for EnterpriseTier
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if has_enterprise_access(None) {
+            Ok(Self)
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }

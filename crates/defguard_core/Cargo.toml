@@ -80,7 +80,6 @@ tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true
 tonic.workspace = true
-tonic-health.workspace = true
 totp-lite.workspace = true
 tower-http.workspace = true
 tower_governor.workspace = true
@@ -93,14 +92,13 @@ ua-parser.workspace = true
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 uuid.workspace = true
-webauthn-authenticator-rs.workspace = true
 webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
 x509-parser.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["fs"] }
+nix = { version = "0.32", features = ["fs"] }
 
 [features]
 default = ["openapi"]
@@ -140,3 +138,6 @@ wiremock = "0.6"
 
 [build-dependencies]
 tonic-prost-build.workspace = true
+
+[lints]
+workspace = true

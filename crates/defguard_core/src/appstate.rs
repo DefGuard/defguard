@@ -60,7 +60,6 @@ impl AppState {
                     AppEvent::UserDeleted(username) => {
                         (json!({"username": username}), "user_deleted")
                     }
-                    AppEvent::HWKeyProvision(data) => (json!(data), "user_keys"),
                 };
                 for webhook in webhooks {
                     match reqwest_client

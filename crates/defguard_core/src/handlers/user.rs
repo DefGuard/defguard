@@ -1368,7 +1368,7 @@ pub(crate) async fn change_password(
     ),
     responses(
         (status = 200, description = "Password reset email sent."),
-        (status = 400, description = "This endpoint does not reset your own password."),
+        (status = 400, description = "Cannot reset your own password or reset the password of an unenrolled local user."),
         (status = 401, description = "Session is missing or invalid.", body = ApiErrorResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "Requires admin privileges.", body = ApiErrorResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "User not found."),
@@ -1404,6 +1404,14 @@ pub(crate) async fn reset_password(
             return Ok(ApiResponse::new(
                 json!({"msg": "Password management is disabled for this user"}),
                 StatusCode::FORBIDDEN,
+            ));
+        }
+
+        if !user.has_external_identity() && !user.is_enrolled() {
+            debug!("Cannot reset password for unenrolled user {username}");
+            return Ok(ApiResponse::new(
+                json!({"msg": "Password reset is not allowed for users who have not completed enrollment"}),
+                StatusCode::BAD_REQUEST,
             ));
         }
 

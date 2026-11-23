@@ -47,6 +47,7 @@ export const routes = {
     addDestination: '/acl/add-destination',
   },
   locations: '/locations',
+  edges: '/edges',
   mfa: {
     list: '/mfa',
     addFlow: '/mfa/add-flow',

@@ -38,6 +38,11 @@ migrate:
 query-data:
     cargo sqlx prepare --workspace -- --all-targets --tests
 
+# regenerate the TPM manufacturer CA bundle, needs cosign and osslsigncode (just tpm-ca --allow-removals)
+tpm-ca *ARGS:
+    cargo run --locked --release -p defguard_tpm_ca -- crates/defguard_core/src/enterprise/tpm/tpm_ca_certificates.json {{ARGS}}
+    SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib enterprise::tpm
+
 # run every check the lint CI workflows gate on (Rust + web + e2e)
 check-everything: check-rust check-web check-e2e
 

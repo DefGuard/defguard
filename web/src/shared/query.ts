@@ -46,6 +46,12 @@ export const getLocationsDisplayQueryOptions = queryOptions({
   select: (resp) => resourceDisplayMap(resp.data),
 });
 
+export const getUsersDisplayQueryOptions = queryOptions({
+  queryFn: api.user.getUsersDisplay,
+  queryKey: ['user', 'display', 'resourceMap'],
+  select: (resp) => resourceDisplayMap(resp.data),
+});
+
 export const getMfaFlowsQueryOptions = queryOptions({
   queryFn: api.mfaFlow.list,
   queryKey: ['mfa-flow'],
@@ -381,4 +387,11 @@ export const getMigrationStateQueryOptions = queryOptions({
   queryFn: api.migration.state.getMigrationState,
   queryKey: ['migration', 'state'],
   select: (resp) => resp.data,
+});
+
+export const getConnectionEventFilterOptionsQueryOptions = queryOptions({
+  queryFn: () => api.getConnectionEventFilterOptions().then((resp) => resp.data),
+  queryKey: ['connection-event', 'filter-options'],
+  // Locations, Gateways, rules and devices change rarely; avoid refetching every device often.
+  staleTime: 5 * 60 * 1000,
 });

@@ -14,6 +14,8 @@ ladle-build
 .direnv/
 *.pem
 !tools/defguard_fido_mds/globalsign_root_r3.pem
+!tools/defguard_tpm_ca/*.pem
+!tools/defguard_tpm_ca/extras/*.pem
 result/
 .aider*
 .env

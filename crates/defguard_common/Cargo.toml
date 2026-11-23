@@ -16,7 +16,6 @@ argon2.workspace = true
 base32.workspace = true
 base64.workspace = true
 chrono.workspace = true
-claims.workspace = true
 clap.workspace = true
 ctap-hid-fido2.workspace = true
 ed25519-dalek.workspace = true
@@ -58,6 +57,10 @@ openapi = ["dep:utoipa"]
 test-support = ["tokio/net", "tokio/io-util"]
 
 [dev-dependencies]
+claims.workspace = true
 
 [build-dependencies]
 vergen-git2 = "10.0"
+
+[lints]
+workspace = true

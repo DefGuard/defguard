@@ -25,6 +25,26 @@ cargo run -p defguard_generator -- vpn-session-stats \
 # optional: limit generation to one VPN location --location-id <ID>
 ```
 
+### Devices
+
+Creates users, user devices and network devices without VPN sessions, for example to fill the
+devices table with data:
+
+```bash
+cargo run -p defguard_generator -- devices \
+    --num-users 200 \
+    --devices-per-user 10 \
+    --network-devices 50 \
+    --locations 4
+```
+
+`--locations` (default 0) creates locations up to that total, each with its own `10.x.0.0/16`
+subnet, and assigns every generated user device to all of them.
+
+Counts are targets, not increments: existing users and devices are reused, so running the same
+command again adds nothing. Network devices are assigned to the first admin as their creator and
+have no location, so the Network Devices page skips them.
+
 ### Session generation logic
 
 For each device the generator always starts with creating an active (not disconnected) session.

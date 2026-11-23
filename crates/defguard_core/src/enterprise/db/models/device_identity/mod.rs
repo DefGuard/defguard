@@ -98,7 +98,8 @@ impl DeviceIdentity {
             "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 \
              RETURNING id, name, wireguard_pubkey, user_id, created, description, \
              device_type AS \"device_type: DeviceType\", configured, \
-             attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at",
+             attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at, \
+             state AS \"state: _\", verification AS \"verification: _\"",
             status as DeviceAttestationStatus,
             attested_at,
             self.device_id,

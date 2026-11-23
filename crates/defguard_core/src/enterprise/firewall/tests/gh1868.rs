@@ -40,6 +40,8 @@ async fn setup_user_and_device(
         wireguard_pubkey: String::default(),
         created: NaiveDateTime::default(),
         configured: true,
+        state: Default::default(),
+        verification: Default::default(),
     };
     let device = device.save(pool).await.unwrap();
 

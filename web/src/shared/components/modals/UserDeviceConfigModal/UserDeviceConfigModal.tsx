@@ -1,3 +1,5 @@
+import './style.scss';
+import { useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import type { AddDeviceResponse } from '../../../api/types';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
@@ -13,8 +15,6 @@ import {
 } from '../../../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../hooks/modalControls/modalTypes';
 import { ModalDeviceConfigSection } from '../../ModalDeviceConfigSection/ModalDeviceConfigSection';
-import './style.scss';
-import { useEffect, useState } from 'react';
 
 const modalName = ModalName.UserDeviceConfig;
 
@@ -49,7 +49,11 @@ export const UserDeviceConfigModal = () => {
   );
 };
 
-const ModalContent = ({ data }: { data: AddDeviceResponse }) => {
+type Props = {
+  data: AddDeviceResponse;
+};
+
+const ModalContent = ({ data }: Props) => {
   return (
     <>
       <InfoBanner
@@ -59,7 +63,6 @@ const ModalContent = ({ data }: { data: AddDeviceResponse }) => {
       />
       <Divider orientation="horizontal" />
       <ModalDeviceConfigSection data={data} />
-      <Divider />
       <ModalControls
         submitProps={{
           text: m.controls_close(),

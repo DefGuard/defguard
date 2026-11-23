@@ -37,6 +37,7 @@ export const externalProviderName: Record<OpenIdProviderKindValue, string> = {
   Microsoft: 'Microsoft',
   Okta: 'Okta',
   Zitadel: 'Zitadel',
+  Keycloak: 'Keycloak',
 };
 
 export const supportedSyncProviders: Set<OpenIdProviderKindValue> = new Set([

@@ -1,3 +1,4 @@
+import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -23,7 +24,6 @@ import type { OpenAssignUserDeviceIPModal } from '../../../hooks/modalControls/t
 import { getDuplicateIpFieldPaths } from '../../../utils/ipFieldDuplicates';
 import { IpAssignmentCard } from '../../IpAssignmentCard/IpAssignmentCard';
 import { IpAssignmentDeviceSection } from '../../IpAssignmentDeviceSection/IpAssignmentDeviceSection';
-import './style.scss';
 
 const modalNameValue = ModalName.AssignUserDeviceIP;
 
@@ -142,7 +142,7 @@ const AssignmentForm = ({
       return api.device.assignUserDeviceIps(username, assignments);
     },
     meta: {
-      invalidate: [['user'], ['user', username], ['device', 'all']],
+      invalidate: [['user'], ['user', username], ['device']],
     },
     onSuccess: () => {
       Snackbar.default(m.modal_assign_user_device_ip_success({ deviceName }));
@@ -214,10 +214,10 @@ const AssignmentForm = ({
     <form.AppForm>
       <div className="assign-user-device-ip-modal">
         <div className="device-ip-card">
-          <h3 className="card-title">
+          <h3 className="title">
             {m.modal_assign_user_device_ip_card_title({ deviceName })}
           </h3>
-          <p className="card-description">
+          <p className="description">
             {m.modal_assign_user_device_ip_assignment_description()}
           </p>
         </div>
@@ -264,20 +264,19 @@ const AssignmentForm = ({
             </IpAssignmentCard>
           ))}
         </div>
-
-        <ModalControls
-          submitProps={{
-            text: m.controls_submit(),
-            disabled: isSubmitting || locationData.locations.length === 0,
-            onClick: () => form.handleSubmit(),
-          }}
-          cancelProps={{
-            text: m.controls_cancel(),
-            disabled: isSubmitting,
-            onClick: () => closeModal(modalNameValue),
-          }}
-        />
       </div>
+      <ModalControls
+        submitProps={{
+          text: m.controls_submit(),
+          disabled: isSubmitting || locationData.locations.length === 0,
+          onClick: () => form.handleSubmit(),
+        }}
+        cancelProps={{
+          text: m.controls_cancel(),
+          disabled: isSubmitting,
+          onClick: () => closeModal(modalNameValue),
+        }}
+      />
     </form.AppForm>
   );
 };

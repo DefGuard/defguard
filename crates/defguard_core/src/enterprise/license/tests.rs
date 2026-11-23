@@ -313,10 +313,10 @@ async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOption
     let pool = setup_pool(options).await;
 
     let mut location_a = WireguardNetwork::default();
-    location_a.name = "Location A".to_string();
+    location_a.name = "Location A".to_owned();
     let location_a = location_a.save(&pool).await.unwrap();
     let mut location_b = WireguardNetwork::default();
-    location_b.name = "Location B".to_string();
+    location_b.name = "Location B".to_owned();
     let location_b = location_b.save(&pool).await.unwrap();
     let user = User::new(
         "tester",

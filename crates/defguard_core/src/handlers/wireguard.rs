@@ -428,6 +428,9 @@ pub(crate) async fn create_network(
         save_group_client_mtus(&network, &mut transaction, overrides).await?;
     }
 
+    let allowed_devices = network.get_allowed_devices(&mut transaction).await?;
+    network.validate_network_size(allowed_devices.len())?;
+
     // generate IP addresses for existing devices
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");

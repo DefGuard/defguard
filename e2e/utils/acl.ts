@@ -18,24 +18,27 @@ export const createAlias = async (
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + routes.firewall.aliases);
   await page.getByTestId('add-alias').click();
-  const modal = await page.locator('.card');
-  await modal.getByTestId('field-name').fill(name);
+  await page.waitForURL(routes.base + routes.firewall.addAlias + '**');
+  await page.getByTestId('field-name').fill(name);
 
   if (addresses) {
-    await modal.getByTestId('field-addresses').fill(addresses.join(','));
-    await modal.getByTestId('field-addresses').press('Enter');
+    for (const address of addresses) {
+      await page.getByTestId('field-addresses').fill(address);
+      await page.getByTestId('field-addresses').press('Enter');
+    }
   }
 
   if (ports) {
-    await modal.getByTestId('field-ports').fill(ports.join(','));
+    await page.getByTestId('field-ports').fill(ports.join(','));
   }
 
   if (protocols) {
     for (const protocol of protocols) {
-      await modal.locator('.values-tack .item').filter({ hasText: protocol }).click();
+      await page.locator('.values-tack .item').filter({ hasText: protocol }).click();
     }
   }
-  await modal.locator('button[data-variant="primary"]').click();
+  await page.locator('button[type="submit"]').click();
+  await page.waitForURL(routes.base + routes.firewall.aliases + '**');
   await context.close();
 };
 

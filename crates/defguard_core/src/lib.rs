@@ -2,7 +2,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
-        Arc, LazyLock, Mutex, RwLock,
+        Arc, LazyLock, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     time::Duration,
@@ -121,6 +121,12 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            connection_event::{get_connection_event_filter_options, list_connection_events},
+            device_attestation::{get_tpm_ca_certificate_pem, list_tpm_ca_certificates},
+            device_overview::{
+                bulk_block_devices, bulk_delete_devices, bulk_enable_devices,
+                bulk_revoke_device_verification, bulk_verify_devices, list_devices_overview,
+            },
             device_posture::{
                 create_device_posture, delete_device_posture, duplicate_device_posture,
                 get_device_attestation_stats, get_device_posture, get_device_posture_versions,
@@ -138,7 +144,7 @@ use crate::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::{GatewayCommand, WorkerState},
+    grpc::GatewayCommand,
     handlers::{
         app_info::get_app_info,
         auth::{
@@ -170,7 +176,7 @@ use crate::{
             userinfo,
         },
         proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
-        resource_display::get_locations_display,
+        resource_display::{get_locations_display, get_users_display},
         settings::{
             get_settings, get_settings_essentials, ldap_dry_run, patch_settings,
             set_default_branding, test_ldap_settings, test_submitted_ldap_settings,
@@ -198,7 +204,6 @@ use crate::{
             list_devices, list_networks, list_user_devices, modify_device, modify_network,
             network_details, user_device_configs,
         },
-        worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
     location_management::{
         allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
@@ -301,7 +306,6 @@ pub fn build_webapp(
     webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
     gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
     web_reload_tx: broadcast::Sender<()>,
-    worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     key: Key,
     event_tx: mpsc::UnboundedSender<ApiEvent>,
@@ -358,6 +362,7 @@ pub fn build_webapp(
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
+            .route("/user-display", get(get_users_display))
             .route("/user/bulk-disable", post(bulk_disable_users))
             .route("/user/bulk-enable", post(bulk_enable_users))
             .route("/user/bulk-delete", post(bulk_delete_users))
@@ -467,6 +472,12 @@ pub fn build_webapp(
             // activity log
             .route("/activity_log", get(get_activity_log_events))
             .route("/activity_log/{id}", get(get_activity_log_event))
+            // connection events (traffic monitoring)
+            .route("/connection_event", get(list_connection_events))
+            .route(
+                "/connection_event/filter_options",
+                get(get_connection_event_filter_options),
+            )
             // Proxy routes
             .route("/proxy", get(proxy_list))
             .route(
@@ -619,6 +630,14 @@ pub fn build_webapp(
     let api_router = api_router.nest(
         "/api/v1",
         Router::new()
+            .route(
+                "/device-attestation/certificates",
+                get(list_tpm_ca_certificates),
+            )
+            .route(
+                "/device-attestation/certificates/{sha256}/pem",
+                get(get_tpm_ca_certificate_pem),
+            )
             .route("/device-posture/versions", get(get_device_posture_versions))
             .route(
                 "/device-posture/attestation-stats",
@@ -655,6 +674,15 @@ pub fn build_webapp(
             )
             .route("/device/{device_id}/config", get(user_device_configs))
             .route("/device", get(list_devices))
+            .route("/device/overview", get(list_devices_overview))
+            .route("/device/bulk/verify", post(bulk_verify_devices))
+            .route(
+                "/device/bulk/revoke-verification",
+                post(bulk_revoke_device_verification),
+            )
+            .route("/device/bulk/block", post(bulk_block_devices))
+            .route("/device/bulk/enable", post(bulk_enable_devices))
+            .route("/device/bulk/delete", post(bulk_delete_devices))
             .route("/device/user/{username}", get(list_user_devices))
             .route(
                 "/device/user/{username}/ip",
@@ -741,16 +769,6 @@ pub fn build_webapp(
             )
             .route("/outdated", get(outdated_components))
             .route("/license/check", post(license_check)),
-    );
-
-    let api_router = api_router.nest(
-        "/api/v1/worker",
-        Router::new()
-            .route("/job", post(create_job))
-            .route("/token", get(create_worker_token))
-            .route("/", get(list_workers))
-            .route("/{id}", delete(remove_worker).get(job_status))
-            .layer(Extension(worker_state)),
     );
 
     // Setup rate limiter
@@ -891,7 +909,6 @@ pub fn apply_security_layers(router: Router, tls_active: Arc<AtomicBool>) -> Rou
 /// Runs core web server exposing REST API.
 #[instrument(skip_all)]
 pub async fn run_web_server(
-    worker_state: Arc<Mutex<WorkerState>>,
     webhook_tx: mpsc::UnboundedSender<AppEvent>,
     webhook_rx: mpsc::UnboundedReceiver<AppEvent>,
     gateway_tx: mpsc::UnboundedSender<GatewayCommand>,
@@ -915,7 +932,6 @@ pub async fn run_web_server(
         webhook_rx,
         gateway_tx,
         web_reload_tx.clone(),
-        worker_state,
         pool.clone(),
         key,
         event_tx,

@@ -911,3 +911,74 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
         [] as [defguard_common::gateway_types::Protocol; 0]
     );
 }
+
+#[sqlx::test]
+async fn test_destination_alias_rules_use_acl_rule_id(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
+
+    // Otherwise the alias and rule would both get ID 1.
+    AclAlias {
+        name: "unused alias".to_owned(),
+        kind: AliasKind::Destination,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let destination_alias = AclAlias {
+        name: "destination alias".to_owned(),
+        kind: AliasKind::Destination,
+        addresses: vec!["10.1.0.0/24".parse().unwrap()],
+        any_port: true,
+        any_protocol: true,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let acl_rule = create_acl_rule(
+        &pool,
+        AclRule {
+            name: "destination alias rule".to_owned(),
+            state: RuleState::Applied,
+            allow_all_users: true,
+            use_manual_destination_settings: false,
+            ..Default::default()
+        },
+        vec![location.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        vec![destination_alias.id],
+    )
+    .await;
+    assert_ne!(acl_rule.id, destination_alias.id);
+
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+    for rule in generated_firewall_rules {
+        assert_eq!(rule.id, acl_rule.id);
+    }
+}
