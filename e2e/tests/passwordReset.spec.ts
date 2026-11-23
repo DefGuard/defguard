@@ -50,8 +50,7 @@ test.describe('Reset password', () => {
     await logout(page);
   });
 
-  // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
-  test.skip('Reset disabled user password', async ({ page, browser }) => {
+  test('Reset disabled user password', async ({ page, browser }) => {
     await waitForBase(page);
     // Password reset is only shown on Edge once SMTP is configured in Core.
     await setupSMTP(browser);

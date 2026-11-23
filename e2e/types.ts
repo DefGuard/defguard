@@ -70,6 +70,7 @@ export type NetworkForm = {
   dns?: string;
   mfa_enabled?: boolean;
   defaultMfaFlowId?: number;
+  allowedGroups?: string[];
 };
 
 export type DeviceForm = {
