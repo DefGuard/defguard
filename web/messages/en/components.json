@@ -46,6 +46,7 @@
   "cmp_sync_behavior_target_groups": "Groups",
   "cmp_copy_button": "Copy to clipboard",
   "cmp_copy_button_tooltip": "Content copied to clipboard.",
+  "cmp_copy_button_error": "Couldn't access the clipboard. Copy or download the content manually.",
   "cmp_download_button_tooltip": "Download started.",
   "cmp_video_support_launcher": "Video support",
   "cmp_video_support_list_label": "Video support",

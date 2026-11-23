@@ -20,12 +20,13 @@ export const CodeSnippet = ({ value }: Props) => {
             <button
               className="copy"
               onClick={() => {
-                writeToClipboard(value)
-                  .then(show)
-                  .catch((e) => {
-                    Snackbar.error('Unable to access clipboard.');
-                    console.error(e);
-                  });
+                void writeToClipboard(value).then((copied) => {
+                  if (copied) {
+                    show();
+                  } else {
+                    Snackbar.error(m.cmp_copy_button_error());
+                  }
+                });
               }}
             >
               <Icon icon={isOpen ? IconKind.CheckCircle : IconKind.Copy} />

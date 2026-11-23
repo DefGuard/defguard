@@ -3,6 +3,7 @@ import { ActionTooltip } from '../../defguard-ui/components/ActionTooltip/Action
 import { Button } from '../../defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 import { useClipboard } from '../../defguard-ui/hooks/useClipboard';
+import { Snackbar } from '../../defguard-ui/providers/snackbar/snackbar';
 
 type Props = Omit<ButtonProps, 'onClick' | 'ref' | 'text'> & {
   value: string;
@@ -27,8 +28,13 @@ export const CopyButton = ({
           variant={variant}
           iconLeft={iconLeft}
           onClick={() => {
-            void writeToClipboard(value);
-            show();
+            void writeToClipboard(value).then((copied) => {
+              if (copied) {
+                show();
+              } else {
+                Snackbar.error(m.cmp_copy_button_error());
+              }
+            });
           }}
         />
       )}
