@@ -200,6 +200,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
             {
               text: m.controls_edit(),
               icon: 'edit',
+              testId: 'edit-network-device',
               onClick: () => {
                 openModal(ModalName.EditNetworkDevice, {
                   device: row,

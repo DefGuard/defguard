@@ -36,11 +36,23 @@ pub async fn build_device_config(
 ) -> Result<DeviceConfig, DeviceError> {
     let effective_ips = get_effective_allowed_ips(conn, network, user).await;
 
-    let config = create_wireguard_config(network, wireguard_network_device, &effective_ips);
     let has_postures = network
         .has_postures(&mut *conn)
         .await
         .map_err(|err| DeviceError::Unexpected(err.to_string()))?;
+    let preshared_key = if network.mfa_enabled || has_postures {
+        None
+    } else {
+        Device::find_preshared_key(&mut *conn, wireguard_network_device.device_id)
+            .await
+            .map_err(|err| DeviceError::Unexpected(err.to_string()))?
+    };
+    let config = create_wireguard_config(
+        network,
+        wireguard_network_device,
+        &effective_ips,
+        preshared_key.is_some(),
+    );
 
     // `None` when the location's flow configuration has no legacy equivalent. Carried through as
     // absent rather than coerced to `Disabled`, which would advertise an MFA-enabled location as
@@ -92,6 +104,7 @@ pub async fn build_device_config(
         service_location_mode: network.service_location_mode.clone(),
         posture_check_required: has_postures,
         steps,
+        preshared_key,
     })
 }
 

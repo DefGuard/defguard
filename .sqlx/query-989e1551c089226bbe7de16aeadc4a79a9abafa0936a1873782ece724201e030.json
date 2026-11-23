@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT preshared_key \"preshared_key: SecretStringWrapper\" FROM device WHERE id = $1 AND NOT EXISTS ( SELECT 1 FROM device_posture_location WHERE location_id = $2 )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "preshared_key: SecretStringWrapper",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "preshared_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "989e1551c089226bbe7de16aeadc4a79a9abafa0936a1873782ece724201e030"
+}

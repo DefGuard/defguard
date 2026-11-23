@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use ipnetwork::IpNetwork;
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
 
 /// Strip any `http://` or `https://` scheme prefix a user may have accidentally
@@ -152,6 +152,16 @@ pub fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
         modifiable_part,
         network_prefix: network_prefix.to_string(),
     }
+}
+
+/// Wraps the value in Some so a patch can tell an explicit null (clear the field) from a
+/// missing key (keep it). See <https://github.com/serde-rs/serde/issues/1042>
+pub fn deserialize_optional_field<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
 }
 
 #[cfg(test)]

@@ -82,6 +82,8 @@ export type NetworkDeviceForm = {
   name: string;
   pubKey?: string;
   description?: string;
+  presharedKey?: string;
+  generatePresharedKey?: boolean;
 };
 
 export type EditNetworkDeviceForm = {

@@ -181,14 +181,18 @@ pub async fn process_device_access_changes(
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
     let mut used_ips = location.all_used_ip_addresses(&mut *conn).await?;
-    let active_sessions = if location.mfa_enabled {
-        VpnClientSession::get_all_active_for_location(&mut *conn, location.id)
-            .await?
-            .into_iter()
-            .map(|session| (session.device_id, session))
-            .collect::<HashMap<_, _>>()
+    let (active_sessions, static_preshared_keys) = if location.mfa_enabled {
+        let active_sessions =
+            VpnClientSession::get_all_active_for_location(&mut *conn, location.id)
+                .await?
+                .into_iter()
+                .map(|session| (session.device_id, session))
+                .collect::<HashMap<_, _>>();
+        (active_sessions, HashMap::new())
     } else {
-        HashMap::new()
+        let static_preshared_keys =
+            Device::preshared_keys_for_network(&mut *conn, location.id).await?;
+        (HashMap::new(), static_preshared_keys)
     };
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP address was already assigned.
@@ -207,8 +211,11 @@ pub async fn process_device_access_changes(
                     )
                     .await?;
                 used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
-                let network_info = wireguard_network_device
-                    .to_device_network_info(location, active_sessions.get(&device.id));
+                let network_info = wireguard_network_device.to_device_network_info(
+                    location,
+                    active_sessions.get(&device.id),
+                    static_preshared_keys.get(&device.id),
+                );
                 events.push(GatewayCommand::DeviceModified(DeviceInfo {
                     device,
                     network_info: vec![network_info],
@@ -226,7 +233,8 @@ pub async fn process_device_access_changes(
             if let Some(device) =
                 Device::find_by_id(&mut *conn, device_network_config.device_id).await?
             {
-                let network_info = device_network_config.to_device_network_info(location, None);
+                let network_info =
+                    device_network_config.to_device_network_info(location, None, None);
                 events.push(GatewayCommand::DeviceDeleted(DeviceInfo {
                     device,
                     network_info: vec![network_info],

@@ -397,12 +397,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     location,
                     before,
                     after,
+                    preshared_key,
                 } => (
                     EventType::NetworkDeviceModified,
                     serde_json::to_value(NetworkDeviceModifiedMetadata {
                         before,
                         after,
                         location,
+                        preshared_key,
                     })
                     .ok(),
                 ),

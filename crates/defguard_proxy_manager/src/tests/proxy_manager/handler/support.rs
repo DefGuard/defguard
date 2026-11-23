@@ -11,6 +11,7 @@ use defguard_common::{
         models::{
             Device, DeviceType, User, WireguardNetwork,
             biometric_auth::BiometricAuth,
+            device::WireguardNetworkDevice,
             mfa_flow::{LocationMfaFlowAssignment, MfaFlow},
             polling_token::PollingToken,
             settings::{Settings, update_current_settings},
@@ -368,6 +369,60 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
         .await
         .expect("failed to add device to networks");
     device
+}
+
+pub(crate) async fn create_network_device(
+    pool: &PgPool,
+    user_id: Id,
+    network: &WireguardNetwork<Id>,
+    pubkey: &str,
+    configured: bool,
+    preshared_key: Option<&str>,
+) -> Device<Id> {
+    let device = Device::new(
+        "test-network-device".to_owned(),
+        pubkey.to_owned(),
+        user_id,
+        DeviceType::Network,
+        None,
+        configured,
+    )
+    .save(pool)
+    .await
+    .expect("failed to save test network device");
+    device
+        .set_preshared_key(pool, preshared_key.map(SecretStringWrapper::from).as_ref())
+        .await
+        .expect("failed to set network device preshared key");
+    WireguardNetworkDevice::new(
+        network.id,
+        device.id,
+        vec!["10.0.0.20".parse().expect("invalid test IP")],
+    )
+    .insert(pool)
+    .await
+    .expect("failed to attach network device");
+    device
+}
+
+pub(crate) async fn create_network_device_enrollment_token(
+    pool: &PgPool,
+    user_id: Id,
+    device_id: Id,
+) -> Token {
+    let mut token = Token::new(
+        user_id,
+        Some(user_id),
+        None,
+        3600,
+        Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
+    );
+    token.device_id = Some(device_id);
+    token
+        .save(pool)
+        .await
+        .expect("failed to save network device enrollment token");
+    token
 }
 
 /// Insert a test user AND a test device for that user, returning both.

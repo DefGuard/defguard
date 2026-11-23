@@ -15,10 +15,29 @@ import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../shared/api/api';
+import type { NetworkDevice } from '../../../../shared/api/types';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
+import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
+import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
+import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
 import type { SelectSingleValue } from '../../../../shared/defguard-ui/components/Select/types';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { generatePresharedKey } from '../../../../shared/utils/generatePresharedKey';
+import {
+  PresharedKeyFields,
+  presharedKeyFieldNames,
+  refinePresharedKey,
+} from '../../components/PresharedKeyFields/PresharedKeyFields';
 
 const modalNameValue = ModalName.EditNetworkDevice;
 
@@ -55,14 +74,41 @@ export const EditNetworkDeviceModal = () => {
   );
 };
 
+type PresharedKeyFormValues = {
+  usePresharedKey: boolean;
+  replacePresharedKey: boolean;
+  generatePresharedKey: boolean;
+  preshared_key?: string | null;
+};
+
+const isPresharedKeyChanged = (
+  device: NetworkDevice,
+  values: PresharedKeyFormValues,
+): boolean => {
+  return (
+    values.usePresharedKey && (!device.preshared_key_set || values.replacePresharedKey)
+  );
+};
+
+const presharedKeyRequestValue = (
+  device: NetworkDevice,
+  values: PresharedKeyFormValues,
+): string | null | undefined => {
+  if (!values.usePresharedKey) {
+    return device.preshared_key_set ? null : undefined;
+  }
+  if (!isPresharedKeyChanged(device, values)) return undefined;
+  return values.generatePresharedKey
+    ? generatePresharedKey()
+    : (values.preshared_key ?? undefined);
+};
+
 const ModalContent = ({ device, reservedNames }: ModalData) => {
+  const [generatedPresharedKey, setGeneratedPresharedKey] = useState<string | null>(null);
   const { mutateAsync: editDevice } = useMutation({
     mutationFn: api.network_device.editDevice,
     meta: {
       invalidate: [['device', 'network'], ['network']],
-    },
-    onSuccess: () => {
-      closeModal(modalNameValue);
     },
   });
   const locationOption: SelectSingleValue<number> = {
@@ -73,21 +119,31 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
 
   const formSchema = useMemo(
     () =>
-      z.object({
-        name: z
-          .string(m.form_error_required())
-          .trim()
-          .min(1, m.form_error_required())
-          .refine((value) => {
-            if (value === device.name) return true;
-            return !reservedNames.includes(value);
-          }, m.form_error_name_reserved()),
-        description: z.string().trim().nullable(),
-        modifiableIpParts: z.array(
-          z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-        ),
-      }),
-    [device.name, reservedNames],
+      z
+        .object({
+          name: z
+            .string(m.form_error_required())
+            .trim()
+            .min(1, m.form_error_required())
+            .refine((value) => {
+              if (value === device.name) return true;
+              return !reservedNames.includes(value);
+            }, m.form_error_name_reserved()),
+          description: z.string().trim().nullable(),
+          modifiableIpParts: z.array(
+            z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+          ),
+          usePresharedKey: z.boolean(),
+          replacePresharedKey: z.boolean(),
+          generatePresharedKey: z.boolean(),
+          preshared_key: z.string().trim().nullable().optional(),
+        })
+        .superRefine((values, ctx) => {
+          if (isPresharedKeyChanged(device, values)) {
+            refinePresharedKey(values, ctx);
+          }
+        }),
+    [device, reservedNames],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -97,6 +153,10 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       name: device.name,
       description: device.description ?? null,
       modifiableIpParts: device.split_ips.map((item) => item.modifiable_part),
+      usePresharedKey: device.preshared_key_set,
+      replacePresharedKey: false,
+      generatePresharedKey: true,
+      preshared_key: null,
     }),
     [device],
   );
@@ -137,16 +197,27 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       const assignedIps = value.modifiableIpParts.map(
         (part, index) => device.split_ips[index].network_part + part,
       );
+      const presharedKey = presharedKeyRequestValue(device, value);
       await editDevice({
         id: device.id,
         assigned_ips: assignedIps,
         name: value.name,
         description: value.description ?? undefined,
+        preshared_key: presharedKey,
       });
+      if (isPresharedKeyChanged(device, value) && value.generatePresharedKey) {
+        setGeneratedPresharedKey(presharedKey ?? null);
+      } else {
+        closeModal(modalNameValue);
+      }
     },
   });
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+
+  if (isPresent(generatedPresharedKey)) {
+    return <GeneratedPresharedKeyStep presharedKey={generatedPresharedKey} />;
+  }
 
   return (
     <>
@@ -201,6 +272,76 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
               ))
             }
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="usePresharedKey">
+            {(field) => (
+              <field.FormInteractiveBlock
+                variant="toggle"
+                data-testid="field-usePresharedKey"
+                title={m.modal_network_device_psk_title()}
+                content={m.modal_network_device_psk_content()}
+              >
+                <form.Subscribe selector={(s) => s.values.usePresharedKey}>
+                  {(usePresharedKey) => (
+                    <Fold open={usePresharedKey}>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      {device.preshared_key_set && (
+                        <>
+                          <AppText
+                            font={TextStyle.TBodySm400}
+                            color={ThemeVariable.FgMuted}
+                          >
+                            {m.modal_network_device_psk_set()}
+                          </AppText>
+                          <SizedBox height={ThemeSpacing.Lg} />
+                          <form.AppField name="replacePresharedKey">
+                            {(field) => (
+                              <field.FormCheckbox
+                                text={m.modal_network_device_psk_replace()}
+                              />
+                            )}
+                          </form.AppField>
+                        </>
+                      )}
+                      <form.Subscribe selector={(s) => s.values.replacePresharedKey}>
+                        {(replacePresharedKey) => (
+                          <Fold open={!device.preshared_key_set || replacePresharedKey}>
+                            <SizedBox height={ThemeSpacing.Lg} />
+                            <PresharedKeyFields
+                              form={form}
+                              fields={presharedKeyFieldNames}
+                            />
+                          </Fold>
+                        )}
+                      </form.Subscribe>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      <InfoBanner
+                        variant="warning"
+                        icon={IconKind.WarningOutlined}
+                        text={m.modal_network_device_psk_edit_warning()}
+                      />
+                    </Fold>
+                  )}
+                </form.Subscribe>
+              </field.FormInteractiveBlock>
+            )}
+          </form.AppField>
+          {device.preshared_key_set && (
+            <form.Subscribe selector={(s) => s.values.usePresharedKey}>
+              {(usePresharedKey) =>
+                !usePresharedKey && (
+                  <>
+                    <SizedBox height={ThemeSpacing.Lg} />
+                    <InfoBanner
+                      variant="warning"
+                      icon={IconKind.WarningOutlined}
+                      text={m.modal_network_device_psk_remove_warning()}
+                    />
+                  </>
+                )
+              }
+            </form.Subscribe>
+          )}
         </form.AppForm>
       </form>
       <ModalControls
@@ -216,6 +357,35 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
           loading: isSubmitting,
           onClick: () => {
             form.handleSubmit();
+          },
+        }}
+      />
+    </>
+  );
+};
+
+type Props = {
+  presharedKey: string;
+};
+
+const GeneratedPresharedKeyStep = ({ presharedKey }: Props) => {
+  return (
+    <>
+      <DescriptionBlock title={m.modal_network_device_psk_generated_title()}>
+        <p>{m.modal_network_device_psk_generated_content()}</p>
+      </DescriptionBlock>
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <CopyField
+        label={m.form_label_preshared_key()}
+        text={presharedKey}
+        copyTooltip={m.misc_clipboard_copy()}
+      />
+      <ModalControls
+        submitProps={{
+          testId: 'finish',
+          text: m.controls_finish(),
+          onClick: () => {
+            closeModal(modalNameValue);
           },
         }}
       />

@@ -256,7 +256,7 @@ fn test_device_modified_debug_redacts_network_preshared_key() {
 }
 
 #[test]
-fn test_runtime_peer_update_strips_preshared_key_for_non_mfa_locations() {
+fn test_runtime_peer_update_keeps_static_preshared_key_for_non_mfa_locations() {
     let handler = test_handler(false);
 
     let peer = handler
@@ -265,14 +265,31 @@ fn test_runtime_peer_update_strips_preshared_key_for_non_mfa_locations() {
             "device-pubkey".into(),
             vec!["10.1.1.2".into()],
             true,
-            Some("legacy-psk".into()),
+            Some("static-psk".into()),
         )
         .unwrap();
 
     assert_eq!(peer.pubkey, "device-pubkey");
     assert_eq!(peer.allowed_ips, ["10.1.1.2"]);
-    assert_eq!(peer.preshared_key, None);
+    assert_eq!(peer.preshared_key.as_deref(), Some("static-psk"));
     assert_eq!(peer.keepalive_interval, Some(25));
+}
+
+#[test]
+fn test_runtime_peer_update_without_preshared_key_for_non_mfa_locations() {
+    let handler = test_handler(false);
+
+    let peer = handler
+        .runtime_peer_update(
+            "device",
+            "device-pubkey".into(),
+            vec!["10.1.1.2".into()],
+            true,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(peer.preshared_key, None);
 }
 
 #[test]
