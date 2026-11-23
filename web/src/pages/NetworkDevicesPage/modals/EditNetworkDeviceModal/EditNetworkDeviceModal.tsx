@@ -91,7 +91,7 @@ const presharedKeyRequestValue = (
   if (!isPresharedKeyChanged(device, values)) return undefined;
   return values.generatePresharedKey
     ? generatePresharedKey()
-    : (values.preshared_key ?? undefined);
+    : values.preshared_key?.trim();
 };
 
 const ModalContent = ({ device, reservedNames }: ModalData) => {

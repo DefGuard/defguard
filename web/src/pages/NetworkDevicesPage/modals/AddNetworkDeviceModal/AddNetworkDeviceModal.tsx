@@ -403,7 +403,7 @@ const FormStep = ({
       if (value.usePresharedKey) {
         presharedKey = value.generatePresharedKey
           ? generatePresharedKey()
-          : (value.preshared_key ?? undefined);
+          : value.preshared_key?.trim();
       }
 
       if (useCli) {
