@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { Controls } from '../../../../shared/components/Controls/Controls';
+import { DownloadButton } from '../../../../shared/components/DownloadButton/DownloadButton';
 import { LoadingStep } from '../../../../shared/components/LoadingStep/LoadingStep';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
@@ -205,7 +206,9 @@ export const SetupExternalUrlSslConfigStep = () => {
                       title={m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_error_log_title()}
                       value={acmeState.proxyLogs.join('\n')}
                       copy
+                      copyTooltip={m.cmp_copy_button_tooltip()}
                       download
+                      downloadTooltip={m.cmp_download_button_tooltip()}
                     />
                     <SizedBox height={ThemeSpacing.Xl} />
                   </>
@@ -242,12 +245,10 @@ export const SetupExternalUrlSslConfigStep = () => {
               <p>{m.initial_setup_auto_adoption_external_url_ssl_ca_description()}</p>
             </div>
             <div>
-              <Button
+              <DownloadButton
                 text={m.initial_setup_auto_adoption_external_url_ssl_ca_download()}
-                variant="outlined"
-                iconLeft="download"
-                onClick={handleDownloadCaCert}
                 disabled={!sslInfoData?.ca_cert_pem}
+                onDownload={handleDownloadCaCert}
               />
             </div>
           </div>

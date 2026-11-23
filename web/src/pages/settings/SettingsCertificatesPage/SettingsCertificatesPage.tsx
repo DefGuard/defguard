@@ -11,6 +11,7 @@ import {
 } from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { DownloadButton } from '../../../shared/components/DownloadButton/DownloadButton';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
@@ -124,12 +125,11 @@ const Content = () => {
             />
             <SizedBox height={ThemeSpacing.Lg} />
             <Controls>
-              <Button
-                variant="outlined"
+              <DownloadButton
                 text={m.settings_certs_ca_download()}
-                onClick={downloadCaCert}
                 loading={isFetching || isFetchingCa}
                 disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
+                onDownload={downloadCaCert}
               />
               <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
               <Button
@@ -197,12 +197,11 @@ const Content = () => {
             />
             <SizedBox height={ThemeSpacing.Lg} />
             <Controls>
-              <Button
-                variant="outlined"
+              <DownloadButton
                 text={m.settings_certs_ca_download()}
-                onClick={downloadCaCert}
                 loading={isFetching || isFetchingCa}
                 disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
+                onDownload={downloadCaCert}
               />
               <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
               <Button

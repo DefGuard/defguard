@@ -4,6 +4,7 @@ import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../../../shared/components/Controls/Controls';
+import { DownloadButton } from '../../../../shared/components/DownloadButton/DownloadButton';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
@@ -46,13 +47,11 @@ export const SetupCertificateAuthoritySummaryStep = () => {
         subtitle={m.initial_setup_ca_generated_subtitle()}
         imageSrc={caIcon}
       >
-        <Button
-          iconLeft="download"
-          variant="outlined"
+        <DownloadButton
           text={m.initial_setup_ca_download_button()}
-          onClick={handleDownloadCA}
           loading={isFetching}
           disabled={!isPresent(caData?.ca_cert_pem) || isFetching}
+          onDownload={handleDownloadCA}
         />
       </ActionCard>
       <Controls>

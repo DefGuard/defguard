@@ -23,9 +23,10 @@ import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
+import { CopyButton } from '../../../../shared/components/CopyButton/CopyButton';
 import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { DownloadButton } from '../../../../shared/components/DownloadButton/DownloadButton';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
@@ -34,7 +35,6 @@ import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { Select } from '../../../../shared/defguard-ui/components/Select/Select';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../../../shared/defguard-ui/hooks/useClipboard';
 import {
   TextStyle,
   ThemeSpacing,
@@ -155,7 +155,6 @@ const ManualStep = ({
   privateKey,
   presharedKey,
 }: Pick<ModalState, 'manualDevice' | 'privateKey' | 'presharedKey'>) => {
-  const { writeToClipboard } = useClipboard();
   const config = useMemo(() => {
     if (!isPresent(manualDevice)) return null;
     let res = manualDevice.config.config;
@@ -185,24 +184,14 @@ const ManualStep = ({
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />
       <SizedBox height={ThemeSpacing.Xl2} />
       <div className="box-controls">
-        <Button
-          variant="outlined"
+        <DownloadButton
           text={m.modal_network_device_manual_config_download()}
-          iconLeft="download"
           testId="download-config"
-          onClick={() => {
+          onDownload={() => {
             downloadText(config, formatFileName(manualDevice.device.name), 'conf');
           }}
         />
-        <Button
-          variant="outlined"
-          text={m.controls_copy_clipboard()}
-          iconLeft="copy"
-          testId="copy-config"
-          onClick={() => {
-            writeToClipboard(config);
-          }}
-        />
+        <CopyButton value={config} testId="copy-config" />
       </div>
       <ModalControls
         submitProps={{

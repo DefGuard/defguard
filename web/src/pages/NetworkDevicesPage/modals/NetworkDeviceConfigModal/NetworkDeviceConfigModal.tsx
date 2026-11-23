@@ -1,13 +1,13 @@
 import { m } from '../../../../paraglide/messages';
+import { CopyButton } from '../../../../shared/components/CopyButton/CopyButton';
 import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { DownloadButton } from '../../../../shared/components/DownloadButton/DownloadButton';
 import { CodeBox } from '../../../../shared/defguard-ui/components/CodeBox/CodeBox';
 import { IconKind } from '../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../../../shared/defguard-ui/hooks/useClipboard';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import {
@@ -58,7 +58,6 @@ export const NetworkDeviceConfigModal = () => {
 };
 
 const ModalContent = ({ config, device }: ModalData) => {
-  const { writeToClipboard } = useClipboard();
   return (
     <>
       <DescriptionBlock title={m.modal_network_device_manual_config_title()}>
@@ -84,22 +83,13 @@ const ModalContent = ({ config, device }: ModalData) => {
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />
       <SizedBox height={ThemeSpacing.Xl2} />
       <div className="box-controls">
-        <Button
-          variant="outlined"
+        <DownloadButton
           text={m.modal_network_device_manual_config_download()}
-          iconLeft="download"
-          onClick={() => {
+          onDownload={() => {
             downloadText(config, formatFileName(device.name), 'conf');
           }}
         />
-        <Button
-          variant="outlined"
-          text={m.controls_copy_clipboard()}
-          iconLeft="copy"
-          onClick={() => {
-            writeToClipboard(config);
-          }}
-        />
+        <CopyButton value={config} />
       </div>
       <ModalControls
         submitProps={{

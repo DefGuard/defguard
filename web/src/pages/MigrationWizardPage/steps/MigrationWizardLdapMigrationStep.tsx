@@ -76,7 +76,9 @@ export const MigrationWizardLdapMigrationStep = () => {
               title={m.migration_wizard_ldap_error_log_title()}
               value={logValue}
               copy
+              copyTooltip={m.cmp_copy_button_tooltip()}
               download
+              downloadTooltip={m.cmp_download_button_tooltip()}
             />
             <SizedBox height={ThemeSpacing.Xl} />
             <Button
@@ -110,7 +112,9 @@ export const MigrationWizardLdapMigrationStep = () => {
             title={m.migration_wizard_ldap_success_log_title()}
             value={logValue}
             copy
+            copyTooltip={m.cmp_copy_button_tooltip()}
             download
+            downloadTooltip={m.cmp_download_button_tooltip()}
           />
           <SizedBox height={ThemeSpacing.Xl} />
         </>
