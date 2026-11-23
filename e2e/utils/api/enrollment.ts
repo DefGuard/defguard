@@ -1,4 +1,4 @@
-import { APIRequestContext } from '@playwright/test';
+import { APIRequestContext, expect } from '@playwright/test';
 
 import { testsConfig } from '../../config';
 
@@ -28,4 +28,20 @@ export const apiEnrollmentActivateUser = async (
       'Content-Type': 'application/json',
     },
   });
+};
+
+export const apiEnrollmentCreateDevice = async (
+  request: APIRequestContext,
+  token: string,
+  device: { name: string; pubkey: string },
+) => {
+  const startUrl = `${testsConfig.ENROLLMENT_URL}/api/v1/enrollment/start`;
+  const startResponse = await request.post(startUrl, { data: { token } });
+  expect(startResponse.status()).toBe(200);
+  const createUrl = `${testsConfig.ENROLLMENT_URL}/api/v1/enrollment/create_device`;
+  const createResponse = await request.post(createUrl, {
+    data: { name: device.name, pubkey: device.pubkey, token: null },
+  });
+  expect(createResponse.status()).toBe(200);
+  return createResponse.json();
 };

@@ -54,6 +54,7 @@ export const routes = {
     editFlow: (id: number | string) => `/mfa-flow/${id}/edit`,
   },
   enrollment: '/enrollment',
+  activity: '/activity',
   network_devices: '/network-devices',
   openid_apps: '/openid',
   webhooks: '/webhooks',
