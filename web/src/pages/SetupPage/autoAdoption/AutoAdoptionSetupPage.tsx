@@ -95,7 +95,9 @@ const AutoAdoptionFailedWelcomeContent = ({
                       )}
                       value={componentLogs}
                       copy
+                      copyTooltip={m.cmp_copy_button_tooltip()}
                       download
+                      downloadTooltip={m.cmp_download_button_tooltip()}
                     />
                   </div>
                 )}

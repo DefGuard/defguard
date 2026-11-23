@@ -1,42 +1,37 @@
-import { useEffect, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import { ActionTooltip } from '../../defguard-ui/components/ActionTooltip/ActionTooltip';
 import { Button } from '../../defguard-ui/components/Button/Button';
+import type { ButtonProps } from '../../defguard-ui/components/Button/types';
 import { useClipboard } from '../../defguard-ui/hooks/useClipboard';
-import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigger';
 
-type Props = {
+type Props = Omit<ButtonProps, 'onClick' | 'ref' | 'text'> & {
   value: string;
+  text?: string;
 };
 
-export const CopyButton = ({ value }: Props) => {
-  const [open, setOpen] = useState(false);
+export const CopyButton = ({
+  value,
+  text = m.cmp_copy_button(),
+  variant = 'outlined',
+  iconLeft = 'copy',
+  ...props
+}: Props) => {
   const { writeToClipboard } = useClipboard();
 
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => {
-        setOpen(false);
-      }, 1000);
-    }
-  }, [open]);
-
   return (
-    <TooltipProvider open={open} onOpenChange={setOpen}>
-      <TooltipTrigger>
+    <ActionTooltip text={m.cmp_copy_button_tooltip()}>
+      {({ show }) => (
         <Button
-          variant="outlined"
-          text={m.cmp_copy_button()}
+          {...props}
+          text={text}
+          variant={variant}
+          iconLeft={iconLeft}
           onClick={() => {
-            writeToClipboard(value);
-            setOpen(true);
+            void writeToClipboard(value);
+            show();
           }}
         />
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{m.cmp_copy_button_tooltip()}</p>
-      </TooltipContent>
-    </TooltipProvider>
+      )}
+    </ActionTooltip>
   );
 };

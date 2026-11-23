@@ -21,7 +21,9 @@ export const LdapConnectionErrorModal = ({ isOpen, error, onClose }: Props) => (
       title={m.modal_ldap_connection_error_code_title()}
       value={error}
       copy
+      copyTooltip={m.cmp_copy_button_tooltip()}
       download
+      downloadTooltip={m.cmp_download_button_tooltip()}
     />
     <Controls>
       <div className="right">

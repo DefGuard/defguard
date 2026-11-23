@@ -3,17 +3,16 @@ import './style.scss';
 import { ZipArchive } from '@shortercode/webzip';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import { Button } from '../../defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../defguard-ui/components/ButtonMenu/MenuButton';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
 import { QrCard } from '../../defguard-ui/components/QrCard/QrCard';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../defguard-ui/hooks/useClipboard';
 import { ThemeSpacing } from '../../defguard-ui/types';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { downloadFile, downloadText } from '../../utils/download';
+import { CopyButton } from '../CopyButton/CopyButton';
 
 const configToOption = (
   item: AddDeviceResponseConfig,
@@ -33,7 +32,6 @@ type Props = { data: AddDeviceResponse; privateKey?: string };
 
 export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) => {
   const publicKey = response.device.wireguard_pubkey;
-  const { writeToClipboard } = useClipboard();
   const selectOptions = useMemo(
     () =>
       response.configs
@@ -132,14 +130,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
               text={m.modal_add_user_device_manual_download_actions_download()}
               menuItems={downloadMenu}
             />
-            <Button
-              text={m.controls_copy_clipboard()}
-              variant="outlined"
-              iconLeft="copy"
-              onClick={() => {
-                void writeToClipboard(clipboardConfig);
-              }}
-            />
+            <CopyButton value={clipboardConfig} />
           </div>
         )}
       </div>

@@ -1,11 +1,12 @@
 import { useNavigate } from '@tanstack/react-router';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
+import { CopyButton } from '../../../../../../../shared/components/CopyButton/CopyButton';
+import { DownloadButton } from '../../../../../../../shared/components/DownloadButton/DownloadButton';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../../../../../../shared/defguard-ui/hooks/useClipboard';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { subscribeOpenModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import type { ModalNameValue } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -69,7 +70,6 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
     return [codes.slice(0, 4), codes.slice(4, 8)];
   }, [codes]);
 
-  const { writeToClipboard } = useClipboard();
   return (
     <>
       <p className="explain">{m.modal_recovery_codes_explain()}</p>
@@ -87,26 +87,15 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
       </div>
       <SizedBox height={ThemeSpacing.Xl} />
       <div className="actions">
-        <Button
+        <DownloadButton
           size="big"
-          iconLeft="download"
-          variant="outlined"
           text={m.modal_recovery_codes_download_cta_download()}
-          onClick={() => {
+          onDownload={() => {
             const fileContent = codes.join('\n');
             downloadText(fileContent, 'recovery', 'txt');
           }}
         />
-        <Button
-          size="big"
-          iconLeft="copy"
-          variant="outlined"
-          text={m.controls_copy_clipboard()}
-          testId="copy-recovery-codes"
-          onClick={() => {
-            void writeToClipboard(codes.join('\n'));
-          }}
-        />
+        <CopyButton value={codes.join('\n')} size="big" testId="copy-recovery-codes" />
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />
       <div className="bottom">

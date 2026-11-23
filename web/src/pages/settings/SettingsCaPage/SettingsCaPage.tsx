@@ -10,13 +10,13 @@ import {
   ContextualHelpSidebar,
 } from '../../../shared/components/ContextualHelp';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { DownloadButton } from '../../../shared/components/DownloadButton/DownloadButton';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { ActionableSection } from '../../../shared/defguard-ui/components/ActionableSection/ActionableSection';
 import { ActionableSectionVariant } from '../../../shared/defguard-ui/components/ActionableSection/types';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -100,13 +100,11 @@ const Content = () => {
       </div>
       <Divider spacing={ThemeSpacing.Md} />
       <SizedBox height={ThemeSpacing.Xl2} />
-      <Button
-        variant="outlined"
-        iconLeft="download"
+      <DownloadButton
         text={m.settings_certs_ca_download()}
-        onClick={handleDownloadCA}
         loading={isFetching}
         disabled={!isPresent(caData?.ca_cert_pem) || isFetching}
+        onDownload={handleDownloadCA}
       />
     </ActionableSection>
   );

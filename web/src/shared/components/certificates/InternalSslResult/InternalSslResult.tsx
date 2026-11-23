@@ -1,8 +1,8 @@
 import { m } from '../../../../paraglide/messages';
 import type { CertInfo, InternalSslType } from '../../../api/types';
-import { Button } from '../../../defguard-ui/components/Button/Button';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { DownloadButton } from '../../DownloadButton/DownloadButton';
 
 type Props = {
   sslType: InternalSslType | null;
@@ -48,12 +48,10 @@ export const InternalSslResult = ({
             <p>{m.initial_setup_auto_adoption_internal_url_ssl_ca_description()}</p>
           </div>
           <div>
-            <Button
+            <DownloadButton
               text={m.initial_setup_auto_adoption_internal_url_ssl_ca_download()}
-              variant="outlined"
-              iconLeft="download"
-              onClick={onDownloadCaCert}
               disabled={!caCertPem}
+              onDownload={onDownloadCaCert}
             />
           </div>
         </div>
