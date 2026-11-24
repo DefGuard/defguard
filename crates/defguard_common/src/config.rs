@@ -1,5 +1,6 @@
 use std::{net::IpAddr, sync::OnceLock};
 
+use chrono_tz::Tz;
 use clap::{Args, Parser, Subcommand, ValueEnum, value_parser};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
@@ -73,6 +74,11 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
+
+    /// IANA time zone (e.g. `Europe/Warsaw`) used when rendering timestamps
+    /// in outgoing e-mail notifications.
+    #[arg(long, env = "DEFGUARD_MAIL_TIMEZONE", default_value = "UTC")]
+    pub mail_timezone: Tz,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
@@ -364,6 +370,7 @@ impl DefGuardConfig {
             // sqlx safe default
             database_pool_size: 10,
             http_port: 8000,
+            mail_timezone: Tz::UTC,
             openid_signing_key: None,
             hmac: false,
             url: None,
