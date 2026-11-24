@@ -57,4 +57,4 @@ services:
       - NET_ADMIN
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: ghcr.io/axllent/mailpit:latest
