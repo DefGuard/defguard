@@ -1,8 +1,10 @@
 use defguard_common::db::{
     Id,
     models::{
+        Device,
         device_client_info::{DeviceClientInfo, OsType},
         group::Group,
+        polling_token::PollingToken,
     },
 };
 use defguard_core::{
@@ -15,6 +17,9 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types,
+    device_identity::{
+        PossessionChallengeSolution, Signature, SignatureAlgorithm, possession_challenge_solution,
+    },
     proxy::{CoreRequest, DeviceInfo, core_request, core_response},
 };
 use sqlx::{
@@ -40,6 +45,7 @@ async fn poll_with_device_info(
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token.to_owned(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -66,6 +72,7 @@ async fn poll_client_traffic_policy(context: &mut HandlerTestContext, token: &st
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token.to_owned(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -196,6 +203,7 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -347,7 +355,10 @@ async fn test_polling_requires_business_license(_: PgPoolOptions, options: PgCon
         id: 11,
         device_info: None,
         payload: Some(core_request::Payload::InstanceInfo(
-            client_types::InstanceInfoRequest { token: token_str },
+            client_types::InstanceInfoRequest {
+                token: token_str,
+                possession_challenge_solution: None,
+            },
         )),
     });
 
@@ -375,6 +386,7 @@ async fn test_polling_invalid_token_returns_error(_: PgPoolOptions, options: PgC
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: "this-token-does-not-exist-00000000".to_owned(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -412,7 +424,10 @@ async fn test_polling_inactive_user_returns_error(_: PgPoolOptions, options: PgC
         id: 13,
         device_info: None,
         payload: Some(core_request::Payload::InstanceInfo(
-            client_types::InstanceInfoRequest { token: token_str },
+            client_types::InstanceInfoRequest {
+                token: token_str,
+                possession_challenge_solution: None,
+            },
         )),
     });
 
@@ -446,6 +461,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -471,6 +487,7 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
         payload: Some(core_request::Payload::InstanceInfo(
             client_types::InstanceInfoRequest {
                 token: token_str.clone(),
+                possession_challenge_solution: None,
             },
         )),
     });
@@ -495,6 +512,64 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
         "second poll should reflect the new network; got first={first_cfg_count}, second={second_cfg_count}"
     );
 
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_polling_possession_stub_withholds_config_and_client_info(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+    create_network(&context.pool).await;
+    let (_, device) = create_user_with_device(&context.pool).await;
+    let token = create_polling_token(&context.pool, device.id).await;
+    let platform = client_types::ClientPlatformInfo {
+        os_family: "linux".into(),
+        os_type: "linux".into(),
+        version: "6.12".into(),
+        ..Default::default()
+    };
+    let device_info = make_client_device_info("2.3.0", &platform);
+    context.mock_proxy().send_request(CoreRequest {
+        id: 1,
+        device_info: Some(device_info.clone()),
+        payload: Some(core_request::Payload::InstanceInfo(
+            client_types::InstanceInfoRequest {
+                token: token.clone(),
+                possession_challenge_solution: Some(PossessionChallengeSolution {
+                    identity_id: "unverified-identity".into(),
+                    challenge_id: "unverified-challenge".into(),
+                    result: Some(possession_challenge_solution::Result::Signature(
+                        Signature {
+                            algorithm: SignatureAlgorithm::EcdsaSha256.into(),
+                            signature: vec![0x30, 0],
+                        },
+                    )),
+                }),
+            },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert_eq!(response.id, 1);
+    assert_eq!(assert_error_response(&response), tonic::Code::Unimplemented);
+    assert!(stored_client_info(&context.pool, device.id).await.is_none());
+    assert_eq!(
+        Device::find_by_id(&context.pool, device.id).await.unwrap(),
+        Some(device.clone()),
+    );
+    assert!(
+        PollingToken::find(&context.pool, &token)
+            .await
+            .unwrap()
+            .is_some()
+    );
+
+    poll_with_device_info(&mut context, &token, Some(device_info)).await;
+    assert!(stored_client_info(&context.pool, device.id).await.is_some());
     clear_test_license();
     context.finish().await.expect_server_finished().await;
 }

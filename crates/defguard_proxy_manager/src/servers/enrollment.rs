@@ -19,7 +19,11 @@ use defguard_core::{
     },
     device_access::{build_device_config, join_device_to_all_networks},
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            device_identity::DeviceIdentity, enterprise_settings::EnterpriseSettings,
+            openid_provider::OpenIdProvider,
+        },
+        device_identity::{generate_attestation_challenge, verify_attestation},
         firewall::try_get_location_firewall_config,
         ldap::utils::ldap_add_user,
         licensed_mfa_setup_methods,
@@ -47,10 +51,11 @@ use defguard_core::{
 };
 use defguard_proto::{
     client_types::{
-        ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
-        CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
-        EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo,
-        MfaMethod, NewDevice, RegisterMobileAuthRequest,
+        ActivateUserRequest, AdminInfo, AttestationFinishRequest, AttestationFinishResponse,
+        AttestationStartRequest, AttestationStartResponse, CodeMfaSetupFinishRequest,
+        CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest, CodeMfaSetupStartResponse,
+        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+        InitialUserInfo, MfaMethod, NewDevice, RegisterMobileAuthRequest,
     },
     proxy::{CoreError, CoreErrorCode},
 };
@@ -87,7 +92,7 @@ impl EnrollmentServer {
     }
 
     /// Validates an enrollment session token.
-    async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
+    async fn validate_enrollment_session(&self, token: Option<&String>) -> Result<Token, Status> {
         let (token, is_enrollment) = self.validate_mfa_setup_session(token).await?;
         if !is_enrollment {
             error!(
@@ -131,6 +136,79 @@ impl EnrollmentServer {
             return Err(Status::unauthenticated("Session expired"));
         }
         Ok((token, is_enrollment))
+    }
+
+    async fn validate_attestation_session(
+        &self,
+        token: &String,
+        device_id: Id,
+    ) -> Result<(Token, Device<Id>), Status> {
+        let enrollment = self.validate_enrollment_session(Some(token)).await?;
+        let user = enrollment.fetch_user(&self.pool).await?;
+        if !user.is_active {
+            return Err(Status::permission_denied("user is disabled"));
+        }
+        let device = Device::find_by_id(&self.pool, device_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch device for attestation: {err}");
+                Status::internal("failed to retrieve device")
+            })?
+            .ok_or_else(|| Status::not_found("device not found"))?;
+        if device.user_id != enrollment.user_id {
+            return Err(Status::permission_denied(
+                "enrollment token is not valid for specified device",
+            ));
+        }
+        if DeviceIdentity::find_by_device_id(&self.pool, device.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to fetch device identity for attestation: {err}");
+                Status::internal("failed to retrieve device identity")
+            })?
+            .is_some()
+        {
+            return Err(Status::failed_precondition(
+                "device already has an attestation identity",
+            ));
+        }
+        Ok((enrollment, device))
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn attestation_start(
+        &self,
+        request: AttestationStartRequest,
+    ) -> Result<AttestationStartResponse, Status> {
+        let (enrollment, device) = self
+            .validate_attestation_session(&request.token, request.device_id)
+            .await?;
+        let identity = request
+            .attestation_identity
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("missing attestation identity"))?;
+        let challenge = generate_attestation_challenge(&enrollment, &device, identity)?;
+        Ok(AttestationStartResponse {
+            challenge: Some(challenge),
+        })
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn attestation_finish(
+        &self,
+        request: AttestationFinishRequest,
+    ) -> Result<AttestationFinishResponse, Status> {
+        let (enrollment, device) = self
+            .validate_attestation_session(&request.token, request.device_id)
+            .await?;
+        let solution = request
+            .solution
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("missing attestation challenge solution"))?;
+        let identity_state = verify_attestation(&enrollment, &device, solution)?;
+        Ok(AttestationFinishResponse {
+            identity_state: Some(identity_state),
+        })
     }
 
     /// Sends given `GatewayCommand` to be handled by gateway manager service
@@ -358,7 +436,9 @@ impl EnrollmentServer {
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
         debug!("Register mobile auth started");
-        let enrollment = self.validate_session(Some(&request.token)).await?;
+        let enrollment = self
+            .validate_enrollment_session(Some(&request.token))
+            .await?;
         let user = enrollment.fetch_user(&self.pool).await?;
         Device::validate_pubkey(&request.device_pub_key).map_err(|err| {
             error!(
@@ -452,7 +532,9 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account");
-        let enrollment = self.validate_session(request.token.as_ref()).await?;
+        let enrollment = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
         Self::validate_activated_user(&request)?;
 
         let ip_address;
@@ -626,7 +708,9 @@ impl EnrollmentServer {
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device");
-        let enrollment_token = self.validate_session(request.token.as_ref()).await?;
+        let enrollment_token = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
 
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
@@ -1081,6 +1165,8 @@ impl EnrollmentServer {
             configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
+            identity_state: None,
+            possession_challenge: None,
         };
 
         // Prepare event context and push the event
@@ -1103,7 +1189,9 @@ impl EnrollmentServer {
         device_info: Option<defguard_proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let token = self.validate_session(request.token.as_ref()).await?;
+        let token = self
+            .validate_enrollment_session(request.token.as_ref())
+            .await?;
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", &request.pubkey);

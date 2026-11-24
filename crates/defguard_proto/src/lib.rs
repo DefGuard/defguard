@@ -40,6 +40,12 @@ mod generated {
             }
         }
 
+        pub mod device_identity {
+            pub mod v2 {
+                tonic::include_proto!("defguard.device_identity.v2");
+            }
+        }
+
         pub mod client_types {
             tonic::include_proto!("defguard.client_types");
         }
@@ -74,6 +80,10 @@ pub mod enterprise {
     pub mod posture {
         pub use crate::generated::defguard::enterprise::posture::v2::*;
     }
+}
+
+pub mod device_identity {
+    pub use crate::generated::defguard::device_identity::v2::*;
 }
 
 pub mod client_types {
