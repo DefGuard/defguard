@@ -12,7 +12,6 @@ import { CopyField } from '../../../../../defguard-ui/components/CopyField/CopyF
 import { Divider } from '../../../../../defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../../defguard-ui/components/Fold/Fold';
 import { FoldButton } from '../../../../../defguard-ui/components/FoldButton/FoldButton';
-import { IconButton } from '../../../../../defguard-ui/components/IconButton/IconButton';
 import { IconButtonMenu } from '../../../../../defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../defguard-ui/components/Menu/types';
 import { QrCard } from '../../../../../defguard-ui/components/QrCard/QrCard';
@@ -41,21 +40,45 @@ export const AddDeviceModalClientConfigStep = () => {
     );
   }, [enrollment]);
 
+  const windowsMenu = useMemo(
+    (): MenuItemsGroup[] => [
+      {
+        header: {
+          text: `${titleCase(m.misc_for())} Windows`,
+        },
+        items: [
+          {
+            icon: 'windows',
+            text: 'Windows 11 (x64)',
+            onClick: () => openClientLink(clientLinks?.windows_amd64),
+          },
+          {
+            icon: 'windows',
+            text: 'Windows 11 (ARM)',
+            onClick: () => openClientLink(clientLinks?.windows_arm64),
+          },
+        ],
+      },
+    ],
+    [clientLinks],
+  );
+
   const appleMenu = useMemo(
     (): MenuItemsGroup[] => [
       {
         header: {
-          text: 'Apple Hardware',
+          text: `${titleCase(m.misc_for())} macOS`,
         },
         items: [
           {
-            icon: 'apple',
-            text: 'Intel',
-            onClick: () => openClientLink(clientLinks?.macos_amd64),
+            icon: 'app-store',
+            text: 'App Store',
+            onClick: () => openClientLink(externalLink.client.desktop.macos.appStore),
           },
           {
             icon: 'apple',
-            text: 'ARM',
+            text: 'Universal DMG',
+            // The update service returns the universal DMG for both macOS keys.
             onClick: () => openClientLink(clientLinks?.macos_arm64),
           },
         ],
@@ -72,42 +95,42 @@ export const AddDeviceModalClientConfigStep = () => {
         },
         items: [
           {
-            icon: 'ubuntu',
-            text: 'Ubuntu 24.04 ARM',
-            onClick: () => openClientLink(clientLinks?.deb_arm64),
-          },
-          {
-            icon: 'ubuntu',
-            text: 'Ubuntu 24.04 AMD64',
+            icon: 'debian',
+            text: 'Debian 13 (x86)',
             onClick: () => openClientLink(clientLinks?.deb_amd64),
           },
+          {
+            icon: 'debian',
+            text: 'Debian 13 (ARM)',
+            onClick: () => openClientLink(clientLinks?.deb_arm64),
+          },
         ],
       },
       {
         items: [
           {
             icon: 'debian',
-            text: 'Ubuntu 22.04 / Debian 12&13 ARM',
-            onClick: () => openClientLink(clientLinks?.deb_legacy_arm64),
-          },
-          {
-            icon: 'debian',
-            text: 'Ubuntu 22.04 / Debian 12&13 AMD64',
+            text: 'Debian 12 | Ubuntu 22 (x86)',
             onClick: () => openClientLink(clientLinks?.deb_legacy_amd64),
           },
+          {
+            icon: 'debian',
+            text: 'Debian 12 | Ubuntu 22 (ARM)',
+            onClick: () => openClientLink(clientLinks?.deb_legacy_arm64),
+          },
         ],
       },
       {
         items: [
           {
             icon: 'linux',
-            text: 'RPM ARM',
-            onClick: () => openClientLink(clientLinks?.rpm_arm64),
+            text: 'Fedora 40 (x86)',
+            onClick: () => openClientLink(clientLinks?.rpm_amd64),
           },
           {
             icon: 'linux',
-            text: 'RPM AMD64',
-            onClick: () => openClientLink(clientLinks?.rpm_amd64),
+            text: 'Fedora 40 (ARM)',
+            onClick: () => openClientLink(clientLinks?.rpm_arm64),
           },
         ],
       },
@@ -152,13 +175,7 @@ export const AddDeviceModalClientConfigStep = () => {
           </a>
           <div className="download">
             <p>{m.modal_add_user_device_client_desktop_download()}</p>
-            <a
-              href={clientLinks?.windows_amd64 ?? externalLink.defguard.download}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconButton icon="windows" />
-            </a>
+            <IconButtonMenu icon="windows" menuItems={windowsMenu} />
             <IconButtonMenu icon="apple" menuItems={appleMenu} />
             <IconButtonMenu icon="linux" menuItems={linuxMenu} />
           </div>
