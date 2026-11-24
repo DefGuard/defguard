@@ -47,6 +47,7 @@ export const routes = {
     addDestination: '/acl/add-destination',
   },
   locations: '/locations',
+  vpnOverview: '/vpn-overview',
   edges: '/edges',
   mfa: {
     list: '/mfa',
@@ -73,6 +74,9 @@ export const routes = {
   settings: {
     base: '/settings',
     smtp: '/settings/smtp',
+    instance: '/settings/instance',
+    client: '/settings/client',
+    gatewayNotifications: '/settings/gateway-notifications',
     openid: '/settings/openid',
     tab: {
       openid: '/settings/openid',
