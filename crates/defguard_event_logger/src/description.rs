@@ -110,6 +110,12 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         ApiEventType::UserDeviceEnabled { owner, device } => {
             Some(format!("Enabled device {device} owned by user {owner}"))
         }
+        ApiEventType::UserDeviceVerificationStarted { owner, device } => Some(format!(
+            "Started verification of device {device} owned by user {owner}"
+        )),
+        ApiEventType::UserDeviceVerificationCancelled { owner, device } => Some(format!(
+            "Cancelled verification of device {device} owned by user {owner}"
+        )),
         ApiEventType::NetworkDeviceAdded { device, location } => Some(format!(
             "Added network device {device} to location {location}"
         )),

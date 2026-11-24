@@ -46,6 +46,8 @@ export const ActivityLogEventType = {
   DeviceVerificationRevoked: 'device_verification_revoked',
   DeviceBlocked: 'device_blocked',
   DeviceEnabled: 'device_enabled',
+  DeviceVerificationStarted: 'device_verification_started',
+  DeviceVerificationCancelled: 'device_verification_cancelled',
 
   NetworkDeviceAdded: 'network_device_added',
   NetworkDeviceModified: 'network_device_modified',

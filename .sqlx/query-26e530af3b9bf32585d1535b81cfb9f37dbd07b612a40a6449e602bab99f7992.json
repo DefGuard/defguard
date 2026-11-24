@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"device_verification\" (\"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26e530af3b9bf32585d1535b81cfb9f37dbd07b612a40a6449e602bab99f7992"
+}

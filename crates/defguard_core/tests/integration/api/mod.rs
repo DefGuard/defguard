@@ -10,6 +10,7 @@ mod core_certs;
 mod device_attestation;
 mod device_overview;
 mod device_posture;
+mod device_verification;
 mod enrollment;
 mod enterprise_settings;
 mod forward_auth;

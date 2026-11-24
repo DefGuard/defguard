@@ -7,7 +7,7 @@ use defguard_common::db::{
     Id,
     models::{
         Device, DeviceType, WireguardNetwork,
-        device::{DeviceInfo, DeviceState, DeviceVerification},
+        device::{DeviceInfo, DeviceState, DeviceVerificationStatus},
         device_client_info::OsType,
         device_identity::DeviceAttestationStatus,
         vpn_session_stats::endpoint_without_port,
@@ -71,7 +71,7 @@ pub(crate) struct DeviceOverviewFilterParams {
     #[serde(default)]
     state: Vec<DeviceState>,
     #[serde(default)]
-    verification: Vec<DeviceVerification>,
+    verification: Vec<DeviceVerificationStatus>,
     #[serde(default)]
     attestation_status: Vec<DeviceAttestationStatus>,
     #[serde(default)]
@@ -116,7 +116,7 @@ pub(crate) struct DeviceOverviewRow {
     name: String,
     state: DeviceState,
     /// None below the Enterprise license tier.
-    verification: Option<DeviceVerification>,
+    verification: Option<DeviceVerificationStatus>,
     /// None below the Enterprise license tier.
     attestation_status: Option<DeviceAttestationStatus>,
     user_id: Id,
@@ -323,16 +323,16 @@ impl BulkDeviceAction {
     fn apply(self, device: &mut Device<Id>) -> bool {
         match self {
             Self::Verify => {
-                if device.verification == DeviceVerification::Verified {
+                if device.verification == DeviceVerificationStatus::Verified {
                     return false;
                 }
-                device.verification = DeviceVerification::Verified;
+                device.verification = DeviceVerificationStatus::Verified;
             }
             Self::RevokeVerification => {
-                if device.verification != DeviceVerification::Verified {
+                if device.verification != DeviceVerificationStatus::Verified {
                     return false;
                 }
-                device.verification = DeviceVerification::Unverified;
+                device.verification = DeviceVerificationStatus::Unverified;
             }
             Self::Block => {
                 if device.state == DeviceState::Blocked {

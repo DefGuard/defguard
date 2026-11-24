@@ -4,7 +4,7 @@ use chrono::{NaiveDate, Utc};
 use defguard_common::db::{
     Id,
     models::{
-        Device, DeviceState, DeviceType, DeviceVerification, User, WireguardNetwork,
+        Device, DeviceState, DeviceType, DeviceVerificationStatus, User, WireguardNetwork,
         device::WireguardNetworkDevice,
         device_client_info::{DeviceClientInfo, OsType},
         device_identity::DeviceAttestationStatus,
@@ -238,7 +238,7 @@ async fn test_devices_overview_filters_and_sorting(_: PgPoolOptions, options: Pg
     .id;
 
     let mut phone = make_device(pool, "a-phone", harry).await;
-    phone.verification = DeviceVerification::Verified;
+    phone.verification = DeviceVerificationStatus::Verified;
     phone.save(pool).await.unwrap();
     let mut laptop = make_device(pool, "b-laptop", albus).await;
     laptop.attestation_status = DeviceAttestationStatus::Attested;
@@ -369,7 +369,7 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     .unwrap();
     let second = make_device(pool, "second", user_id).await;
     let mut verified = make_device(pool, "verified", user_id).await;
-    verified.verification = DeviceVerification::Verified;
+    verified.verification = DeviceVerificationStatus::Verified;
     verified.save(pool).await.unwrap();
     let ids = json!({"devices": [first.id, second.id, verified.id]});
 
@@ -392,7 +392,7 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let first_after = Device::find_by_id(pool, first.id).await.unwrap().unwrap();
-    assert_eq!(first_after.verification, DeviceVerification::Verified);
+    assert_eq!(first_after.verification, DeviceVerificationStatus::Verified);
     assert_eq!(
         first_after.attestation_status,
         DeviceAttestationStatus::NotAttested
@@ -414,10 +414,13 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
     assert_eq!(response.status(), StatusCode::OK);
     for id in [first.id, verified.id] {
         let device = Device::find_by_id(pool, id).await.unwrap().unwrap();
-        assert_eq!(device.verification, DeviceVerification::Unverified);
+        assert_eq!(device.verification, DeviceVerificationStatus::Unverified);
     }
     let second_after = Device::find_by_id(pool, second.id).await.unwrap().unwrap();
-    assert_eq!(second_after.verification, DeviceVerification::Verified);
+    assert_eq!(
+        second_after.verification,
+        DeviceVerificationStatus::Verified
+    );
     let events = client.drain_all_events();
     assert_eq!(events.len(), 2);
     assert!(
@@ -529,7 +532,7 @@ async fn test_devices_overview_business_license(_: PgPoolOptions, options: PgCon
     client.login_user("admin", "pass123").await;
 
     let mut verified = make_device(pool, "a-verified", user_id).await;
-    verified.verification = DeviceVerification::Verified;
+    verified.verification = DeviceVerificationStatus::Verified;
     verified.save(pool).await.unwrap();
     let mut attested = make_device(pool, "b-attested", user_id).await;
     attested.attestation_status = DeviceAttestationStatus::Attested;
@@ -559,7 +562,10 @@ async fn test_devices_overview_business_license(_: PgPoolOptions, options: PgCon
         assert_eq!(response.status(), StatusCode::FORBIDDEN, "action: {action}");
     }
     let plain_after = Device::find_by_id(pool, plain.id).await.unwrap().unwrap();
-    assert_eq!(plain_after.verification, DeviceVerification::Unverified);
+    assert_eq!(
+        plain_after.verification,
+        DeviceVerificationStatus::Unverified
+    );
 
     for action in ["block", "delete"] {
         let response = client

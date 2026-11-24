@@ -162,7 +162,7 @@
         "name": "verification: _",
         "type_info": {
           "Custom": {
-            "name": "device_verification",
+            "name": "device_verification_status",
             "kind": {
               "Enum": [
                 "verified",

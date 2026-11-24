@@ -787,6 +787,26 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("Enabled"),
         },
         EventTestCase {
+            name: "UserDeviceVerificationStarted",
+            message: api_message(ApiEventType::UserDeviceVerificationStarted {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceVerificationStarted,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Started verification"),
+        },
+        EventTestCase {
+            name: "UserDeviceVerificationCancelled",
+            message: api_message(ApiEventType::UserDeviceVerificationCancelled {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceVerificationCancelled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Cancelled verification"),
+        },
+        EventTestCase {
             name: "NetworkDeviceAdded",
             message: api_message(ApiEventType::NetworkDeviceAdded {
                 device: device.clone(),

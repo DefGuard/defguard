@@ -86,9 +86,9 @@ pub enum DeviceState {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-#[sqlx(type_name = "device_verification", rename_all = "snake_case")]
+#[sqlx(type_name = "device_verification_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
-pub enum DeviceVerification {
+pub enum DeviceVerificationStatus {
     Verified,
     #[default]
     Unverified,
@@ -135,7 +135,7 @@ pub struct Device<I = NoId> {
     pub state: DeviceState,
     #[model(enum)]
     #[serde(default)]
-    pub verification: DeviceVerification,
+    pub verification: DeviceVerificationStatus,
 }
 
 impl fmt::Display for Device<NoId> {
@@ -180,7 +180,7 @@ impl Distribution<Device> for Standard {
             attestation_status: DeviceAttestationStatus::NotAttested,
             attested_at: None,
             state: DeviceState::Enabled,
-            verification: DeviceVerification::Unverified,
+            verification: DeviceVerificationStatus::Unverified,
         }
     }
 }
@@ -692,7 +692,7 @@ impl Device {
             attestation_status: DeviceAttestationStatus::NotAttested,
             attested_at: None,
             state: DeviceState::Enabled,
-            verification: DeviceVerification::Unverified,
+            verification: DeviceVerificationStatus::Unverified,
         }
     }
 }

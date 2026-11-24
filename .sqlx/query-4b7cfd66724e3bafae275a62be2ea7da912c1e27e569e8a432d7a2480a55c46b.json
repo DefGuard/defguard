@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO device_verification (device_id, started_by, secret, created_at, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (device_id) DO UPDATE SET started_by = EXCLUDED.started_by, secret = EXCLUDED.secret, created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at WHERE device_verification.expires_at <= (now() AT TIME ZONE 'UTC') RETURNING id, device_id, started_by, secret, created_at, expires_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "started_by",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "started_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "secret",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "secret"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4b7cfd66724e3bafae275a62be2ea7da912c1e27e569e8a432d7a2480a55c46b"
+}

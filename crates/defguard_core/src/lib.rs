@@ -132,6 +132,7 @@ use crate::{
                 get_device_attestation_stats, get_device_posture, get_device_posture_versions,
                 list_device_postures, set_locations_for_posture, update_device_posture,
             },
+            device_verification::{cancel_device_verification, start_device_verification},
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
@@ -673,6 +674,10 @@ pub fn build_webapp(
                 put(modify_device).get(get_device).delete(delete_device),
             )
             .route("/device/{device_id}/config", get(user_device_configs))
+            .route(
+                "/device/{device_id}/verification",
+                post(start_device_verification).delete(cancel_device_verification),
+            )
             .route("/device", get(list_devices))
             .route("/device/overview", get(list_devices_overview))
             .route("/device/bulk/verify", post(bulk_verify_devices))
