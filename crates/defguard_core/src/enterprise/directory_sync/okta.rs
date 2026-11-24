@@ -9,14 +9,15 @@ use super::{
     DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
     parse_response,
 };
-use crate::enterprise::directory_sync::make_get_request;
+use crate::enterprise::{
+    client_assertion::CLIENT_ASSERTION_TYPE, directory_sync::make_get_request,
+};
 
 // Okta suggests using the maximum limit of 200 for the number of results per page.
 // If this is an issue, we would need to add resource pagination.
 const ACCESS_TOKEN_URL: &str = "{BASE_URL}/oauth2/v1/token";
 const GROUPS_URL: &str = "{BASE_URL}/api/v1/groups";
 const GRANT_TYPE: &str = "client_credentials";
-const CLIENT_ASSERTION_TYPE: &str = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 const TOKEN_SCOPE: &str = "okta.users.read okta.groups.read";
 const ALL_USERS_URL: &str = "{BASE_URL}/api/v1/users";
 const GROUP_MEMBERS: &str = "{BASE_URL}/api/v1/groups/{GROUP_ID}/users";

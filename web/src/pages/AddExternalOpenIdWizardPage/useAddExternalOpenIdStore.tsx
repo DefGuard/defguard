@@ -15,6 +15,7 @@ import {
   jumpcloudBaseUrls,
   supportedSyncProviders,
 } from '../../shared/constants';
+import type { ClientCertificateError } from './consts';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 
 type ProviderState = AddOpenIdProvider & {
@@ -27,6 +28,7 @@ interface StoreValues {
   providerState: ProviderState;
   testResult: boolean | null;
   testMessage: string | null;
+  certificateError: ClientCertificateError | null;
 }
 
 export const addExternalOpenIdStoreDefaults: StoreValues = {
@@ -34,12 +36,15 @@ export const addExternalOpenIdStoreDefaults: StoreValues = {
   activeStep: 'client-settings',
   testResult: null,
   testMessage: null,
+  certificateError: null,
   providerState: {
     name: OpenIdProviderKind.Custom,
     base_url: '',
     kind: OpenIdProviderKind.Custom,
     client_id: '',
     client_secret: '',
+    client_certificate: null,
+    client_private_key: null,
     display_name: '',
     google_service_account_key: null,
     google_service_account_email: null,

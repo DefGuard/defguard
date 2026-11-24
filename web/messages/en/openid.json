@@ -83,5 +83,12 @@
   "openid_consent_scope_profile": "Know basic information from your profile.",
   "openid_consent_scope_phone": "Know your phone information.",
   "openid_consent_scope_groups": "Know what groups your are in.",
-  "openid_consent_scope_email": "Know your email address."
+  "openid_consent_scope_email": "Know your email address.",
+  "settings_openid_provider_auth_method_secret": "Use client secret",
+  "settings_openid_provider_auth_method_certificate": "Upload certificate/private key",
+  "settings_openid_provider_upload_certificate": "Upload certificate file",
+  "settings_openid_provider_upload_key": "Upload key file",
+  "settings_openid_provider_certificate_label": "Certificate",
+  "settings_openid_provider_key_label": "Private key",
+  "settings_openid_provider_certificate_missing": "Please upload the certificate and private key, or choose another option."
 }

@@ -6,13 +6,18 @@ use super::{
     DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
     make_get_request, parse_response,
 };
-use crate::enterprise::directory_sync::{DirectoryUserDetails, REQUEST_TIMEOUT};
+use crate::enterprise::{
+    client_assertion::{CLIENT_ASSERTION_TYPE, client_assertion},
+    directory_sync::{DirectoryUserDetails, REQUEST_TIMEOUT},
+};
 
 pub(crate) struct MicrosoftDirectorySync {
     access_token: Option<String>,
     token_expiry: Option<chrono::DateTime<Utc>>,
     client_id: String,
     client_secret: String,
+    // (certificate PEM, private key PEM)
+    client_certificate: Option<(String, String)>,
     url: String,
     group_filter: Vec<String>,
     #[cfg(test)]
@@ -188,6 +193,7 @@ impl MicrosoftDirectorySync {
             access_token: None,
             client_id,
             client_secret,
+            client_certificate: None,
             url,
             token_expiry: None,
             group_filter: match_groups,
@@ -196,6 +202,11 @@ impl MicrosoftDirectorySync {
             #[cfg(test)]
             graph_base_url_override: None,
         }
+    }
+
+    pub(crate) fn with_certificate(mut self, cert_pem: String, key_pem: String) -> Self {
+        self.client_certificate = Some((cert_pem, key_pem));
+        self
     }
 
     /// Overrides the Microsoft API URLs so tests can point them at a mock server.
@@ -290,15 +301,24 @@ impl MicrosoftDirectorySync {
                 ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id)
             }
         };
+        let mut form = vec![
+            ("client_id", self.client_id.clone()),
+            ("scope", MICROSOFT_DEFAULT_SCOPE.to_owned()),
+            ("grant_type", GRANT_TYPE.to_owned()),
+        ];
+        if let Some((cert_pem, key_pem)) = &self.client_certificate {
+            form.push(("client_assertion_type", CLIENT_ASSERTION_TYPE.to_owned()));
+            form.push((
+                "client_assertion",
+                client_assertion(&self.client_id, cert_pem, key_pem, &token_url)?,
+            ));
+        } else {
+            form.push(("client_secret", self.client_secret.clone()));
+        }
         let client = reqwest::Client::new();
         let response = client
             .post(&token_url)
-            .form(&[
-                ("client_id", &self.client_id),
-                ("client_secret", &self.client_secret),
-                ("scope", &MICROSOFT_DEFAULT_SCOPE.to_owned()),
-                ("grant_type", &GRANT_TYPE.to_owned()),
-            ])
+            .form(&form)
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
