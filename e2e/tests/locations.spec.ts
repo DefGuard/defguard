@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
 import { NetworkForm } from '../types';
+import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
@@ -23,6 +24,46 @@ const bravoLocation: NetworkForm = {
 
 test.describe('Locations', () => {
   test.beforeEach(() => dockerRestart());
+
+  test('Locations table shows empty state, columns and row actions', async ({
+    page,
+    browser,
+  }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.locations);
+    await expect(page.getByText('No locations found')).toBeVisible();
+    await expect(page.getByTestId('add-location')).toBeVisible();
+
+    await createRegularLocation(browser, alphaLocation);
+    await page.reload();
+    const header = page.locator('.table-header');
+    for (const column of [
+      'Name',
+      'Gateway status',
+      'Gateway IP',
+      'Firewall',
+      'VPN network',
+      'MFA',
+      'Location type',
+      'FWMark',
+      'MTU',
+      'Allowed groups',
+    ]) {
+      await expect(header.getByText(column, { exact: true })).toBeVisible();
+    }
+    const row = page.locator('.virtual-row').filter({ hasText: alphaLocation.name });
+    await expect(row).toContainText('None connected');
+    await expect(row).toContainText('Regular');
+    await expect(row).toContainText('All allowed');
+    await expect(page.getByPlaceholder('Search')).toBeVisible();
+
+    await row.locator('.edit-cell .icon-button').click();
+    const menu = page.locator('.menu');
+    for (const action of ['Edit', 'Gateway setup', 'Delete']) {
+      await expect(menu.getByText(action, { exact: true })).toBeVisible();
+    }
+  });
 
   test('List and sort locations', async ({ page, browser }) => {
     await waitForBase(page);
@@ -135,6 +176,141 @@ test.describe('Locations', () => {
 
     await page.goto(editUrl);
     await expect(page.getByTestId('field-port')).toHaveValue(newPort);
+  });
+
+  test('Edit location network settings and access', async ({ page, browser }) => {
+    const group = 'vpn-users';
+    await waitForBase(page);
+    await createGroup(browser, group);
+    await createRegularLocation(browser, alphaLocation);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.locations);
+
+    await page
+      .locator('.virtual-row')
+      .filter({ hasText: alphaLocation.name })
+      .locator('.edit-cell .icon-button')
+      .click();
+    await page.locator('.menu').getByText('Edit', { exact: true }).click();
+    await page.waitForURL('**/edit');
+    const editUrl = page.url();
+    await page.getByTestId('field-dns').fill('1.1.1.1');
+    await page.getByTestId('field-keepalive_interval').fill('30');
+    await page.getByTestId('field-peer_disconnect_threshold').fill('200');
+    await page.getByTestId('field-mtu').fill('1380');
+    await page.locator('.toggle', { hasText: 'All groups have access' }).click();
+    await page.getByRole('button', { name: 'Edit groups' }).click();
+    const selectionModal = page.locator('#selection-modal');
+    await selectionModal
+      .locator('.item', { hasText: group })
+      .locator('.checkbox')
+      .click();
+    await selectionModal.getByRole('button', { name: 'Submit', exact: true }).click();
+    await page.getByTestId('save-location').click();
+
+    const modal = page.locator('#action-modal');
+    await expect(modal).toContainText('Save location changes');
+    for (const field of ['Gateway MTU', 'All groups have access', 'Location Access']) {
+      await expect(modal).toContainText(field);
+    }
+    for (const field of ['DNS', 'Keep alive', 'Client disconnect threshold']) {
+      await expect(modal).not.toContainText(field);
+    }
+    const saveResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PUT' && /\/network\/\d+$/.test(response.url()),
+    );
+    await modal.getByRole('button', { name: 'Save changes anyway' }).click();
+    expect((await saveResponse).ok()).toBeTruthy();
+
+    await page.goto(editUrl);
+    await expect(page.getByTestId('field-dns')).toHaveValue('1.1.1.1');
+    await expect(page.getByTestId('field-keepalive_interval')).toHaveValue('30');
+    await expect(page.getByTestId('field-peer_disconnect_threshold')).toHaveValue('200');
+    await expect(page.getByTestId('field-mtu')).toHaveValue('1380');
+
+    await page.goto(routes.base + routes.locations);
+    const row = page.locator('.virtual-row').filter({ hasText: alphaLocation.name });
+    await expect(row).toContainText('1380');
+    await expect(row).toContainText(group);
+    await expect(row).not.toContainText('All allowed');
+  });
+
+  test.describe('Group-level MTU', () => {
+    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires DEFGUARD_LICENSE_KEY.');
+
+    test('Group-level MTU overrides are saved', async ({ page, browser }) => {
+      const firstGroup = 'mtu-first';
+      const secondGroup = 'mtu-second';
+      await waitForBase(page);
+      await createGroup(browser, firstGroup);
+      await createGroup(browser, secondGroup);
+      await createRegularLocation(browser, alphaLocation);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.locations);
+
+      await page
+        .locator('.virtual-row')
+        .filter({ hasText: alphaLocation.name })
+        .locator('.edit-cell .icon-button')
+        .click();
+      await page.locator('.menu').getByText('Edit', { exact: true }).click();
+      await page.waitForURL('**/edit');
+      const editUrl = page.url();
+      await page.getByText('Assign custom MTU value for this location').click();
+      await page.getByTestId('field-client_mtu').fill('1400');
+
+      const addOverride = page.getByRole('button', { name: 'Add group-level MTU' });
+      const modal = page.locator('#group-mtu-modal');
+      const cards = page.locator('.group-mtu-card');
+      for (const [mtu, groups] of [
+        ['1380', [firstGroup]],
+        ['1300', [secondGroup, 'admin']],
+      ] as const) {
+        await addOverride.click();
+        await modal.locator('input').fill(mtu);
+        await modal.getByRole('button', { name: 'Continue', exact: true }).click();
+        for (const group of groups) {
+          await modal.locator('.item', { hasText: group }).locator('.checkbox').click();
+        }
+        await modal.getByRole('button', { name: 'Submit', exact: true }).click();
+        await modal.waitFor({ state: 'hidden' });
+      }
+      await expect(cards).toHaveCount(2);
+      await expect(cards.filter({ hasText: '1380' })).toContainText(firstGroup);
+      await expect(cards.filter({ hasText: '1300' })).toContainText(secondGroup);
+
+      await addOverride.click();
+      await expect(modal).toContainText('Every group already has a group-level MTU');
+      await modal.getByRole('button', { name: 'Close', exact: true }).click();
+      await modal.waitFor({ state: 'hidden' });
+
+      await cards
+        .filter({ hasText: '1380' })
+        .getByRole('button', { name: 'Remove group-level MTU' })
+        .click();
+      await expect(cards).toHaveCount(1);
+      await addOverride.click();
+      await modal.locator('input').fill('1350');
+      await modal.getByRole('button', { name: 'Continue', exact: true }).click();
+      await expect(modal.locator('.item', { hasText: firstGroup })).toBeVisible();
+      await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await modal.waitFor({ state: 'hidden' });
+
+      const saveResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' && /\/network\/\d+$/.test(response.url()),
+      );
+      await page.getByTestId('save-location').click();
+      expect((await saveResponse).ok()).toBeTruthy();
+
+      await page.goto(editUrl);
+      await expect(page.getByTestId('field-client_mtu')).toHaveValue('1400');
+      await expect(cards).toHaveCount(1);
+      await expect(cards.first()).toContainText('1300');
+      await expect(cards.first()).toContainText(secondGroup);
+      await expect(cards.first()).not.toContainText(firstGroup);
+    });
   });
 
   test('Delete location', async ({ page, browser }) => {
