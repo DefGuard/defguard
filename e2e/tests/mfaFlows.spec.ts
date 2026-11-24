@@ -249,6 +249,83 @@ test.describe('MFA flows', () => {
     await enforceTOTPFlowOverEdge(request, testUser.username, locationId, secret);
   });
 
+  test('Validate the add flow form', async ({ page }) => {
+    const existingTitle = 'e2e-existing-flow';
+    await loginBasic(page, defaultUserAdmin);
+    await createMfaFlow(page, existingTitle, [['totp']]);
+    await page.goto(routes.base + routes.mfa.addFlow);
+
+    await page.getByTestId('save-mfa-flow').click();
+    await expect(page.getByText('Field is required')).toBeVisible();
+    await expect(page.getByText('Add at least one MFA step.')).toBeVisible();
+
+    await page.getByTestId('field-title').fill(existingTitle);
+    await expect(page.getByText('Name already taken')).toBeVisible();
+    await page.getByTestId('save-mfa-flow').click();
+    await expect(page).toHaveURL(routes.base + routes.mfa.addFlow);
+  });
+
+  test('Email method is available only with SMTP configured', async ({
+    page,
+    browser,
+  }) => {
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.mfa.addFlow);
+    await page.getByTestId('add-mfa-step').click();
+    await expect(page.getByTestId('add-mfa-step-method-totp')).not.toHaveClass(
+      /\bdisabled\b/,
+    );
+    await expect(page.getByTestId('add-mfa-step-method-email')).toHaveClass(
+      /\bdisabled\b/,
+    );
+
+    await setupSMTP(browser);
+    await page.reload();
+    await page.getByTestId('add-mfa-step').click();
+    await expect(page.getByTestId('add-mfa-step-method-email')).not.toHaveClass(
+      /\bdisabled\b/,
+    );
+    await page.getByTestId('add-mfa-step-method-email').click();
+    await expect(page.getByTestId('remove-mfa-method-1-email')).toBeVisible();
+  });
+
+  test('Deleting the default flow of a location is blocked', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const title = 'e2e-blocked-delete-flow';
+    expect(
+      await apiLogin(request, defaultUserAdmin.username, defaultUserAdmin.password),
+    ).toBe(200);
+    await loginBasic(page, defaultUserAdmin);
+    await createMfaFlow(page, title, [['totp']]);
+    const flowId = await getFlowId(request, title);
+    const network: NetworkForm = {
+      name: 'e2e-blocked-delete-location',
+      address: '10.58.0.1/24',
+      endpoint: '192.168.4.18',
+      port: '51834',
+      mfa_enabled: true,
+      defaultMfaFlowId: flowId,
+    };
+    await createRegularLocation(browser, network);
+
+    await page.reload();
+    const row = page.getByTestId(`mfa-flow-row-${flowId}`);
+    await page.getByTestId(`mfa-flow-actions-${flowId}`).click();
+    await page.getByTestId(`delete-mfa-flow-${flowId}`).click();
+    const modal = page.locator('#deletion-blocked-modal');
+    await expect(modal).toContainText('Deletion blocked');
+    await expect(modal).toContainText(network.name);
+    await expect(page.getByTestId('confirm-delete-mfa-flow')).toHaveCount(0);
+    await modal.getByRole('button', { name: 'Close', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+
+    await page.reload();
+    await expect(row).toBeVisible();
+  });
+
   test.describe('Enterprise tier boundaries', () => {
     test.skip(!enterpriseLicenseKey, 'Requires DEFGUARD_LICENSE_KEY.');
 
@@ -619,6 +696,47 @@ test.describe('MFA flows', () => {
         await request.get(coreUrl('/mfa-flow'))
       ).json();
       expect(remainingFlows.some((flow) => flow.id === flowId)).toBe(false);
+    });
+
+    test('Search and filter flows by step count', async ({ page, browser }) => {
+      const singleStepTitle = 'e2e-search-single';
+      const twoStepTitle = 'e2e-search-double';
+      await setupSMTP(browser);
+      await loginBasic(page, defaultUserAdmin);
+      await createMfaFlow(page, singleStepTitle, [['totp']]);
+      await createMfaFlow(page, twoStepTitle, [['totp'], ['email']]);
+
+      const rows = page.locator('#mfa-page .virtual-row');
+      const singleStepRow = rows.filter({ hasText: singleStepTitle });
+      const twoStepRow = rows.filter({ hasText: twoStepTitle });
+      await expect(rows).toHaveCount(2);
+      await expect(singleStepRow).toContainText('1');
+      await expect(twoStepRow).toContainText('2');
+      const search = page.locator('#mfa-page').getByPlaceholder('Search');
+      await search.fill('double');
+      await expect(rows).toHaveCount(1);
+      await expect(rows.first()).toContainText(twoStepTitle);
+      await search.fill('missing');
+      await expect(page.getByText('Nothing is found.')).toBeVisible();
+      await search.fill('');
+      await expect(rows).toHaveCount(2);
+
+      const filterButton = page
+        .locator('.header-cell', { hasText: 'MFA Steps' })
+        .locator('.filter-btn');
+      const filter = page.locator('.table-header-filter-floating');
+      await filterButton.click();
+      await filter.locator('.checkbox', { hasText: /^2$/ }).click();
+      await filter.getByRole('button', { name: 'Submit', exact: true }).click();
+      await expect(rows).toHaveCount(1);
+      await expect(twoStepRow).toBeVisible();
+
+      await filterButton.click();
+      await filter.locator('.checkbox', { hasText: /^2$/ }).click();
+      await filter.locator('.checkbox', { hasText: /^1$/ }).click();
+      await filter.getByRole('button', { name: 'Submit', exact: true }).click();
+      await expect(rows).toHaveCount(1);
+      await expect(singleStepRow).toBeVisible();
     });
 
     test('Enforce a TOTP then Email flow over Edge', async ({
