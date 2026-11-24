@@ -4,7 +4,7 @@ CREATE TABLE device_identity (
     device_id bigint PRIMARY KEY REFERENCES device(id) ON DELETE CASCADE,
     backend device_identity_backend NOT NULL,
     public_key_der bytea NOT NULL,
-    apple_sign_count bigint NULL,
+    apple_sign_count integer NULL,
     tpm_ek_public bytea NULL,
     tpm_ek_certificate_chain_der bytea[] NULL,
     apple_key_id text NULL,
@@ -14,7 +14,7 @@ CREATE TABLE device_identity (
         OR (backend = 'apple_app_attest' AND tpm_ek_public IS NULL AND tpm_ek_certificate_chain_der IS NULL)
     ),
     CONSTRAINT device_identity_apple_counter_range
-        CHECK (apple_sign_count IS NULL OR apple_sign_count BETWEEN 0 AND 4294967295)
+        CHECK (apple_sign_count >= 0)
 );
 
 CREATE TABLE device_attestation_state (

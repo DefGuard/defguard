@@ -18,7 +18,7 @@
           }
         },
         "Bytea",
-        "Int8",
+        "Int4",
         "Bytea",
         "ByteaArray",
         "Text"

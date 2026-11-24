@@ -49,7 +49,7 @@
       {
         "ordinal": 3,
         "name": "apple_sign_count",
-        "type_info": "Int8",
+        "type_info": "Int4",
         "origin": {
           "Table": {
             "table": "device_identity",

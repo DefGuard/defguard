@@ -23,7 +23,7 @@ pub struct DeviceIdentity {
     pub device_id: Id,
     pub backend: DeviceIdentityBackend,
     pub public_key_der: Vec<u8>,
-    pub apple_sign_count: Option<i64>,
+    pub apple_sign_count: Option<i32>,
     pub tpm_ek_public: Option<Vec<u8>>,
     pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
     pub apple_key_id: Option<String>,
@@ -145,12 +145,9 @@ impl DeviceIdentity {
                         "Apple identity contains TPM provenance",
                     ));
                 }
-                if self
-                    .apple_sign_count
-                    .is_some_and(|count| !(0..=4_294_967_295).contains(&count))
-                {
+                if self.apple_sign_count.is_some_and(|count| count < 0) {
                     return Err(DeviceIdentityError::InvalidState(
-                        "Apple counter is outside the unsigned 32-bit range",
+                        "Apple counter must not be negative",
                     ));
                 }
                 if status == DeviceAttestationStatus::Attested && self.apple_key_id.is_none() {

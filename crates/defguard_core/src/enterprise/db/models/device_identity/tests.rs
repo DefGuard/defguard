@@ -1007,34 +1007,34 @@ async fn test_device_identity_roundtrip_status_and_cascade(
         );
         assert_eq!(updated.attested_at, Some(row.created));
         if backend == DeviceIdentityBackend::AppleAppAttest {
-            identity.apple_sign_count = Some(4_294_967_295);
-            identity
-                .save_verified(
-                    &mut connection,
-                    DeviceAttestationStatus::Attested,
-                    row.created,
-                )
-                .await
-                .unwrap();
-            assert!(
-                DeviceIdentity::find_by_device_id(&pool, row.id)
-                    .await
-                    .unwrap()
-                    == Some(identity)
-            );
-            for count in [-1i64, 4_294_967_296] {
-                assert_constraint(
-                    sqlx::query(
-                        "UPDATE device_identity SET apple_sign_count = $1 WHERE device_id = $2",
+            for count in [None, Some(0), Some(i32::MAX)] {
+                identity.apple_sign_count = count;
+                identity
+                    .save_verified(
+                        &mut connection,
+                        DeviceAttestationStatus::Attested,
+                        row.created,
                     )
-                    .bind(count)
-                    .bind(row.id)
-                    .execute(&pool)
                     .await
-                    .unwrap_err(),
-                    "device_identity_apple_counter_range",
+                    .unwrap();
+                assert!(
+                    DeviceIdentity::find_by_device_id(&pool, row.id)
+                        .await
+                        .unwrap()
+                        == Some(identity.clone())
                 );
             }
+            assert_constraint(
+                sqlx::query(
+                    "UPDATE device_identity SET apple_sign_count = $1 WHERE device_id = $2",
+                )
+                .bind(-1i32)
+                .bind(row.id)
+                .execute(&pool)
+                .await
+                .unwrap_err(),
+                "device_identity_apple_counter_range",
+            );
         } else {
             assert_constraint(
                 sqlx::query(
@@ -1083,11 +1083,9 @@ async fn test_device_identity_validation_preserves_device_status(
     let mut mixed = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
     mixed.tpm_ek_public = Some(vec![1]);
     invalid.push(("Apple with TPM provenance", mixed));
-    for count in [-1i64, 4_294_967_296] {
-        let mut apple = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
-        apple.apple_sign_count = Some(count);
-        invalid.push(("Apple counter out of range", apple));
-    }
+    let mut apple = identity_for_device(row.id, DeviceIdentityBackend::AppleAppAttest);
+    apple.apple_sign_count = Some(-1);
+    invalid.push(("negative Apple counter", apple));
     let mut connection = pool.acquire().await.unwrap();
     for (case, identity) in invalid {
         assert!(
