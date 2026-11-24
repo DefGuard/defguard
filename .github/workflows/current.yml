@@ -9,6 +9,7 @@ on:
       - dev
       - "release/**"
       - "stable/**"
+      - new-e2e-tests
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -56,7 +57,7 @@ jobs:
 
   alert-e2e-failure:
     needs: trigger-e2e
-    if: failure()
+    if: failure() && github.ref_name != 'new-e2e-tests'
     permissions:
       contents: read
       actions: read

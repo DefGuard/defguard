@@ -8,6 +8,10 @@ permissions:
   packages: write
   id-token: write
 
+env:
+  EDGE_IMAGE_TAG: ${{ github.ref_name == 'new-e2e-tests' && 'dev' || '' }}
+  GATEWAY_IMAGE_TAG: ${{ github.ref_name == 'new-e2e-tests' && 'dev' || '' }}
+
 jobs:
   test:
     runs-on:
