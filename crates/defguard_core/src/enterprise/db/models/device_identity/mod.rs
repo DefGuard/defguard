@@ -46,7 +46,7 @@ impl DeviceIdentity {
     ) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
-            "SELECT device_id, backend AS \"backend: DeviceIdentityBackend\", public_key_der, \
+            "SELECT device_id, backend \"backend: DeviceIdentityBackend\", public_key_der, \
              apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
              FROM device_identity WHERE device_id = $1",
             device_id,

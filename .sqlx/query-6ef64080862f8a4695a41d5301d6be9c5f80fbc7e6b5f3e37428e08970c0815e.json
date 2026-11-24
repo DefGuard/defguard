@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device_id, backend AS \"backend: DeviceIdentityBackend\", public_key_der, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device_identity WHERE device_id = $1",
+  "query": "SELECT device_id, backend \"backend: DeviceIdentityBackend\", public_key_der, apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id FROM device_identity WHERE device_id = $1",
   "describe": {
     "columns": [
       {
@@ -106,5 +106,5 @@
       true
     ]
   },
-  "hash": "f7c11f1d0a8b7bf78a0c01a81d8b0597eea0b06dc298610cd03c49abd6e11f2e"
+  "hash": "6ef64080862f8a4695a41d5301d6be9c5f80fbc7e6b5f3e37428e08970c0815e"
 }
