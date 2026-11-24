@@ -18,6 +18,7 @@ export const updateServiceClient = axios.create({
 
 export type ClientVersionCheck = {
   windows_amd64?: string;
+  windows_arm64?: string;
   deb_amd64?: string;
   deb_arm64?: string;
   deb_legacy_arm64?: string;
@@ -49,6 +50,7 @@ const updateServiceApi = {
           rpm_amd64: data.rpm_amd64 ?? clientDownloadFallback,
           rpm_arm64: data.rpm_arm64 ?? clientDownloadFallback,
           windows_amd64: data.windows_amd64 ?? clientDownloadFallback,
+          windows_arm64: data.windows_arm64 ?? clientDownloadFallback,
         };
         return res;
       })
@@ -64,6 +66,7 @@ const updateServiceApi = {
           rpm_amd64: clientDownloadFallback,
           rpm_arm64: clientDownloadFallback,
           windows_amd64: clientDownloadFallback,
+          windows_arm64: clientDownloadFallback,
         };
         return fallback;
       }),
