@@ -116,6 +116,23 @@ async fn assert_not_attested(pool: &PgPool, device: &Device<Id>) {
     );
 }
 
+async fn assert_attestation_failed(pool: &PgPool, device: &Device<Id>) {
+    assert!(
+        DeviceIdentity::find_by_device_id(pool, device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        Device::find_by_id(pool, device.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .attestation_status,
+        DeviceAttestationStatus::AttestationFailed
+    );
+}
+
 #[sqlx::test]
 async fn test_start_finish_registers_first_identity_and_consumes_challenge(
     _: PgPoolOptions,
@@ -244,40 +261,52 @@ async fn test_restarted_challenge_rejects_old_solution_and_preserves_other_sessi
 }
 
 #[sqlx::test]
-async fn test_invalid_proofs_and_client_failures_do_not_consume_challenge(
+async fn test_invalid_signature_marks_device_attestation_failed(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let (token, device) = session(&pool, "ceremony-invalid").await;
+    let (token, device) = session(&pool, "ceremony-invalid-signature").await;
+    let fixture = Fixture::new(false);
+    let challenge = start(&pool, &token, &device, &fixture).await;
+    let mut bad = solution(&fixture, &challenge);
+    let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
+        unreachable!()
+    };
+    response
+        .evidence
+        .as_mut()
+        .unwrap()
+        .signature
+        .as_mut()
+        .unwrap()
+        .signature[0] ^= 1;
+    assert_eq!(
+        verify_attestation(&pool, &token, &device, &bad)
+            .await
+            .unwrap_err()
+            .code(),
+        Code::InvalidArgument
+    );
+    assert!(
+        DeviceAttestationState::find_for_device(&pool, &token.id, device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_attestation_failed(&pool, &device).await;
+}
+
+#[sqlx::test]
+async fn test_client_failure_does_not_consume_challenge(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (token, device) = session(&pool, "ceremony-client-failure").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
     let original = pending(&pool, &token, &device).await;
-    let good = solution(&fixture, &challenge);
-    let mut bad = good.clone();
-    let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
-        unreachable!()
-    };
-    response.activation_secret[0] ^= 1;
-    assert_eq!(
-        verify_attestation(&pool, &token, &device, &bad)
-            .await
-            .unwrap_err()
-            .code(),
-        Code::InvalidArgument
-    );
-    let mut bad = good.clone();
-    let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
-        unreachable!()
-    };
-    response.evidence.as_mut().unwrap().attest[0] ^= 1;
-    assert_eq!(
-        verify_attestation(&pool, &token, &device, &bad)
-            .await
-            .unwrap_err()
-            .code(),
-        Code::InvalidArgument
-    );
     let failure = AttestationChallengeSolution {
         session_id: challenge.session_id,
         result: Some(attestation_challenge_solution::Result::Error(
@@ -293,9 +322,6 @@ async fn test_invalid_proofs_and_client_failures_do_not_consume_challenge(
     );
     assert!(pending(&pool, &token, &device).await == original);
     assert_not_attested(&pool, &device).await;
-    verify_attestation(&pool, &token, &device, &good)
-        .await
-        .unwrap();
 }
 
 #[sqlx::test]

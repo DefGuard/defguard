@@ -30,6 +30,36 @@ fn database_error(error: sqlx::Error) -> Status {
     Status::internal("device attestation database operation failed")
 }
 
+async fn record_attestation_failure(
+    pool: &PgPool,
+    enrollment: &Token,
+    device: &Device<Id>,
+    state: &DeviceAttestationState,
+) -> Result<(), Status> {
+    let mut transaction = pool.begin().await.map_err(database_error)?;
+    lock_attestation_session(&mut transaction, enrollment, device).await?;
+    if !state
+        .consume(&mut *transaction)
+        .await
+        .map_err(database_error)?
+    {
+        return Err(Status::failed_precondition(
+            "attestation challenge expired, changed or was already consumed",
+        ));
+    }
+    sqlx::query(
+        "UPDATE device SET attestation_status = $1, attested_at = NULL \
+         WHERE id = $2 AND attestation_status = $3",
+    )
+    .bind(DeviceAttestationStatus::AttestationFailed)
+    .bind(device.id)
+    .bind(DeviceAttestationStatus::NotAttested)
+    .execute(&mut *transaction)
+    .await
+    .map_err(database_error)?;
+    transaction.commit().await.map_err(database_error)
+}
+
 fn crypto_error(error: TpmError) -> Status {
     match error {
         TpmError::Crypto(error) => {
@@ -149,8 +179,15 @@ pub async fn verify_attestation(
         tpm::verify_attestation(&payload.backend, &payload.data, &response)
     })
     .await
-    .map_err(|_| Status::internal("attestation verification task failed"))?
-    .map_err(crypto_error)?;
+    .map_err(|_| Status::internal("attestation verification task failed"))?;
+    let verified = match verified {
+        Ok(verified) => verified,
+        Err(error @ (TpmError::InvalidPublic(_) | TpmError::InvalidEvidence(_))) => {
+            record_attestation_failure(pool, enrollment, device, &state).await?;
+            return Err(crypto_error(error));
+        }
+        Err(error) => return Err(crypto_error(error)),
+    };
     let fingerprint = verified.public_key_fingerprint().to_vec();
     let identity = DeviceIdentity {
         device_id: device.id,
