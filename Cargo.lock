@@ -1538,7 +1538,7 @@ dependencies = [
 
 [[package]]
 name = "defguard_common"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "anyhow",
  "argon2 0.6.0",
