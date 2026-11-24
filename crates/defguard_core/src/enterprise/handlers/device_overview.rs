@@ -10,6 +10,7 @@ use defguard_common::db::{
         device::{DeviceInfo, DeviceState, DeviceVerificationStatus},
         device_client_info::OsType,
         device_identity::DeviceAttestationStatus,
+        device_verification::DeviceVerification,
         vpn_session_stats::endpoint_without_port,
     },
 };
@@ -406,6 +407,9 @@ async fn bulk_modify_devices(
             continue;
         }
         device.save(&mut *conn).await?;
+        if matches!(action, BulkDeviceAction::Verify | BulkDeviceAction::Block) {
+            DeviceVerification::delete_for_device(&mut *conn, device.id).await?;
+        }
         if let Some(event) = action.event(&mut *conn, device.clone()).await? {
             events.push(event);
         }

@@ -8,7 +8,7 @@ use defguard_common::db::{
 };
 use defguard_core::events::ApiEventType;
 use reqwest::StatusCode;
-use serde_json::Value;
+use serde_json::{Value, json};
 use sqlx::{
     PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -224,4 +224,48 @@ async fn test_cancel_device_verification(_: PgPoolOptions, options: PgConnectOpt
         StatusCode::NOT_FOUND
     );
     client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_bulk_actions_clear_device_verification(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    client.login_user("admin", "pass123").await;
+
+    for action in ["verify", "block"] {
+        let device = make_device(pool, action, user_id, DeviceType::User).await;
+        assert_eq!(
+            client
+                .post(verification_url(device.id))
+                .send()
+                .await
+                .status(),
+            StatusCode::OK
+        );
+        client.drain_all_events();
+
+        let response = client
+            .post(format!("/api/v1/device/bulk/{action}"))
+            .json(&json!({"devices": [device.id]}))
+            .send()
+            .await;
+        assert_eq!(response.status(), StatusCode::OK, "action: {action}");
+
+        let row = DeviceVerification::find_active_for_device(pool, device.id)
+            .await
+            .unwrap();
+        assert!(row.is_none(), "action: {action}");
+        let events = client.drain_all_events();
+        assert_eq!(events.len(), 1, "action: {action}");
+        assert!(
+            !matches!(
+                events[0].0,
+                ApiEventType::UserDeviceVerificationCancelled { .. }
+            ),
+            "action: {action}"
+        );
+    }
 }

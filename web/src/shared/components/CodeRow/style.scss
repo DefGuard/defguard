@@ -1,0 +1,22 @@
+.code-row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--spacing-lg);
+
+  & > .block {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    box-sizing: border-box;
+    border: var(--border-1) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    font: var(--t-title-h4);
+    color: var(--fg-neutral);
+    user-select: none;
+  }
+}
