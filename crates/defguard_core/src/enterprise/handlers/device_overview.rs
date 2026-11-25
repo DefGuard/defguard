@@ -10,14 +10,14 @@ use defguard_common::db::{
         device::{DeviceInfo, DeviceState, DeviceVerificationStatus},
         device_client_info::OsType,
         device_identity::DeviceAttestationStatus,
-        device_verification::DeviceVerification,
+        device_verification::{DeviceVerification, DeviceVerificationOutcome},
         vpn_session_stats::endpoint_without_port,
     },
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
 
-use super::EnterpriseTier;
+use super::{EnterpriseTier, device_verification::broadcast_verification_resolved};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -320,6 +320,14 @@ enum BulkDeviceAction {
 }
 
 impl BulkDeviceAction {
+    fn verification_outcome(self) -> Option<DeviceVerificationOutcome> {
+        match self {
+            Self::Verify => Some(DeviceVerificationOutcome::Verified),
+            Self::Block => Some(DeviceVerificationOutcome::Blocked),
+            Self::RevokeVerification | Self::Enable => None,
+        }
+    }
+
     /// Returns `false` when the device is already in the target state.
     fn apply(self, device: &mut Device<Id>) -> bool {
         match self {
@@ -393,29 +401,53 @@ impl BulkDeviceAction {
     }
 }
 
-/// Returns the modified devices together with their activity log events.
+struct BulkModification {
+    devices: Vec<Device<Id>>,
+    events: Vec<ApiEventType>,
+    /// Announced only after the transaction commits, so Edge never hears of a rolled back decision.
+    resolved_verifications: Vec<DeviceVerification<Id>>,
+}
+
 async fn bulk_modify_devices(
     conn: &mut PgConnection,
     ids: Vec<Id>,
     action: BulkDeviceAction,
-) -> Result<(Vec<Device<Id>>, Vec<ApiEventType>), WebError> {
+) -> Result<BulkModification, WebError> {
     let devices = find_devices(&mut *conn, ids).await?;
     let mut modified = Vec::new();
     let mut events = Vec::new();
+    let mut resolved_verifications = Vec::new();
     for mut device in devices {
+        if let Some(outcome) = action.verification_outcome()
+            && let Some(verification) =
+                DeviceVerification::resolve_active_for_device(&mut *conn, device.id, outcome)
+                    .await?
+        {
+            resolved_verifications.push(verification);
+        }
         if !action.apply(&mut device) {
             continue;
         }
         device.save(&mut *conn).await?;
-        if matches!(action, BulkDeviceAction::Verify | BulkDeviceAction::Block) {
-            DeviceVerification::delete_for_device(&mut *conn, device.id).await?;
-        }
         if let Some(event) = action.event(&mut *conn, device.clone()).await? {
             events.push(event);
         }
         modified.push(device);
     }
-    Ok((modified, events))
+    Ok(BulkModification {
+        devices: modified,
+        events,
+        resolved_verifications,
+    })
+}
+
+async fn announce_resolved_verifications(
+    appstate: &AppState,
+    resolved_verifications: Vec<DeviceVerification<Id>>,
+) {
+    for verification in resolved_verifications {
+        broadcast_verification_resolved(appstate, verification).await;
+    }
 }
 
 fn emit_events(
@@ -446,9 +478,13 @@ pub(crate) async fn bulk_verify_devices(
         data.devices.len()
     );
     let mut transaction = appstate.pool.begin().await?;
-    let (verified, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Verify).await?;
+    let BulkModification {
+        devices: verified,
+        events,
+        resolved_verifications,
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Verify).await?;
     transaction.commit().await?;
+    announce_resolved_verifications(&appstate, resolved_verifications).await;
     info!(
         "User {username} manually verified {} device(s)",
         verified.len()
@@ -472,7 +508,11 @@ pub(crate) async fn bulk_revoke_device_verification(
         data.devices.len()
     );
     let mut transaction = appstate.pool.begin().await?;
-    let (revoked, events) = bulk_modify_devices(
+    let BulkModification {
+        devices: revoked,
+        events,
+        ..
+    } = bulk_modify_devices(
         &mut transaction,
         data.devices,
         BulkDeviceAction::RevokeVerification,
@@ -498,8 +538,11 @@ pub(crate) async fn bulk_block_devices(
     let username = &session.user.username;
     debug!("User {username} blocking {} device(s)", data.devices.len());
     let mut transaction = appstate.pool.begin().await?;
-    let (blocked, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Block).await?;
+    let BulkModification {
+        devices: blocked,
+        events,
+        resolved_verifications,
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Block).await?;
     let blocked_count = blocked.len();
     let mut gateway_commands = Vec::with_capacity(blocked_count);
     for device in blocked {
@@ -507,6 +550,7 @@ pub(crate) async fn bulk_block_devices(
         gateway_commands.push(GatewayCommand::DeviceDeleted(device_info));
     }
     transaction.commit().await?;
+    announce_resolved_verifications(&appstate, resolved_verifications).await;
 
     appstate.send_multiple_gateway_commands(gateway_commands);
     info!("User {username} blocked {blocked_count} device(s)");
@@ -525,8 +569,11 @@ pub(crate) async fn bulk_enable_devices(
     let username = &session.user.username;
     debug!("User {username} enabling {} device(s)", data.devices.len());
     let mut transaction = appstate.pool.begin().await?;
-    let (enabled, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Enable).await?;
+    let BulkModification {
+        devices: enabled,
+        events,
+        ..
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Enable).await?;
     let enabled_count = enabled.len();
     let mut gateway_commands = Vec::with_capacity(enabled_count);
     for device in enabled {

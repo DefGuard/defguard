@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM device_verification WHERE device_id = $1 AND expires_at > (now() AT TIME ZONE 'UTC') RETURNING id, device_id, started_by, secret, created_at, expires_at",
+  "query": "SELECT id, \"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\",\"outcome\" \"outcome?: _\",\"resolved_at\" FROM \"device_verification\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -68,10 +68,44 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -81,8 +115,10 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "67a93f1efc32e125ea336f3e54ca1f4bf31a5a97219fef4529c951b85de0eda2"
+  "hash": "b21b38bef632d44cf61cd86911a480e0852ea1d8221c9a2befb031d5dc8e1fa9"
 }

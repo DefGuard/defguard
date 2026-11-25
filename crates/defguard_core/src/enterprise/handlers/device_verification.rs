@@ -3,12 +3,17 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, DeviceType,
-        device_verification::{DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceType,
+            device_verification::{
+                DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification, DeviceVerificationOutcome,
+            },
+        },
     },
+    types::proxy::ProxyControlMessage,
 };
 use serde::Serialize;
 use sqlx::PgConnection;
@@ -42,6 +47,24 @@ async fn find_user_device(conn: &mut PgConnection, device_id: Id) -> Result<Devi
         )));
     }
     Ok(device)
+}
+
+/// Tells every connected Edge about an administrator's decision, so it can answer clients waiting
+/// on the session. Best effort, Edge asks for the status again after reconnecting.
+pub(crate) async fn broadcast_verification_resolved(
+    appstate: &AppState,
+    verification: DeviceVerification<Id>,
+) {
+    let session_id = verification.id;
+    if let Err(err) = appstate
+        .proxy_control_tx
+        .send(ProxyControlMessage::BroadcastDeviceVerificationResolved(
+            verification,
+        ))
+        .await
+    {
+        error!("Failed to broadcast the outcome of device verification {session_id}: {err}");
+    }
 }
 
 /// Returns the active verification of the device, starting a new one if there is none.
@@ -99,14 +122,18 @@ pub(crate) async fn cancel_device_verification(
     debug!("User {username} cancelling verification of device {device_id}");
     let mut conn = appstate.pool.acquire().await?;
     let device = find_user_device(&mut conn, device_id).await?;
-    if DeviceVerification::delete_active_for_device(&mut *conn, device.id)
-        .await?
-        .is_none()
-    {
+    let Some(verification) = DeviceVerification::resolve_active_for_device(
+        &mut *conn,
+        device.id,
+        DeviceVerificationOutcome::Cancelled,
+    )
+    .await?
+    else {
         return Err(WebError::ObjectNotFound(format!(
             "no active verification for device id {device_id}"
         )));
-    }
+    };
+    broadcast_verification_resolved(&appstate, verification).await;
 
     let owner = device.get_owner(&mut *conn).await?;
     info!(

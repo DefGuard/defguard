@@ -60,6 +60,7 @@ async fn send_flow_start(
                 .iter()
                 .map(|method| *method as i32)
                 .collect(),
+            possession_challenge_solution: None,
         })),
     });
     context.mock_proxy_mut().recv_outbound().await

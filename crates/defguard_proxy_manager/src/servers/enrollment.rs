@@ -1081,6 +1081,8 @@ impl EnrollmentServer {
             configs: wire_configs,
             instance: Some(instance_info.into()),
             token: Some(token.token),
+            identity_state: None,
+            possession_challenge: None,
         };
 
         // Prepare event context and push the event

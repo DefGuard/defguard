@@ -117,6 +117,7 @@ async fn test_posture_check_success_emits_vpn_session_authorized_event(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
                 token: Some(token.clone()),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -201,6 +202,7 @@ async fn test_replacing_posture_session_emits_vpn_session_deauthorized_event(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
                 token: Some(token.clone()),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -293,6 +295,7 @@ async fn test_posture_check_requires_a_token(_: PgPoolOptions, options: PgConnec
                     pubkey: device.wireguard_pubkey.clone(),
                     device_posture_data: Some(passing_linux_posture_data()),
                     token,
+                    possession_challenge_solution: None,
                 },
                 device_info(),
             )
@@ -335,6 +338,7 @@ async fn test_posture_check_rejects_unknown_token(_: PgPoolOptions, options: PgC
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
                 token: Some("not-a-real-token".to_owned()),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -403,6 +407,7 @@ async fn test_posture_check_rejects_token_belonging_to_another_device(
                 pubkey: victim.wireguard_pubkey.clone(),
                 device_posture_data: Some(passing_linux_posture_data()),
                 token: Some(attacker_token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -452,6 +457,7 @@ async fn test_posture_check_rejects_mfa_enabled_location(
                 pubkey: "irrelevant".to_owned(),
                 device_posture_data: None,
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -491,6 +497,7 @@ async fn test_posture_check_without_postures_approves_with_empty_preshared_key(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -544,6 +551,7 @@ async fn test_posture_check_without_postures_rejects_device_not_assigned_to_loca
                 pubkey: device.wireguard_pubkey,
                 device_posture_data: None,
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -587,6 +595,7 @@ async fn test_posture_check_without_postures_still_rejects_inactive_user(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -632,6 +641,7 @@ async fn test_posture_check_rejects_blocked_device(_: PgPoolOptions, options: Pg
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -709,6 +719,7 @@ async fn test_posture_check_pass_emits_posture_check_passed_event(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data.clone()),
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -792,6 +803,7 @@ async fn test_posture_check_failure_revokes_active_session(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data.clone()),
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -1089,6 +1101,7 @@ async fn test_session_revocation_survives_unavailable_side_effect_consumers(
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: Some(posture_data),
                 token: Some(token),
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2065,6 +2078,7 @@ async fn test_mfa_flow_remote_wakes_matching_attempt_and_delivers_psk(
                 pubkey: pubkey.clone(),
                 posture_data: None,
                 selected_methods: vec![MfaMethod::MobileApprove as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2208,6 +2222,7 @@ async fn test_mfa_flow_remote_observes_approval_before_registration(
                 pubkey: pubkey.clone(),
                 posture_data: None,
                 selected_methods: vec![MfaMethod::MobileApprove as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2315,6 +2330,7 @@ async fn test_mfa_flow_remote_timeout_cleans_its_waiter(
                 pubkey: pubkey.clone(),
                 posture_data: None,
                 selected_methods: vec![MfaMethod::MobileApprove as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2431,6 +2447,7 @@ async fn test_mfa_flow_start_returns_initial_attempt(_: PgPoolOptions, options: 
                 pubkey,
                 posture_data: None,
                 selected_methods: vec![MfaMethod::Totp as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2476,6 +2493,7 @@ async fn test_mfa_flow_start_rejection_does_not_create_session(
                 pubkey,
                 posture_data: None,
                 selected_methods: vec![MfaMethod::Fido2 as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2513,6 +2531,7 @@ async fn test_mfa_flow_step_start_returns_typed_attempt(
                 pubkey,
                 posture_data: None,
                 selected_methods: vec![MfaMethod::Totp as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2600,6 +2619,7 @@ async fn test_mfa_flow_step_finish_rejects_untyped_totp_submission(
                 pubkey,
                 posture_data: None,
                 selected_methods: vec![MfaMethod::Totp as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )
@@ -2662,6 +2682,7 @@ async fn test_mfa_flow_remote_rejects_non_mobile_step(_: PgPoolOptions, options:
                 pubkey,
                 posture_data: None,
                 selected_methods: vec![MfaMethod::Totp as i32],
+                possession_challenge_solution: None,
             },
             device_info(),
         )

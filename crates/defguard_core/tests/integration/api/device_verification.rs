@@ -1,10 +1,15 @@
 use chrono::{NaiveDateTime, TimeDelta};
-use defguard_common::db::{
-    Id,
-    models::{
-        Device, DeviceType, User,
-        device_verification::{DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, User,
+            device_verification::{
+                DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification, DeviceVerificationOutcome,
+            },
+        },
     },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_core::events::ApiEventType;
 use reqwest::StatusCode;
@@ -15,7 +20,24 @@ use sqlx::{
     query,
 };
 
+use tokio::sync::mpsc;
+
 use super::common::{client::TestClient, make_test_client, set_enterprise_license, setup_pool};
+
+fn expect_resolved_broadcast(
+    proxy_control_rx: &mut mpsc::Receiver<ProxyControlMessage>,
+    session_id: Id,
+    outcome: DeviceVerificationOutcome,
+) {
+    match proxy_control_rx.try_recv() {
+        Ok(ProxyControlMessage::BroadcastDeviceVerificationResolved(verification)) => {
+            assert_eq!(verification.id, session_id);
+            assert_eq!(verification.outcome, Some(outcome));
+        }
+        Ok(_) => panic!("unexpected proxy control message"),
+        Err(err) => panic!("no device verification broadcast: {err}"),
+    }
+}
 
 async fn make_device(
     pool: &PgPool,
@@ -167,7 +189,7 @@ async fn test_start_device_verification(_: PgPoolOptions, options: PgConnectOpti
 #[sqlx::test]
 async fn test_cancel_device_verification(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (mut client, client_state) = make_test_client(pool).await;
+    let (mut client, mut client_state) = make_test_client(pool).await;
     set_enterprise_license();
     let pool = &client_state.pool;
     let owner = &client_state.test_user;
@@ -183,14 +205,28 @@ async fn test_cancel_device_verification(_: PgPoolOptions, options: PgConnectOpt
 
     assert_eq!(client.post(&url).send().await.status(), StatusCode::OK);
     client.drain_all_events();
+    let session = DeviceVerification::find_active_for_device(pool, device.id)
+        .await
+        .unwrap()
+        .unwrap();
 
     assert_eq!(client.delete(&url).send().await.status(), StatusCode::OK);
+    expect_resolved_broadcast(
+        &mut client_state.proxy_control_rx,
+        session.id,
+        DeviceVerificationOutcome::Cancelled,
+    );
     assert!(
         DeviceVerification::find_active_for_device(pool, device.id)
             .await
             .unwrap()
             .is_none()
     );
+    let resolved = DeviceVerification::find_for_device(pool, session.id, device.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.outcome, Some(DeviceVerificationOutcome::Cancelled));
     let events = client.drain_all_events();
     assert_eq!(events.len(), 1);
     match &events[0].0 {
@@ -224,18 +260,28 @@ async fn test_cancel_device_verification(_: PgPoolOptions, options: PgConnectOpt
         StatusCode::NOT_FOUND
     );
     client.assert_event_queue_is_empty();
+    assert!(
+        client_state.proxy_control_rx.try_recv().is_err(),
+        "a cancel that resolves nothing must not broadcast"
+    );
 }
 
 #[sqlx::test]
-async fn test_bulk_actions_clear_device_verification(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_bulk_actions_resolve_device_verification(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
-    let (mut client, client_state) = make_test_client(pool).await;
+    let (mut client, mut client_state) = make_test_client(pool).await;
     set_enterprise_license();
     let pool = &client_state.pool;
     let user_id = client_state.test_user.id;
     client.login_user("admin", "pass123").await;
 
-    for action in ["verify", "block"] {
+    for (action, outcome) in [
+        ("verify", DeviceVerificationOutcome::Verified),
+        ("block", DeviceVerificationOutcome::Blocked),
+    ] {
         let device = make_device(pool, action, user_id, DeviceType::User).await;
         assert_eq!(
             client
@@ -246,6 +292,10 @@ async fn test_bulk_actions_clear_device_verification(_: PgPoolOptions, options: 
             StatusCode::OK
         );
         client.drain_all_events();
+        let session = DeviceVerification::find_active_for_device(pool, device.id)
+            .await
+            .unwrap()
+            .unwrap();
 
         let response = client
             .post(format!("/api/v1/device/bulk/{action}"))
@@ -258,6 +308,12 @@ async fn test_bulk_actions_clear_device_verification(_: PgPoolOptions, options: 
             .await
             .unwrap();
         assert!(row.is_none(), "action: {action}");
+        expect_resolved_broadcast(&mut client_state.proxy_control_rx, session.id, outcome);
+        let resolved = DeviceVerification::find_for_device(pool, session.id, device.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(resolved.outcome, Some(outcome), "action: {action}");
         let events = client.drain_all_events();
         assert_eq!(events.len(), 1, "action: {action}");
         assert!(
@@ -268,4 +324,48 @@ async fn test_bulk_actions_clear_device_verification(_: PgPoolOptions, options: 
             "action: {action}"
         );
     }
+}
+
+#[sqlx::test]
+async fn test_verify_resolves_session_of_verified_device(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    client.login_user("admin", "pass123").await;
+    let device = make_device(pool, "laptop", user_id, DeviceType::User).await;
+    let response = client
+        .post("/api/v1/device/bulk/verify")
+        .json(&json!({"devices": [device.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        client
+            .post(verification_url(device.id))
+            .send()
+            .await
+            .status(),
+        StatusCode::OK
+    );
+    let session = DeviceVerification::find_active_for_device(pool, device.id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let response = client
+        .post("/api/v1/device/bulk/verify")
+        .json(&json!({"devices": [device.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let resolved = DeviceVerification::find_for_device(pool, session.id, device.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.outcome, Some(DeviceVerificationOutcome::Verified));
 }

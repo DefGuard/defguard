@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\" FROM \"device_verification\" WHERE id = $1",
+  "query": "SELECT id, \"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\",\"outcome\" \"outcome?: _\",\"resolved_at\" FROM \"device_verification\"",
   "describe": {
     "columns": [
       {
@@ -68,12 +68,43 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -81,8 +112,10 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "64246aa3f5e168a0801b6b01036ef0a3f549391712a9e9029599689d25383b0e"
+  "hash": "0d851a8123c6279bdccb8651170f8134713041996b15fe101fd3ddd995b82a8d"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, device_id, started_by, secret, created_at, expires_at FROM device_verification WHERE device_id = $1 AND expires_at > (now() AT TIME ZONE 'UTC')",
+  "query": "SELECT id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at FROM device_verification WHERE device_id = $1",
   "describe": {
     "columns": [
       {
@@ -68,6 +68,39 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: DeviceVerificationOutcome",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -81,8 +114,10 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "8509f1e3b8d2a22e2f2bdee0dcf226d112a31e9757f60ff0d492667a91194a73"
+  "hash": "7003db220a6f6422df5ee25a27f79cb06b4de9f1e16570e752cb610e4b8a601d"
 }

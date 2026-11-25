@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\" FROM \"device_verification\"",
+  "query": "UPDATE device_verification SET outcome = $2, resolved_at = (now() AT TIME ZONE 'UTC') WHERE device_id = $1 AND outcome IS NULL AND expires_at > (now() AT TIME ZONE 'UTC') RETURNING id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at",
   "describe": {
     "columns": [
       {
@@ -68,10 +68,57 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: DeviceVerificationOutcome",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        }
+      ]
     },
     "nullable": [
       false,
@@ -79,8 +126,10 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "362f2bd88ad1ba6c1b8b3b7efcc820953abef984b9ea059aea18a86175d6ef73"
+  "hash": "a26dda656afad824686c611511d2d53f90c4247df73b09c61f589e7bdbe89b4a"
 }

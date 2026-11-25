@@ -13,6 +13,7 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
+    enterprise::grpc::client_common::status_message,
     events::{
         ApiEvent, BidiStreamEvent, DirectorySyncEvent, LdapSyncEventType, ProxyConnectionEvent,
     },
@@ -410,6 +411,26 @@ impl ProxyManager {
                             if let Ok(map) = handler_tx_map.read() {
                                 for (pid, tx) in map.iter() {
                                     debug!("Sending PublicSettings to proxy {pid}");
+                                    let _ = tx.send(msg.clone());
+                                }
+                            }
+                        }
+                        Some(ProxyControlMessage::BroadcastDeviceVerificationResolved(
+                            verification,
+                        )) => {
+                            debug!(
+                                "Broadcasting the outcome of device verification {} to all \
+                                connected proxies",
+                                verification.id
+                            );
+                            let msg = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::DeviceVerificationResolved(
+                                    status_message(&verification),
+                                )),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for tx in map.values() {
                                     let _ = tx.send(msg.clone());
                                 }
                             }

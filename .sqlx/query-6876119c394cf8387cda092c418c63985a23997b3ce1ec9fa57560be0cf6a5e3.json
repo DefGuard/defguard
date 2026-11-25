@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, device_id, started_by, secret, created_at, expires_at FROM device_verification WHERE device_id = $1",
+  "query": "INSERT INTO device_verification (device_id, started_by, secret, created_at, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (device_id) DO NOTHING RETURNING id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at",
   "describe": {
     "columns": [
       {
@@ -68,11 +68,48 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: DeviceVerificationOutcome",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp"
       ]
     },
     "nullable": [
@@ -81,8 +118,10 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "e860756f878cec5b25787824d4ad89832a4926d432b1f9b79592a9e04a72a317"
+  "hash": "6876119c394cf8387cda092c418c63985a23997b3ce1ec9fa57560be0cf6a5e3"
 }
