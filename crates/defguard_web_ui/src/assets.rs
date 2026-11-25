@@ -16,16 +16,14 @@ pub async fn index() -> impl IntoResponse {
 }
 
 pub async fn svg(uri: Uri) -> impl IntoResponse {
-    let mut path = uri.path().trim_start_matches('/').to_owned();
+    let path = uri.path().trim_start_matches('/').to_owned();
     // Rewrite the path to match the structure of the embedded files
-    path.insert_str(0, "src/shared/images/");
     StaticFile(path)
 }
 
 #[derive(Embed)]
 #[folder = "../../web/"]
 #[include = "dist/*"]
-#[include = "src/shared/images/*"]
 struct WebAsset;
 
 pub(crate) struct StaticFile<T>(pub T);
