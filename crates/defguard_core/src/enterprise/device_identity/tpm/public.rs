@@ -113,6 +113,8 @@ fn coordinate(bytes: &[u8]) -> Result<[u8; 32]> {
     if bytes.is_empty() || bytes.len() > 32 {
         return Err(TpmError::InvalidPublic("invalid P-256 coordinate size"));
     }
+    // TPM coordinates may omit leading zeroes. Restore the fixed-width P-256
+    // representation for point encoding and the ECC credential KDF.
     let mut padded = [0u8; 32];
     padded[32 - bytes.len()..].copy_from_slice(bytes);
     Ok(padded)
@@ -124,6 +126,7 @@ fn ecc_key(reader: &mut Reader<'_>) -> Result<(PKey<Public>, [u8; 32])> {
     }
     let x = coordinate(reader.sized()?)?;
     let y = coordinate(reader.sized()?)?;
+    // OpenSSL expects the SEC 1 uncompressed point encoding: prefix 0x04, then X and Y.
     let mut encoded = [0u8; 65];
     encoded[0] = 4;
     encoded[1..33].copy_from_slice(&x);
@@ -163,6 +166,7 @@ pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
             if reader.u16()? != 2048 {
                 return Err(TpmError::UnsupportedProfile("expected RSA-2048 EK"));
             }
+            // TPM encodes the default RSA exponent of 65537 as zero.
             let exponent = reader.u32()?;
             if exponent != 0 && exponent != 65537 {
                 return Err(TpmError::UnsupportedProfile("expected RSA exponent 65537"));
@@ -212,6 +216,8 @@ pub(super) fn signing_key(bytes: &[u8], restricted: bool) -> Result<PKey<Public>
 
 /// Takes the marshalled TPMT_PUBLIC bytes with any outer TPM2B size prefix removed.
 pub(super) fn name(public: &[u8]) -> [u8; 34] {
+    // A digest-based TPM Name prefixes the digest with its algorithm ID. Hashing the
+    // entire public area binds the key parameters and attributes as well as the key bits.
     let mut name = [0u8; 34];
     name[..2].copy_from_slice(&SHA256.to_be_bytes());
     name[2..].copy_from_slice(&Sha256::digest(public));

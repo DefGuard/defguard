@@ -29,17 +29,28 @@ fn check_certify(attest: &[u8], expected_data: &[u8; 32], expected_name: &[u8; 3
             "expected TPM-generated Certify attestation",
         ));
     }
+    // This is the qualified signer Name. Only its format is checked here because the
+    // caller authenticates the payload with the AK bound to the activation challenge.
     check_name(reader.sized()?)?;
+
+    // The TPM copies the caller's qualifying data into `extraData`. It must match the
+    // digest Core computes from the original challenge data.
     if reader.sized()? != expected_data {
         return Err(TpmError::InvalidEvidence(
             "Certify qualifying data mismatch",
         ));
     }
+    // Consume `TPMS_CLOCK_INFO` and the firmware version to reach the Certify fields.
+    // Freshness comes from the challenge, so clock and firmware values are not compared.
     let clock = reader.take(17)?;
     if clock[16] > 1 {
         return Err(TpmError::InvalidEvidence("invalid TPM clock safe flag"));
     }
     reader.take(8)?;
+
+    // Certify reports both the object's Name and its Qualified Name. The Name binds
+    // the supplied public area. The Qualified Name also depends on the parent chain
+    // and is checked only for format here.
     if reader.sized()? != expected_name {
         return Err(TpmError::InvalidEvidence(
             "certified identity key Name mismatch",
@@ -64,6 +75,8 @@ pub fn verify_attestation(
     else {
         return Err(TpmError::InvalidEvidence("expected TPM challenge state"));
     };
+    // Core retained only the digest. Matching it in constant time checks that the
+    // response contains the secret wrapped for the original EK and AK.
     if response.activation_secret.len() != 32
         || !memcmp::eq(
             &Sha256::digest(&response.activation_secret),
@@ -87,6 +100,9 @@ pub fn verify_attestation(
     endorsement_key(&evidence.ek_public)?;
     let ak = signing_key(&evidence.ak_public, true)?;
     let identity = signing_key(&evidence.identity_public, false)?;
+
+    // Profile checks alone would also accept a different EK or AK of the same type.
+    // Compare their original public areas against the values bound to Start.
     if Sha256::digest(&evidence.ek_public).as_slice() != ek_fingerprint
         || name(&evidence.ak_public).as_slice() != ak_name
     {
@@ -104,6 +120,8 @@ pub fn verify_attestation(
             "expected DER ECDSA-SHA256 signature",
         ));
     }
+    // Round-trip the ECDSA pair through DER to require a canonical encoding with no
+    // trailing bytes before handing the signature to the verifier.
     let parsed = EcdsaSig::from_der(&signature.signature)
         .map_err(|_| TpmError::InvalidEvidence("invalid DER ECDSA signature"))?;
     if parsed.to_der()? != signature.signature {
@@ -111,6 +129,8 @@ pub fn verify_attestation(
             "noncanonical or trailing DER signature data",
         ));
     }
+    // The AK signed the original TPM attestation bytes. Verify those exact bytes
+    // before interpreting the Certify fields.
     let mut verifier = Verifier::new(MessageDigest::sha256(), &ak)?;
     verifier.update(&evidence.attest)?;
     if !verifier
