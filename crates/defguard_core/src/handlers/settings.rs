@@ -36,9 +36,6 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
 
-static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
-static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
-
 /// Wrap `PublicSettings` in the control message the proxy manager fans out to every connected
 /// proxy. Build the payload with [`EnterpriseSettings::edge_public_settings`] or
 /// [`unlicensed_edge_public_settings`] rather than by hand, so the two cases stay distinguishable.
@@ -113,13 +110,7 @@ impl From<Settings> for SettingsResponse {
 ))]
 pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Retrieving settings");
-    if let Some(mut settings) = Settings::get(&appstate.pool).await? {
-        if settings.nav_logo_url.is_empty() {
-            settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
-        }
-        if settings.main_logo_url.is_empty() {
-            settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
-        }
+    if let Some(settings) = Settings::get(&appstate.pool).await? {
         return Ok(ApiResponse::json(
             SettingsResponse::from(settings),
             StatusCode::OK,
@@ -215,8 +206,8 @@ pub(crate) async fn update_settings(
     responses(
         (status = 200, description = "Essential settings.", body = Object, example = json!({
             "instance_name": "defguard",
-            "main_logo_url": "/svg/logo-defguard-white.svg",
-            "nav_logo_url": "/svg/defguard-nav-logo.svg",
+            "main_logo_url": "",
+            "nav_logo_url": "",
             "wireguard_enabled": true,
             "webhooks_enabled": true,
             "worker_enabled": false,
@@ -227,13 +218,7 @@ pub(crate) async fn update_settings(
 ))]
 pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Retrieving essential settings");
-    let mut settings = SettingsEssentials::get_settings_essentials(&pool).await?;
-    if settings.nav_logo_url.is_empty() {
-        settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
-    }
-    if settings.main_logo_url.is_empty() {
-        settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
-    }
+    let settings = SettingsEssentials::get_settings_essentials(&pool).await?;
 
     info!("Retrieved essential settings");
 
@@ -274,8 +259,8 @@ pub(crate) async fn set_default_branding(
     match settings {
         Some(mut settings) => {
             settings.instance_name = "Defguard".into();
-            settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
-            settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
+            settings.nav_logo_url = String::new();
+            settings.main_logo_url = String::new();
             update_current_settings(&appstate.pool, settings.clone()).await?;
             info!(
                 "User {} restored default branding settings",
