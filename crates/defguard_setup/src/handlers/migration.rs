@@ -159,6 +159,7 @@ mod tests {
     use axum::{Extension, body::to_bytes, response::IntoResponse};
     use defguard_core::{auth::AdminRole, setup_logs::CoreSetupLogLayer};
     use reqwest::StatusCode;
+    use serde_json::Value;
     use sqlx::postgres::PgPoolOptions;
     use tracing::instrument::WithSubscriber;
     use tracing_subscriber::prelude::*;
@@ -181,11 +182,11 @@ mod tests {
         let body = to_bytes(response.into_body(), usize::MAX)
             .await
             .expect("Failed to read response body");
-        let value: serde_json::Value = serde_json::from_slice(&body).expect("Invalid JSON");
+        let value: Value = serde_json::from_slice(&body).expect("Invalid JSON");
 
         let message = value["msg"].as_str().expect("Expected error message");
         let logs = value["logs"].as_array().expect("Expected logs array");
-        assert!(!message.is_empty());
-        assert!(!logs.is_empty());
+        assert_ne!(message, "");
+        assert_ne!(logs.as_slice(), [] as [Value; 0]);
     }
 }

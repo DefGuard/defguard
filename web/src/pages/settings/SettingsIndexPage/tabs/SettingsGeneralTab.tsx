@@ -44,6 +44,14 @@ export const SettingsGeneralTab = () => {
           navigate({ to: '/settings/client' });
         }}
       />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <Link to="/settings/device-attestation">
+        <SectionSelect
+          image="certificate-authority"
+          title={m.settings_device_attestation_title()}
+          content={m.settings_general_section_device_attestation_content()}
+        />
+      </Link>
     </SettingsLayout>
   );
 };

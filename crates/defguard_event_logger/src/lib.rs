@@ -282,6 +282,14 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                ApiEventType::UserDeviceEnabled { owner, device } => (
+                    EventType::DeviceEnabled,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
                 ApiEventType::UserGroupsModified {
                     user,
                     before,
@@ -440,6 +448,10 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                 ),
                 ApiEventType::NetworkDeviceBlocked { device, location } => (
                     EventType::NetworkDeviceBlocked,
+                    serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
+                ),
+                ApiEventType::NetworkDeviceEnabled { device, location } => (
+                    EventType::NetworkDeviceEnabled,
                     serde_json::to_value(NetworkDeviceMetadata { device, location }).ok(),
                 ),
                 ApiEventType::VpnLocationAdded { location } => (

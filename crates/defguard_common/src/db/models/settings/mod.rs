@@ -220,7 +220,6 @@ pub struct Settings {
     pub openid_enabled: bool,
     pub wireguard_enabled: bool,
     pub webhooks_enabled: bool,
-    pub worker_enabled: bool,
     // MFA
     pub challenge_template: String,
     // Branding
@@ -325,7 +324,6 @@ impl fmt::Debug for Settings {
             .field("openid_enabled", &self.openid_enabled)
             .field("wireguard_enabled", &self.wireguard_enabled)
             .field("webhooks_enabled", &self.webhooks_enabled)
-            .field("worker_enabled", &self.worker_enabled)
             .field("challenge_template", &self.challenge_template)
             .field("instance_name", &self.instance_name)
             .field("main_logo_url", &self.main_logo_url)
@@ -623,7 +621,7 @@ impl Settings {
         E: PgExecutor<'e>,
     {
         query_as(
-            "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
+            "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, \
             challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
             smtp_port, smtp_encryption, smtp_user, smtp_password, smtp_sender, \
             smtp_authentication, smtp_oauth_issuer_url, smtp_oauth_client_id, \
@@ -732,85 +730,83 @@ impl Settings {
             openid_enabled = $1, \
             wireguard_enabled = $2, \
             webhooks_enabled = $3, \
-            worker_enabled = $4, \
-            challenge_template = $5, \
-            instance_name = $6, \
-            main_logo_url = $7, \
-            nav_logo_url = $8, \
-            smtp_server = $9, \
-            smtp_port = $10, \
-            smtp_encryption = $11, \
-            smtp_user = $12, \
-            smtp_password = $13, \
-            smtp_sender = $14, \
-            smtp_authentication = $15, \
-            smtp_oauth_issuer_url = $16, \
-            smtp_oauth_client_id = $17, \
-            smtp_oauth_client_secret = $18, \
-            smtp_oauth_refresh_token = $19, \
-            enrollment_vpn_step_optional = $20, \
-            enrollment_welcome_message = $21, \
-            enrollment_welcome_email = $22, \
-            enrollment_welcome_email_subject = $23, \
-            enrollment_use_welcome_message_as_email = $24, \
-            enrollment_send_welcome_email = $25, \
-            enrollment_display_welcome_message = $26, \
-            uuid = $27, \
-            ldap_url = $28, \
-            ldap_bind_username = $29, \
-            ldap_bind_password  = $30, \
-            ldap_group_search_base = $31, \
-            ldap_user_search_base = $32, \
-            ldap_user_obj_class = $33, \
-            ldap_group_obj_class = $34, \
-            ldap_username_attr = $35, \
-            ldap_groupname_attr = $36, \
-            ldap_group_member_attr = $37, \
-            ldap_member_attr = $38, \
-            ldap_use_starttls = $39, \
-            ldap_tls_verify_cert = $40, \
-            openid_create_account = $41, \
-            license = $42, \
-            gateway_disconnect_notifications_enabled = $43, \
-            gateway_disconnect_notifications_inactivity_threshold = $44, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $45, \
-            ldap_sync_status = $46, \
-            ldap_enabled = $47, \
-            ldap_sync_enabled = $48, \
-            ldap_is_authoritative = $49, \
-            ldap_sync_interval = $50, \
-            ldap_user_auxiliary_obj_classes = $51, \
-            ldap_uses_ad = $52, \
-            ldap_user_rdn_attr = $53, \
-            ldap_sync_groups = $54, \
-            ldap_remote_enrollment_enabled = $55, \
-            ldap_remote_enrollment_send_invite = $56, \
-            openid_username_handling = $57, \
-            defguard_url = $58, \
-            default_admin_group_name = $59, \
-            authentication_period_days = $60, \
-            mfa_code_timeout_seconds = $61, \
-            public_proxy_url = $62, \
-            default_admin_id = $63, \
-            secret_key = $64, \
-            openid_signing_key_der = $65, \
-            enable_stats_purge = $66, \
-            stats_purge_frequency_hours = $67, \
-            stats_purge_threshold_days = $68, \
-            enrollment_token_timeout_hours = $69, \
-            password_reset_token_timeout_hours = $70, \
-            enrollment_session_timeout_minutes = $71, \
-            password_reset_session_timeout_minutes = $72, \
-            ldap_sync_account_status = $73, \
-            ldap_disable_password_management = $74, \
-            smtp_oauth_tenant_id = $75, \
-            smtp_tls_verify_cert = $76, \
-            ldap_enrollment_token_attr = $77 \
+            challenge_template = $4, \
+            instance_name = $5, \
+            main_logo_url = $6, \
+            nav_logo_url = $7, \
+            smtp_server = $8, \
+            smtp_port = $9, \
+            smtp_encryption = $10, \
+            smtp_user = $11, \
+            smtp_password = $12, \
+            smtp_sender = $13, \
+            smtp_authentication = $14, \
+            smtp_oauth_issuer_url = $15, \
+            smtp_oauth_client_id = $16, \
+            smtp_oauth_client_secret = $17, \
+            smtp_oauth_refresh_token = $18, \
+            enrollment_vpn_step_optional = $19, \
+            enrollment_welcome_message = $20, \
+            enrollment_welcome_email = $21, \
+            enrollment_welcome_email_subject = $22, \
+            enrollment_use_welcome_message_as_email = $23, \
+            enrollment_send_welcome_email = $24, \
+            enrollment_display_welcome_message = $25, \
+            uuid = $26, \
+            ldap_url = $27, \
+            ldap_bind_username = $28, \
+            ldap_bind_password  = $29, \
+            ldap_group_search_base = $30, \
+            ldap_user_search_base = $31, \
+            ldap_user_obj_class = $32, \
+            ldap_group_obj_class = $33, \
+            ldap_username_attr = $34, \
+            ldap_groupname_attr = $35, \
+            ldap_group_member_attr = $36, \
+            ldap_member_attr = $37, \
+            ldap_use_starttls = $38, \
+            ldap_tls_verify_cert = $39, \
+            openid_create_account = $40, \
+            license = $41, \
+            gateway_disconnect_notifications_enabled = $42, \
+            gateway_disconnect_notifications_inactivity_threshold = $43, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $44, \
+            ldap_sync_status = $45, \
+            ldap_enabled = $46, \
+            ldap_sync_enabled = $47, \
+            ldap_is_authoritative = $48, \
+            ldap_sync_interval = $49, \
+            ldap_user_auxiliary_obj_classes = $50, \
+            ldap_uses_ad = $51, \
+            ldap_user_rdn_attr = $52, \
+            ldap_sync_groups = $53, \
+            ldap_remote_enrollment_enabled = $54, \
+            ldap_remote_enrollment_send_invite = $55, \
+            openid_username_handling = $56, \
+            defguard_url = $57, \
+            default_admin_group_name = $58, \
+            authentication_period_days = $59, \
+            mfa_code_timeout_seconds = $60, \
+            public_proxy_url = $61, \
+            default_admin_id = $62, \
+            secret_key = $63, \
+            openid_signing_key_der = $64, \
+            enable_stats_purge = $65, \
+            stats_purge_frequency_hours = $66, \
+            stats_purge_threshold_days = $67, \
+            enrollment_token_timeout_hours = $68, \
+            password_reset_token_timeout_hours = $69, \
+            enrollment_session_timeout_minutes = $70, \
+            password_reset_session_timeout_minutes = $71, \
+            ldap_sync_account_status = $72, \
+            ldap_disable_password_management = $73, \
+            smtp_oauth_tenant_id = $74, \
+            smtp_tls_verify_cert = $75, \
+            ldap_enrollment_token_attr = $76 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
             self.webhooks_enabled,
-            self.worker_enabled,
             self.challenge_template,
             self.instance_name,
             self.main_logo_url,
@@ -1225,7 +1221,6 @@ pub struct SettingsEssentials {
     pub nav_logo_url: String,
     pub wireguard_enabled: bool,
     pub webhooks_enabled: bool,
-    pub worker_enabled: bool,
     pub openid_enabled: bool,
 }
 
@@ -1237,7 +1232,7 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
-            s.webhooks_enabled, s.worker_enabled, s.openid_enabled \
+            s.webhooks_enabled, s.openid_enabled \
 			FROM settings s \
 			WHERE s.id = 1 \
 			LIMIT 1"

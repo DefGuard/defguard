@@ -776,6 +776,16 @@ fn api_event_cases() -> Vec<EventTestCase> {
             description_contains: Some("Blocked"),
         },
         EventTestCase {
+            name: "UserDeviceEnabled",
+            message: api_message(ApiEventType::UserDeviceEnabled {
+                owner: user.clone(),
+                device: device.clone(),
+            }),
+            event_type: EventType::DeviceEnabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Enabled"),
+        },
+        EventTestCase {
             name: "NetworkDeviceAdded",
             message: api_message(ApiEventType::NetworkDeviceAdded {
                 device: device.clone(),
@@ -835,6 +845,16 @@ fn api_event_cases() -> Vec<EventTestCase> {
             event_type: EventType::NetworkDeviceBlocked,
             module: ActivityLogModule::Defguard,
             description_contains: Some("Blocked"),
+        },
+        EventTestCase {
+            name: "NetworkDeviceEnabled",
+            message: api_message(ApiEventType::NetworkDeviceEnabled {
+                device: device.clone(),
+                location: location.clone(),
+            }),
+            event_type: EventType::NetworkDeviceEnabled,
+            module: ActivityLogModule::Defguard,
+            description_contains: Some("Enabled"),
         },
         EventTestCase {
             name: "ActivityLogStreamCreated",

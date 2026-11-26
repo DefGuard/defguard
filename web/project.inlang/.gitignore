@@ -17,6 +17,7 @@
 # everything is ignored except settings.json and Paraglide configuration
 *
 !settings.json
+!descriptions.json
 !paraglide.config.js
 !paraglide.config.mjs
 !paraglide.config.ts

@@ -43,10 +43,6 @@ Following environment variables can be set to configure orion core service:
 * **DEFGUARD_LDAP_MEMBER_ATTR**: user attribute for group membership
 * **DEFGUARD_LDAP_GROUP_MEMBER_ATTR**: group attibute for memebers
 
-### gRPC
-
-* **DEFGUARD_GRPC_PORT**: gRPC services bind port, default = `50055`
-
 ### HTTP server
 
 * **DEFGUARD_WEB_PORT**: web services bind port, default = `8000`

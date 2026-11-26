@@ -23,7 +23,7 @@ pub struct DeviceIdentity {
     pub device_id: Id,
     pub backend: DeviceIdentityBackend,
     pub public_key_der: Vec<u8>,
-    pub apple_sign_count: Option<i64>,
+    pub apple_sign_count: Option<i32>,
     pub tpm_ek_public: Option<Vec<u8>>,
     pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
     pub apple_key_id: Option<String>,
@@ -46,7 +46,7 @@ impl DeviceIdentity {
     ) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
-            "SELECT device_id, backend AS \"backend: DeviceIdentityBackend\", public_key_der, \
+            "SELECT device_id, backend \"backend: DeviceIdentityBackend\", public_key_der, \
              apple_sign_count, tpm_ek_public, tpm_ek_certificate_chain_der, apple_key_id \
              FROM device_identity WHERE device_id = $1",
             device_id,
@@ -93,20 +93,19 @@ impl DeviceIdentity {
         )
         .execute(&mut *transaction)
         .await?;
-        sqlx::query!(
+        let device = sqlx::query_as!(
+            Device,
             "UPDATE device SET attestation_status = $1, attested_at = $2 WHERE id = $3 \
              RETURNING id, name, wireguard_pubkey, user_id, created, description, \
              device_type AS \"device_type: DeviceType\", configured, \
-             attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at",
+             attestation_status AS \"attestation_status: DeviceAttestationStatus\", attested_at, \
+             state AS \"state: _\", verification AS \"verification: _\"",
             status as DeviceAttestationStatus,
             attested_at,
             self.device_id,
         )
         .fetch_one(&mut *transaction)
         .await?;
-        let device = Device::find_by_id(&mut *transaction, self.device_id)
-            .await?
-            .ok_or(DeviceIdentityError::DeviceNotFound)?;
         transaction.commit().await?;
         Ok(device)
     }
@@ -146,12 +145,9 @@ impl DeviceIdentity {
                         "Apple identity contains TPM provenance",
                     ));
                 }
-                if self
-                    .apple_sign_count
-                    .is_some_and(|count| !(0..=4_294_967_295).contains(&count))
-                {
+                if self.apple_sign_count.is_some_and(|count| count < 0) {
                     return Err(DeviceIdentityError::InvalidState(
-                        "Apple counter is outside the unsigned 32-bit range",
+                        "Apple counter must not be negative",
                     ));
                 }
                 if status == DeviceAttestationStatus::Attested && self.apple_key_id.is_none() {

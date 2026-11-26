@@ -45,6 +45,7 @@ export const ActivityLogEventType = {
   DeviceVerified: 'device_verified',
   DeviceVerificationRevoked: 'device_verification_revoked',
   DeviceBlocked: 'device_blocked',
+  DeviceEnabled: 'device_enabled',
 
   NetworkDeviceAdded: 'network_device_added',
   NetworkDeviceModified: 'network_device_modified',
@@ -52,6 +53,7 @@ export const ActivityLogEventType = {
   NetworkDeviceVerified: 'network_device_verified',
   NetworkDeviceVerificationRevoked: 'network_device_verification_revoked',
   NetworkDeviceBlocked: 'network_device_blocked',
+  NetworkDeviceEnabled: 'network_device_enabled',
 
   ActivityLogStreamCreated: 'activity_log_stream_created',
   ActivityLogStreamModified: 'activity_log_stream_modified',

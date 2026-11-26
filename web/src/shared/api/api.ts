@@ -43,6 +43,9 @@ import type {
   ChangeWebhookStateRequest,
   CheckReservedParams,
   CheckReservedResponse,
+  ConnectionEvent,
+  ConnectionEventFilterOptions,
+  ConnectionEventRequestParams,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -130,6 +133,9 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  TpmCaCertificate,
+  TpmCaCertificatePem,
+  TpmCaCertificatesRequestParams,
   UpdateInfo,
   UpdateMfaFlowRequest,
   UploadCARequest,
@@ -455,6 +461,8 @@ const api = {
       client.post('/device/bulk/revoke-verification', { devices }),
     bulkBlockDevices: (devices: number[]) =>
       client.post('/device/bulk/block', { devices }),
+    bulkEnableDevices: (devices: number[]) =>
+      client.post('/device/bulk/enable', { devices }),
     bulkDeleteDevices: (devices: number[]) =>
       client.post('/device/bulk/delete', { devices }),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
@@ -474,6 +482,12 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
+  },
+  deviceAttestation: {
+    getCertificates: (params?: TpmCaCertificatesRequestParams) =>
+      fetchPage<TpmCaCertificate>('/device-attestation/certificates', params),
+    getCertificatePem: (sha256: string) =>
+      client.get<TpmCaCertificatePem>(`/device-attestation/certificates/${sha256}/pem`),
   },
   devicePosture: {
     addDevicePosture: (data: EditDevicePostureRequest) =>
@@ -662,6 +676,10 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
+  getConnectionEvents: (data?: ConnectionEventRequestParams) =>
+    fetchPage<ConnectionEvent>(`/connection_event`, data),
+  getConnectionEventFilterOptions: () =>
+    client.get<ConnectionEventFilterOptions>(`/connection_event/filter_options`),
   getActivityLogEvent: (id: number) =>
     client.get<ActivityLogEventDetails>(`/activity_log/${id}`),
   getLicenseInfo: () =>

@@ -397,7 +397,6 @@ pub struct SettingsNoSecrets {
     pub openid_enabled: bool,
     pub wireguard_enabled: bool,
     pub webhooks_enabled: bool,
-    pub worker_enabled: bool,
     // MFA
     pub challenge_template: String,
     // Branding
@@ -488,7 +487,6 @@ impl From<Settings> for SettingsNoSecrets {
             openid_enabled: value.openid_enabled,
             wireguard_enabled: value.wireguard_enabled,
             webhooks_enabled: value.webhooks_enabled,
-            worker_enabled: value.worker_enabled,
             challenge_template: value.challenge_template,
             instance_name: value.instance_name,
             main_logo_url: value.main_logo_url,

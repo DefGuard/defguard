@@ -107,6 +107,9 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         ApiEventType::UserDeviceBlocked { owner, device } => {
             Some(format!("Blocked device {device} owned by user {owner}"))
         }
+        ApiEventType::UserDeviceEnabled { owner, device } => {
+            Some(format!("Enabled device {device} owned by user {owner}"))
+        }
         ApiEventType::NetworkDeviceAdded { device, location } => Some(format!(
             "Added network device {device} to location {location}"
         )),
@@ -128,6 +131,9 @@ pub fn get_api_event_description(event: &ApiEventType) -> Option<String> {
         )),
         ApiEventType::NetworkDeviceBlocked { device, location } => Some(format!(
             "Blocked network device {device} in location {location}"
+        )),
+        ApiEventType::NetworkDeviceEnabled { device, location } => Some(format!(
+            "Enabled network device {device} in location {location}"
         )),
         ApiEventType::ActivityLogStreamCreated { stream } => Some(format!(
             "Created {} activity log stream {}",

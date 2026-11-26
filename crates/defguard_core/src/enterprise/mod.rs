@@ -13,6 +13,7 @@ pub mod limits;
 pub mod oauth2;
 pub mod posture;
 pub mod snat;
+pub mod tpm;
 mod utils;
 
 use defguard_common::db::models::vpn_client_session::VpnClientMfaMethod;

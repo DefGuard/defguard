@@ -14,8 +14,6 @@ services:
     ports:
       # REST API
       - "8000:8000"
-      # Default Core GRPC port
-      - "50055:50055"
     depends_on:
       - db
 

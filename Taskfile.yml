@@ -39,6 +39,12 @@ tasks:
       - cargo run --locked --release -p defguard_fido_mds -- crates/defguard_core/src/enterprise/fido2/trusted_authenticators.json
       - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib fido2::attestation
 
+  tpm-ca:
+    desc: Regenerate the TPM manufacturer CA bundle from tpm-ca-certificates and Microsoft TrustedTpm.cab (needs cosign and osslsigncode)
+    cmds:
+      - cargo run --locked --release -p defguard_tpm_ca -- crates/defguard_core/src/enterprise/tpm/tpm_ca_certificates.json {{.CLI_ARGS}}
+      - SQLX_OFFLINE=true cargo test --locked -p defguard_core --lib enterprise::tpm
+
   move-tag:
     desc: "Move tag to current commit (task move-tag -- <TAG>)"
     vars:
@@ -111,6 +117,24 @@ tasks:
     cmds:
       - CI=true pnpm install
       - pnpm lint
+
+  audit:
+    desc: Audit dependencies with cargo deny, Trivy and pnpm audit
+    cmds:
+      - cargo deny check --hide-inclusion-graph
+      - >-
+        TRIVY_SHOW_SUPPRESSED=1 TRIVY_IGNOREFILE=./.trivyignore.yaml
+        trivy fs --exit-code 1 --ignore-unfixed --severity CRITICAL,HIGH,MEDIUM --scanners vuln .
+      - task: audit-pnpm
+        vars: { DIR: web }
+      - task: audit-pnpm
+        vars: { DIR: e2e }
+
+  audit-pnpm:
+    internal: true
+    dir: "{{.DIR}}"
+    cmds:
+      - pnpm audit
 
   fix-clippy:
     desc: Apply automatic clippy fixes with extra pedantic lints

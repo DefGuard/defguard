@@ -92,6 +92,7 @@ pub enum OpenIdProviderKind {
     Okta,
     JumpCloud,
     Zitadel,
+    Keycloak,
 }
 
 impl From<&OpenIdProviderKind> for ProtoOpenIdProviderKind {
@@ -103,6 +104,7 @@ impl From<&OpenIdProviderKind> for ProtoOpenIdProviderKind {
             OpenIdProviderKind::Okta => Self::Okta,
             OpenIdProviderKind::JumpCloud => Self::Jumpcloud,
             OpenIdProviderKind::Zitadel => Self::Zitadel,
+            OpenIdProviderKind::Keycloak => Self::Keycloak,
         }
     }
 }

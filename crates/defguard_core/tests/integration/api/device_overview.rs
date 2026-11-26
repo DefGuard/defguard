@@ -78,7 +78,19 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
+    let response = client.get("/api/v1/device/overview").send().await;
+    let body: Value = response.json().await;
+    assert_eq!(body["data"][0]["config_available"], false);
+
+    let mut network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
+    WireguardNetworkDevice::new(
+        network.id,
+        user_device.id,
+        vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2))],
+    )
+    .insert(&client_state.pool)
+    .await
+    .unwrap();
     let earlier_connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
         .unwrap()
         .and_hms_opt(3, 4, 5)
@@ -149,6 +161,28 @@ async fn test_devices_overview(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(data[0]["last_connected_at"], "2026-01-03T04:05:06");
     assert_eq!(data[0]["last_connected_ip"], "2001:db8::1");
     assert_eq!(data[0]["last_connected_location"], "network");
+    assert_eq!(data[0]["config_available"], true);
+
+    network.mfa_enabled = true;
+    network.save(&client_state.pool).await.unwrap();
+    let response = client.get("/api/v1/device/overview").send().await;
+    let body: Value = response.json().await;
+    assert_eq!(body["data"][0]["config_available"], false);
+
+    network.mfa_enabled = false;
+    network.save(&client_state.pool).await.unwrap();
+    sqlx::query(
+        "WITH posture AS (INSERT INTO device_posture (name) VALUES ('posture') RETURNING id) \
+        INSERT INTO device_posture_location (posture_id, location_id) \
+        SELECT id, $1 FROM posture",
+    )
+    .bind(network.id)
+    .execute(&client_state.pool)
+    .await
+    .unwrap();
+    let response = client.get("/api/v1/device/overview").send().await;
+    let body: Value = response.json().await;
+    assert_eq!(body["data"][0]["config_available"], false);
 
     let response = client
         .get("/api/v1/device/overview?search=LAPTOP&page=1&per_page=1")
@@ -427,6 +461,33 @@ async fn test_devices_bulk_actions(_: PgPoolOptions, options: PgConnectOptions) 
         .unwrap();
     assert_eq!(first_removed.network_info.len(), 1);
     assert_eq!(first_removed.network_info[0].network_id, network.id);
+
+    let response = client
+        .post("/api/v1/device/bulk/enable")
+        .json(&json!({"devices": [first.id, verified.id]}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    for id in [first.id, verified.id] {
+        let device = Device::find_by_id(pool, id).await.unwrap().unwrap();
+        assert_eq!(device.state, DeviceState::Enabled);
+    }
+    let second_after = Device::find_by_id(pool, second.id).await.unwrap().unwrap();
+    assert_eq!(second_after.state, DeviceState::Blocked);
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::UserDeviceEnabled { .. }
+    ));
+    let mut added_peers = Vec::new();
+    while let Ok(command) = gateway_rx.try_recv() {
+        if let GatewayCommand::DeviceCreated(device_info) = command {
+            added_peers.push(device_info);
+        }
+    }
+    assert_eq!(added_peers.len(), 1);
+    assert_eq!(added_peers[0].device.id, first.id);
 
     let response = client
         .post("/api/v1/device/bulk/delete")

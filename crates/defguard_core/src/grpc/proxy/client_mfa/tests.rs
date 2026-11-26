@@ -637,11 +637,11 @@ async fn test_posture_check_rejects_blocked_device(_: PgPoolOptions, options: Pg
     let Err(status) = server
         .handle_posture_check(
             DevicePostureCheckRequest {
+                possession_challenge_solution: None,
                 location_id: location.id,
                 pubkey: device.wireguard_pubkey.clone(),
                 device_posture_data: None,
                 token: Some(token),
-                possession_challenge_solution: None,
             },
             device_info(),
         )

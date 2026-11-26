@@ -373,7 +373,7 @@ async fn get_predefined_destination_rules(
     if has_ipv4_destination {
         // create IPv4 rules
         let ipv4_rules = create_rules(
-            destination.id,
+            rule_id,
             IpVersion::Ipv4,
             ipv4_source_addrs,
             &dest_addrs_v4,
@@ -390,7 +390,7 @@ async fn get_predefined_destination_rules(
     if has_ipv6_destination {
         // create IPv6 rules
         let ipv6_rules = create_rules(
-            destination.id,
+            rule_id,
             IpVersion::Ipv6,
             ipv6_source_addrs,
             &dest_addrs_v6,
@@ -414,7 +414,7 @@ async fn get_predefined_destination_rules(
 /// Returs a 2-tuple where the first field is an `Option` with the ALLOW
 /// rule if it should be created and the second field is the DENY rule.
 fn create_rules(
-    id: Id,
+    acl_rule_id: Id,
     ip_version: IpVersion,
     source_addrs: &[IpAddress],
     destination_addrs: &[IpAddress],
@@ -429,7 +429,7 @@ fn create_rules(
     } else {
         // prepare ALLOW rule
         let rule = FirewallRule {
-            id,
+            id: acl_rule_id,
             source_addrs: source_addrs.to_vec(),
             destination_addrs: destination_addrs.to_vec(),
             destination_ports: destination_ports.to_vec(),
@@ -445,7 +445,7 @@ fn create_rules(
     // prepare DENY rule
     // it should specify only the destination addrs to block all remaining traffic
     let deny = FirewallRule {
-        id,
+        id: acl_rule_id,
         source_addrs: Vec::new(),
         destination_addrs: destination_addrs.to_vec(),
         destination_ports: Vec::new(),

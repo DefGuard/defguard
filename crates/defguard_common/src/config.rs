@@ -74,16 +74,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
 
-    #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
-    pub grpc_port: u16,
-
-    // Certificate and key for gRPC communication over HTTPS.
-    // Kept in runtime config for backwards compatibility - workers still use this.
-    #[arg(long, env = "DEFGUARD_GRPC_CERT")]
-    pub grpc_cert: Option<String>,
-    #[arg(long, env = "DEFGUARD_GRPC_KEY")]
-    pub grpc_key: Option<String>,
-
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
     #[serde(skip_serializing)]
@@ -197,9 +187,6 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_HTTP_BIND_ADDRESS")]
     pub http_bind_address: Option<IpAddr>,
-
-    #[arg(long, env = "DEFGUARD_GRPC_BIND_ADDRESS")]
-    pub grpc_bind_address: Option<IpAddr>,
 
     #[arg(long, env = "DEFGUARD_ADOPT_GATEWAY")]
     pub adopt_gateway: Option<String>,
@@ -377,9 +364,6 @@ impl DefGuardConfig {
             // sqlx safe default
             database_pool_size: 10,
             http_port: 8000,
-            grpc_port: 50055,
-            grpc_cert: None,
-            grpc_key: None,
             openid_signing_key: None,
             hmac: false,
             url: None,
@@ -401,7 +385,6 @@ impl DefGuardConfig {
             check_period_no_license: std::time::Duration::from_hours(24).into(),
             check_period_renewal_window: std::time::Duration::from_hours(1).into(),
             http_bind_address: None,
-            grpc_bind_address: None,
             adopt_gateway: None,
             adopt_edge: None,
             rate_limit_per_second: 0,

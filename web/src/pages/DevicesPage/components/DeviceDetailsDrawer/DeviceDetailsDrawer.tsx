@@ -2,7 +2,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { m } from '../../../../paraglide/messages';
-import type { DeviceOverview } from '../../../../shared/api/types';
+import { type DeviceOverview, DeviceState } from '../../../../shared/api/types';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
@@ -16,9 +16,6 @@ import { attestationStatusText, verificationText } from '../../consts';
 import { platformText, systemText } from '../../helpers';
 import { useDeviceActions } from '../../hooks/useDeviceActions';
 import { useEnterpriseTier } from '../../hooks/useEnterpriseTier';
-import { ConnectionBadge } from '../ConnectionBadge/ConnectionBadge';
-import { DeviceStateBadge } from '../DeviceStateBadge/DeviceStateBadge';
-import { UnknownBadge } from '../UnknownBadge/UnknownBadge';
 import { DeviceDetailsSection } from './components/DeviceDetailsSection/DeviceDetailsSection';
 import type { DeviceDetailsRow } from './components/DeviceDetailsSection/types';
 
@@ -59,27 +56,30 @@ const DrawerContent = ({ device, onClose }: ContentProps) => {
       { label: m.devices_col_user(), value: usersDisplay?.[device.user_id] },
       {
         label: m.devices_col_platform(),
-        value: isPresent(osType) ? platformText(osType) : <UnknownBadge />,
+        value: isPresent(osType) ? platformText(osType) : m.devices_unknown(),
       },
       {
         label: m.devices_col_system(),
-        value: isPresent(osType) ? (
-          systemText(osType, device.os_version)
-        ) : (
-          <UnknownBadge />
-        ),
+        value: isPresent(osType)
+          ? systemText(osType, device.os_version)
+          : m.devices_unknown(),
       },
       {
         label: m.devices_col_client_version(),
-        value: device.client_version ?? <UnknownBadge />,
+        value: device.client_version ?? m.devices_unknown(),
       },
       {
         label: m.devices_col_state(),
-        value: <DeviceStateBadge state={device.state} removeBackground />,
+        value:
+          device.state === DeviceState.Blocked
+            ? m.devices_state_blocked()
+            : m.state_enabled(),
       },
       {
         label: m.devices_col_connection(),
-        value: <ConnectionBadge connected={device.connected} removeBackground />,
+        value: device.connected
+          ? m.devices_connection_online()
+          : m.devices_connection_offline(),
       },
     ];
   }, [device, usersDisplay]);
@@ -88,23 +88,19 @@ const DrawerContent = ({ device, onClose }: ContentProps) => {
     (): DeviceDetailsRow[] => [
       {
         label: m.devices_details_label_last_ip(),
-        value: isPresent(device.last_connected_ip) ? (
-          formatIpForDisplay(device.last_connected_ip)
-        ) : (
-          <UnknownBadge />
-        ),
+        value: isPresent(device.last_connected_ip)
+          ? formatIpForDisplay(device.last_connected_ip)
+          : m.devices_unknown(),
       },
       {
         label: m.devices_details_label_last_date(),
-        value: isPresent(device.last_connected_at) ? (
-          displayDate(device.last_connected_at, lastConnectionDateFormat)
-        ) : (
-          <UnknownBadge />
-        ),
+        value: isPresent(device.last_connected_at)
+          ? displayDate(device.last_connected_at, lastConnectionDateFormat)
+          : m.devices_unknown(),
       },
       {
         label: m.devices_details_label_connected_through(),
-        value: device.last_connected_location ?? <UnknownBadge />,
+        value: device.last_connected_location ?? m.devices_unknown(),
       },
     ],
     [device],
