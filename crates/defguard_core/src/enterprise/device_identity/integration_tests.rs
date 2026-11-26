@@ -449,9 +449,12 @@ async fn test_finalization_rechecks_authorization_from_enrollment_snapshot(
                 Code::PermissionDenied
             }
             "session_changed" | "expired_session" => {
-                let mut changed = token.clone();
-                changed.used_at = Some(token.used_at.unwrap() - TimeDelta::days(1));
-                changed.save(&pool).await.unwrap();
+                sqlx::query("UPDATE token SET used_at = $1 WHERE id = $2")
+                    .bind(token.used_at.unwrap() - TimeDelta::days(1))
+                    .bind(&token.id)
+                    .execute(&pool)
+                    .await
+                    .unwrap();
                 Code::Unauthenticated
             }
             "wireguard_changed" => {
@@ -601,6 +604,7 @@ async fn test_expired_challenge_cannot_be_finished(_: PgPoolOptions, options: Pg
     let solution = solution(&fixture, &challenge);
     let mut state = pending(&pool, &token, &device).await;
     state.expires_at = Utc::now().naive_utc() - TimeDelta::seconds(1);
+    state.created_at = state.expires_at - TimeDelta::seconds(1);
     state.save(&pool).await.unwrap();
     assert_eq!(
         verify_attestation(&pool, &token, &device, &solution)
