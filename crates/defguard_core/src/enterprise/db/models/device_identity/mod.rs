@@ -8,7 +8,7 @@ use defguard_common::db::{
 };
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, FromRow, PgConnection, Type};
+use sqlx::{Connection, FromRow, PgConnection, PgExecutor, PgPool, Type};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Type)]
 #[sqlx(type_name = "device_identity_backend", rename_all = "snake_case")]
@@ -40,7 +40,7 @@ pub enum DeviceIdentityError {
 }
 
 impl DeviceIdentity {
-    pub async fn find_by_device_id<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_by_device_id<'e, E: PgExecutor<'e>>(
         executor: E,
         device_id: Id,
     ) -> sqlx::Result<Option<Self>> {
@@ -192,7 +192,7 @@ impl TryFrom<Vec<u8>> for DeviceAttestationPayload {
 
 impl DeviceAttestationState {
     /// Stores the session's pending challenge, replacing its previous state atomically.
-    pub async fn save<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
+    pub async fn save<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         sqlx::query!(
@@ -217,7 +217,7 @@ impl DeviceAttestationState {
         Ok(())
     }
 
-    pub async fn find_for_device<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_for_device<'e, E: PgExecutor<'e>>(
         executor: E,
         token_id: &str,
         device_id: Id,
@@ -234,7 +234,7 @@ impl DeviceAttestationState {
 
     /// Deletes this unexpired snapshot after verification, returning whether it was consumed.
     /// Use the device-write transaction so a rollback restores the challenge as well.
-    pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
+    pub async fn consume<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         let result = sqlx::query!(
@@ -315,7 +315,7 @@ impl DeviceIdentityChallenge<NoId> {
 impl DeviceIdentityChallenge<Id> {
     /// Atomically consumes a live challenge bound to the device, purpose, location and MFA session.
     /// Wall-clock expiry checks also apply inside long-running transactions.
-    pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn consume<'e, E: PgExecutor<'e>>(
         executor: E,
         id: Id,
         device_id: Id,
@@ -392,7 +392,7 @@ impl DeviceIdentityChallenge<Id> {
 }
 
 /// Deletes expired attestation states and possession challenges, including consumed challenges.
-pub async fn reap_expired(pool: &sqlx::PgPool) -> sqlx::Result<u64> {
+pub async fn reap_expired(pool: &PgPool) -> sqlx::Result<u64> {
     let mut transaction = pool.begin().await?;
     let challenges = sqlx::query!(
         "DELETE FROM device_identity_challenge WHERE expires_at <= (now() AT TIME ZONE 'UTC')",

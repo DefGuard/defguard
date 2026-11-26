@@ -1,4 +1,6 @@
-use chrono::SubsecRound;
+use std::time::Duration;
+
+use chrono::{NaiveDateTime, SubsecRound, TimeDelta, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -41,7 +43,7 @@ async fn enrollment_attestation(
     .save(pool)
     .await
     .unwrap();
-    let now = chrono::Utc::now().naive_utc().trunc_subsecs(6);
+    let now = Utc::now().naive_utc().trunc_subsecs(6);
     let mut token = Token::new(
         user.id,
         None,
@@ -68,7 +70,7 @@ async fn enrollment_attestation(
         device_id: device.id,
         wireguard_key: device.wireguard_pubkey,
         created_at: now,
-        expires_at: now + chrono::TimeDelta::minutes(10),
+        expires_at: now + TimeDelta::minutes(10),
         payload: DeviceAttestationPayload {
             data: vec![0, 255, 128],
             backend,
@@ -169,8 +171,8 @@ async fn test_expired_attestation_state_cannot_be_consumed(
 ) {
     let pool = setup_pool(options).await;
     let mut state = enrollment_attestation(&pool, "expiry", tpm_challenge()).await;
-    state.created_at -= chrono::TimeDelta::minutes(20);
-    state.expires_at = state.created_at + chrono::TimeDelta::minutes(10);
+    state.created_at -= TimeDelta::minutes(20);
+    state.expires_at = state.created_at + TimeDelta::minutes(10);
     state.save(&pool).await.unwrap();
     assert!(!state.consume(&pool).await.unwrap());
     assert!(
@@ -428,8 +430,8 @@ async fn test_polling_and_posture_challenges_enforce_scope_expiry_and_single_use
             mfa_session_id: None,
             mfa_session_token_hash: None,
             data: vec![0, 255, 128],
-            created_at: row.created - chrono::TimeDelta::minutes(10),
-            expires_at: row.created + chrono::TimeDelta::minutes(5),
+            created_at: row.created - TimeDelta::minutes(10),
+            expires_at: row.created + TimeDelta::minutes(5),
             consumed_at: None,
         }
         .save(&pool)
@@ -461,7 +463,7 @@ async fn test_polling_and_posture_challenges_enforce_scope_expiry_and_single_use
             );
         }
         let mut expired = challenge.clone();
-        expired.expires_at = row.created - chrono::TimeDelta::minutes(1);
+        expired.expires_at = row.created - TimeDelta::minutes(1);
         expired.save(&pool).await.unwrap();
         assert!(
             DeviceIdentityChallenge::consume(
@@ -541,7 +543,7 @@ async fn mfa_session(pool: &PgPool, name: &str) -> (VpnClientMfaSession<Id>, Str
         VpnMfaFlowKind::MultiStep,
         VpnClientMfaMethod::Totp,
         None,
-        std::time::Duration::from_mins(10),
+        Duration::from_mins(10),
     )
     .await
     .unwrap();
@@ -694,8 +696,8 @@ async fn test_mfa_possession_rejects_expired_challenge_or_session(
     let pool = setup_pool(options).await;
     let (session, _) = mfa_session(&pool, "mfa-expiry").await;
     let mut expired = DeviceIdentityChallenge::for_mfa(&session, vec![1]);
-    expired.created_at -= chrono::TimeDelta::minutes(20);
-    expired.expires_at = expired.created_at + chrono::TimeDelta::minutes(1);
+    expired.created_at -= TimeDelta::minutes(20);
+    expired.expires_at = expired.created_at + TimeDelta::minutes(1);
     let expired = expired.save(&pool).await.unwrap();
     let mut connection = pool.acquire().await.unwrap();
     assert!(
@@ -708,7 +710,7 @@ async fn test_mfa_possession_rejects_expired_challenge_or_session(
         .unwrap()
     );
     let mut too_long = DeviceIdentityChallenge::for_mfa(&session, vec![2]);
-    too_long.expires_at += chrono::TimeDelta::minutes(1);
+    too_long.expires_at += TimeDelta::minutes(1);
     let too_long = too_long.save(&pool).await.unwrap();
     assert!(
         !DeviceIdentityChallenge::record_verified_mfa_possession(
@@ -725,7 +727,7 @@ async fn test_mfa_possession_rejects_expired_challenge_or_session(
         .unwrap();
     sqlx::query!(
         "UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2",
-        chrono::Utc::now().naive_utc() - chrono::TimeDelta::seconds(1),
+        Utc::now().naive_utc() - TimeDelta::seconds(1),
         session.id,
     )
     .execute(&pool)
@@ -799,7 +801,7 @@ async fn test_mfa_possession_deadline_applies_inside_transaction(
         .unwrap();
     for expire_session in [false, true] {
         let mut delayed_transaction = pool.begin().await.unwrap();
-        let deadline: chrono::NaiveDateTime = sqlx::query_scalar!(
+        let deadline: NaiveDateTime = sqlx::query_scalar!(
             "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
         )
         .fetch_one(&mut *delayed_transaction)
@@ -943,7 +945,7 @@ async fn test_mfa_possession_is_bound_to_session_generation_and_cascades_on_rest
         VpnMfaFlowKind::Legacy,
         VpnClientMfaMethod::Totp,
         None,
-        std::time::Duration::from_mins(10),
+        Duration::from_mins(10),
     )
     .await
     .unwrap();
@@ -1223,7 +1225,7 @@ async fn test_device_identity_manual_approval_and_transaction_rollback(
 async fn test_reap_expired_device_identity_state(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let (session, _) = mfa_session(&pool, "reap-challenges").await;
-    let now = chrono::Utc::now().naive_utc().trunc_subsecs(6);
+    let now = Utc::now().naive_utc().trunc_subsecs(6);
     let mut expired_ids = Vec::new();
     let mut active_ids = Vec::new();
     for (purpose, expired, consumed) in [
@@ -1248,13 +1250,13 @@ async fn test_reap_expired_device_identity_state(_: PgPoolOptions, options: PgCo
             mfa_session_token_hash: (purpose == DeviceIdentityChallengePurpose::MfaConnection)
                 .then_some(session.token_hash.clone()),
             data: vec![1],
-            created_at: now - chrono::TimeDelta::minutes(10),
+            created_at: now - TimeDelta::minutes(10),
             expires_at: if expired {
-                now - chrono::TimeDelta::minutes(5)
+                now - TimeDelta::minutes(5)
             } else {
-                now + chrono::TimeDelta::minutes(5)
+                now + TimeDelta::minutes(5)
             },
-            consumed_at: consumed.then_some(now - chrono::TimeDelta::minutes(9)),
+            consumed_at: consumed.then_some(now - TimeDelta::minutes(9)),
         }
         .save(&pool)
         .await
@@ -1267,8 +1269,8 @@ async fn test_reap_expired_device_identity_state(_: PgPoolOptions, options: PgCo
     }
     let mut expired_attestation =
         enrollment_attestation(&pool, "expired-attestation", tpm_challenge()).await;
-    expired_attestation.created_at = now - chrono::TimeDelta::minutes(10);
-    expired_attestation.expires_at = now - chrono::TimeDelta::minutes(5);
+    expired_attestation.created_at = now - TimeDelta::minutes(10);
+    expired_attestation.expires_at = now - TimeDelta::minutes(5);
     expired_attestation.save(&pool).await.unwrap();
     let active_attestation =
         enrollment_attestation(&pool, "active-attestation", tpm_challenge()).await;
@@ -1360,7 +1362,7 @@ async fn test_identity_save_rolls_back_when_device_update_fails(
             .save_verified(
                 &mut connection,
                 DeviceAttestationStatus::Attested,
-                row.created + chrono::TimeDelta::seconds(1),
+                row.created + TimeDelta::seconds(1),
             )
             .await;
         let Err(DeviceIdentityError::Database(error)) = result else {

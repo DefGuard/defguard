@@ -1,13 +1,18 @@
 use std::sync::LazyLock;
 
 use aes::Aes128;
-use cfb_mode::cipher::{AsyncStreamCipher, KeyIvInit};
+use cfb_mode::{
+    Decryptor,
+    cipher::{AsyncStreamCipher, KeyIvInit},
+};
 use defguard_proto::device_identity::{
-    Signature, SignatureAlgorithm, TpmAttestationIdentity, TpmAttestationResponse, TpmEvidence,
+    CredentialChallenge, Signature, SignatureAlgorithm, TpmAttestationIdentity,
+    TpmAttestationResponse, TpmEvidence,
 };
 use hmac::{Hmac, Mac};
 use p256::{
-    ecdsa::{SigningKey, signature::Signer},
+    PublicKey, SecretKey,
+    ecdsa::{Signature as EcdsaSignature, SigningKey, signature::Signer},
     elliptic_curve::sec1::ToEncodedPoint,
 };
 use rand::rngs::OsRng;
@@ -17,7 +22,7 @@ use sha2_10::{Digest, Sha256};
 // Independent RustCrypto implementation of the receiving half of MakeCredential.
 // Production uses OpenSSL and never imports these helpers.
 pub(in crate::enterprise::device_identity) enum Ek {
-    Ecc(p256::SecretKey),
+    Ecc(SecretKey),
     Rsa(Box<RsaPrivateKey>),
 }
 
@@ -45,7 +50,7 @@ fn header(algorithm: u16, attributes: u32, policy: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn ecc_point(output: &mut Vec<u8>, key: &p256::PublicKey) {
+fn ecc_point(output: &mut Vec<u8>, key: &PublicKey) {
     let point = key.to_encoded_point(false);
     sized(output, point.x().unwrap());
     sized(output, point.y().unwrap());
@@ -78,7 +83,7 @@ impl Fixture {
         let ek = if rsa {
             Ek::Rsa(Box::new(RSA_KEY.clone()))
         } else {
-            Ek::Ecc(p256::SecretKey::from_slice(&[3; 32]).unwrap())
+            Ek::Ecc(SecretKey::from_slice(&[3; 32]).unwrap())
         };
         let mut ek_public = header(if rsa { 0x0001 } else { 0x0023 }, 0x0003_00b2, &[0x42; 32]);
         for value in [0x0006u16, 128, 0x0043, 0x0010] {
@@ -147,7 +152,7 @@ impl Fixture {
         response: &mut TpmAttestationResponse,
     ) {
         let evidence = response.evidence.as_mut().unwrap();
-        let signature: p256::ecdsa::Signature = self.ak.sign(&evidence.attest);
+        let signature: EcdsaSignature = self.ak.sign(&evidence.attest);
         evidence.signature = Some(Signature {
             algorithm: SignatureAlgorithm::EcdsaSha256.into(),
             signature: signature.to_der().as_bytes().to_vec(),
@@ -178,7 +183,7 @@ fn kdfa(seed: &[u8], label: &[u8], context: &[u8], bits: u32) -> Vec<u8> {
 
 pub(in crate::enterprise::device_identity) fn activate(
     fixture: &Fixture,
-    challenge: &defguard_proto::device_identity::CredentialChallenge,
+    challenge: &CredentialChallenge,
     ak_name: &[u8],
 ) -> Vec<u8> {
     let seed = match &fixture.ek {
@@ -196,7 +201,7 @@ pub(in crate::enterprise::device_identity) fn activate(
             assert_eq!(x.len(), 32);
             assert_eq!(y.len(), 32);
             let encoded = [vec![4], x.to_vec(), y.to_vec()].concat();
-            let ephemeral = p256::PublicKey::from_sec1_bytes(&encoded).unwrap();
+            let ephemeral = PublicKey::from_sec1_bytes(&encoded).unwrap();
             let shared =
                 p256::ecdh::diffie_hellman(private.to_nonzero_scalar(), ephemeral.as_affine());
             let public = private.public_key().to_encoded_point(false);
@@ -223,8 +228,7 @@ pub(in crate::enterprise::device_identity) fn activate(
     mac.verify_slice(expected_mac).unwrap();
     let storage = kdfa(&seed, b"STORAGE", ak_name, 128);
     let mut plaintext = ciphertext.to_vec();
-    cfb_mode::Decryptor::<Aes128>::new(storage.as_slice().into(), &[0; 16].into())
-        .decrypt(&mut plaintext);
+    Decryptor::<Aes128>::new(storage.as_slice().into(), &[0; 16].into()).decrypt(&mut plaintext);
     let mut reader = Reader(&plaintext);
     let secret = reader.sized().to_vec();
     assert!(reader.0.is_empty());

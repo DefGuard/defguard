@@ -24,6 +24,7 @@ use defguard_proto::{
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::sync::mpsc::error::TryRecvError;
 use tonic::Code;
 
 use super::support::{
@@ -172,12 +173,9 @@ async fn test_invalid_attestation_preserves_device_and_enrollment_session(
         );
         assert!(matches!(
             context.bidi_events_rx.try_recv(),
-            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+            Err(TryRecvError::Empty)
         ));
-        assert!(matches!(
-            gateway_rx.try_recv(),
-            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
-        ));
+        assert!(matches!(gateway_rx.try_recv(), Err(TryRecvError::Empty)));
     }
     context.finish().await.expect_server_finished().await;
 }

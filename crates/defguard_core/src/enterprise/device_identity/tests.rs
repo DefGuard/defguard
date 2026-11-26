@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use chrono::{DateTime, NaiveDateTime, TimeDelta};
-use defguard_common::db::models::{Device, DeviceType};
+use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::models::{Device, DeviceType, Settings, settings::set_settings};
 use serde_cbor::Value;
+use sqlx::postgres::PgPoolOptions;
 use tonic::Code;
 
 use super::{AttestationData, qualifying_data};
@@ -196,31 +197,31 @@ fn test_qualifying_data_hashes_the_exact_issued_bytes() {
 
 #[tokio::test]
 async fn test_start_rejects_missing_unsupported_or_invalid_identity_without_persistence() {
-    let mut settings = defguard_common::db::models::Settings::default();
+    let mut settings = Settings::default();
     settings.enrollment_session_timeout_minutes = 30;
-    defguard_common::db::models::settings::set_settings(Some(settings));
+    set_settings(Some(settings));
     use defguard_proto::device_identity::{
         AppleAttestationIdentity, AttestationIdentity, TpmAttestationIdentity,
         attestation_identity::Backend,
     };
-    let pool = sqlx::postgres::PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .connect_lazy("postgres://unused:unused@localhost/unused")
         .unwrap();
     for (backend, expected) in [
-        (None, tonic::Code::InvalidArgument),
+        (None, Code::InvalidArgument),
         (
             Some(Backend::AppleAppAttest(AppleAttestationIdentity {
                 key_id: "key".into(),
             })),
-            tonic::Code::Unimplemented,
+            Code::Unimplemented,
         ),
         (
             Some(Backend::Tpm(TpmAttestationIdentity::default())),
-            tonic::Code::InvalidArgument,
+            Code::InvalidArgument,
         ),
     ] {
         let mut token = enrollment();
-        token.used_at = Some(chrono::Utc::now().naive_utc());
+        token.used_at = Some(Utc::now().naive_utc());
         let result = super::generate_attestation_challenge(
             &pool,
             &token,
@@ -238,23 +239,20 @@ async fn test_finish_rejects_absent_unsupported_or_reported_failure_without_pers
         AppleEvidence, AttestationChallengeSolution, IdentityErrorCode,
         attestation_challenge_solution::Result,
     };
-    let pool = sqlx::postgres::PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .connect_lazy("postgres://unused:unused@localhost/unused")
         .unwrap();
     for (result, expected) in [
-        (None, tonic::Code::InvalidArgument),
+        (None, Code::InvalidArgument),
         (
             Some(Result::AppleAppAttest(AppleEvidence::default())),
-            tonic::Code::Unimplemented,
+            Code::Unimplemented,
         ),
         (
             Some(Result::Error(IdentityErrorCode::BackendFailure.into())),
-            tonic::Code::FailedPrecondition,
+            Code::FailedPrecondition,
         ),
-        (
-            Some(Result::Error(i32::MAX)),
-            tonic::Code::FailedPrecondition,
-        ),
+        (Some(Result::Error(i32::MAX)), Code::FailedPrecondition),
     ] {
         let solution = AttestationChallengeSolution {
             session_id: "challenge".into(),
