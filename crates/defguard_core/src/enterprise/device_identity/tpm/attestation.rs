@@ -20,6 +20,8 @@ fn check_name(bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Checks that the Certify payload binds the challenge digest to the expected identity key's TPM Name.
+/// The caller must verify the signature over the original payload bytes separately.
 fn check_certify(attest: &[u8], expected_data: &[u8; 32], expected_name: &[u8; 34]) -> Result<()> {
     let mut reader = Reader::new(attest);
     if reader.u32()? != TPM_GENERATED_VALUE || reader.u16()? != TPM_ST_ATTEST_CERTIFY {
