@@ -455,22 +455,26 @@ async fn test_finalization_rechecks_authorization_from_enrollment_snapshot(
                 Code::Unauthenticated
             }
             "wireguard_changed" => {
-                sqlx::query("UPDATE device SET wireguard_pubkey = $1 WHERE id = $2")
-                    .bind("AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
-                    .bind(device.id)
-                    .execute(&pool)
-                    .await
-                    .unwrap();
+                sqlx::query!(
+                    "UPDATE device SET wireguard_pubkey = $1 WHERE id = $2",
+                    "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+                    device.id,
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
                 Code::FailedPrecondition
             }
             "owner_changed" => {
                 let (other, _) = session(&pool, "ceremony-new-owner").await;
-                sqlx::query("UPDATE device SET user_id = $1 WHERE id = $2")
-                    .bind(other.user_id)
-                    .bind(device.id)
-                    .execute(&pool)
-                    .await
-                    .unwrap();
+                sqlx::query!(
+                    "UPDATE device SET user_id = $1 WHERE id = $2",
+                    other.user_id,
+                    device.id,
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
                 Code::PermissionDenied
             }
             _ => unreachable!(),

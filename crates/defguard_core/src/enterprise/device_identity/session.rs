@@ -3,7 +3,7 @@ use defguard_common::db::{
     Id,
     models::{Device, Settings},
 };
-use sqlx::{FromRow, PgConnection};
+use sqlx::PgConnection;
 use tonic::Status;
 
 use super::{challenge_data::session_deadline, database_error};
@@ -12,7 +12,6 @@ use crate::{
     enterprise::db::models::device_identity::DeviceIdentity,
 };
 
-#[derive(FromRow)]
 struct Authorization {
     user_id: Id,
     used_at: Option<NaiveDateTime>,
@@ -26,12 +25,13 @@ pub(super) async fn lock_attestation_session(
     device: &Device<Id>,
 ) -> Result<NaiveDateTime, Status> {
     // keep token, user and device locks until the challenge or identity write commits
-    let authorization = sqlx::query_as::<_, Authorization>(
+    let authorization = sqlx::query_as!(
+        Authorization,
         "SELECT token.user_id, token.used_at, token.token_type, \"user\".is_active \
          FROM token JOIN \"user\" ON \"user\".id = token.user_id WHERE token.id = $1 \
          FOR UPDATE OF token FOR SHARE OF \"user\"",
+        &enrollment.id,
     )
-    .bind(&enrollment.id)
     .fetch_optional(&mut *connection)
     .await
     .map_err(database_error)?
@@ -76,7 +76,7 @@ pub(super) async fn lock_attestation_session(
         ));
     }
     // read the wall clock after lock waits, transaction time may already be expired
-    let now = sqlx::query_scalar::<_, NaiveDateTime>("SELECT clock_timestamp() AT TIME ZONE 'UTC'")
+    let now = sqlx::query_scalar!("SELECT clock_timestamp() AT TIME ZONE 'UTC' AS \"now!\"")
         .fetch_one(&mut *connection)
         .await
         .map_err(database_error)?;

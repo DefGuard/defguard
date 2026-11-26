@@ -18,7 +18,7 @@ pub enum DeviceIdentityBackend {
 }
 
 /// Hardware identity material loaded explicitly for attestation and possession verification.
-#[derive(Clone, PartialEq, FromRow)]
+#[derive(Clone, PartialEq)]
 pub struct DeviceIdentity {
     pub device_id: Id,
     pub backend: DeviceIdentityBackend,
@@ -280,7 +280,7 @@ pub enum DeviceIdentityChallengePurpose {
     MfaConnection,
 }
 
-#[derive(Clone, PartialEq, FromRow, Model)]
+#[derive(Clone, PartialEq, Model)]
 #[table(device_identity_challenge)]
 pub struct DeviceIdentityChallenge<I = NoId> {
     pub id: I,

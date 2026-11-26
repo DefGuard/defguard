@@ -78,7 +78,7 @@ pub fn verify_attestation(
         .ok_or(TpmError::InvalidEvidence("missing TPM evidence"))?;
     check_certificates(&evidence.ek_certificate_chain_der)?;
     if evidence.attest.is_empty() || evidence.attest.len() > MAX_ATTEST_SIZE {
-        return Err(TpmError::InvalidEvidence("attestation exceeds size limits"));
+        return Err(TpmError::InvalidEvidence("attestation empty or exceeds size limits"));
     }
     endorsement_key(&evidence.ek_public)?;
     let ak = signing_key(&evidence.ak_public, true)?;

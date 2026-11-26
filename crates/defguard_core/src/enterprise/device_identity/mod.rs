@@ -47,13 +47,13 @@ async fn record_attestation_failure(
             "attestation challenge expired, changed or was already consumed",
         ));
     }
-    sqlx::query(
+    sqlx::query!(
         "UPDATE device SET attestation_status = $1, attested_at = NULL \
          WHERE id = $2 AND attestation_status = $3",
+        DeviceAttestationStatus::AttestationFailed as DeviceAttestationStatus,
+        device.id,
+        DeviceAttestationStatus::NotAttested as DeviceAttestationStatus,
     )
-    .bind(DeviceAttestationStatus::AttestationFailed)
-    .bind(device.id)
-    .bind(DeviceAttestationStatus::NotAttested)
     .execute(&mut *transaction)
     .await
     .map_err(database_error)?;

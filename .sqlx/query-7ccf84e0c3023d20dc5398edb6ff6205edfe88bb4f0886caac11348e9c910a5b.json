@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deadline!",
+        "type_info": "Timestamp",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7ccf84e0c3023d20dc5398edb6ff6205edfe88bb4f0886caac11348e9c910a5b"
+}

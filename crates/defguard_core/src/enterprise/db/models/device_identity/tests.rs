@@ -107,12 +107,14 @@ async fn test_attestation_state_roundtrips_backend_payloads(
                 .unwrap()
                 == Some(state.clone())
         );
-        sqlx::query("UPDATE device_attestation_state SET payload = $1 WHERE token_id = $2")
-            .bind(vec![1u8])
-            .bind(&state.token_id)
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "UPDATE device_attestation_state SET payload = $1 WHERE token_id = $2",
+            vec![1u8],
+            &state.token_id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
         assert!(
             DeviceAttestationState::find_for_device(&pool, &state.token_id, state.device_id)
                 .await
@@ -348,11 +350,12 @@ async fn test_attestation_state_deadline_applies_inside_transaction(
     let mut state = enrollment_attestation(&pool, "transaction-deadline", tpm_challenge()).await;
     state.save(&pool).await.unwrap();
     let mut transaction = pool.begin().await.unwrap();
-    state.expires_at =
-        sqlx::query_scalar("SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds'")
-            .fetch_one(&mut *transaction)
-            .await
-            .unwrap();
+    state.expires_at = sqlx::query_scalar!(
+        "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
+    )
+    .fetch_one(&mut *transaction)
+    .await
+    .unwrap();
     state.save(&mut *transaction).await.unwrap();
     sqlx::query("SELECT pg_sleep(0.1)")
         .execute(&mut *transaction)
@@ -720,12 +723,14 @@ async fn test_mfa_possession_rejects_expired_challenge_or_session(
         .save(&pool)
         .await
         .unwrap();
-    sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
-        .bind(chrono::Utc::now().naive_utc() - chrono::TimeDelta::seconds(1))
-        .bind(session.id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query!(
+        "UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2",
+        chrono::Utc::now().naive_utc() - chrono::TimeDelta::seconds(1),
+        session.id,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     assert!(
         !DeviceIdentityChallenge::record_verified_mfa_possession(
             &mut connection,
@@ -794,25 +799,30 @@ async fn test_mfa_possession_deadline_applies_inside_transaction(
         .unwrap();
     for expire_session in [false, true] {
         let mut delayed_transaction = pool.begin().await.unwrap();
-        let deadline: chrono::NaiveDateTime =
-            sqlx::query_scalar("SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds'")
-                .fetch_one(&mut *delayed_transaction)
-                .await
-                .unwrap();
+        let deadline: chrono::NaiveDateTime = sqlx::query_scalar!(
+            "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
+        )
+        .fetch_one(&mut *delayed_transaction)
+        .await
+        .unwrap();
         if expire_session {
-            sqlx::query("UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2")
-                .bind(deadline)
-                .bind(session.id)
-                .execute(&mut *delayed_transaction)
-                .await
-                .unwrap();
-        }
-        sqlx::query("UPDATE device_identity_challenge SET expires_at = $1 WHERE id = $2")
-            .bind(deadline)
-            .bind(challenge.id)
+            sqlx::query!(
+                "UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2",
+                deadline,
+                session.id,
+            )
             .execute(&mut *delayed_transaction)
             .await
             .unwrap();
+        }
+        sqlx::query!(
+            "UPDATE device_identity_challenge SET expires_at = $1 WHERE id = $2",
+            deadline,
+            challenge.id,
+        )
+        .execute(&mut *delayed_transaction)
+        .await
+        .unwrap();
         sqlx::query("SELECT pg_sleep(0.1)")
             .execute(&mut *delayed_transaction)
             .await
@@ -879,12 +889,14 @@ async fn test_mfa_possession_is_bound_to_session_generation_and_cascades_on_rest
         .save(&pool)
         .await
         .unwrap();
-    sqlx::query("UPDATE vpn_client_mfa_session SET token_hash = $1 WHERE id = $2")
-        .bind("replacement-session-hash")
-        .bind(old_session.id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query!(
+        "UPDATE vpn_client_mfa_session SET token_hash = $1 WHERE id = $2",
+        "replacement-session-hash",
+        old_session.id,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     let current = VpnClientMfaSession::find_by_id(&pool, old_session.id)
         .await
         .unwrap()
@@ -1024,11 +1036,11 @@ async fn test_device_identity_roundtrip_status_and_cascade(
             );
             for count in [-1i64, 4_294_967_296] {
                 assert_constraint(
-                    sqlx::query(
+                    sqlx::query!(
                         "UPDATE device_identity SET apple_sign_count = $1 WHERE device_id = $2",
+                        count,
+                        row.id,
                     )
-                    .bind(count)
-                    .bind(row.id)
                     .execute(&pool)
                     .await
                     .unwrap_err(),
@@ -1037,10 +1049,10 @@ async fn test_device_identity_roundtrip_status_and_cascade(
             }
         } else {
             assert_constraint(
-                sqlx::query(
+                sqlx::query!(
                     "UPDATE device_identity SET apple_key_id = 'apple-key' WHERE device_id = $1",
+                    row.id,
                 )
-                .bind(row.id)
                 .execute(&pool)
                 .await
                 .unwrap_err(),
