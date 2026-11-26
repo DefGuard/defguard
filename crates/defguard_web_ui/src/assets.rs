@@ -15,12 +15,6 @@ pub async fn index() -> impl IntoResponse {
     web_asset(Uri::from_static("/index.html")).await
 }
 
-pub async fn svg(uri: Uri) -> impl IntoResponse {
-    let path = uri.path().trim_start_matches('/').to_owned();
-    // Rewrite the path to match the structure of the embedded files
-    StaticFile(path)
-}
-
 #[derive(Embed)]
 #[folder = "../../web/"]
 #[include = "dist/*"]

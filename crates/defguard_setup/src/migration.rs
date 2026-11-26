@@ -36,7 +36,7 @@ use defguard_core::{
     health_check,
     version::IncompatibleComponents,
 };
-use defguard_web_ui::{index, svg, web_asset};
+use defguard_web_ui::{index, web_asset};
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -103,7 +103,6 @@ pub fn build_migration_webapp(
         .route("/{*path}", get(index))
         .route("/fonts/{*path}", get(web_asset))
         .route("/assets/{*path}", get(web_asset))
-        .route("/svg/{*path}", get(svg))
         .nest(
             "/api/v1",
             Router::new()

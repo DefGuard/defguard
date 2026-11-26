@@ -44,7 +44,7 @@ use defguard_common::{
 };
 use defguard_proto::gateway::Configuration;
 use defguard_version::server::DefguardVersionLayer;
-use defguard_web_ui::{index, svg, web_asset};
+use defguard_web_ui::{index, web_asset};
 use events::{ApiEvent, DirectorySyncEvent, LdapSyncEventType};
 use handlers::{
     activity_log::{get_activity_log_event, get_activity_log_events},
@@ -322,7 +322,6 @@ pub fn build_webapp(
         .route("/{*path}", get(index))
         .route("/fonts/{*path}", get(web_asset))
         .route("/assets/{*path}", get(web_asset))
-        .route("/svg/{*path}", get(svg))
         .fallback_service(get(handle_404));
 
     // Collect all API routes into a single router so the rate-limiter can be scoped to API routes only
