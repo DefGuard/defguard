@@ -22,10 +22,17 @@ pub enum DeviceIdentityBackend {
 pub struct DeviceIdentity {
     pub device_id: Id,
     pub backend: DeviceIdentityBackend,
+    /// The identity signing key in SubjectPublicKeyInfo DER format.
     pub public_key_der: Vec<u8>,
+    /// The last recorded App Attest assertion counter. `None` means no counter is stored.
+    /// Used for replay-attack prevention.
     pub apple_sign_count: Option<i32>,
+    /// The TPM endorsement key as marshalled `TPMT_PUBLIC`. Manual approval may omit it.
     pub tpm_ek_public: Option<Vec<u8>>,
+    /// Client-supplied DER certificates, starting with the endorsement key certificate when present.
+    /// An empty chain means no certificates were supplied. Manufacturer trust requires separate validation.
     pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
+    /// The Base64 key identifier returned by App Attest. Manual approval may omit it.
     pub apple_key_id: Option<String>,
 }
 
@@ -164,9 +171,12 @@ impl DeviceIdentity {
 /// Stores a pending device attestation challenge for an enrollment session.
 #[derive(Clone, PartialEq, FromRow)]
 pub struct DeviceAttestationState {
+    /// The challenge identifier sent as `session_id` in the attestation protocol.
     pub challenge_id: String,
+    /// The enrollment token ID. Issuing a challenge for this token replaces its previous challenge.
     pub token_id: String,
     pub device_id: Id,
+    /// The device's WireGuard public key at issuance. A key change invalidates the challenge.
     pub wireguard_key: String,
     pub created_at: NaiveDateTime,
     /// The enrollment session deadline supplied by the caller.
@@ -178,6 +188,7 @@ pub struct DeviceAttestationState {
 /// CBOR payload containing the exact challenge bytes and backend verification state.
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub struct DeviceAttestationPayload {
+    /// The bytes sent to the client. Verification uses them as issued, without re-encoding.
     pub data: Vec<u8>,
     pub backend: DeviceAttestationChallenge,
 }
@@ -256,14 +267,20 @@ impl DeviceAttestationState {
     }
 }
 
+/// The backend-specific reference values Core retains between enrollment Start and Finish.
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum DeviceAttestationChallenge {
     Tpm {
+        /// The binary TPM Name of the attestation key used to bind the activation credential.
         ak_name: Vec<u8>,
+        /// The SHA-256 digest of the original endorsement key's marshalled `TPMT_PUBLIC`.
         ek_fingerprint: [u8; 32],
+        /// The SHA-256 digest of the activation secret. Core stores only the digest for comparison.
         activation_secret_hash: [u8; 32],
     },
+    /// Reserved for Apple App Attest, which Core does not yet verify.
     AppleAppAttest {
+        /// The Base64 App Attest key identifier supplied at Start.
         key_id: String,
     },
 }
@@ -276,6 +293,7 @@ pub enum DeviceIdentityChallengePurpose {
     MfaConnection,
 }
 
+/// A challenge for proving possession of a registered device identity key during polling or connection setup.
 #[derive(Clone, PartialEq, Model)]
 #[table(device_identity_challenge)]
 pub struct DeviceIdentityChallenge<I = NoId> {
@@ -283,14 +301,18 @@ pub struct DeviceIdentityChallenge<I = NoId> {
     #[model(enum)]
     pub purpose: DeviceIdentityChallengePurpose,
     pub device_id: Id,
+    /// The VPN location for connection challenges. Polling leaves this unset.
     pub location_id: Option<Id>,
+    /// The VPN MFA session for an MFA connection challenge. Other purposes leave this unset.
     pub mfa_session_id: Option<Id>,
-    /// Captures the session generation, concurrent Start can replace a session while keeping its ID.
+    /// Captures the session generation so a new MFA Start invalidates the old challenge even if the ID stays the same.
     pub mfa_session_token_hash: Option<String>,
-    /// Exact Core-encoded bytes include the nonce, key fingerprint and operation binding.
+    /// The exact bytes that the proof binds to. They include the nonce, key fingerprint, and operation binding.
     pub data: Vec<u8>,
     pub created_at: NaiveDateTime,
+    /// The UTC deadline. For MFA, consumption also requires the original session to remain active.
     pub expires_at: NaiveDateTime,
+    /// `None` means the challenge has never been consumed. Expiry is checked separately.
     pub consumed_at: Option<NaiveDateTime>,
 }
 
