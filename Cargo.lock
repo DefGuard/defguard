@@ -1712,6 +1712,7 @@ dependencies = [
  "tower",
  "tower-http 0.7.1",
  "tower_governor",
+ "tpm2-protocol",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -7523,6 +7524,12 @@ dependencies = [
  "tower",
  "tracing",
 ]
+
+[[package]]
+name = "tpm2-protocol"
+version = "1.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0aed1b812859594045bc1c835af72ff2c19b4d5813779d2422375bfb1774baf2"
 
 [[package]]
 name = "tracing"

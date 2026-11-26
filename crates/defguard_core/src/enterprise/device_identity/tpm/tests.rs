@@ -9,7 +9,7 @@ use p256::{
 use sha2_10::{Digest, Sha256};
 
 use super::{
-    create_challenge,
+    TpmError, create_challenge,
     test_support::{Fixture, activate, name},
     verify_attestation,
 };
@@ -291,6 +291,32 @@ fn test_signing_key_attributes_and_profiles_cannot_be_forged_in_evidence() {
         }
         assert!(create_challenge(&metadata).is_err(), "{field}");
     }
+}
+
+#[test]
+fn test_finish_distinguishes_malformed_public_area_from_unsupported_profile() {
+    let fixture = Fixture::new(false);
+    let prepared = create_challenge(&fixture.metadata).unwrap();
+    let secret = activate(
+        &fixture,
+        &prepared.challenge,
+        &name(&fixture.metadata.ak_public),
+    );
+    let mut response = fixture.response(secret, DATA);
+
+    // SHA-384 is a recognized algorithm outside the supported profile.
+    response.evidence.as_mut().unwrap().ak_public[3] = 0x0c;
+    assert!(matches!(
+        verify_attestation(&prepared.verification, DATA, &response),
+        Err(TpmError::UnsupportedProfile(_))
+    ));
+
+    // A malformed policy length is invalid evidence even with an unsupported Name algorithm.
+    response.evidence.as_mut().unwrap().ak_public[8..10].copy_from_slice(&127u16.to_be_bytes());
+    assert!(matches!(
+        verify_attestation(&prepared.verification, DATA, &response),
+        Err(TpmError::InvalidEvidence(_))
+    ));
 }
 
 #[test]

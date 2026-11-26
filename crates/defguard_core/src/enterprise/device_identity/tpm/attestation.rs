@@ -1,20 +1,21 @@
 use defguard_proto::device_identity::{SignatureAlgorithm, TpmAttestationResponse};
 use openssl::{ecdsa::EcdsaSig, hash::MessageDigest, memcmp, sign::Verifier};
 use sha2::{Digest, Sha256};
+use tpm2_protocol::{
+    TpmUnmarshal,
+    data::{TpmAlgId, TpmsAttest, TpmuAttest},
+};
 
 use super::{
     MAX_ATTEST_SIZE, MAX_SIGNATURE_SIZE, Result, TpmError, VerifiedIdentity, check_certificates,
-    public::{Reader, SHA256, endorsement_key, name, signing_key},
+    public::{endorsement_key, name, signing_key},
 };
 use crate::enterprise::{
     db::models::device_identity::DeviceAttestationChallenge, device_identity::qualifying_data,
 };
 
-const TPM_GENERATED_VALUE: u32 = 0xff54_4347;
-const TPM_ST_ATTEST_CERTIFY: u16 = 0x8017;
-
 fn check_name(bytes: &[u8]) -> Result<()> {
-    if bytes.len() != 34 || !bytes.starts_with(&SHA256.to_be_bytes()) {
+    if bytes.len() != 34 || !bytes.starts_with(&TpmAlgId::Sha256.value().to_be_bytes()) {
         return Err(TpmError::InvalidEvidence("invalid SHA-256 TPM Name"));
     }
     Ok(())
@@ -23,41 +24,37 @@ fn check_name(bytes: &[u8]) -> Result<()> {
 /// Checks that the Certify payload binds the challenge digest to the expected identity key's TPM Name.
 /// The caller must verify the signature over the original payload bytes separately.
 fn check_certify(attest: &[u8], expected_data: &[u8; 32], expected_name: &[u8; 34]) -> Result<()> {
-    let mut reader = Reader::new(attest);
-    if reader.u32()? != TPM_GENERATED_VALUE || reader.u16()? != TPM_ST_ATTEST_CERTIFY {
-        return Err(TpmError::InvalidEvidence(
-            "expected TPM-generated Certify attestation",
-        ));
+    let (attest, rest) = TpmsAttest::unmarshal(attest)
+        .map_err(|_| TpmError::InvalidEvidence("malformed TPM attestation"))?;
+    if !rest.is_empty() {
+        return Err(TpmError::InvalidEvidence("trailing TPM attestation data"));
     }
-    // This is the qualified signer Name. Only its format is checked here because the
-    // caller authenticates the payload with the AK bound to the activation challenge.
-    check_name(reader.sized()?)?;
+    let TpmuAttest::Certify(certify) = attest.attested else {
+        return Err(TpmError::InvalidEvidence(
+            "expected TPM Certify attestation",
+        ));
+    };
+
+    // The caller authenticates the payload with the AK bound to the activation challenge.
+    // The qualified signer Name is checked here only for format.
+    check_name(attest.qualified_signer.as_ref())?;
 
     // The TPM copies the caller's qualifying data into `extraData`. It must match the
     // digest Core computes from the original challenge data.
-    if reader.sized()? != expected_data {
+    if attest.extra_data.as_ref() != expected_data {
         return Err(TpmError::InvalidEvidence(
             "Certify qualifying data mismatch",
         ));
     }
-    // Consume `TPMS_CLOCK_INFO` and the firmware version to reach the Certify fields.
-    // Freshness comes from the challenge, so clock and firmware values are not compared.
-    let clock = reader.take(17)?;
-    if clock[16] > 1 {
-        return Err(TpmError::InvalidEvidence("invalid TPM clock safe flag"));
-    }
-    reader.take(8)?;
 
-    // Certify reports both the object's Name and its Qualified Name. The Name binds
-    // the supplied public area. The Qualified Name also depends on the parent chain
-    // and is checked only for format here.
-    if reader.sized()? != expected_name {
+    // The Name binds the supplied public area. The Qualified Name also depends on the
+    // parent chain and is checked only for format here.
+    if certify.name.as_ref() != expected_name {
         return Err(TpmError::InvalidEvidence(
             "certified identity key Name mismatch",
         ));
     }
-    check_name(reader.sized()?)?;
-    reader.finish()
+    check_name(certify.qualified_name.as_ref())
 }
 
 /// Verifies activation and key certification against Core's saved challenge state and exact data.

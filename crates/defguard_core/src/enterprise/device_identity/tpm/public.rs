@@ -12,16 +12,16 @@ use openssl::{
 };
 use sha2::{Digest, Sha256};
 
+use tpm2_protocol::{
+    TpmUnmarshal,
+    data::{
+        TpmAlgId, TpmEccCurve, TpmsEccPoint, TpmtPublic, TpmtSymDefObject, TpmuAsymScheme,
+        TpmuPublicId, TpmuPublicParms, TpmuSymKeyBits, TpmuSymMode,
+    },
+};
+
 use super::{MAX_PUBLIC_SIZE, Result, TpmError};
 
-const RSA: u16 = 0x0001;
-const AES: u16 = 0x0006;
-const CFB: u16 = 0x0043;
-pub(super) const SHA256: u16 = 0x000b;
-const NULL: u16 = 0x0010;
-const ECC: u16 = 0x0023;
-const ECDSA: u16 = 0x0018;
-const P256: u16 = 0x0003;
 const FIXED_TPM: u32 = 1 << 1;
 const FIXED_PARENT: u32 = 1 << 4;
 const SENSITIVE_DATA_ORIGIN: u32 = 1 << 5;
@@ -38,66 +38,28 @@ pub(super) enum EndorsementKey {
     Ecc { key: PKey<Public>, x: [u8; 32] },
 }
 
-pub(super) struct Reader<'a> {
-    remaining: &'a [u8],
-}
-
-impl<'a> Reader<'a> {
-    pub(super) fn new(bytes: &'a [u8]) -> Self {
-        Self { remaining: bytes }
-    }
-
-    pub(super) fn take(&mut self, count: usize) -> Result<&'a [u8]> {
-        if count > self.remaining.len() {
-            return Err(TpmError::InvalidEvidence("truncated TPM structure"));
-        }
-        let (bytes, remaining) = self.remaining.split_at(count);
-        self.remaining = remaining;
-        Ok(bytes)
-    }
-
-    pub(super) fn u16(&mut self) -> Result<u16> {
-        let bytes = self.take(2)?;
-        Ok(u16::from_be_bytes([bytes[0], bytes[1]]))
-    }
-
-    pub(super) fn u32(&mut self) -> Result<u32> {
-        let bytes = self.take(4)?;
-        Ok(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
-    }
-
-    pub(super) fn sized(&mut self) -> Result<&'a [u8]> {
-        let size = usize::from(self.u16()?);
-        self.take(size)
-    }
-
-    pub(super) fn finish(self) -> Result<()> {
-        if !self.remaining.is_empty() {
-            return Err(TpmError::InvalidEvidence("trailing TPM structure data"));
-        }
-        Ok(())
-    }
-}
-
-fn header(bytes: &[u8]) -> Result<(Reader<'_>, u16, u32, &[u8])> {
+fn parse_public(bytes: &[u8]) -> Result<TpmtPublic> {
     if bytes.is_empty() || bytes.len() > MAX_PUBLIC_SIZE {
         return Err(TpmError::InvalidPublic("public area exceeds size limits"));
     }
-    let mut reader = Reader::new(bytes);
-    let algorithm = reader.u16()?;
-    if reader.u16()? != SHA256 {
+    // Only a decoded public area can reach the role-specific profile checks.
+    let (public, rest) = TpmtPublic::unmarshal(bytes)
+        .map_err(|_| TpmError::InvalidEvidence("malformed TPM public area"))?;
+    if !rest.is_empty() {
+        return Err(TpmError::InvalidEvidence("trailing TPM public area data"));
+    }
+    if public.name_alg != TpmAlgId::Sha256 {
         return Err(TpmError::UnsupportedProfile(
             "expected SHA-256 Name algorithm",
         ));
     }
-    let attributes = reader.u32()?;
-    let policy = reader.sized()?;
+    let policy = public.auth_policy.as_ref();
     if !policy.is_empty() && policy.len() != 32 {
         return Err(TpmError::InvalidPublic(
             "invalid SHA-256 authorization policy",
         ));
     }
-    Ok((reader, algorithm, attributes, policy))
+    Ok(public)
 }
 
 fn attributes_match(attributes: u32, required: u32) -> Result<()> {
@@ -120,12 +82,9 @@ fn coordinate(bytes: &[u8]) -> Result<[u8; 32]> {
     Ok(padded)
 }
 
-fn ecc_key(reader: &mut Reader<'_>) -> Result<(PKey<Public>, [u8; 32])> {
-    if reader.u16()? != P256 || reader.u16()? != NULL {
-        return Err(TpmError::UnsupportedProfile("expected P-256 with null KDF"));
-    }
-    let x = coordinate(reader.sized()?)?;
-    let y = coordinate(reader.sized()?)?;
+fn ecc_key(point: &TpmsEccPoint) -> Result<(PKey<Public>, [u8; 32])> {
+    let x = coordinate(point.x.as_ref())?;
+    let y = coordinate(point.y.as_ref())?;
     // OpenSSL expects the SEC 1 uncompressed point encoding: prefix 0x04, then X and Y.
     let mut encoded = [0u8; 65];
     encoded[0] = 4;
@@ -142,36 +101,62 @@ fn ecc_key(reader: &mut Reader<'_>) -> Result<(PKey<Public>, [u8; 32])> {
     Ok((PKey::from_ec_key(key)?, x))
 }
 
-pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
-    let (mut reader, algorithm, attributes, policy) = header(bytes)?;
-    attributes_match(
-        attributes,
-        RESIDENT | ADMIN_WITH_POLICY | RESTRICTED | DECRYPT,
-    )?;
-    if policy.len() != 32 {
-        return Err(TpmError::UnsupportedProfile(
-            "expected SHA-256 EK authorization policy",
-        ));
-    }
-    if reader.u16()? != AES || reader.u16()? != 128 || reader.u16()? != CFB {
+/// Checks the credential protection parameters shared by RSA and ECC endorsement keys.
+///
+/// Core wraps the credential with AES-128-CFB and selects the seed protection scheme
+/// based on the EK type. The public area must specify `TPM_ALG_NULL` for its scheme.
+fn check_ek_parameters(symmetric: TpmtSymDefObject, scheme: TpmAlgId) -> Result<()> {
+    if !matches!(
+        symmetric,
+        TpmtSymDefObject {
+            algorithm: TpmAlgId::Aes,
+            key_bits: TpmuSymKeyBits::Aes(bits),
+            mode: TpmuSymMode::Aes(TpmAlgId::Cfb),
+        } if bits.value() == 128
+    ) {
         return Err(TpmError::UnsupportedProfile(
             "expected AES-128-CFB EK symmetric parameters",
         ));
     }
-    if reader.u16()? != NULL {
+    if scheme != TpmAlgId::Null {
         return Err(TpmError::UnsupportedProfile("expected null EK scheme"));
     }
-    let key = match algorithm {
-        RSA => {
-            if reader.u16()? != 2048 {
+    Ok(())
+}
+
+/// Checks the ECC profile shared by endorsement and signing keys.
+///
+/// Core accepts NIST P-256 with `TPM_ALG_NULL` in the public area's KDF field.
+/// This field is separate from the KDFe step Core uses for ECC credential activation.
+fn check_ecc_parameters(curve: TpmEccCurve, kdf: TpmAlgId) -> Result<()> {
+    if curve != TpmEccCurve::NistP256 || kdf != TpmAlgId::Null {
+        return Err(TpmError::UnsupportedProfile("expected P-256 with null KDF"));
+    }
+    Ok(())
+}
+
+pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
+    let public = parse_public(bytes)?;
+    attributes_match(
+        public.object_attributes.bits(),
+        RESIDENT | ADMIN_WITH_POLICY | RESTRICTED | DECRYPT,
+    )?;
+    if public.auth_policy.as_ref().len() != 32 {
+        return Err(TpmError::UnsupportedProfile(
+            "expected SHA-256 EK authorization policy",
+        ));
+    }
+    match (public.parameters, public.unique) {
+        (TpmuPublicParms::Rsa(params), TpmuPublicId::Rsa(modulus)) => {
+            check_ek_parameters(params.symmetric, params.scheme.scheme)?;
+            if params.key_bits.value() != 2048 {
                 return Err(TpmError::UnsupportedProfile("expected RSA-2048 EK"));
             }
             // TPM encodes the default RSA exponent of 65537 as zero.
-            let exponent = reader.u32()?;
-            if exponent != 0 && exponent != 65537 {
+            if !matches!(params.exponent.value(), 0 | 65537) {
                 return Err(TpmError::UnsupportedProfile("expected RSA exponent 65537"));
             }
-            let modulus = reader.sized()?;
+            let modulus = modulus.as_ref();
             if modulus.len() != 256 || modulus[0] & 0x80 == 0 || modulus[255] & 1 == 0 {
                 return Err(TpmError::InvalidPublic("invalid RSA-2048 modulus"));
             }
@@ -179,38 +164,43 @@ pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
                 BigNum::from_slice(modulus)?,
                 BigNum::from_u32(65537)?,
             )?;
-            EndorsementKey::Rsa(PKey::from_rsa(rsa)?)
+            Ok(EndorsementKey::Rsa(PKey::from_rsa(rsa)?))
         }
-        ECC => {
-            let (key, x) = ecc_key(&mut reader)?;
-            EndorsementKey::Ecc { key, x }
+        (TpmuPublicParms::Ecc(params), TpmuPublicId::Ecc(point)) => {
+            check_ek_parameters(params.symmetric, params.scheme.scheme)?;
+            check_ecc_parameters(params.curve_id, params.kdf.scheme)?;
+            let (key, x) = ecc_key(&point)?;
+            Ok(EndorsementKey::Ecc { key, x })
         }
-        _ => return Err(TpmError::UnsupportedProfile("unsupported EK algorithm")),
-    };
-    reader.finish()?;
-    Ok(key)
+        _ => Err(TpmError::UnsupportedProfile("unsupported EK algorithm")),
+    }
 }
 
 /// Requires a restricted signing key for an AK and an unrestricted one for a device identity.
 pub(super) fn signing_key(bytes: &[u8], restricted: bool) -> Result<PKey<Public>> {
-    let (mut reader, algorithm, attributes, policy) = header(bytes)?;
-    if algorithm != ECC {
+    let public = parse_public(bytes)?;
+    let (TpmuPublicParms::Ecc(params), TpmuPublicId::Ecc(point)) =
+        (public.parameters, public.unique)
+    else {
         return Err(TpmError::UnsupportedProfile("expected ECC signing key"));
-    }
+    };
     let required = RESIDENT | USER_WITH_AUTH | SIGN | if restricted { RESTRICTED } else { 0 };
-    attributes_match(attributes, required)?;
-    if !policy.is_empty() {
+    attributes_match(public.object_attributes.bits(), required)?;
+    if !public.auth_policy.as_ref().is_empty() {
         return Err(TpmError::UnsupportedProfile(
             "expected empty signing-key authorization policy",
         ));
     }
-    if reader.u16()? != NULL || reader.u16()? != ECDSA || reader.u16()? != SHA256 {
+    if params.symmetric.algorithm != TpmAlgId::Null
+        || params.scheme.scheme != TpmAlgId::Ecdsa
+        || !matches!(params.scheme.details, TpmuAsymScheme::Hash(details) if details.hash_alg == TpmAlgId::Sha256)
+    {
         return Err(TpmError::UnsupportedProfile(
             "expected ECDSA-SHA256 signing scheme with null symmetric algorithm",
         ));
     }
-    let (key, _) = ecc_key(&mut reader)?;
-    reader.finish()?;
+    check_ecc_parameters(params.curve_id, params.kdf.scheme)?;
+    let (key, _) = ecc_key(&point)?;
     Ok(key)
 }
 
@@ -219,7 +209,7 @@ pub(super) fn name(public: &[u8]) -> [u8; 34] {
     // A digest-based TPM Name prefixes the digest with its algorithm ID. Hashing the
     // entire public area binds the key parameters and attributes as well as the key bits.
     let mut name = [0u8; 34];
-    name[..2].copy_from_slice(&SHA256.to_be_bytes());
+    name[..2].copy_from_slice(&TpmAlgId::Sha256.value().to_be_bytes());
     name[2..].copy_from_slice(&Sha256::digest(public));
     name
 }
