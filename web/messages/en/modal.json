@@ -154,6 +154,7 @@
   "modal_network_device_psk_title": "Preshared key",
   "modal_network_device_psk_content": "Adds a symmetric key to the WireGuard handshake. Use it to keep the preshared key of a peer you are migrating.",
   "modal_network_device_psk_cli_content": "Adds a symmetric key to the WireGuard handshake. Defguard CLI receives the key automatically during enrollment.",
+  "modal_network_device_psk_cli_version_warning": "To use a preshared key, please make sure you are using Defguard CLI (dg) version 2.2.2 or newer. Otherwise the device may not be able to connect.",
   "modal_network_device_psk_choice_generate": "Generate a preshared key",
   "modal_network_device_psk_choice_manual": "Provide your own preshared key",
   "modal_network_device_psk_generate_new": "Generate new preshared key",
