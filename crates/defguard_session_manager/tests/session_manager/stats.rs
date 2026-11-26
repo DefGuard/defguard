@@ -181,6 +181,86 @@ async fn test_session_manager_calculates_stats_per_gateway(
     assert_eq!(count_session_stats(&pool, session.id).await, 4);
 }
 
+// A gateway restart or interface reconfiguration re-creates its WireGuard peers, which restarts
+// their transfer counters at zero. The next update has lower counters but a newer handshake.
+#[sqlx::test]
+async fn test_counter_reset_with_newer_handshake_is_accepted(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let location = create_location(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
+    let mut harness = SessionManagerHarness::new(pool.clone());
+
+    let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
+    let base_time = Utc::now().naive_utc();
+    harness.send_stats(build_stats_update(
+        location.id,
+        gateway.id,
+        &device.wireguard_pubkey,
+        base_time,
+        endpoint,
+        1000,
+        2000,
+        base_time,
+    ));
+    let _ = harness.run_iteration().await;
+
+    let session = VpnClientSession::try_get_active_session(&pool, location.id, device.id)
+        .await
+        .expect("failed to query active session")
+        .expect("expected active session");
+
+    // counters restarted after the peer was re-created; the client has handshaken again
+    harness.send_stats(build_stats_update(
+        location.id,
+        gateway.id,
+        &device.wireguard_pubkey,
+        base_time + TimeDelta::seconds(30),
+        endpoint,
+        10,
+        20,
+        base_time + TimeDelta::seconds(25),
+    ));
+    let _ = harness.run_iteration().await;
+
+    assert_eq!(count_session_stats(&pool, session.id).await, 2);
+    let reset_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
+        .await
+        .expect("failed to query session stats")
+        .expect("expected session stats");
+    assert_eq!(reset_stats.session_id, session.id);
+    assert_eq!(reset_stats.total_upload, 10);
+    assert_eq!(reset_stats.total_download, 20);
+    assert_eq!(reset_stats.upload_diff, 10);
+    assert_eq!(reset_stats.download_diff, 20);
+
+    // later updates count from the restarted counters
+    harness.send_stats(build_stats_update(
+        location.id,
+        gateway.id,
+        &device.wireguard_pubkey,
+        base_time + TimeDelta::seconds(60),
+        endpoint,
+        40,
+        70,
+        base_time + TimeDelta::seconds(25),
+    ));
+    let _ = harness.run_iteration().await;
+
+    assert_eq!(count_session_stats(&pool, session.id).await, 3);
+    let next_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
+        .await
+        .expect("failed to query session stats")
+        .expect("expected session stats");
+    assert_eq!(next_stats.upload_diff, 30);
+    assert_eq!(next_stats.download_diff, 50);
+}
+
 #[sqlx::test]
 async fn test_out_of_order_updates_for_existing_db_session_are_discarded(
     _: PgPoolOptions,
