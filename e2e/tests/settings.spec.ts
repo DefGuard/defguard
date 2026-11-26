@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
+import { apiClearMailbox, apiWaitForMail } from '../utils/api/mailpit';
 import { apiGetLicenseInfo } from '../utils/api/settings';
 import { createUser } from '../utils/controllers/createUser';
 import { createGroup } from '../utils/controllers/groups';
@@ -372,6 +373,43 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('field-smtp_server')).toHaveValue('mailpit');
     await expect(page.getByTestId('field-smtp_port')).toHaveValue('1025');
     await expect(page.getByTestId('field-smtp_sender')).toHaveValue('test@test.com');
+  });
+
+  test('SMTP test email is delivered and fails with wrong port', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const recipient = 'smtp-test@defguard.test';
+    await waitForBase(page);
+    await setupSMTP(browser);
+    await apiClearMailbox(request);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.settings.smtp);
+
+    const card = page.getByTestId('smtp-auth-method-card-none');
+    await card.locator('.icon-button').click();
+    await page.getByTestId('smtp-card-none-send-test-email').click();
+    await page.getByTestId('field-email').fill(recipient);
+    await page.getByTestId('submit').click();
+    await expect(page.getByText('Test email sent')).toBeVisible();
+    const mail = await apiWaitForMail(request, recipient);
+    expect(mail.Subject).toBe('Defguard: Test message');
+    expect(mail.Text).toContain('your SMTP configuration is correct');
+
+    await card.locator('.icon-button').click();
+    await page.getByTestId('smtp-card-none-edit').click();
+    await page.getByTestId('field-smtp_port').fill('1026');
+    await page.getByTestId('submit').click();
+    await expect(page.getByTestId('field-smtp_port')).toBeHidden();
+
+    await card.locator('.icon-button').click();
+    await page.getByTestId('smtp-card-none-send-test-email').click();
+    await page.getByTestId('field-email').fill(recipient);
+    await page.getByTestId('submit').click();
+    await expect(
+      page.getByText('Failed to send test email, check the logs for more information'),
+    ).toBeVisible();
   });
 
   test('SMTP configuration is deleted', async ({ page, browser }) => {

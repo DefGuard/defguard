@@ -5,6 +5,7 @@ type TestsConfig = {
   BASE_URL: string;
   CORE_BASE_URL: string;
   ENROLLMENT_URL: string;
+  MAILPIT_URL: string;
   TEST_TIMEOUT: number;
 };
 
@@ -12,6 +13,7 @@ const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
   ENROLLMENT_URL: 'http://localhost:8080',
+  MAILPIT_URL: 'http://localhost:8025',
   TEST_TIMEOUT: 60,
 };
 
@@ -19,6 +21,7 @@ const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
   CORE_BASE_URL: process.env.CORE_BASE_URL,
   ENROLLMENT_URL: process.env.ENROLLMENT_URL,
+  MAILPIT_URL: process.env.MAILPIT_URL,
   TEST_TIMEOUT: process.env.TEST_TIMEOUT
     ? Number.parseInt(process.env.TEST_TIMEOUT)
     : undefined,

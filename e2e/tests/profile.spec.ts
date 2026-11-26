@@ -85,4 +85,27 @@ test.describe('User profile', () => {
     await expect(card.getByTestId('field-first_name')).toHaveValue(updated.firstName);
     await expect(card.getByTestId('field-last_name')).toHaveValue(updated.lastName);
   });
+
+  test('Profile shows empty authorized apps and approval devices', async ({ page }) => {
+    await waitForBase(page);
+    await loginBasic(page, testUser);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.details,
+    );
+
+    const apps = page.locator('#apps-no-data');
+    await expect(apps).toContainText('No authorized apps');
+    await expect(apps).toContainText(
+      'Applications you allow to log in with Defguard will appear here.',
+    );
+    await expect(page.locator('#authorized-apps-card')).toHaveCount(0);
+
+    const biometric = page.locator('.biometric-devices');
+    await expect(biometric).toHaveClass('biometric-devices section empty');
+    await expect(biometric).toContainText('Mobile App Approval Devices');
+    await expect(biometric).toContainText(
+      'No mobile app approval devices configured yet',
+    );
+    await expect(biometric.locator('.device')).toHaveCount(0);
+  });
 });

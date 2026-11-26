@@ -1,14 +1,16 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, routes, testUserTemplate } from '../config';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import {
   apiEnrollmentActivateUser,
   apiEnrollmentCreateDevice,
   apiEnrollmentStart,
 } from '../utils/api/enrollment';
+import { apiClearMailbox, apiWaitForMail } from '../utils/api/mailpit';
 import { apiCreateUser, apiLogin } from '../utils/api/users';
 import { createUserEnrollment } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
+import { setupSMTP } from '../utils/controllers/settings';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 
@@ -241,5 +243,72 @@ test.describe('Test users bulk actions', () => {
       routes.base + routes.profile + testUser.username + routes.tab.devices,
     );
     await expect(page.getByText('enrolled device', { exact: true })).toBeVisible();
+  });
+
+  test('Initiate self-enrollment for not enrolled user', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const testUser = { ...testUserTemplate, username: 'pendinguser' };
+    await setupSMTP(browser);
+    const { token: firstToken } = await createUserEnrollment(browser, testUser);
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.identity.users);
+
+    await page
+      .locator('.virtual-row')
+      .filter({ hasText: defaultUserAdmin.username })
+      .locator('.icon-button')
+      .click();
+    await expect(page.locator('.menu')).toBeVisible();
+    await expect(
+      page.locator('.menu').getByText('Initiate self-enrollment', { exact: true }),
+    ).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    const row = page.locator('.virtual-row').filter({ hasText: testUser.username });
+    await row.locator('.icon-button').click();
+    await expect(
+      page.locator('.menu').getByText('Add new device', { exact: true }),
+    ).toHaveCount(0);
+    await page
+      .locator('.menu')
+      .getByText('Initiate self-enrollment', { exact: true })
+      .click();
+
+    const modal = page.locator('#enrollment-token-modal');
+    await expect(modal).toContainText('Initiate self-enrollment for user');
+    await expect(modal).toContainText(
+      'Provide the user with their token and URL in a convenient manner so they can ' +
+        'complete the enrollment process independently.',
+    );
+    await expect(modal.getByTestId('activation-url-field')).toContainText(
+      testsConfig.ENROLLMENT_URL,
+    );
+    const tokenField = modal.getByTestId('activation-token-field');
+    await expect(tokenField).not.toBeEmpty();
+    const token = (await tokenField.textContent()) ?? '';
+    expect(token).not.toBe(firstToken);
+    await expect(modal.getByRole('button', { name: 'Close' })).toBeVisible();
+    await expect(modal.getByTestId('field-email')).toBeHidden();
+
+    await apiClearMailbox(request);
+    await modal
+      .locator('.checkbox', { hasText: 'Send enrollment details to user by email' })
+      .click();
+    await expect(modal.getByTestId('field-email')).toHaveValue(testUser.mail);
+    await expect(modal.getByRole('button', { name: 'Close' })).toHaveCount(0);
+    await modal.getByRole('button', { name: 'Send email' }).click();
+    await expect(page.getByText('Enrollment email sent successfully')).toBeVisible();
+    await expect(modal).toBeHidden();
+
+    const mail = await apiWaitForMail(request, testUser.mail);
+    expect(mail.Subject).toBe('Defguard: User enrollment');
+    expect(mail.Text).toContain(`URL: ${testsConfig.ENROLLMENT_URL}/`);
+    const mailToken = mail.Text.split('Token: ')[1].split('\n')[0].trim();
+    const enrollment = await apiEnrollmentStart(request, mailToken);
+    expect(enrollment.user.login).toBe(testUser.username);
   });
 });

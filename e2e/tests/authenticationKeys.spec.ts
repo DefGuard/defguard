@@ -2,9 +2,15 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { AuthenticationKeyType, User } from '../types';
-import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
+import {
+  apiCreateUser,
+  apiGetSshAuthorizedKeys,
+  apiGetUserAuthKeys,
+} from '../utils/api/users';
 import { addAuthKey } from '../utils/controllers/authenticationKey';
+import { addUserToGroups, createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
+import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -186,5 +192,38 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await expect(page.getByText("You don't have any added keys.")).toBeVisible();
     await page.reload();
     await expect(page.getByText("You don't have any added keys.")).toBeVisible();
+  });
+
+  test('SSH authorized keys are not served for disabled user', async ({
+    browser,
+    request,
+  }) => {
+    await createGroup(browser, 'ssh-users');
+    await addUserToGroups(browser, testUser.username, ['ssh-users']);
+    await addAuthKey(browser, defaultUserAdmin, testUser.username, {
+      name: key_name,
+      key: testSshKey,
+      keyType: AuthenticationKeyType.SSH,
+    });
+    const queries = [
+      { username: testUser.username },
+      { group: 'ssh-users' },
+      { group: 'ssh-users', username: testUser.username },
+    ];
+
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe(testSshKey.trim());
+    }
+
+    await disableUser(browser, testUser);
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe('');
+    }
+    expect(await apiGetSshAuthorizedKeys(request, { username: 'nonexistent' })).toBe('');
+
+    await enableUser(browser, testUser);
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe(testSshKey.trim());
+    }
   });
 });
