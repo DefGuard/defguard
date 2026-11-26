@@ -115,3 +115,68 @@ test.describe('Add user with self-enrollment', () => {
     await expect(tokenRow.filter({ hasText: user.username })).toHaveCount(2);
   });
 });
+
+test.describe('Enrollment on Edge page', () => {
+  const user: User = { ...testUserTemplate, username: 'edgeuser' };
+
+  test.beforeEach(() => dockerRestart());
+
+  test('User goes through enrollment on Edge page to client setup', async ({
+    page,
+    browser,
+  }) => {
+    const { token } = await createUserEnrollment(browser, user);
+
+    await page.goto(testsConfig.ENROLLMENT_URL);
+    await page.getByTestId('start-enrollment').click();
+    await expect(page.getByText('Step 1/3')).toBeVisible();
+    await page.getByTestId('field-token').fill(token);
+    await page.getByTestId('page-nav-next').click();
+
+    await page.waitForURL('**/download');
+    await expect(page.getByText('Step 2/3')).toBeVisible();
+    for (const system of ['windows', 'linux', 'macos']) {
+      await expect(page.getByTestId(system)).toBeVisible();
+    }
+    await page.getByTestId('page-nav-next').click();
+    await expect(page.getByText('Download confirmation')).toBeVisible();
+    await page.getByTestId('modal-confirm-download-submit').click();
+
+    await page.waitForURL('**/client-setup');
+    await expect(page.getByText('Configure your Defguard client')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'One-Click Configuration' }),
+    ).toHaveAttribute(
+      'href',
+      `defguard://addinstance?token=${token}&url=${testsConfig.ENROLLMENT_URL}/`,
+    );
+    await page.getByText('Show advanced configuration').click();
+    await expect(
+      page.getByText(`${testsConfig.ENROLLMENT_URL}/`, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(token, { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: defaultUserAdmin.mail })).toBeVisible();
+
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    const startedRow = page
+      .locator('#activity-log-page .virtual-row')
+      .filter({ hasText: 'Enrollment started' });
+    await expect(async () => {
+      await page.goto(routes.base + routes.activity);
+      await expect(startedRow).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await expect(startedRow).toContainText(user.username);
+  });
+
+  test('Invalid token is rejected on Edge page', async ({ page }) => {
+    await page.goto(testsConfig.ENROLLMENT_URL);
+    await page.getByTestId('start-enrollment').click();
+    await page.getByTestId('field-token').fill('invalid-token');
+    await page.getByTestId('page-nav-next').click();
+
+    await expect(page.getByText('Token is not valid')).toBeVisible();
+    await expect(page.getByText('Step 1/3')).toBeVisible();
+    await expect(page.getByTestId('field-token')).toHaveValue('invalid-token');
+  });
+});

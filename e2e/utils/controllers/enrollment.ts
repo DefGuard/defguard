@@ -1,11 +1,9 @@
-import { Browser, expect, Page } from '@playwright/test';
+import { Browser, expect } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { User } from '../../types';
 import { waitForBase } from '../waitForBase';
 import { loginBasic } from './login';
-
-export const password = 'TestEnrollment1234!!';
 
 type EnrollmentResponse = {
   user: User;
@@ -55,42 +53,4 @@ export const createUserEnrollment = async (
 
   await context.close();
   return { user, token };
-};
-
-export const selectEnrollment = async (page: Page) => {
-  const selectButton = page.getByTestId('select-enrollment');
-  await selectButton.click();
-};
-
-export const setToken = async (token: string, page: Page) => {
-  await page.getByTestId('start-enrollment').click();
-  await page.getByTestId('field-token').fill(token);
-  await page.getByTestId('page-nav-next').click();
-};
-
-export const validateData = async (user: User, page: Page) => {
-  const formElement = page
-    .locator('#enrollment-data-verification-card')
-    .getByTestId('enrollment-data-verification')
-    .locator('.row');
-  const firstName = await formElement.locator('p').nth(0).textContent();
-  const lastName = await formElement.locator('p').nth(1).textContent();
-  const mail = await formElement.locator('p').nth(2).textContent();
-  const phone = await formElement.getByTestId('field-phone').inputValue();
-  expect(firstName).toBe(user.firstName);
-  expect(lastName).toBe(user.lastName);
-  expect(mail).toBe(user.mail);
-  expect(phone).toBe(user.phone);
-};
-
-export const setPassword = async (page: Page) => {
-  const formElement = page.getByTestId('enrollment-password-form');
-  await formElement.getByTestId('field-password').fill(password);
-  await formElement.getByTestId('field-repeat').fill(password);
-};
-
-export const createDevice = async (page: Page) => {
-  const formElement = page.getByTestId('enrollment-device-form');
-  await formElement.getByTestId('field-name').fill('test');
-  await formElement.locator('button[type="submit"]').click();
 };
