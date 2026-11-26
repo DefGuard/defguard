@@ -1,5 +1,3 @@
-import { table } from 'console';
-
 import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
@@ -43,6 +41,7 @@ export const routes = {
     aliases: '/acl/aliases',
     destinations: '/acl/destinations',
     addRule: '/acl/add-rule',
+    editRule: '/acl/edit-rule',
     addAlias: '/acl/add-alias',
     addDestination: '/acl/add-destination',
   },

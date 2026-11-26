@@ -11,7 +11,7 @@ import {
   apiGetRules,
   apiModifyAlias,
   apiModifyDestination,
-} from '../utils/api/acl';
+} from '../utils/api/firewall';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -50,12 +50,12 @@ const expectDeletionBlocked = async (page: Page, ruleName: string): Promise<void
   await expect(modal).toBeHidden();
 };
 
-test.describe('ACL bulk actions', () => {
+test.describe('Firewall bulk actions', () => {
   test.beforeEach(() => {
     test.skip(
       !process.env.DEFGUARD_LICENSE_KEY,
-      'ACL is a business feature; without DEFGUARD_LICENSE_KEY, every action opens the ' +
-        'upgrade modal',
+      'Firewall is a business feature; without DEFGUARD_LICENSE_KEY, every action ' +
+        'opens the upgrade modal',
     );
     dockerRestart();
   });
@@ -106,8 +106,6 @@ test.describe('ACL bulk actions', () => {
     await page.goto(routes.base + routes.firewall.rules);
     await expect(row(page, 'rule-one')).toContainText('Active');
 
-    // Disabling an applied rule creates a pending `Modified` child, so the parent remains
-    // `Active`.
     await select(page, 'rule-one', 'rule-two');
     await bulkAction(page, 'rules', 'disable');
     await confirm(page);
@@ -118,7 +116,6 @@ test.describe('ACL bulk actions', () => {
     await expect(row(page, 'rule-two')).toContainText('Modified');
     await expect(row(page, 'rule-three')).toHaveCount(0);
 
-    // Deploying the pending children applies the disable.
     await select(page, 'rule-one', 'rule-two');
     await bulkAction(page, 'rules', 'deploy');
     await confirm(page);
@@ -184,7 +181,6 @@ test.describe('ACL bulk actions', () => {
     await select(page, 'rule-one');
     await bulkAction(page, 'rules', 'disable');
 
-    // The warning replaces the confirmation modal, so no request is sent.
     await expect(page.locator('.snackbar')).toBeVisible();
     await expect(page.locator('.modal')).toBeHidden();
     const rules = await apiGetRules(page);
@@ -223,7 +219,6 @@ test.describe('ACL bulk actions', () => {
     await page.goto(routes.base + routes.firewall.aliases);
     await expect(row(page, 'alias-used')).toBeVisible();
 
-    // The used alias is removed from the request, so only the free alias is deleted.
     await select(page, 'alias-used', 'alias-free');
     await bulkAction(page, 'aliases', 'delete');
     await confirm(page);
@@ -231,7 +226,6 @@ test.describe('ACL bulk actions', () => {
     await expect(row(page, 'alias-free')).toHaveCount(0);
     await expect(row(page, 'alias-used')).toBeVisible();
 
-    // With no eligible items, the action shows only a warning.
     await select(page, 'alias-used');
     await bulkAction(page, 'aliases', 'delete');
     await expect(page.locator('.snackbar')).toBeVisible();

@@ -236,6 +236,93 @@ test.describe('Locations', () => {
     await expect(row).not.toContainText('All allowed');
   });
 
+  test.describe('Location firewall', () => {
+    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires DEFGUARD_LICENSE_KEY.');
+
+    test('Firewall option is saved and shown in tables and rule form', async ({
+      page,
+      browser,
+    }) => {
+      await waitForBase(page);
+      await createRegularLocation(browser, alphaLocation);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.locations);
+      const row = page.locator('.virtual-row').filter({ hasText: alphaLocation.name });
+      const firewallIcon = row.locator('.cell-with-check-icons .icon').first();
+      await expect(firewallIcon).toHaveAttribute('data-kind', 'disabled');
+
+      await row.locator('.edit-cell .icon-button').click();
+      await page.locator('.menu').getByText('Edit', { exact: true }).click();
+      await page.waitForURL('**/edit');
+      const editUrl = page.url();
+      await expect(page.getByTestId('field-firewall-disabled')).toHaveAttribute(
+        'data-active',
+        'true',
+      );
+
+      for (const option of ['deny', 'allow', 'disabled']) {
+        await page.goto(editUrl);
+        await page.getByTestId(`field-firewall-${option}`).click();
+        const saveResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'PUT' &&
+            /\/network\/\d+$/.test(response.url()),
+        );
+        await page.getByTestId('save-location').click();
+        expect((await saveResponse).ok()).toBeTruthy();
+
+        await page.goto(editUrl);
+        await expect(page.getByTestId(`field-firewall-${option}`)).toHaveAttribute(
+          'data-active',
+          'true',
+        );
+        await page.goto(routes.base + routes.locations);
+        await expect(firewallIcon).toHaveAttribute(
+          'data-kind',
+          option === 'disabled' ? 'disabled' : 'check-filled',
+        );
+      }
+    });
+
+    test('Rule form shows the location firewall option', async ({ page, browser }) => {
+      await waitForBase(page);
+      await createRegularLocation(browser, alphaLocation);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.locations);
+      await page
+        .locator('.virtual-row')
+        .filter({ hasText: alphaLocation.name })
+        .locator('.edit-cell .icon-button')
+        .click();
+      await page.locator('.menu').getByText('Edit', { exact: true }).click();
+      await page.waitForURL('**/edit');
+      await page.getByTestId('field-firewall-deny').click();
+      const saveResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' && /\/network\/\d+$/.test(response.url()),
+      );
+      await page.getByTestId('save-location').click();
+      expect((await saveResponse).ok()).toBeTruthy();
+
+      await page.goto(routes.base + routes.firewall.rules);
+      await page.getByRole('button', { name: 'Create new rule' }).click();
+      await page.locator('.toggle', { hasText: 'Include all locations' }).click();
+      await page.getByRole('button', { name: 'Edit locations' }).click();
+      await page
+        .locator('#selection-modal .location-selection-item', {
+          hasText: alphaLocation.name,
+        })
+        .locator('.icon')
+        .hover();
+      await expect(
+        page.getByText(
+          'Location access denied by default - network traffic not explicitly ' +
+            'defined by the rules will be blocked.',
+        ),
+      ).toBeVisible();
+    });
+  });
+
   test.describe('Group-level MTU', () => {
     test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires DEFGUARD_LICENSE_KEY.');
 

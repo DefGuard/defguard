@@ -41,17 +41,3 @@ export const createAlias = async (
   await page.waitForURL(routes.base + routes.firewall.aliases + '**');
   await context.close();
 };
-
-// export const createRule = async (
-//   browser: Browser,
-//   name: string,
-//   addresses?: string[],
-//   ports?: string[],
-//   protocols?: Protocols[],
-// ): Promise<void> => {
-//   const context = await browser.newContext();
-//   const page = await context.newPage();
-//   await waitForBase(page);
-//   //TODO
-//   await context.close();
-// };

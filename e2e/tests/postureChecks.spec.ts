@@ -177,17 +177,22 @@ test.describe('Posture checks', () => {
       mobileAttestation: true,
     });
 
-    const summaryLines = (heading: string) =>
+    await expect(
       page
         .locator('.summary-row')
-        .filter({ has: page.locator('.summary-heading').getByText(heading) })
-        .locator('.summary-line');
-    await expect(summaryLines('Defguard')).toHaveText([
+        .filter({ has: page.locator('.summary-heading').getByText('Defguard') })
+        .locator('.summary-line'),
+    ).toHaveText([
       'Desktop client: 2.1 and higher',
       'Mobile app: 1.7.0 and higher',
       'Allow pre-release versions of the Defguard client.',
     ]);
-    await expect(summaryLines('Device attestation')).toHaveText([
+    await expect(
+      page
+        .locator('.summary-row')
+        .filter({ has: page.locator('.summary-heading').getByText('Device attestation') })
+        .locator('.summary-line'),
+    ).toHaveText([
       'Desktop device attestation',
       'Desktop manual device verification',
       'Mobile device attestation',

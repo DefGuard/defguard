@@ -11,7 +11,16 @@ import {
   apiGetRules,
   apiModifyAlias,
   apiModifyDestination,
-} from '../utils/api/acl';
+} from '../utils/api/firewall';
+import {
+  aliasColumns,
+  destinationColumns,
+  openPendingRule,
+  openRuleEdit,
+  ruleCell,
+  tableCell,
+  tableRow,
+} from '../utils/controllers/firewallRules';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -22,9 +31,9 @@ const fieldChips = (page: Page, field: string) =>
     .filter({ has: page.getByTestId(`field-${field}`) })
     .locator('.chip');
 
-test.describe('ACL duplicate', () => {
+test.describe('Firewall duplicate', () => {
   test.beforeEach(() => {
-    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'ACL is a business feature');
+    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Firewall is a business feature');
     dockerRestart();
   });
 
@@ -51,6 +60,14 @@ test.describe('ACL duplicate', () => {
 
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(routes.base + routes.firewall.aliases + '**');
+
+    await page.reload();
+    const copyRow = tableRow(page, ALIAS_COPY_NAME);
+    await expect(tableCell(copyRow, aliasColumns, 'IPv4/IPv6 CIDR ranges')).toHaveText(
+      '10.10.0.0/24',
+    );
+    await expect(tableCell(copyRow, aliasColumns, 'Ports')).toHaveText('443');
+    await expect(tableCell(copyRow, aliasColumns, 'Protocols')).toHaveText('TCP');
 
     const aliases = await apiGetAliases(page);
     expect(aliases.map((alias) => alias.name).sort()).toEqual([
@@ -136,6 +153,14 @@ test.describe('ACL duplicate', () => {
 
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(routes.base + routes.firewall.destinations + '**');
+
+    await page.reload();
+    const copyRow = tableRow(page, DESTINATION_COPY_NAME);
+    await expect(
+      tableCell(copyRow, destinationColumns, 'IPv4/IPv6 CIDR ranges or addresses'),
+    ).toHaveText('10.20.0.0/24');
+    await expect(tableCell(copyRow, destinationColumns, 'Ports')).toHaveText('443');
+    await expect(tableCell(copyRow, destinationColumns, 'Protocols')).toHaveText('TCP');
 
     const destinations = await apiGetDestinations(page);
     expect(destinations.map((destination) => destination.name).sort()).toEqual([
@@ -238,6 +263,18 @@ test.describe('ACL duplicate', () => {
 
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(routes.base + routes.firewall.rules + '**');
+
+    const copyRow = await openPendingRule(page, RULE_COPY_NAME);
+    await expect(ruleCell(copyRow, 'Status')).toHaveText('New');
+    await expect(ruleCell(copyRow, 'Manually configured destination')).toHaveText(
+      '10.30.0.0/24',
+    );
+    await openRuleEdit(page, RULE_COPY_NAME);
+    await expect(page.getByTestId('field-ports')).toHaveValue('80');
+    await expect(page.getByTestId('field-protocols-6')).toHaveAttribute(
+      'data-value',
+      'true',
+    );
 
     const rules = await apiGetRules(page);
     expect(rules.map((rule) => rule.name).sort()).toEqual([RULE_COPY_NAME, RULE_NAME]);

@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
+import { apiGetLicenseInfo } from '../utils/api/settings';
 import { createUser } from '../utils/controllers/createUser';
 import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
@@ -331,9 +332,28 @@ test.describe('Settings', () => {
         page.locator('.license-property-info', { hasText: title }).locator('.bottom');
       await expect(property('Current plan')).toContainText('Enterprise');
       await expect(property('Current plan')).toContainText('Active');
-      await expect(property('License type')).toHaveText('Offline');
-      await expect(property('Support type')).toHaveText('Direct Enterprise');
-      await expect(property('Valid until')).not.toBeEmpty();
+      const license = await apiGetLicenseInfo(page.request);
+      const supportLabels: Record<string, string> = {
+        Free: 'Community',
+        Basic: 'Basic Email',
+        Direct: 'Direct',
+        BasicEnterprise: 'Basic Enterprise',
+        DirectEnterprise: 'Direct Enterprise',
+      };
+      await expect(property('License type')).toHaveText(
+        license.subscription ? 'Subscription' : 'Offline',
+      );
+      await expect(property('Support type')).toHaveText(
+        supportLabels[license.support_type],
+      );
+      expect(license.valid_until).not.toBeNull();
+      await expect(property('Valid until')).toContainText(
+        new Date(license.valid_until ?? '').toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      );
       await expect(page.locator('.license-limits')).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Edit license' })).toBeVisible();
     });
@@ -463,8 +483,8 @@ test.describe('Settings', () => {
 
     const cert = new X509Certificate(readFileSync(await download.path()));
     expect(cert.ca).toBe(true);
-    expect(cert.subject).toContain('CN=Defguard Test CA');
-    expect(cert.subject).toContain('ca@defguard.test');
+    expect(cert.subject).toBe('CN=Defguard Test CA');
+    expect(cert.subjectAltName?.split(', ')).toContain('email:ca@defguard.test');
     expect(cert.issuer).toBe(cert.subject);
     expect(cert.verify(cert.publicKey)).toBe(true);
     const validTo = new Date(cert.validTo);
