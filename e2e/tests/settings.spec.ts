@@ -168,7 +168,9 @@ test.describe('Settings', () => {
       await page.getByRole('button', { name: 'Save changes', exact: true }).click();
       await expect(page.getByText('Settings saved')).toBeVisible();
 
+      const settingsResponse = userPage.waitForResponse('**/settings_enterprise');
       await userPage.reload();
+      await settingsResponse;
       await expect(userPage.getByTestId('add-device')).toBeDisabled();
       await userContext.close();
     });

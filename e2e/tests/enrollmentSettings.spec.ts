@@ -62,6 +62,7 @@ test.describe('Enrollment settings', () => {
 
     const { token } = await createUserEnrollment(browser, testUser);
     const start = await apiEnrollmentStart(request, token);
+    expect(start.user.login).toBe(testUser.username);
     expect(start.final_page_content ?? '').toBe('');
   });
 
