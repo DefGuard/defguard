@@ -182,6 +182,7 @@ pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
     Ok(key)
 }
 
+/// Requires a restricted signing key for an AK and an unrestricted one for a device identity.
 pub(super) fn signing_key(bytes: &[u8], restricted: bool) -> Result<PKey<Public>> {
     let (mut reader, algorithm, attributes, policy) = header(bytes)?;
     if algorithm != ECC {
@@ -204,6 +205,7 @@ pub(super) fn signing_key(bytes: &[u8], restricted: bool) -> Result<PKey<Public>
     Ok(key)
 }
 
+/// Takes the marshalled TPMT_PUBLIC bytes with any outer TPM2B size prefix removed.
 pub(super) fn name(public: &[u8]) -> [u8; 34] {
     let mut name = [0u8; 34];
     name[..2].copy_from_slice(&SHA256.to_be_bytes());

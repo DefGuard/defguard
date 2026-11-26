@@ -30,6 +30,7 @@ fn hmac(key: &[u8], parts: &[&[u8]]) -> Result<Zeroizing<Vec<u8>>> {
     Ok(Zeroizing::new(signer.sign_to_vec()?))
 }
 
+/// Derives at most 256 bits because this implementation emits a single HMAC-SHA-256 block.
 fn kdfa(seed: &[u8], label: &[u8], context: &[u8], bits: u32) -> Result<Zeroizing<Vec<u8>>> {
     let mut key = hmac(
         seed,
@@ -102,7 +103,7 @@ fn append_sized(output: &mut Vec<u8>, bytes: &[u8]) -> Result<()> {
 }
 
 /// Wraps a fresh activation secret for the supplied EK and AK, without requiring a TPM.
-/// Certificates are size-limited provenance only, their trust is not verified.
+/// The certificate chain is checked only for size. Its trust requires separate validation.
 pub fn create_challenge(identity: &TpmAttestationIdentity) -> Result<PreparedAttestation> {
     check_certificates(&identity.ek_certificate_chain_der)?;
     let ek = endorsement_key(&identity.ek_public)?;

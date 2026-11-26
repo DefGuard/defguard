@@ -33,15 +33,19 @@ pub enum TpmError {
 
 type Result<T> = std::result::Result<T, TpmError>;
 
+/// A TPM credential activation challenge prepared by Core.
 pub struct PreparedAttestation {
     pub challenge: CredentialChallenge,
+    /// Core keeps these expected values server-side to verify the response.
     pub verification: DeviceAttestationChallenge,
 }
 
+/// The device identity certified by the attestation key.
 pub struct VerifiedIdentity {
+    /// Encoded as SubjectPublicKeyInfo DER.
     pub public_key_der: Vec<u8>,
     pub ek_public: Vec<u8>,
-    /// certificates are untrusted provenance, not proof of TPM manufacturer
+    /// The client supplied this chain. Manufacturer trust requires separate validation.
     pub ek_certificate_chain_der: Vec<Vec<u8>>,
 }
 

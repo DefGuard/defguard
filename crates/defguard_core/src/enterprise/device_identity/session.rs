@@ -19,12 +19,13 @@ struct Authorization {
     is_active: bool,
 }
 
+/// Rechecks authorization and locks the token, user, and device against concurrent changes.
+/// Call within the transaction that writes the challenge or attestation result.
 pub(super) async fn lock_attestation_session(
     connection: &mut PgConnection,
     enrollment: &Token,
     device: &Device<Id>,
 ) -> Result<NaiveDateTime, Status> {
-    // keep token, user and device locks until the challenge or identity write commits
     let authorization = sqlx::query_as!(
         Authorization,
         "SELECT token.user_id, token.used_at, token.token_type, \"user\".is_active \
@@ -75,7 +76,7 @@ pub(super) async fn lock_attestation_session(
             "device already has an attestation identity",
         ));
     }
-    // read the wall clock after lock waits, transaction time may already be expired
+    // The session can expire while waiting for locks, so use wall-clock time.
     let now = sqlx::query_scalar!("SELECT clock_timestamp() AT TIME ZONE 'UTC' AS \"now!\"")
         .fetch_one(&mut *connection)
         .await

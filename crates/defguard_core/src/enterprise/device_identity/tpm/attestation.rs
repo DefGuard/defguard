@@ -48,7 +48,7 @@ fn check_certify(attest: &[u8], expected_data: &[u8; 32], expected_name: &[u8; 3
 }
 
 /// Verifies activation and key certification against Core's saved challenge state and exact data.
-/// Returns the identity SPKI and untrusted EK provenance, without validating certificate chains.
+/// EK certificate trust requires separate validation.
 pub fn verify_attestation(
     expected: &DeviceAttestationChallenge,
     data: &[u8],

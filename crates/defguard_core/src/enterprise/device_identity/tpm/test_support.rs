@@ -19,8 +19,8 @@ use rand::rngs::OsRng;
 use rsa::{Oaep, RsaPrivateKey, traits::PublicKeyParts};
 use sha2_10::{Digest, Sha256};
 
-// Independent RustCrypto implementation of the receiving half of MakeCredential.
-// Production uses OpenSSL and never imports these helpers.
+// The RustCrypto verifier is independent of the production OpenSSL implementation.
+// This lets the tests check interoperability without reusing the code under test.
 pub(in crate::enterprise::device_identity) enum Ek {
     Ecc(SecretKey),
     Rsa(Box<RsaPrivateKey>),

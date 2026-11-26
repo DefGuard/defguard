@@ -13,10 +13,11 @@ use tonic::Status;
 
 use crate::db::models::enrollment::Token;
 
-/// Keeps the issued CBOR bytes immutable for storage, transport and verification.
+/// The challenge data bound to a device and its enrollment session.
 pub struct AttestationData {
     challenge_id: String,
     expires_at: NaiveDateTime,
+    /// The original CBOR encoding must survive storage and transport for proof verification.
     bytes: Vec<u8>,
 }
 
@@ -41,7 +42,7 @@ fn serialize_bytes<S: Serializer>(bytes: &[u8], serializer: S) -> Result<S::Ok, 
 
 impl AttestationData {
     /// Builds challenge data bound to an existing enrollment session and device.
-    /// Uses UTC timestamps and rounds expiry down to the protobuf deadline's whole seconds.
+    /// Rounds the existing UTC session deadline down so storage and protobuf use the same expiry.
     pub fn new(
         enrollment: &Token,
         device: &Device<Id>,

@@ -74,6 +74,7 @@ fn crypto_error(error: TpmError) -> Status {
 }
 
 /// Generates and persists a fresh TPM challenge for an existing device and enrollment session.
+/// Replaces any pending challenge for that token, even if it was issued for another device.
 #[instrument(skip_all)]
 pub async fn generate_attestation_challenge(
     pool: &PgPool,
@@ -133,6 +134,8 @@ pub async fn generate_attestation_challenge(
 }
 
 /// Verifies a pending TPM challenge and atomically registers the device's first identity.
+/// Consumes the matching challenge when rejecting invalid evidence or a malformed public area.
+/// Records `AttestationFailed` if the device was still `NotAttested`.
 #[instrument(skip_all)]
 pub async fn verify_attestation(
     pool: &PgPool,
