@@ -1,3 +1,3 @@
 mod assets;
 
-pub use assets::{index, svg, web_asset};
+pub use assets::{index, web_asset};

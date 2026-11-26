@@ -259,7 +259,14 @@ jobs:
           echo $! > "$RUNNER_TEMP/freebsd.pid"
 
       - name: Build source code archive
-        run: tar --exclude='.github' --exclude-vcs --exclude-vcs-ignores --xform='s|^\./|defguard-${{ env.VERSION }}/|' --xz -cf ${{ runner.temp }}/defguard-${{ env.VERSION }}.tar.xz .
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/defguard-$VERSION.tar"
+          tar --exclude='.github' --exclude-vcs --exclude-vcs-ignores --xform="s|^\./|defguard-$VERSION/|" -cf "$ARCHIVE" .
+          # web/dist is gitignored, so the first pass skips it; the release build embeds it.
+          test -f web/dist/index.html
+          tar --xform="s|^|defguard-$VERSION/|" -rf "$ARCHIVE" web/dist
+          xz -9 -T0 "$ARCHIVE"
 
       - name: Upload source code archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
