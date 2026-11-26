@@ -137,7 +137,10 @@ export const AddNetworkDeviceModal = () => {
             <FormStep setModalState={handleStepStateChange} {...modalState} />
           )}
           {modalState.step === 'cli-finish' && isPresent(modalState.cliDevice) && (
-            <CliStep data={modalState.cliDevice} />
+            <CliStep
+              data={modalState.cliDevice}
+              presharedKeySet={isPresent(modalState.presharedKey)}
+            />
           )}
           {modalState.step === 'show-config' && (
             <ManualStep
@@ -208,10 +211,26 @@ const ManualStep = ({
   );
 };
 
-const CliStep = ({ data }: { data: StartEnrollmentResponse }) => {
+const CliStep = ({
+  data,
+  presharedKeySet,
+}: {
+  data: StartEnrollmentResponse;
+  presharedKeySet: boolean;
+}) => {
   const command = `dg enroll -u ${data.enrollment_url} -t ${data.enrollment_token}`;
   return (
     <>
+      {presharedKeySet && (
+        <>
+          <InfoBanner
+            variant="warning"
+            icon={IconKind.WarningOutlined}
+            text={m.modal_network_device_psk_cli_version_warning()}
+          />
+          <SizedBox height={ThemeSpacing.Xl} />
+        </>
+      )}
       <AppText font={TextStyle.TBodySm500}>
         {m.modal_network_device_cli_step_title()}
       </AppText>
@@ -418,6 +437,7 @@ const FormStep = ({
         setModalState({
           step: 'cli-finish',
           cliDevice: enrollment,
+          presharedKey,
         });
       } else {
         const { data: createdDevice } = await addDevice({
