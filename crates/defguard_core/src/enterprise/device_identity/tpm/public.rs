@@ -1,3 +1,8 @@
+//! Parsing and profile checks for TPM public areas used in enrollment attestation.
+//!
+//! The original TPM encoding determines the key Name. Parsed OpenSSL keys are used
+//! for cryptographic operations.
+
 use openssl::{
     bn::{BigNum, BigNumContext},
     ec::{EcGroup, EcKey, EcPoint},

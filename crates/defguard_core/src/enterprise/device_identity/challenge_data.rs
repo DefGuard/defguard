@@ -1,3 +1,8 @@
+//! Wire encoding for data bound to an enrollment attestation challenge.
+//!
+//! Core stores the exact CBOR bytes it sends to the client so verification uses the same
+//! encoding even if the serializer changes.
+
 use std::time::Duration;
 
 use base64::{

@@ -1,3 +1,8 @@
+//! Device identity registration during enrollment.
+//!
+//! Core issues a challenge at Start and uses the saved challenge at Finish to decide
+//! whether to register the device identity. Possession checks after enrollment are separate.
+
 mod challenge_data;
 mod session;
 pub mod tpm;

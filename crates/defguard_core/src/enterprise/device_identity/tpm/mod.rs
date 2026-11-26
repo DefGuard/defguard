@@ -1,3 +1,8 @@
+//! TPM credential activation and key certification for enrollment attestation.
+//!
+//! This module checks the proof against the keys supplied during enrollment. Trust in
+//! the manufacturer requires separate validation of the endorsement key certificate chain.
+
 mod attestation;
 mod credential;
 mod public;
