@@ -33,11 +33,12 @@ test.describe('Gateways', () => {
 
     const rows = page.locator('.virtual-row');
     await expect(rows).toHaveCount(1);
-    await expect(rows.first()).toContainText(GATEWAY_NAME);
-    await expect(rows.first()).toContainText(testNetwork.name);
-    await expect(rows.first()).toContainText('gateway');
-    await expect(rows.first()).toContainText('50066');
-    await expect(rows.first()).toContainText('Connected');
+    const cells = rows.first().locator('.table-cell');
+    await expect(cells.nth(0)).toHaveText(GATEWAY_NAME);
+    await expect(cells.nth(1)).toContainText('Connected');
+    await expect(cells.nth(2)).toHaveText('gateway');
+    await expect(cells.nth(3)).toHaveText('50066');
+    await expect(cells.nth(7)).toHaveText(testNetwork.name);
   });
 
   test('Edit gateway name', async ({ page }) => {

@@ -17,9 +17,11 @@ test.describe('Edge components', () => {
 
     const rows = page.locator('.virtual-row');
     await expect(rows).toHaveCount(1);
-    await expect(rows.first()).toContainText(EDGE_NAME);
-    await expect(rows.first()).toContainText('50051');
-    await expect(rows.first()).toContainText('Connected');
+    const cells = rows.first().locator('.table-cell');
+    await expect(cells.nth(0)).toHaveText(EDGE_NAME);
+    await expect(cells.nth(1)).toHaveText('edge');
+    await expect(cells.nth(2)).toHaveText('50051');
+    await expect(cells.nth(6)).toContainText('Connected');
     await expect(page.getByTestId('add-edge')).toBeVisible();
   });
 

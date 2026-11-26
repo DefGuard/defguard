@@ -1,3 +1,6 @@
+import { X509Certificate } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
 import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
@@ -5,7 +8,7 @@ import { NetworkForm, User } from '../types';
 import { createUser } from '../utils/controllers/createUser';
 import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
-import { setupSMTP } from '../utils/controllers/settings';
+import { addLogStream, LogStream, setupSMTP } from '../utils/controllers/settings';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -169,6 +172,173 @@ test.describe('Settings', () => {
     });
   });
 
+  test.describe('Business features', () => {
+    test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires DEFGUARD_LICENSE_KEY.');
+
+    test('LDAP connection settings are tested and saved', async ({ page }) => {
+      const ldapUrl = 'ldap://localhost:389';
+      const bindUsername = 'cn=e2e,dc=example,dc=org';
+      await waitForBase(page);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.settings.ldap);
+
+      const testConnection = page.getByRole('button', { name: 'Test connection' });
+      await expect(testConnection).toBeDisabled();
+      await testConnection.hover({ force: true });
+      await expect(
+        page.getByText(
+          'To test the synchronization, please fill in all required fields first.',
+        ),
+      ).toBeVisible();
+
+      await page.getByTestId('field-ldap_url').fill(ldapUrl);
+      await page.getByTestId('field-ldap_bind_username').fill(bindUsername);
+      await page.getByTestId('field-ldap_bind_password').fill('bind-password');
+      await expect(testConnection).toBeEnabled();
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+      await expect(page.getByText('Settings saved')).toBeVisible();
+
+      await page.reload();
+      await expect(page.getByTestId('field-ldap_url')).toHaveValue(ldapUrl);
+      await expect(page.getByTestId('field-ldap_bind_username')).toHaveValue(
+        bindUsername,
+      );
+      await testConnection.click();
+      await expect(page.getByText('Connection failed')).toBeVisible();
+    });
+
+    for (const type of ['Vector', 'Logstash'] as const) {
+      test(`Add ${type} activity log stream`, async ({ page }) => {
+        const name = 'audit stream';
+        const url = `http://${type.toLowerCase()}.e2e.test:8686`;
+        await waitForBase(page);
+        await loginBasic(page, defaultUserAdmin);
+        await page.goto(routes.base + routes.settings.activityStreaming);
+        await expect(
+          page.getByText("You don't have any activity log upstreams."),
+        ).toBeVisible();
+
+        await page.getByTestId('add-activity-stream').click();
+        await page.getByTestId(`add-${type.toLowerCase()}`).click();
+        await page.getByTestId('field-name').fill(name);
+        await page.getByTestId('field-url').fill(url);
+        await page.getByTestId('field-username').fill('stream-user');
+        await page.getByTestId('field-password').fill('stream-password');
+        await page.getByTestId('add-destination-submit').click();
+        const rows = page.locator('.virtual-row');
+        await expect(rows.filter({ hasText: name })).toBeVisible();
+
+        await page.reload();
+        await expect(rows).toHaveCount(1);
+        const cells = rows.first().locator('.table-cell');
+        await expect(cells.nth(0)).toHaveText(name);
+        await expect(cells.nth(1)).toHaveText(type);
+        await rows.first().locator('.icon-button').click();
+        await page.locator('.menu').getByText('Edit', { exact: true }).click();
+        await expect(page.getByTestId('field-name')).toHaveValue(name);
+        await expect(page.getByTestId('field-url')).toHaveValue(url);
+        await expect(page.getByTestId('field-username')).toHaveValue('stream-user');
+      });
+    }
+
+    test('Edit activity log stream', async ({ page, browser }) => {
+      const stream: LogStream = {
+        type: 'Vector',
+        name: 'edit stream',
+        url: 'http://vector.e2e.test:8686',
+      };
+      const newName = 'edited stream';
+      const newUrl = 'http://vector2.e2e.test:8686';
+      await waitForBase(page);
+      await addLogStream(browser, stream);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.settings.activityStreaming);
+
+      const row = page.locator('.virtual-row');
+      await row.filter({ hasText: stream.name }).locator('.icon-button').click();
+      await page.locator('.menu').getByText('Edit', { exact: true }).click();
+      await page.getByTestId('field-name').fill(newName);
+      await page.getByTestId('field-url').fill(newUrl);
+      await page.getByTestId('edit-destination-submit').click();
+      await expect(row.filter({ hasText: newName })).toBeVisible();
+
+      await page.reload();
+      await expect(row).toHaveCount(1);
+      await expect(row.first().locator('.table-cell').first()).toHaveText(newName);
+      await row.first().locator('.icon-button').click();
+      await page.locator('.menu').getByText('Edit', { exact: true }).click();
+      await expect(page.getByTestId('field-url')).toHaveValue(newUrl);
+    });
+
+    test('Delete activity log stream', async ({ page, browser }) => {
+      const stream: LogStream = {
+        type: 'Logstash',
+        name: 'delete stream',
+        url: 'http://logstash.e2e.test:8080',
+      };
+      await waitForBase(page);
+      await addLogStream(browser, stream);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.settings.activityStreaming);
+
+      await page
+        .locator('.virtual-row')
+        .filter({ hasText: stream.name })
+        .locator('.icon-button')
+        .click();
+      await page.locator('.menu').getByText('Delete', { exact: true }).click();
+      const modal = page.locator('#action-modal');
+      await expect(modal).toContainText('Delete destination confirmation');
+      await modal.getByTestId('confirm-action-submit').click();
+      await expect(page.getByText('Log stream destination deleted')).toBeVisible();
+
+      await page.reload();
+      await expect(
+        page.getByText("You don't have any activity log upstreams."),
+      ).toBeVisible();
+    });
+
+    test('Edit license key', async ({ page }) => {
+      await waitForBase(page);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.settings.license);
+      await page.getByRole('button', { name: 'Edit license' }).click();
+      const licenseKey = page.getByPlaceholder('Enter license key');
+      const submit = page.getByRole('button', { name: 'Submit', exact: true });
+      await licenseKey.fill('invalid-license-key');
+      await submit.click();
+      await expect(page.getByText('License is not valid')).toBeVisible();
+      await expect(licenseKey).toBeVisible();
+
+      await licenseKey.fill(process.env.DEFGUARD_LICENSE_KEY?.trim() ?? '');
+      await submit.click();
+      await expect(licenseKey).toBeHidden();
+
+      await page.reload();
+      const currentPlan = page
+        .locator('.license-property-info', { hasText: 'Current plan' })
+        .locator('.bottom');
+      await expect(currentPlan).toContainText('Enterprise');
+      await expect(currentPlan).toContainText('Active');
+    });
+
+    test('License details', async ({ page }) => {
+      await waitForBase(page);
+      await loginBasic(page, defaultUserAdmin);
+      await page.goto(routes.base + routes.settings.license);
+
+      const property = (title: string) =>
+        page.locator('.license-property-info', { hasText: title }).locator('.bottom');
+      await expect(property('Current plan')).toContainText('Enterprise');
+      await expect(property('Current plan')).toContainText('Active');
+      await expect(property('License type')).toHaveText('Offline');
+      await expect(property('Support type')).toHaveText('Direct Enterprise');
+      await expect(property('Valid until')).not.toBeEmpty();
+      await expect(page.locator('.license-limits')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Edit license' })).toBeVisible();
+    });
+  });
+
   test('SMTP configuration is saved', async ({ page, browser }) => {
     await waitForBase(page);
     await setupSMTP(browser);
@@ -275,5 +445,33 @@ test.describe('Settings', () => {
     await expect(disconnect.locator('.toggle')).toHaveAttribute('data-value', 'true');
     await expect(reconnect.locator('.toggle')).toHaveAttribute('data-value', 'true');
     await expect(threshold).toHaveValue('15');
+  });
+
+  test('Certificate authority details', async ({ page }) => {
+    await waitForBase(page);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.settings.certificates);
+    await page.getByText('Defguard Certificate Authority').click();
+    await page.waitForURL('**' + routes.settings.ca);
+
+    await expect(page.getByText('Certificate Validated')).toBeVisible();
+    await expect(page.locator('.ca-info-label')).toHaveText(['Email', 'Valid until']);
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download CA certificate' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('defguard-ca.pem');
+
+    const cert = new X509Certificate(readFileSync(await download.path()));
+    expect(cert.ca).toBe(true);
+    expect(cert.subject).toContain('CN=Defguard Test CA');
+    expect(cert.subject).toContain('ca@defguard.test');
+    expect(cert.issuer).toBe(cert.subject);
+    expect(cert.verify(cert.publicKey)).toBe(true);
+    const validTo = new Date(cert.validTo);
+    expect(validTo.getTime()).toBeGreaterThan(Date.now());
+
+    const values = page.locator('.ca-info-value');
+    await expect(values.nth(0)).toHaveText('ca@defguard.test');
+    await expect(values.nth(1)).toContainText(validTo.toLocaleDateString('en-GB'));
   });
 });

@@ -47,6 +47,7 @@ export const routes = {
     addDestination: '/acl/add-destination',
   },
   locations: '/locations',
+  postureChecks: '/acl/posture-checks',
   vpnOverview: '/vpn-overview',
   edges: '/edges',
   mfa: {
@@ -77,6 +78,11 @@ export const routes = {
     instance: '/settings/instance',
     client: '/settings/client',
     gatewayNotifications: '/settings/gateway-notifications',
+    ldap: '/settings/ldap',
+    ca: '/settings/ca',
+    certificates: '/settings?tab=certs',
+    activityStreaming: '/settings?tab=activity',
+    license: '/settings?tab=license',
     openid: '/settings/openid',
     tab: {
       openid: '/settings/openid',
