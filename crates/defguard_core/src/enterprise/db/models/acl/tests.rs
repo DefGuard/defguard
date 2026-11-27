@@ -796,3 +796,69 @@ fn test_format_destination_address_round_trips_through_parsing() {
         assert_eq!(parsed.addrs, [addr]);
     }
 }
+
+#[sqlx::test]
+async fn test_unconfigured_network_devices_are_kept_in_rule(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let user = User::new(
+        "user1".to_owned(),
+        None,
+        "Testowski".to_owned(),
+        "Tester".to_owned(),
+        "test@test.com".to_owned(),
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    let rule = AclRule {
+        name: "rule".to_owned(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // two network devices which are still awaiting setup
+    for (name, pubkey, allow) in [("allowed", "key1", true), ("denied", "key2", false)] {
+        let device = Device::new(
+            name.to_owned(),
+            pubkey.to_owned(),
+            user.id,
+            DeviceType::Network,
+            None,
+            false,
+        );
+        let device = device.save(&pool).await.unwrap();
+        AclRuleDevice::new(rule.id, device.id, allow)
+            .save(&pool)
+            .await
+            .unwrap();
+    }
+
+    // selected devices are still part of the rule
+    let info = rule
+        .to_info(&mut *pool.acquire().await.unwrap())
+        .await
+        .unwrap();
+    assert_eq!(info.allowed_network_devices.len(), 1);
+    assert_eq!(info.denied_network_devices.len(), 1);
+
+    // but they are not used when generating firewall rules
+    assert!(
+        info.get_all_allowed_devices(&pool, 1)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        info.get_all_denied_devices(&pool, 1)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}

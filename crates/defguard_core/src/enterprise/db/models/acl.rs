@@ -1159,7 +1159,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow AND d.configured",
+            WHERE r.rule_id = $1 AND r.allow",
             self.id,
         )
         .fetch_all(executor)
@@ -1179,7 +1179,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow = false AND d.configured",
+            WHERE r.rule_id = $1 AND r.allow = false",
             self.id,
         )
         .fetch_all(executor)
@@ -1534,8 +1534,14 @@ impl AclRuleInfo<Id> {
             .fetch_all(executor)
             .await
         } else {
-            // return explicitly configured allowed devices otherwise
-            Ok(self.allowed_network_devices.clone())
+            // return explicitly selected allowed devices otherwise,
+            // skipping those which are still awaiting setup
+            Ok(self
+                .allowed_network_devices
+                .iter()
+                .filter(|device| device.configured)
+                .cloned()
+                .collect())
         }
     }
 
@@ -1566,8 +1572,14 @@ impl AclRuleInfo<Id> {
             .fetch_all(executor)
             .await
         } else {
-            // return explicitly configured denied devices otherwise
-            Ok(self.denied_network_devices.clone())
+            // return explicitly selected denied devices otherwise,
+            // skipping those which are still awaiting setup
+            Ok(self
+                .denied_network_devices
+                .iter()
+                .filter(|device| device.configured)
+                .cloned()
+                .collect())
         }
     }
 }
