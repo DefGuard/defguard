@@ -26,6 +26,8 @@ pub(super) async fn lock_attestation_session(
     enrollment: &Token,
     device: &Device<Id>,
 ) -> Result<NaiveDateTime, Status> {
+    // Lock the token and user while checking that the original session still belongs
+    // to an active user. The token ID alone would not detect a changed session.
     let authorization = sqlx::query_as!(
         Authorization,
         "SELECT token.user_id, token.used_at, token.token_type, \"user\".is_active \
@@ -46,6 +48,9 @@ pub(super) async fn lock_attestation_session(
     if !authorization.is_active {
         return Err(Status::permission_denied("user is disabled"));
     }
+
+    // Serialize writes for this device, then compare its locked state with the request.
+    // The WireGuard key is part of the signed context, so a change invalidates it.
     let locked = sqlx::query_scalar!("SELECT id FROM device WHERE id = $1 FOR UPDATE", device.id)
         .fetch_optional(&mut *connection)
         .await
@@ -67,6 +72,8 @@ pub(super) async fn lock_attestation_session(
             "device WireGuard key has changed",
         ));
     }
+    // Enrollment registers the first identity only. The device lock also prevents
+    // two concurrent Finish requests from both passing this check.
     if DeviceIdentity::find_by_device_id(&mut *connection, device.id)
         .await
         .map_err(database_error)?

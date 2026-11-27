@@ -116,6 +116,8 @@ fn append_sized(output: &mut Vec<u8>, bytes: &[u8]) -> Result<()> {
 /// Wraps a fresh activation secret for the supplied EK and AK, without requiring a TPM.
 /// The certificate chain is checked only for size. Its trust requires separate validation.
 pub fn create_challenge(identity: &TpmAttestationIdentity) -> Result<PreparedAttestation> {
+    // Accept only supported EK and AK profiles before wrapping the secret. The
+    // credential binds the AK by TPM Name, which covers its attributes and parameters.
     check_certificates(&identity.ek_certificate_chain_der)?;
     let ek = endorsement_key(&identity.ek_public)?;
     signing_key(&identity.ak_public, true)?;

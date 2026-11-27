@@ -71,6 +71,8 @@ impl DeviceIdentity {
         attested_at: NaiveDateTime,
     ) -> Result<Device<Id>, DeviceIdentityError> {
         self.validate(status)?;
+        // Within an existing transaction, this creates a savepoint. The caller can
+        // still roll back both the verified identity and challenge consumption.
         let mut transaction = connection.begin().await?;
         let device: Option<Id> = sqlx::query_scalar!(
             "SELECT id FROM device WHERE id = $1 FOR UPDATE",
@@ -246,6 +248,8 @@ impl DeviceAttestationState {
     /// Deletes this unexpired snapshot after verification, returning whether it was consumed.
     /// Use the device-write transaction so a rollback restores the challenge as well.
     pub async fn consume<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
+        // Match the entire verified snapshot and check expiry at deletion time. A new
+        // Start or another Finish must not let this request consume a different state.
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         let result = sqlx::query!(

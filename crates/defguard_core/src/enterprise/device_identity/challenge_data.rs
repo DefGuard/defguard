@@ -66,12 +66,18 @@ impl AttestationData {
                 "invalid device WireGuard public key",
             ));
         }
+
+        // The identifier selects the pending attempt. The separate nonce makes the
+        // signed context fresh even when the session and device are unchanged.
         let mut randomness = [0u8; 64];
         OsRng
             .try_fill_bytes(&mut randomness)
             .map_err(|_| Status::internal("failed to generate attestation challenge randomness"))?;
         let (identifier, nonce) = randomness.split_at(32);
         let challenge_id = BASE64_URL_SAFE_NO_PAD.encode(identifier);
+
+        // Bind the proof to the enrollment session without putting the credential
+        // itself into the bytes returned to the client.
         let session_binding = Sha256::digest(enrollment.id.as_bytes());
         let bytes = serde_cbor::to_vec(&AttestationDataV1 {
             version: 1,

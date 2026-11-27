@@ -24,6 +24,8 @@ fn check_name(bytes: &[u8]) -> Result<()> {
 /// Checks that the Certify payload binds the challenge digest to the expected identity key's TPM Name.
 /// The caller must verify the signature over the original payload bytes separately.
 fn check_certify(attest: &[u8], expected_data: &[u8; 32], expected_name: &[u8; 34]) -> Result<()> {
+    // The decoder validates the TPM header and field encodings. Require the whole
+    // signed payload to be a single Certify structure.
     let (attest, rest) = TpmsAttest::unmarshal(attest)
         .map_err(|_| TpmError::InvalidEvidence("malformed TPM attestation"))?;
     if !rest.is_empty() {
@@ -94,6 +96,9 @@ pub fn verify_attestation(
             "attestation empty or exceeds size limits",
         ));
     }
+
+    // Require a supported profile for each key role. Only the restricted AK
+    // verifies Certify. The identity key is the one being certified.
     endorsement_key(&evidence.ek_public)?;
     let ak = signing_key(&evidence.ak_public, true)?;
     let identity = signing_key(&evidence.identity_public, false)?;
@@ -136,6 +141,9 @@ pub fn verify_attestation(
     {
         return Err(TpmError::InvalidEvidence("invalid Certify signature"));
     }
+
+    // A valid AK signature still needs to cover the expected enrollment context
+    // and the Name of the identity key Core is about to register.
     check_certify(
         &evidence.attest,
         &qualifying_data(data),

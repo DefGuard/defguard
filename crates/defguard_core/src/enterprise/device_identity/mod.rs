@@ -41,6 +41,8 @@ async fn record_attestation_failure(
     device: &Device<Id>,
     state: &DeviceAttestationState,
 ) -> Result<(), Status> {
+    // Recheck authorization before applying a failure found outside the transaction.
+    // The challenge deletion and status change must commit together.
     let mut transaction = pool.begin().await.map_err(database_error)?;
     lock_attestation_session(&mut transaction, enrollment, device).await?;
     if !state
@@ -52,6 +54,7 @@ async fn record_attestation_failure(
             "attestation challenge expired, changed or was already consumed",
         ));
     }
+    // Record the failure only while the device is still NotAttested.
     sqlx::query!(
         "UPDATE device SET attestation_status = $1, attested_at = NULL \
          WHERE id = $2 AND attestation_status = $3",
@@ -94,6 +97,8 @@ pub async fn generate_attestation_challenge(
         }
         None => return Err(Status::invalid_argument("missing attestation backend")),
     };
+    // These bytes bind Certify to this attempt, enrollment session, and device.
+    // Core will compare their digest to the one in the signed TPM evidence.
     let now = Utc::now().naive_utc();
     let data = AttestationData::new(
         enrollment,
@@ -101,10 +106,16 @@ pub async fn generate_attestation_challenge(
         Settings::get_current_settings().enrollment_session_timeout(),
         now,
     )?;
+
+    // The separate activation credential binds the AK to the EK. Prepare it on a
+    // blocking worker before taking database locks.
     let prepared = tokio::task::spawn_blocking(move || tpm::create_challenge(&identity))
         .await
         .map_err(|_| Status::internal("attestation challenge generation task failed"))?
         .map_err(crypto_error)?;
+
+    // Send the wrapped credential to the client. Save the exact same context bytes
+    // alongside the reference values needed to verify activation at Finish.
     let challenge = AttestationChallenge {
         session_id: data.challenge_id().into(),
         data: data.as_bytes().to_vec(),
@@ -123,6 +134,9 @@ pub async fn generate_attestation_challenge(
             backend: prepared.verification,
         },
     };
+
+    // Session or device state may have changed during preparation. Recheck it under
+    // lock and commit the replacement challenge before returning it to the client.
     let mut transaction = pool.begin().await.map_err(database_error)?;
     let now = lock_attestation_session(&mut transaction, enrollment, device).await?;
     if now >= state.expires_at {
@@ -160,6 +174,9 @@ pub async fn verify_attestation(
         }
         None => return Err(Status::invalid_argument("missing attestation result")),
     };
+
+    // Select Core's pending snapshot by enrollment token and device. The solution's
+    // session ID must identify this attempt because a new Start can replace it.
     let state = DeviceAttestationState::find_for_device(pool, &enrollment.id, device.id)
         .await
         .map_err(database_error)?
@@ -182,6 +199,9 @@ pub async fn verify_attestation(
             "attestation backend does not match challenge",
         ));
     }
+
+    // Verify against the saved bytes and reference values without holding database
+    // locks. The write transaction will check that this snapshot is still current.
     let payload = state.payload.clone();
     let verified = tokio::task::spawn_blocking(move || {
         tpm::verify_attestation(&payload.backend, &payload.data, &response)
@@ -190,6 +210,7 @@ pub async fn verify_attestation(
     .map_err(|_| Status::internal("attestation verification task failed"))?;
     let verified = match verified {
         Ok(verified) => verified,
+        // Only invalid public material or evidence consumes the challenge on failure.
         Err(error @ (TpmError::InvalidPublic(_) | TpmError::InvalidEvidence(_))) => {
             record_attestation_failure(pool, enrollment, device, &state).await?;
             return Err(crypto_error(error));
@@ -206,6 +227,9 @@ pub async fn verify_attestation(
         tpm_ek_certificate_chain_der: Some(verified.ek_certificate_chain_der),
         apple_key_id: None,
     };
+
+    // Recheck authorization and consume exactly the snapshot we verified. If the
+    // identity write fails, rolling back this transaction also restores the challenge.
     let mut transaction = pool.begin().await.map_err(database_error)?;
     let now = lock_attestation_session(&mut transaction, enrollment, device).await?;
     if !state
