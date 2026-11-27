@@ -1,4 +1,4 @@
-import { APIRequestContext, Page } from '@playwright/test';
+import { APIRequestContext, expect, Page } from '@playwright/test';
 
 import { testsConfig } from '../../config';
 import { ApiDevice, ApiUser, ApiUserAuthKey, ApiUserProfile, User } from '../../types';
@@ -90,4 +90,15 @@ export const apiLogin = async (
 ): Promise<number> => {
   const url = testsConfig.CORE_BASE_URL + '/auth';
   return (await api.post(url, { data: { username, password } })).status();
+};
+
+export const apiGetSshAuthorizedKeys = async (
+  request: APIRequestContext,
+  params: Record<string, string>,
+): Promise<string> => {
+  const response = await request.get(testsConfig.CORE_BASE_URL + '/ssh_authorized_keys', {
+    params,
+  });
+  expect(response.status()).toBe(200);
+  return (await response.text()).trim();
 };

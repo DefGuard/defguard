@@ -1,9 +1,9 @@
 import { Browser } from 'playwright';
-import { TOTP } from 'totp-generator';
 
 import { routes } from '../../../config';
 import { User } from '../../../types';
 import { getPageClipboard } from '../../getPageClipboard';
+import { generateFreshTotp } from '../../totp';
 import { waitForBase } from '../../waitForBase';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
@@ -30,7 +30,7 @@ export const enableTOTP = async (
   const totpSecret =
     (await page.getByTestId('totp-code').locator('p').textContent()) ?? '';
 
-  const { otp: token } = await TOTP.generate(totpSecret);
+  const token = await generateFreshTotp(totpSecret);
 
   await page.getByTestId('field-code').fill(token);
   await page.getByTestId('submit-totp').click();

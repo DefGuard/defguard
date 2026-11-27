@@ -10,7 +10,20 @@ type LicenseInfoResponse = {
     tier: LicenseTier;
     expired: boolean;
     limits_exceeded: boolean;
+    subscription: boolean;
+    support_type: string;
+    valid_until: string | null;
   } | null;
+};
+
+export const apiGetLicenseInfo = async (api: APIRequestContext) => {
+  const response = await api.get(`${testsConfig.CORE_BASE_URL}/enterprise_info`);
+  expect(response.status()).toBe(200);
+  const { license_info }: LicenseInfoResponse = await response.json();
+  if (license_info === null) {
+    throw new Error('No license is set');
+  }
+  return license_info;
 };
 
 export const expectLicenseTier = async (

@@ -54,4 +54,7 @@ services:
       - NET_ADMIN
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: ghcr.io/axllent/mailpit:latest
+    ports:
+      # Web UI and REST API
+      - "8025:8025"

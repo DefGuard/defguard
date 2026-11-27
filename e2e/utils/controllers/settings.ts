@@ -1,4 +1,4 @@
-import { Browser } from 'playwright';
+import { Browser, expect, Page } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { waitForBase } from '../waitForBase';
@@ -28,3 +28,29 @@ export const setupSMTP = async (browser: Browser) => {
   await logout(page);
   await context.close();
 };
+
+export type LogStream = {
+  type: 'Vector' | 'Logstash';
+  name: string;
+  url: string;
+};
+
+export const addLogStream = async (browser: Browser, stream: LogStream) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await waitForBase(page);
+  await loginBasic(page, defaultUserAdmin);
+  await page.goto(routes.base + routes.settings.activityStreaming);
+  await page.getByTestId('add-activity-stream').click();
+  await page.getByTestId(`add-${stream.type.toLowerCase()}`).click();
+  await page.getByTestId('field-name').fill(stream.name);
+  await page.getByTestId('field-url').fill(stream.url);
+  await page.getByTestId('add-destination-submit').click();
+  await expect(
+    page.locator('.virtual-row').filter({ hasText: stream.name }),
+  ).toBeVisible();
+  await context.close();
+};
+
+export const licenseProperty = (page: Page, title: string) =>
+  page.locator('.license-property-info', { hasText: title }).locator('.bottom');

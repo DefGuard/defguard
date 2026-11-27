@@ -107,4 +107,77 @@ test.describe('Network devices', () => {
       description: deviceDesc,
     });
   });
+
+  test('List network devices', async ({ page, browser }) => {
+    const devices = [
+      { name: 'first-device', description: 'first description' },
+      { name: 'second-device', description: 'second description' },
+    ];
+    await waitForBase(page);
+    for (const device of devices) {
+      await createNetworkCLIDevice(browser, defaultUserAdmin, device);
+    }
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.network_devices);
+
+    const rows = page.locator('.virtual-row');
+    await expect(rows).toHaveCount(devices.length);
+    for (const device of devices) {
+      const row = rows.filter({ hasText: device.name });
+      await expect(row).toContainText(device.description);
+      await expect(row).toContainText(testNetwork.name);
+      await expect(row).toContainText(defaultUserAdmin.username);
+      await expect(row).toContainText('Awaiting Setup');
+    }
+  });
+
+  test('Edit network device', async ({ page, browser }) => {
+    const device = { name: 'edit-device', description: 'before edit' };
+    const updated = { name: 'edited-device', description: 'after edit' };
+    await waitForBase(page);
+    await createNetworkCLIDevice(browser, defaultUserAdmin, device);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.network_devices);
+
+    const row = page.locator('.virtual-row').filter({ hasText: device.name });
+    await row.locator('.icon-button').click();
+    await page.locator('.menu').getByText('Edit', { exact: true }).click();
+    const modal = page.locator('#edit-network-device-modal');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByTestId('field-name').fill(updated.name);
+    await modal.getByTestId('field-description').fill(updated.description);
+    const responsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/device/network/') && resp.request().method() === 'PUT',
+    );
+    await modal.getByRole('button', { name: 'Save changes', exact: true }).click();
+    expect((await responsePromise).status()).toBe(200);
+    await modal.waitFor({ state: 'hidden' });
+
+    await page.reload();
+    const rows = page.locator('.virtual-row');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.filter({ hasText: updated.name })).toContainText(
+      updated.description,
+    );
+    await expect(rows.filter({ hasText: device.name })).toHaveCount(0);
+  });
+
+  test('Delete network device', async ({ page, browser }) => {
+    const device = { name: 'delete-device', description: 'to be deleted' };
+    await waitForBase(page);
+    await createNetworkCLIDevice(browser, defaultUserAdmin, device);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(routes.base + routes.network_devices);
+
+    const row = page.locator('.virtual-row').filter({ hasText: device.name });
+    await row.locator('.icon-button').click();
+    await page.locator('.menu').getByText('Delete', { exact: true }).click();
+    await page.locator('button[data-variant="critical"]').click();
+
+    await expect(page.getByText("You don't have any network devices.")).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("You don't have any network devices.")).toBeVisible();
+    await expect(page.locator('.virtual-row')).toHaveCount(0);
+  });
 });

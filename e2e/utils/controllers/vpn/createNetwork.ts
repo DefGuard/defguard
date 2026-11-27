@@ -33,8 +33,8 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
     addresses = addresses.slice(0, -1);
     await page.getByTestId('field-allowed_ips').fill(addresses);
     await page.getByTestId('field-allowed_ips').press('Enter');
-    await page.getByTestId('continue').click();
   }
+  await page.getByTestId('continue').click();
 
   await page.getByTestId('continue').click();
 
@@ -48,6 +48,16 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   }
   await page.getByTestId('finish').click();
 
+  if (network.allowedGroups) {
+    await page.locator('.toggle').filter({ hasText: 'All groups have access' }).click();
+    for (const group of network.allowedGroups) {
+      await page
+        .locator('.selection-section .item')
+        .filter({ hasText: group })
+        .locator('.checkbox')
+        .click();
+    }
+  }
   await page.getByTestId('acl-continue').click();
   await page.getByTestId('posture-continue').click();
   await page.getByTestId('create-location').click();
@@ -85,8 +95,8 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
     addresses = addresses.slice(0, -1);
     await page.getByTestId('field-allowed_ips').fill(addresses);
     await page.getByTestId('field-allowed_ips').press('Enter');
-    await page.getByTestId('continue').click();
   }
+  await page.getByTestId('continue').click();
   await page.getByTestId('continue').click();
   await page.getByTestId('continue').click();
   await page.getByTestId('acl-continue').click();

@@ -1,5 +1,3 @@
-import { table } from 'console';
-
 import { User } from './types';
 import { mergeObjects } from './utils/utils';
 
@@ -7,6 +5,7 @@ type TestsConfig = {
   BASE_URL: string;
   CORE_BASE_URL: string;
   ENROLLMENT_URL: string;
+  MAILPIT_URL: string;
   TEST_TIMEOUT: number;
 };
 
@@ -14,6 +13,7 @@ const defaultConfig: TestsConfig = {
   BASE_URL: 'http://localhost:8000',
   CORE_BASE_URL: 'http://localhost:8000/api/v1',
   ENROLLMENT_URL: 'http://localhost:8080',
+  MAILPIT_URL: 'http://localhost:8025',
   TEST_TIMEOUT: 60,
 };
 
@@ -21,6 +21,7 @@ const envConfig: Partial<TestsConfig> = {
   BASE_URL: process.env.BASE_URL,
   CORE_BASE_URL: process.env.CORE_BASE_URL,
   ENROLLMENT_URL: process.env.ENROLLMENT_URL,
+  MAILPIT_URL: process.env.MAILPIT_URL,
   TEST_TIMEOUT: process.env.TEST_TIMEOUT
     ? Number.parseInt(process.env.TEST_TIMEOUT)
     : undefined,
@@ -43,10 +44,13 @@ export const routes = {
     aliases: '/acl/aliases',
     destinations: '/acl/destinations',
     addRule: '/acl/add-rule',
+    editRule: '/acl/edit-rule',
     addAlias: '/acl/add-alias',
     addDestination: '/acl/add-destination',
   },
   locations: '/locations',
+  postureChecks: '/acl/posture-checks',
+  vpnOverview: '/vpn-overview',
   edges: '/edges',
   mfa: {
     list: '/mfa',
@@ -54,6 +58,7 @@ export const routes = {
     editFlow: (id: number | string) => `/mfa-flow/${id}/edit`,
   },
   enrollment: '/enrollment',
+  activity: '/activity',
   network_devices: '/network-devices',
   openid_apps: '/openid',
   webhooks: '/webhooks',
@@ -72,6 +77,14 @@ export const routes = {
   settings: {
     base: '/settings',
     smtp: '/settings/smtp',
+    instance: '/settings/instance',
+    client: '/settings/client',
+    gatewayNotifications: '/settings/gateway-notifications',
+    ldap: '/settings/ldap',
+    ca: '/settings/ca',
+    certificates: '/settings?tab=certs',
+    activityStreaming: '/settings?tab=activity',
+    license: '/settings?tab=license',
     openid: '/settings/openid',
     tab: {
       openid: '/settings/openid',

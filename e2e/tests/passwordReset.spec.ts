@@ -2,10 +2,12 @@ import { expect, test } from '@playwright/test';
 
 import { testsConfig, testUserTemplate } from '../config';
 import { User } from '../types';
+import { apiClearMailbox, apiWaitForMail } from '../utils/api/mailpit';
 import { createUser } from '../utils/controllers/createUser';
 import { loginBasic } from '../utils/controllers/login';
 import { logout } from '../utils/controllers/logout';
 import {
+  getPasswordResetLink,
   selectPasswordReset,
   setEmail,
   setPassword,
@@ -13,7 +15,6 @@ import {
 } from '../utils/controllers/passwordReset';
 import { setupSMTP } from '../utils/controllers/settings';
 import { disableUser } from '../utils/controllers/toggleUserState';
-import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 
@@ -27,17 +28,17 @@ test.describe('Reset password', () => {
     await createUser(browser, user);
   });
 
-  test('Reset user password', async ({ page, browser }) => {
+  test('Reset user password', async ({ page, browser, request }) => {
     await waitForBase(page);
-    // Password reset is only shown on Edge once SMTP is configured in Core.
     await setupSMTP(browser);
+    await apiClearMailbox(request);
     await waitForEdgePasswordResetEnabled(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
-    const token = await getPasswordResetToken(user.mail);
+    const resetLink = await getPasswordResetLink(request, user.mail);
 
-    await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
+    await page.goto(resetLink);
     await page.getByTestId('field-password').waitFor({ state: 'visible' });
 
     await setPassword(newPassword, page);
@@ -45,34 +46,35 @@ test.describe('Reset password', () => {
     await expect(goToLogin).toBeVisible();
     await goToLogin.click();
 
+    const doneMail = await apiWaitForMail(
+      request,
+      user.mail,
+      'Defguard: Password reset success',
+    );
+    expect(doneMail.Subject).toBe('Defguard: Password reset success');
+
     await waitForBase(page);
     await loginBasic(page, { ...user, password: newPassword });
     await logout(page);
   });
 
-  // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
-  test.skip('Reset disabled user password', async ({ page, browser }) => {
+  test('Reset disabled user password', async ({ page, browser, request }) => {
     await waitForBase(page);
-    // Password reset is only shown on Edge once SMTP is configured in Core.
     await setupSMTP(browser);
+    await apiClearMailbox(request);
     await waitForEdgePasswordResetEnabled(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
-    const token = await getPasswordResetToken(user.mail);
+    const resetLink = await getPasswordResetLink(request, user.mail);
     await disableUser(browser, user);
-    await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
+    await page.goto(resetLink);
 
-    // A message should be displayed that the code is invalid
     await expect(
       page.locator('h1', { hasText: 'Link expired or invalid.' }),
     ).toBeVisible();
     await expect(page.locator('button[data-variant="primary"]')).toBeVisible();
 
-    // The password input should not be visible
-    const passwordInputVisible = await page
-      .locator('[data-testid="field-password"]')
-      .isVisible();
-    expect(passwordInputVisible).toBe(false);
+    await expect(page.getByTestId('field-password')).toBeHidden();
   });
 });

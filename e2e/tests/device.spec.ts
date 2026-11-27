@@ -3,10 +3,12 @@ import { expect, test } from '@playwright/test';
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiCreateUser, apiGetUserDevices } from '../utils/api/users';
+import { createUser } from '../utils/controllers/createUser';
 import { loginBasic } from '../utils/controllers/login';
 import { createDevice } from '../utils/controllers/vpn/createDevice';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
+import { getPageClipboard } from '../utils/getPageClipboard';
 import { waitForBase } from '../utils/waitForBase';
 
 const testKeys = {
@@ -67,5 +69,109 @@ test.describe('Add user device', () => {
     expect(devices.length).toBe(1);
     expect(devices[0].name).toBe(device_name);
     expect(devices[0].wireguard_pubkey).toBe(testKeys.public);
+  });
+
+  test('List user devices', async ({ page, browser }) => {
+    const names = ['first device', 'second device'];
+    await waitForBase(page);
+    for (const name of names) {
+      await createDevice(browser, testUser, { name });
+    }
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.devices,
+    );
+
+    const rows = page.locator('#profile-devices-table .virtual-row');
+    await expect(rows).toHaveCount(names.length);
+    for (const name of names) {
+      await expect(rows.filter({ hasText: name })).toBeVisible();
+    }
+    await expect(page.getByTestId('add-device')).toBeEnabled();
+  });
+
+  test('Edit user device', async ({ page, browser }) => {
+    const newName = 'edited device';
+    await waitForBase(page);
+    await createDevice(browser, testUser, { name: device_name });
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.devices,
+    );
+
+    const row = page.locator('.virtual-row').filter({ hasText: device_name });
+    await row.locator('.edit-cell .icon-button').click();
+    await page.locator('.menu').getByText('Edit', { exact: true }).click();
+    const modal = page.locator('.modal').filter({ hasText: 'Edit device' });
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByTestId('field-name').fill(newName);
+    await modal.getByRole('button', { name: 'Save changes', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+
+    await page.reload();
+    const rows = page.locator('#profile-devices-table .virtual-row');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.filter({ hasText: newName })).toBeVisible();
+  });
+
+  test('Delete user device', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createDevice(browser, testUser, { name: device_name });
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.devices,
+    );
+
+    const row = page.locator('.virtual-row').filter({ hasText: device_name });
+    await row.locator('.edit-cell .icon-button').click();
+    await page.locator('.menu').getByText('Delete', { exact: true }).click();
+    await page.getByTestId('confirm-action-submit').click();
+
+    await expect(page.getByText('No devices', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByText('No devices', { exact: true })).toBeVisible();
+    await expect(page.locator('#profile-devices-table .virtual-row')).toHaveCount(0);
+  });
+
+  test('Show user device configuration', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createDevice(browser, testUser, { name: device_name });
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.devices,
+    );
+
+    const row = page.locator('.virtual-row').filter({ hasText: device_name });
+    await row.locator('.edit-cell .icon-button').click();
+    await page.locator('.menu').getByText('Show configuration', { exact: true }).click();
+    const modal = page.locator('#user-device-config-modal');
+    await modal.waitFor({ state: 'visible' });
+    await expect(modal).toContainText(testNetwork.name);
+
+    await modal.getByRole('button', { name: 'Copy to clipboard', exact: true }).click();
+    const config = await getPageClipboard(page);
+    expect(config).toContain('[Interface]');
+    expect(config).toContain('[Peer]');
+    expect(config).toContain(`${testNetwork.endpoint}:${testNetwork.port}`);
+
+    await modal.getByRole('button', { name: 'Close', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
+});
+
+test.describe('Add user device without locations', () => {
+  const testUser: User = { ...testUserTemplate, username: 'test' };
+
+  test.beforeEach(() => dockerRestart());
+
+  test('Add new device is disabled without locations', async ({ page, browser }) => {
+    await waitForBase(page);
+    await createUser(browser, testUser);
+    await loginBasic(page, defaultUserAdmin);
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.devices,
+    );
+    await expect(page.getByText('No devices', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('add-device')).toBeDisabled();
   });
 });

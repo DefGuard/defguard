@@ -16,7 +16,9 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   await page.getByTestId('field-name').fill(client.name);
 
   for (const idx in client.redirectURL) {
-    page.getByTestId('field-redirect_uri[' + idx + ']').fill(client.redirectURL[idx]);
+    await page
+      .getByTestId('field-redirect_uri[' + idx + ']')
+      .fill(client.redirectURL[idx]);
     if (Number(idx) + 1 < client.redirectURL.length) {
       await page.getByTestId('add-url').click();
     }

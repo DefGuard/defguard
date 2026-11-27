@@ -2,8 +2,15 @@ import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { AuthenticationKeyType, User } from '../types';
-import { apiCreateUser, apiGetUserAuthKeys } from '../utils/api/users';
+import {
+  apiCreateUser,
+  apiGetSshAuthorizedKeys,
+  apiGetUserAuthKeys,
+} from '../utils/api/users';
+import { addAuthKey } from '../utils/controllers/authenticationKey';
+import { addUserToGroups, createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
+import { disableUser, enableUser } from '../utils/controllers/toggleUserState';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForRoute } from '../utils/waitForRoute';
@@ -119,5 +126,104 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     expect(deleteResponse.status()).toBe(200);
     const afterDeleteKeys = await apiGetUserAuthKeys(page, testUser.username);
     expect(afterDeleteKeys.length).toBe(0);
+  });
+
+  test('Rename authentication key', async ({ page, browser }) => {
+    const newName = 'renamed key';
+    await addAuthKey(browser, defaultUserAdmin, testUser.username, {
+      name: key_name,
+      key: testSshKey,
+      keyType: AuthenticationKeyType.SSH,
+    });
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
+    );
+    const row = page.locator('.table-row-container').filter({ hasText: key_name });
+    await row.locator('.icon-button').click();
+    await page.locator('.menu').getByText('Rename', { exact: true }).click();
+    const modal = page.locator('.modal');
+    await modal.getByTestId('field-name').fill(newName);
+    const responsePromise = page.waitForResponse('**/auth_key/*/rename');
+    await modal.getByRole('button', { name: 'Save changes', exact: true }).click();
+    expect((await responsePromise).status()).toBe(200);
+    await modal.waitFor({ state: 'hidden' });
+
+    await page.reload();
+    await expect(
+      page.locator('.table-row-container').filter({ hasText: newName }),
+    ).toBeVisible();
+    await expect(
+      page.locator('.table-row-container').filter({ hasText: key_name }),
+    ).toHaveCount(0);
+  });
+
+  test('List and delete authentication keys', async ({ page, browser }) => {
+    const sshName = 'ssh key';
+    const gpgName = 'gpg key';
+    await addAuthKey(browser, defaultUserAdmin, testUser.username, {
+      name: sshName,
+      key: testSshKey,
+      keyType: AuthenticationKeyType.SSH,
+    });
+    await addAuthKey(browser, defaultUserAdmin, testUser.username, {
+      name: gpgName,
+      key: testGPGKey,
+      keyType: AuthenticationKeyType.GPG,
+    });
+    await page.goto(
+      routes.base + routes.profile + testUser.username + routes.tab.authentication_keys,
+    );
+    const sshRow = page.locator('.table-row-container').filter({ hasText: sshName });
+    const gpgRow = page.locator('.table-row-container').filter({ hasText: gpgName });
+    await expect(sshRow).toBeVisible();
+    await expect(gpgRow).toBeVisible();
+
+    await sshRow.locator('.icon-button').click();
+    await page.getByTestId('delete-key').click();
+    await page.locator('button[data-variant="critical"]').click();
+    await expect(sshRow).toHaveCount(0);
+    await page.reload();
+    await expect(gpgRow).toBeVisible();
+    await expect(sshRow).toHaveCount(0);
+
+    await gpgRow.locator('.icon-button').click();
+    await page.getByTestId('delete-key').click();
+    await page.locator('button[data-variant="critical"]').click();
+    await expect(page.getByText("You don't have any added keys.")).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("You don't have any added keys.")).toBeVisible();
+  });
+
+  test('SSH authorized keys are not served for disabled user', async ({
+    browser,
+    request,
+  }) => {
+    await createGroup(browser, 'ssh-users');
+    await addUserToGroups(browser, testUser.username, ['ssh-users']);
+    await addAuthKey(browser, defaultUserAdmin, testUser.username, {
+      name: key_name,
+      key: testSshKey,
+      keyType: AuthenticationKeyType.SSH,
+    });
+    const queries = [
+      { username: testUser.username },
+      { group: 'ssh-users' },
+      { group: 'ssh-users', username: testUser.username },
+    ];
+
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe(testSshKey.trim());
+    }
+
+    await disableUser(browser, testUser);
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe('');
+    }
+    expect(await apiGetSshAuthorizedKeys(request, { username: 'nonexistent' })).toBe('');
+
+    await enableUser(browser, testUser);
+    for (const params of queries) {
+      expect(await apiGetSshAuthorizedKeys(request, params)).toBe(testSshKey.trim());
+    }
   });
 });
