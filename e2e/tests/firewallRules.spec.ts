@@ -447,7 +447,8 @@ test.describe('Firewall rules', () => {
       await expect(page.getByTestId('field-name')).toHaveValue('no permissions');
 
       await page.goto(routes.base + routes.firewall.rules);
-      await expect(page.getByTestId('rules-tab-pending')).toHaveText('Pending');
+      await page.getByTestId('rules-tab-pending').click();
+      await expect(page.getByText("You don't have any pending rules.")).toBeVisible();
     });
 
     test('Editing deployed rule keeps all its settings after deploy', async ({
@@ -614,7 +615,8 @@ test.describe('Firewall rules', () => {
     ).toBeVisible();
 
     await page.goto(routes.base + routes.firewall.rules);
-    await expect(page.getByTestId('rules-tab-pending')).toHaveText('Pending');
+    await page.getByTestId('rules-tab-pending').click();
+    await expect(page.getByText("You don't have any pending rules.")).toBeVisible();
   });
 
   test('Rule allowing and excluding the same user is rejected', async ({
@@ -638,7 +640,8 @@ test.describe('Firewall rules', () => {
     ).toBeVisible();
 
     await page.goto(routes.base + routes.firewall.rules);
-    await expect(page.getByTestId('rules-tab-pending')).toHaveText('Pending');
+    await page.getByTestId('rules-tab-pending').click();
+    await expect(page.getByText("You don't have any pending rules.")).toBeVisible();
   });
 
   test('Search rules', async ({ page }) => {
@@ -671,7 +674,7 @@ test.describe('Firewall rules', () => {
     await expect(page.getByTestId('rules-tab-pending')).toHaveText('Pending (1)');
     await expect(tableRow(page, 'pending rule')).toHaveCount(0);
     await page.getByTestId('rules-tab-deployed').click();
-    await expect(page.locator('.virtual-row')).toHaveCount(0);
+    await expect(page.getByText("You don't have any firewall rules yet.")).toBeVisible();
   });
 
   test('Delete pending rule', async ({ page }) => {
@@ -684,10 +687,9 @@ test.describe('Firewall rules', () => {
     await expect(row).toBeHidden();
 
     await page.reload();
-    await expect(page.getByTestId('rules-tab-pending')).toHaveText('Pending');
-    await expect(tableRow(page, 'pending rule')).toHaveCount(0);
+    await expect(page.getByText("You don't have any pending rules.")).toBeVisible();
     await page.getByTestId('rules-tab-deployed').click();
-    await expect(tableRow(page, 'pending rule')).toHaveCount(0);
+    await expect(page.getByText("You don't have any firewall rules yet.")).toBeVisible();
   });
 
   test('Edit deployed rule', async ({ page }) => {

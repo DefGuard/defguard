@@ -34,8 +34,11 @@ export const destinationColumns = [
 export const tableRow = (page: Page, name: string): Locator =>
   page.locator('.virtual-row').filter({ hasText: name });
 
-export const tableCell = (row: Locator, columns: string[], column: string): Locator =>
-  row.locator('.table-cell').nth(columns.indexOf(column));
+export const tableCell = (row: Locator, columns: string[], column: string): Locator => {
+  const index = columns.indexOf(column);
+  if (index === -1) throw new Error(`Unknown column: ${column}`);
+  return row.locator('.table-cell').nth(index);
+};
 
 export const ruleCell = (row: Locator, column: string): Locator =>
   tableCell(row, ruleColumns, column);

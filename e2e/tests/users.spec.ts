@@ -270,13 +270,14 @@ test.describe('Test users bulk actions', () => {
 
     const row = page.locator('.virtual-row').filter({ hasText: testUser.username });
     await row.locator('.icon-button').click();
+    const initiateEnrollment = page
+      .locator('.menu')
+      .getByText('Initiate self-enrollment', { exact: true });
+    await expect(initiateEnrollment).toBeVisible();
     await expect(
       page.locator('.menu').getByText('Add new device', { exact: true }),
     ).toHaveCount(0);
-    await page
-      .locator('.menu')
-      .getByText('Initiate self-enrollment', { exact: true })
-      .click();
+    await initiateEnrollment.click();
 
     const modal = page.locator('#enrollment-token-modal');
     await expect(modal).toContainText('Initiate self-enrollment for user');

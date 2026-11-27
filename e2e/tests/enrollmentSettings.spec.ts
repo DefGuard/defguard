@@ -81,10 +81,9 @@ test.describe('Enrollment settings', () => {
     const sameAsMessage = page.getByTestId(
       'field-enrollment_use_welcome_message_as_email',
     );
-    if ((await sameAsMessage.getAttribute('data-active')) === 'true') {
-      await sameAsMessage.click();
-    }
-    await emailBlock.getByRole('textbox', { name: /Email message/ }).fill(body);
+    await expect(sameAsMessage).toHaveAttribute('data-active', 'true');
+    await sameAsMessage.click();
+    await emailBlock.getByRole('textbox', { name: 'Email message' }).fill(body);
     await page.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(page.getByText('Settings saved')).toBeVisible();
 
@@ -94,7 +93,7 @@ test.describe('Enrollment settings', () => {
       subject,
     );
     await expect(sameAsMessage).toHaveAttribute('data-active', 'false');
-    await expect(emailBlock.getByRole('textbox', { name: /Email message/ })).toHaveValue(
+    await expect(emailBlock.getByRole('textbox', { name: 'Email message' })).toHaveValue(
       body,
     );
   });

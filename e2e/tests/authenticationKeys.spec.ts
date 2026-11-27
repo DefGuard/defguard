@@ -183,8 +183,8 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await page.locator('button[data-variant="critical"]').click();
     await expect(sshRow).toHaveCount(0);
     await page.reload();
-    await expect(sshRow).toHaveCount(0);
     await expect(gpgRow).toBeVisible();
+    await expect(sshRow).toHaveCount(0);
 
     await gpgRow.locator('.icon-button').click();
     await page.getByTestId('delete-key').click();

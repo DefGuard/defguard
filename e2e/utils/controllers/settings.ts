@@ -1,4 +1,4 @@
-import { Browser, expect } from '@playwright/test';
+import { Browser, expect, Page } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../config';
 import { waitForBase } from '../waitForBase';
@@ -51,3 +51,6 @@ export const addLogStream = async (browser: Browser, stream: LogStream) => {
   ).toBeVisible();
   await context.close();
 };
+
+export const licenseProperty = (page: Page, title: string) =>
+  page.locator('.license-property-info', { hasText: title }).locator('.bottom');

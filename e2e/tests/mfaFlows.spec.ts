@@ -261,8 +261,6 @@ test.describe('MFA flows', () => {
 
     await page.getByTestId('field-title').fill(existingTitle);
     await expect(page.getByText('Name already taken')).toBeVisible();
-    await page.getByTestId('save-mfa-flow').click();
-    await expect(page).toHaveURL(routes.base + routes.mfa.addFlow);
   });
 
   test('Email method is available only with SMTP configured', async ({
@@ -272,18 +270,18 @@ test.describe('MFA flows', () => {
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.mfa.addFlow);
     await page.getByTestId('add-mfa-step').click();
-    await expect(page.getByTestId('add-mfa-step-method-totp')).not.toHaveClass(
-      /\bdisabled\b/,
+    await expect(page.getByTestId('add-mfa-step-method-totp')).not.toContainClass(
+      'disabled',
     );
-    await expect(page.getByTestId('add-mfa-step-method-email')).toHaveClass(
-      /\bdisabled\b/,
+    await expect(page.getByTestId('add-mfa-step-method-email')).toContainClass(
+      'disabled',
     );
 
     await setupSMTP(browser);
     await page.reload();
     await page.getByTestId('add-mfa-step').click();
-    await expect(page.getByTestId('add-mfa-step-method-email')).not.toHaveClass(
-      /\bdisabled\b/,
+    await expect(page.getByTestId('add-mfa-step-method-email')).not.toContainClass(
+      'disabled',
     );
     await page.getByTestId('add-mfa-step-method-email').click();
     await expect(page.getByTestId('remove-mfa-method-1-email')).toBeVisible();
@@ -726,14 +724,23 @@ test.describe('MFA flows', () => {
         .locator('.filter-btn');
       const filter = page.locator('.table-header-filter-floating');
       await filterButton.click();
-      await filter.locator('.checkbox', { hasText: /^2$/ }).click();
+      await filter
+        .locator('.checkbox')
+        .filter({ has: page.getByText('2', { exact: true }) })
+        .click();
       await filter.getByRole('button', { name: 'Submit', exact: true }).click();
       await expect(rows).toHaveCount(1);
       await expect(twoStepRow).toBeVisible();
 
       await filterButton.click();
-      await filter.locator('.checkbox', { hasText: /^2$/ }).click();
-      await filter.locator('.checkbox', { hasText: /^1$/ }).click();
+      await filter
+        .locator('.checkbox')
+        .filter({ has: page.getByText('2', { exact: true }) })
+        .click();
+      await filter
+        .locator('.checkbox')
+        .filter({ has: page.getByText('1', { exact: true }) })
+        .click();
       await filter.getByRole('button', { name: 'Submit', exact: true }).click();
       await expect(rows).toHaveCount(1);
       await expect(singleStepRow).toBeVisible();

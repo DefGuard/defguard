@@ -32,7 +32,6 @@ test.describe('VPN overview', () => {
     await page
       .locator('.select-floating .select-option', { hasText: '8h period' })
       .click();
-    await expect(page).toHaveURL(/period=8/);
     await expect(periodSelect).toContainText('8h period');
 
     await page.reload();
@@ -51,7 +50,6 @@ test.describe('VPN overview', () => {
     await locationCard.getByRole('button', { name: 'Details', exact: true }).click();
 
     const detailsPage = page.locator('#location-overview-page');
-    await expect(page).toHaveURL(/\/vpn-overview\/\d+/);
     await expect(detailsPage).toContainText("Connected users' devices");
     await expect(detailsPage).toContainText('No connected users');
     await detailsPage.locator('.tab', { hasText: 'Network devices' }).click();

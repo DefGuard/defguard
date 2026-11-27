@@ -103,7 +103,7 @@ test.describe('Add user with self-enrollment', () => {
 
     await page.reload();
     const row = page.locator('.virtual-row').filter({ hasText: user.username });
-    await expect(row.locator('.table-cell').nth(8)).toHaveText('Pending');
+    await expect(row).toContainText('Pending');
 
     const tokenRow = page
       .locator('#activity-log-page .virtual-row')

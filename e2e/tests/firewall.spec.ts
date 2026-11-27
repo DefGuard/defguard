@@ -175,6 +175,7 @@ test.describe('Firewall aliases and destinations', () => {
     await addAddresses(page, ['10.0.0.1-10.0.0.10']);
     await page.getByRole('button', { name: 'Add destination' }).click();
     await expect(page.getByText('Destination created.')).toBeVisible();
+    await page.waitForURL('**' + routes.firewall.destinations + '**');
 
     await page.reload();
     const row = tableRow(page, 'range servers');

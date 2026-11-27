@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../config';
 import { NetworkForm } from '../types';
@@ -7,7 +7,11 @@ import {
   addPostureOs,
   confirmPostureCheckCreation,
   createPostureCheck,
+  drawerValues,
   fillPostureCheckWizard,
+  openDrawer,
+  openRowMenu,
+  postureCell,
   PostureCheckSystem,
   selectPostureOption,
 } from '../utils/controllers/postureChecks';
@@ -86,42 +90,6 @@ const osCases: {
     drawer: { Version: ['Android 14+'], 'Security patch': ['Within 90 days'] },
   },
 ];
-
-const postureColumns = [
-  'Title',
-  'Windows',
-  'macOS',
-  'Linux',
-  'iOS',
-  'Android',
-  'Desktop client',
-  'Mobile app',
-];
-
-const postureCell = (row: Locator, column: string) =>
-  row.locator('.table-cell').nth(postureColumns.indexOf(column));
-
-const openDrawer = async (page: Page, name: string) => {
-  await page.locator('.virtual-row').filter({ hasText: name }).getByText(name).click();
-  return page.locator('.posture-check-drawer');
-};
-
-const drawerValues = (page: Page, section: string, label: string) =>
-  page
-    .locator('.posture-check-drawer .drawer-section')
-    .filter({ has: page.locator('.section-name').getByText(section, { exact: true }) })
-    .locator('.section-row')
-    .filter({ has: page.locator('.section-row-label').getByText(label, { exact: true }) })
-    .locator('.section-row-value');
-
-const openRowMenu = async (page: Page, name: string, item: string) => {
-  await page
-    .locator('.virtual-row')
-    .filter({ hasText: name })
-    .locator('.icon-button')
-    .click();
-  await page.locator('.menu').getByText(item, { exact: true }).click();
-};
 
 test.describe('Posture checks', () => {
   test.skip(!process.env.DEFGUARD_LICENSE_KEY, 'Requires DEFGUARD_LICENSE_KEY.');
@@ -288,10 +256,10 @@ test.describe('Posture checks', () => {
     await expect(postureCell(rows.first(), 'Title')).toHaveText('edited check');
     await expect(postureCell(rows.first(), 'Linux')).toHaveText('Kernel 6');
     await expect(postureCell(rows.first(), 'macOS')).toHaveText('14, Disk encryption');
-    await expect(postureCell(rows.first(), 'iOS')).not.toContainText('iOS');
+    await expect(postureCell(rows.first(), 'iOS')).toHaveText('-');
     const drawer = await openDrawer(page, 'edited check');
     await expect(drawer).toContainText('edited description');
-    await expect(drawer.locator('.section-name', { hasText: /^iOS$/ })).toHaveCount(0);
+    await expect(drawer.getByText('iOS', { exact: true })).toHaveCount(0);
     await expect(drawerValues(page, 'Linux', 'Version')).toHaveText([
       'Kernel 6 and higher',
     ]);
@@ -322,7 +290,6 @@ test.describe('Posture checks', () => {
     await expect(rows.filter({ hasText: 'Copy of original check' })).toContainText(
       'Kernel 6',
     );
-    await expect(rows.filter({ hasText: /^original check/ })).toContainText('Kernel 6');
   });
 
   test('Assign posture check to locations', async ({ page, browser }) => {

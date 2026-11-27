@@ -10,7 +10,12 @@ import { apiGetLicenseInfo } from '../utils/api/settings';
 import { createUser } from '../utils/controllers/createUser';
 import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
-import { addLogStream, LogStream, setupSMTP } from '../utils/controllers/settings';
+import {
+  addLogStream,
+  licenseProperty,
+  LogStream,
+  setupSMTP,
+} from '../utils/controllers/settings';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
@@ -331,10 +336,8 @@ test.describe('Settings', () => {
       await loginBasic(page, defaultUserAdmin);
       await page.goto(routes.base + routes.settings.license);
 
-      const property = (title: string) =>
-        page.locator('.license-property-info', { hasText: title }).locator('.bottom');
-      await expect(property('Current plan')).toContainText('Enterprise');
-      await expect(property('Current plan')).toContainText('Active');
+      await expect(licenseProperty(page, 'Current plan')).toContainText('Enterprise');
+      await expect(licenseProperty(page, 'Current plan')).toContainText('Active');
       const license = await apiGetLicenseInfo(page.request);
       const supportLabels: Record<string, string> = {
         Free: 'Community',
@@ -343,14 +346,14 @@ test.describe('Settings', () => {
         BasicEnterprise: 'Basic Enterprise',
         DirectEnterprise: 'Direct Enterprise',
       };
-      await expect(property('License type')).toHaveText(
+      await expect(licenseProperty(page, 'License type')).toHaveText(
         license.subscription ? 'Subscription' : 'Offline',
       );
-      await expect(property('Support type')).toHaveText(
+      await expect(licenseProperty(page, 'Support type')).toHaveText(
         supportLabels[license.support_type],
       );
       expect(license.valid_until).not.toBeNull();
-      await expect(property('Valid until')).toContainText(
+      await expect(licenseProperty(page, 'Valid until')).toContainText(
         new Date(license.valid_until ?? '').toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
@@ -471,10 +474,10 @@ test.describe('Settings', () => {
     ).toBeVisible();
     await expect(
       page.locator('.interactive-block', { hasText: 'Gateway disconnect notifications' }),
-    ).toHaveClass(/\bdisabled\b/);
+    ).toContainClass('disabled');
     await expect(
       page.locator('.interactive-block', { hasText: 'Gateway reconnect notifications' }),
-    ).toHaveClass(/\bdisabled\b/);
+    ).toContainClass('disabled');
   });
 
   test('Gateway notifications are saved', async ({ page, browser }) => {

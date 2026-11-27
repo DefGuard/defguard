@@ -11,7 +11,7 @@ type MailpitSearchResponse = {
   messages: MailpitSummary[];
 };
 
-export type MailpitMessage = {
+type MailpitMessage = {
   Subject: string;
   Text: string;
 };
@@ -23,7 +23,7 @@ export const apiClearMailbox = async (request: APIRequestContext): Promise<void>
   expect(response.ok()).toBe(true);
 };
 
-export const apiSearchMail = async (
+const apiSearchMail = async (
   request: APIRequestContext,
   to: string,
   subject?: string,

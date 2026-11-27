@@ -128,3 +128,39 @@ export const createPostureCheck = async (
   ).toBeVisible();
   await context.close();
 };
+
+const postureColumns = [
+  'Title',
+  'Windows',
+  'macOS',
+  'Linux',
+  'iOS',
+  'Android',
+  'Desktop client',
+  'Mobile app',
+];
+
+export const postureCell = (row: Locator, column: string) =>
+  row.locator('.table-cell').nth(postureColumns.indexOf(column));
+
+export const openDrawer = async (page: Page, name: string) => {
+  await page.locator('.virtual-row').filter({ hasText: name }).getByText(name).click();
+  return page.locator('.posture-check-drawer');
+};
+
+export const drawerValues = (page: Page, section: string, label: string) =>
+  page
+    .locator('.posture-check-drawer .drawer-section')
+    .filter({ has: page.locator('.section-name').getByText(section, { exact: true }) })
+    .locator('.section-row')
+    .filter({ has: page.locator('.section-row-label').getByText(label, { exact: true }) })
+    .locator('.section-row-value');
+
+export const openRowMenu = async (page: Page, name: string, item: string) => {
+  await page
+    .locator('.virtual-row')
+    .filter({ hasText: name })
+    .locator('.icon-button')
+    .click();
+  await page.locator('.menu').getByText(item, { exact: true }).click();
+};
