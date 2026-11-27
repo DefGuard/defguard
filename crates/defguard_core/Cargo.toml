@@ -19,12 +19,12 @@ defguard_web_ui.workspace = true
 model_derive.workspace = true
 
 # mail (moved in-crate from the former defguard_mail crate)
-css-inline = "0.23"
+css-inline = "0.25"
 image = { version = "0.25", default-features = false, features = ["png"] } # match with qrcode
 lettre.workspace = true
 mrml = "6.0"
 pulldown-cmark.workspace = true
-qrcode = { version = "0.14", default-features = false, features = ["image"] }
+qrcode = { version = "0.15", default-features = false, features = ["image"] }
 
 # external dependencies
 ammonia.workspace = true
@@ -92,11 +92,11 @@ tracing-subscriber.workspace = true
 trait-variant.workspace = true
 ua-parser.workspace = true
 # Shared TPM fixtures, enabled only by test-support.
-aes = { version = "0.8", optional = true }
-cfb-mode = { version = "0.8", optional = true }
-hmac = { version = "0.12", optional = true }
-p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"], optional = true }
-sha2_10 = { package = "sha2", version = "0.10", optional = true }
+aes = { version = "0.9", optional = true }
+cfb-mode = { version = "0.9", optional = true }
+hmac = { version = "0.13", optional = true }
+p256 = { version = "0.14", features = ["ecdh", "ecdsa", "pkcs8"], optional = true }
+sha2_10 = { package = "sha2", version = "0.11", optional = true }
 # openapi
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
@@ -126,11 +126,11 @@ name = "openapi"
 required-features = ["openapi"]
 
 [dev-dependencies]
-aes = "0.8"
-cfb-mode = "0.8"
-hmac = "0.12"
-p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"] }
-sha2_10 = { package = "sha2", version = "0.10" }
+aes = "0.9"
+cfb-mode = "0.9"
+hmac = "0.13"
+p256 = { version = "0.14", features = ["ecdh", "ecdsa", "pkcs8"] }
+sha2_10 = { package = "sha2", version = "0.11" }
 # Enable the shared test-only helpers (mock SMTP server) for the test build.
 defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
@@ -138,17 +138,17 @@ ed25519-dalek.workspace = true
 getrandom.workspace = true
 hyper-util.workspace = true
 rcgen.workspace = true
-reqwest = { version = "0.12", features = [
+reqwest = { version = "=0.12.28", features = [
     "cookies",
     "json",
     "multipart",
     "rustls-tls",
     "stream",
 ], default-features = false }
-serde_qs = "1.0"
+serde_qs = "=1.1.3"
 tower.workspace = true
-webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
-wiremock = "0.6"
+webauthn-authenticator-rs = { version = "=0.5.5", features = ["softpasskey"] }
+wiremock = "=0.6.5"
 
 [build-dependencies]
 tonic-prost-build.workspace = true
