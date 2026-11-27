@@ -4,8 +4,8 @@
 //! for cryptographic operations.
 
 use openssl::{
-    bn::{BigNum, BigNumContext},
-    ec::{EcGroup, EcKey, EcPoint},
+    bn::BigNum,
+    ec::{EcGroup, EcKey},
     nid::Nid,
     pkey::{PKey, Public},
     rsa::Rsa,
@@ -15,23 +15,18 @@ use sha2::{Digest, Sha256};
 use tpm2_protocol::{
     TpmUnmarshal,
     data::{
-        TpmAlgId, TpmEccCurve, TpmsEccPoint, TpmtPublic, TpmtSymDefObject, TpmuAsymScheme,
-        TpmuPublicId, TpmuPublicParms, TpmuSymKeyBits, TpmuSymMode,
+        TpmAlgId, TpmEccCurve, TpmaObject, TpmsEccPoint, TpmtPublic, TpmtSymDefObject,
+        TpmuAsymScheme, TpmuPublicId, TpmuPublicParms, TpmuSymKeyBits, TpmuSymMode,
     },
 };
 
 use super::{MAX_PUBLIC_SIZE, Result, TpmError};
 
-const FIXED_TPM: u32 = 1 << 1;
-const FIXED_PARENT: u32 = 1 << 4;
-const SENSITIVE_DATA_ORIGIN: u32 = 1 << 5;
-const USER_WITH_AUTH: u32 = 1 << 6;
-const ADMIN_WITH_POLICY: u32 = 1 << 7;
-const NO_DA: u32 = 1 << 10;
-const RESTRICTED: u32 = 1 << 16;
-const DECRYPT: u32 = 1 << 17;
-const SIGN: u32 = 1 << 18;
-const RESIDENT: u32 = FIXED_TPM | FIXED_PARENT | SENSITIVE_DATA_ORIGIN;
+const RESIDENT: TpmaObject = TpmaObject::from_bits_truncate(
+    TpmaObject::FIXED_TPM.bits()
+        | TpmaObject::FIXED_PARENT.bits()
+        | TpmaObject::SENSITIVE_DATA_ORIGIN.bits(),
+);
 
 pub(super) enum EndorsementKey {
     Rsa(PKey<Public>),
@@ -62,8 +57,10 @@ fn parse_public(bytes: &[u8]) -> Result<TpmtPublic> {
     Ok(public)
 }
 
-fn attributes_match(attributes: u32, required: u32) -> Result<()> {
-    if attributes & required != required || attributes & !(required | NO_DA) != 0 {
+fn attributes_match(attributes: TpmaObject, required: TpmaObject) -> Result<()> {
+    // NO_DA is optional. Check the full bit mask so reserved bits are also rejected.
+    let allowed = required | TpmaObject::NO_DA;
+    if !attributes.contains(required) || attributes.bits() & !allowed.bits() != 0 {
         return Err(TpmError::UnsupportedProfile(
             "invalid key object attributes",
         ));
@@ -75,8 +72,8 @@ fn coordinate(bytes: &[u8]) -> Result<[u8; 32]> {
     if bytes.is_empty() || bytes.len() > 32 {
         return Err(TpmError::InvalidPublic("invalid P-256 coordinate size"));
     }
-    // TPM coordinates may omit leading zeroes. Restore the fixed-width P-256
-    // representation for point encoding and the ECC credential KDF.
+    // TPM coordinates may omit leading zeroes. The ECC credential KDF needs X
+    // in its fixed-width P-256 representation.
     let mut padded = [0u8; 32];
     padded[32 - bytes.len()..].copy_from_slice(bytes);
     Ok(padded)
@@ -85,17 +82,11 @@ fn coordinate(bytes: &[u8]) -> Result<[u8; 32]> {
 fn ecc_key(point: &TpmsEccPoint) -> Result<(PKey<Public>, [u8; 32])> {
     let x = coordinate(point.x.as_ref())?;
     let y = coordinate(point.y.as_ref())?;
-    // OpenSSL expects the SEC 1 uncompressed point encoding: prefix 0x04, then X and Y.
-    let mut encoded = [0u8; 65];
-    encoded[0] = 4;
-    encoded[1..33].copy_from_slice(&x);
-    encoded[33..].copy_from_slice(&y);
     let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)?;
-    let mut context = BigNumContext::new()?;
-    let point = EcPoint::from_bytes(&group, &encoded, &mut context)
+    let x_coordinate = BigNum::from_slice(&x)?;
+    let y_coordinate = BigNum::from_slice(&y)?;
+    let key = EcKey::from_public_key_affine_coordinates(&group, &x_coordinate, &y_coordinate)
         .map_err(|_| TpmError::InvalidPublic("invalid P-256 point"))?;
-    let key = EcKey::from_public_key(&group, &point)
-        .map_err(|_| TpmError::InvalidPublic("invalid P-256 key"))?;
     key.check_key()
         .map_err(|_| TpmError::InvalidPublic("invalid P-256 key"))?;
     Ok((PKey::from_ec_key(key)?, x))
@@ -138,8 +129,8 @@ fn check_ecc_parameters(curve: TpmEccCurve, kdf: TpmAlgId) -> Result<()> {
 pub(super) fn endorsement_key(bytes: &[u8]) -> Result<EndorsementKey> {
     let public = parse_public(bytes)?;
     attributes_match(
-        public.object_attributes.bits(),
-        RESIDENT | ADMIN_WITH_POLICY | RESTRICTED | DECRYPT,
+        public.object_attributes,
+        RESIDENT | TpmaObject::ADMIN_WITH_POLICY | TpmaObject::RESTRICTED | TpmaObject::DECRYPT,
     )?;
     if public.auth_policy.as_ref().len() != 32 {
         return Err(TpmError::UnsupportedProfile(
@@ -184,8 +175,11 @@ pub(super) fn signing_key(bytes: &[u8], restricted: bool) -> Result<PKey<Public>
     else {
         return Err(TpmError::UnsupportedProfile("expected ECC signing key"));
     };
-    let required = RESIDENT | USER_WITH_AUTH | SIGN | if restricted { RESTRICTED } else { 0 };
-    attributes_match(public.object_attributes.bits(), required)?;
+    let mut required = RESIDENT | TpmaObject::USER_WITH_AUTH | TpmaObject::SIGN_ENCRYPT;
+    if restricted {
+        required |= TpmaObject::RESTRICTED;
+    }
+    attributes_match(public.object_attributes, required)?;
     if !public.auth_policy.as_ref().is_empty() {
         return Err(TpmError::UnsupportedProfile(
             "expected empty signing-key authorization policy",
