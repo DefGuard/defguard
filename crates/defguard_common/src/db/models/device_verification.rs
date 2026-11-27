@@ -2,11 +2,11 @@ use std::{fmt, time::SystemTime};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use model_derive::Model;
-use sqlx::{PgConnection, PgExecutor, Type, query, query_as};
+use sqlx::{Acquire, PgConnection, PgExecutor, Type, query, query_as, query_scalar};
 use totp_lite::{Sha1, totp_custom};
 
 use crate::{
-    db::{Id, NoId},
+    db::{Id, NoId, models::device::DeviceState},
     random::gen_totp_secret,
 };
 
@@ -84,18 +84,32 @@ impl DeviceVerification {
     }
 
     /// Stores this verification unless the device already has an active one, which is
-    /// returned instead. The flag tells whether a new verification was stored.
+    /// returned instead. The flag tells whether a new verification was stored. Returns `None`
+    /// when the device is blocked or no longer exists.
     pub async fn start_or_get(
         self,
         conn: &mut PgConnection,
-    ) -> sqlx::Result<(DeviceVerification<Id>, bool)> {
+    ) -> sqlx::Result<Option<(DeviceVerification<Id>, bool)>> {
+        let mut transaction = conn.begin().await?;
+        // bulk block locks the device row before resolving its session, so a start either waits
+        // for the block to commit and sees it, or commits first and gets its session resolved
+        let state = query_scalar!(
+            "SELECT state \"state: DeviceState\" FROM device WHERE id = $1 FOR SHARE",
+            self.device_id
+        )
+        .fetch_optional(&mut *transaction)
+        .await?;
+        if state != Some(DeviceState::Enabled) {
+            return Ok(None);
+        }
+
         // a finished session is replaced by a new row, so a stale session id never reads its status
         query!(
             "DELETE FROM device_verification WHERE device_id = $1 \
-            AND (expires_at <= (now() AT TIME ZONE 'UTC') OR outcome IS NOT NULL)",
+            AND (expires_at <= (clock_timestamp() AT TIME ZONE 'UTC') OR outcome IS NOT NULL)",
             self.device_id
         )
-        .execute(&mut *conn)
+        .execute(&mut *transaction)
         .await?;
 
         let started = query_as!(
@@ -111,23 +125,25 @@ impl DeviceVerification {
             self.created_at,
             self.expires_at,
         )
-        .fetch_optional(&mut *conn)
+        .fetch_optional(&mut *transaction)
         .await?;
-        if let Some(started) = started {
-            return Ok((started, true));
-        }
-
-        // the row may expire between the two queries, so it is fetched without the expiry filter
-        let existing = query_as!(
-            DeviceVerification::<Id>,
-            "SELECT id, device_id, started_by, secret, created_at, expires_at, \
-            outcome \"outcome?: DeviceVerificationOutcome\", resolved_at \
-            FROM device_verification WHERE device_id = $1",
-            self.device_id
-        )
-        .fetch_one(&mut *conn)
-        .await?;
-        Ok((existing, false))
+        let result = if let Some(started) = started {
+            (started, true)
+        } else {
+            // the row may expire between the two queries, so it is fetched without the expiry filter
+            let existing = query_as!(
+                DeviceVerification::<Id>,
+                "SELECT id, device_id, started_by, secret, created_at, expires_at, \
+                outcome \"outcome?: DeviceVerificationOutcome\", resolved_at \
+                FROM device_verification WHERE device_id = $1",
+                self.device_id
+            )
+            .fetch_one(&mut *transaction)
+            .await?;
+            (existing, false)
+        };
+        transaction.commit().await?;
+        Ok(Some(result))
     }
 }
 
@@ -144,7 +160,8 @@ impl DeviceVerification<Id> {
             "SELECT id, device_id, started_by, secret, created_at, expires_at, \
             outcome \"outcome?: DeviceVerificationOutcome\", resolved_at \
             FROM device_verification \
-            WHERE device_id = $1 AND outcome IS NULL AND expires_at > (now() AT TIME ZONE 'UTC')",
+            WHERE device_id = $1 AND outcome IS NULL \
+            AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')",
             device_id
         )
         .fetch_optional(executor)
@@ -171,7 +188,8 @@ impl DeviceVerification<Id> {
         .await
     }
 
-    /// Does nothing when the session already expired or was resolved.
+    /// Does nothing when the session already expired or was resolved. Uses the wall clock, as
+    /// `now()` stays at the start of the transaction and a bulk action may outlive the session.
     pub async fn resolve_active_for_device<'e, E>(
         executor: E,
         device_id: Id,
@@ -183,8 +201,9 @@ impl DeviceVerification<Id> {
         query_as!(
             Self,
             "UPDATE device_verification \
-            SET outcome = $2, resolved_at = (now() AT TIME ZONE 'UTC') \
-            WHERE device_id = $1 AND outcome IS NULL AND expires_at > (now() AT TIME ZONE 'UTC') \
+            SET outcome = $2, resolved_at = (clock_timestamp() AT TIME ZONE 'UTC') \
+            WHERE device_id = $1 AND outcome IS NULL \
+            AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC') \
             RETURNING id, device_id, started_by, secret, created_at, expires_at, \
             outcome \"outcome?: DeviceVerificationOutcome\", resolved_at",
             device_id,

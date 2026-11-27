@@ -48,6 +48,15 @@ impl ClientCommonServer {
                     device.name, device.id
                 );
                 CoreError::internal("failed to start verification")
+            })?
+            .ok_or_else(|| {
+                // blocked after the request authenticated
+                warn!(
+                    "Denying verification start of blocked device {}({})",
+                    device.name, device.id
+                );
+                CoreError::permission_denied("device blocked")
+                    .with_code(CoreErrorCode::DeviceBlocked)
             })?;
         if created {
             info!(

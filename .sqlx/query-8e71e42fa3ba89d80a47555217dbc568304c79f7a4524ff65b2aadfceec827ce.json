@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE device_verification SET expires_at = (clock_timestamp() AT TIME ZONE 'UTC') + interval '300 milliseconds' WHERE device_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8e71e42fa3ba89d80a47555217dbc568304c79f7a4524ff65b2aadfceec827ce"
+}

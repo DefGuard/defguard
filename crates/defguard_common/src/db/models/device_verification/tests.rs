@@ -7,7 +7,7 @@ use sqlx::{
 use super::*;
 use crate::db::{
     models::{
-        device::{Device, DeviceType},
+        device::{Device, DeviceState, DeviceType},
         user::User,
     },
     setup_pool,
@@ -46,6 +46,7 @@ async fn start(pool: &PgPool, device_id: Id, started_by: Id) -> (DeviceVerificat
     DeviceVerification::new(device_id, Some(started_by))
         .start_or_get(&mut conn)
         .await
+        .unwrap()
         .unwrap()
 }
 
@@ -135,6 +136,110 @@ async fn test_start_replaces_expired_verification(_: PgPoolOptions, options: PgC
     assert_eq!(second.started_by, Some(other_admin.id));
     assert!(second.expires_at > first.expires_at);
     assert_eq!(count(&pool).await, 1);
+}
+
+#[sqlx::test]
+async fn test_start_rejects_blocked_device(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let admin = create_user(&pool, "admin1").await;
+    let owner = create_user(&pool, "owner1").await;
+    let mut device = create_device(&pool, owner.id).await;
+    device.state = DeviceState::Blocked;
+    device.save(&pool).await.unwrap();
+
+    let mut conn = pool.acquire().await.unwrap();
+    for device_id in [device.id, 9999] {
+        assert!(
+            DeviceVerification::new(device_id, Some(admin.id))
+                .start_or_get(&mut conn)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+    assert_eq!(count(&pool).await, 0);
+}
+
+#[sqlx::test]
+async fn test_start_waits_for_concurrent_block(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let admin = create_user(&pool, "admin1").await;
+    let owner = create_user(&pool, "owner1").await;
+    let device = create_device(&pool, owner.id).await;
+
+    let mut block = pool.begin().await.unwrap();
+    query!(
+        "SELECT id FROM device WHERE id = $1 FOR NO KEY UPDATE",
+        device.id
+    )
+    .fetch_one(&mut *block)
+    .await
+    .unwrap();
+    let start = tokio::spawn({
+        let pool = pool.clone();
+        async move {
+            let mut conn = pool.acquire().await.unwrap();
+            DeviceVerification::new(device.id, Some(admin.id))
+                .start_or_get(&mut conn)
+                .await
+                .unwrap()
+        }
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert!(!start.is_finished());
+    query!(
+        "UPDATE device SET state = 'blocked' WHERE id = $1",
+        device.id
+    )
+    .execute(&mut *block)
+    .await
+    .unwrap();
+    block.commit().await.unwrap();
+
+    assert!(start.await.unwrap().is_none());
+    assert_eq!(count(&pool).await, 0);
+}
+
+#[sqlx::test]
+async fn test_resolve_uses_wall_clock(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let admin = create_user(&pool, "admin1").await;
+    let owner = create_user(&pool, "owner1").await;
+    let device = create_device(&pool, owner.id).await;
+    let (verification, _) = start(&pool, device.id, admin.id).await;
+    query!(
+        "UPDATE device_verification \
+        SET expires_at = (clock_timestamp() AT TIME ZONE 'UTC') + interval '300 milliseconds' \
+        WHERE device_id = $1",
+        device.id
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let mut transaction = pool.begin().await.unwrap();
+    query!("SELECT now()")
+        .fetch_one(&mut *transaction)
+        .await
+        .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(600)).await;
+    assert!(
+        DeviceVerification::resolve_active_for_device(
+            &mut *transaction,
+            device.id,
+            DeviceVerificationOutcome::Blocked
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
+    transaction.commit().await.unwrap();
+
+    let stored = DeviceVerification::find_for_device(&pool, verification.id, device.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored.outcome, None);
 }
 
 #[sqlx::test]

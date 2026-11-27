@@ -1,5 +1,11 @@
 import './style.scss';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
@@ -41,13 +47,17 @@ const modalName = ModalName.DeviceVerification;
 
 const fallbackCodePeriod = 60;
 
-const cancelAndClose = (deviceId: number) => {
-  // a 404 only means the verification already expired
-  api.device.cancelDeviceVerification(deviceId).catch(() => undefined);
+const cancelAndClose = (deviceId: number, queryClient: QueryClient) => {
+  api.device
+    .cancelDeviceVerification(deviceId)
+    // a 404 only means the verification already expired
+    .catch(() => undefined)
+    .finally(() => queryClient.invalidateQueries({ queryKey: ['device'] }));
   closeModal(modalName);
 };
 
 export const DeviceVerificationModal = () => {
+  const queryClient = useQueryClient();
   const [isOpen, setOpen] = useState(false);
   const [modalData, setModalData] = useState<OpenDeviceVerificationModal | null>(null);
   const [screen, setScreen] = useState<ScreenVariantValue>(ScreenVariant.Default);
@@ -83,7 +93,7 @@ export const DeviceVerificationModal = () => {
       title={title}
       isOpen={isOpen}
       onClose={() => {
-        if (isPresent(modalData)) cancelAndClose(modalData.device.id);
+        if (isPresent(modalData)) cancelAndClose(modalData.device.id, queryClient);
       }}
       afterClose={() => {
         setModalData(null);
@@ -92,7 +102,11 @@ export const DeviceVerificationModal = () => {
       {isPresent(modalData) && (
         <div className="content">
           {screen === ScreenVariant.Default && (
-            <DefaultScreen device={modalData.device} onScreenChange={setScreen} />
+            <DefaultScreen
+              device={modalData.device}
+              isOpen={isOpen}
+              onScreenChange={setScreen}
+            />
           )}
           {screen === ScreenVariant.Block && (
             <ConfirmScreen
@@ -126,21 +140,20 @@ export const DeviceVerificationModal = () => {
 
 type DefaultScreenProps = {
   device: DeviceOverview;
+  isOpen: boolean;
   onScreenChange: (screen: ScreenVariantValue) => void;
 };
 
-const DefaultScreen = ({ device, onScreenChange }: DefaultScreenProps) => {
+const DefaultScreen = ({ device, isOpen, onScreenChange }: DefaultScreenProps) => {
+  const queryClient = useQueryClient();
   const { secondsLeft, start: startTimer } = useTimer();
 
-  const { data, isError } = useQuery({
+  const { data: started, isError: isStartError } = useQuery({
     // outside the 'device' prefix so device invalidations don't start a new verification
     queryKey: ['device-verification', device.id],
     queryFn: () => api.device.startDeviceVerification(device.id),
-    select: (response) => response.data,
-    staleTime: 0,
+    staleTime: Infinity,
     gcTime: 0,
-    refetchInterval: (query) =>
-      (query.state.data?.data.code_expires_in ?? fallbackCodePeriod) * 1000,
   });
 
   const { mutate: verify, isPending: isVerifying } = useMutation({
@@ -153,17 +166,46 @@ const DefaultScreen = ({ device, onScreenChange }: DefaultScreenProps) => {
     onError: () => Snackbar.error(m.devices_verify_error()),
   });
 
+  const sessionId = started?.data.session_id;
+  const isPolling = isOpen && !isVerifying && isPresent(sessionId);
+  // only reads the started session, so the view ends with it instead of starting another one
+  const { data, isError: isSessionEnded } = useQuery({
+    queryKey: ['device-verification-session', device.id, sessionId],
+    queryFn: isPolling
+      ? () => api.device.getDeviceVerification(device.id, sessionId)
+      : skipToken,
+    initialData: started,
+    select: (response) => response.data,
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchInterval: (query) =>
+      (query.state.data?.data.code_expires_in ?? fallbackCodePeriod) * 1000,
+  });
+
+  useEffect(() => {
+    if (isPresent(sessionId)) queryClient.invalidateQueries({ queryKey: ['device'] });
+  }, [sessionId, queryClient]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: startTimer is recreated on every render
   useEffect(() => {
     if (isPresent(data)) startTimer(data.code_expires_in);
   }, [data]);
 
   useEffect(() => {
-    if (isError) {
+    if (isStartError) {
       Snackbar.error(m.devices_modal_verification_load_error());
       closeModal(modalName);
     }
-  }, [isError]);
+  }, [isStartError]);
+
+  useEffect(() => {
+    if (isSessionEnded) {
+      Snackbar.error(m.devices_modal_verification_ended());
+      queryClient.invalidateQueries({ queryKey: ['device'] });
+      closeModal(modalName);
+    }
+  }, [isSessionEnded, queryClient]);
 
   const digits = useMemo(
     () => (isPresent(data) ? [...data.code].map(Number) : []),
@@ -178,7 +220,7 @@ const DefaultScreen = ({ device, onScreenChange }: DefaultScreenProps) => {
             text: m.devices_modal_verification_leave_unverified(),
             icon: 'pending',
             testId: 'device-verification-leave-unverified',
-            onClick: () => cancelAndClose(device.id),
+            onClick: () => cancelAndClose(device.id, queryClient),
           },
         ],
       },
@@ -200,7 +242,7 @@ const DefaultScreen = ({ device, onScreenChange }: DefaultScreenProps) => {
         ],
       },
     ],
-    [device.id, onScreenChange],
+    [device.id, onScreenChange, queryClient],
   );
 
   return (
@@ -244,7 +286,7 @@ const DefaultScreen = ({ device, onScreenChange }: DefaultScreenProps) => {
             text={m.controls_cancel()}
             testId="device-verification-cancel"
             disabled={isVerifying}
-            onClick={() => cancelAndClose(device.id)}
+            onClick={() => cancelAndClose(device.id, queryClient)}
           />
           <Button
             text={m.devices_action_verify()}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device_verification WHERE device_id = $1 AND (expires_at <= (clock_timestamp() AT TIME ZONE 'UTC') OR outcome IS NOT NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "824f02e06bc75fc2ab45b9645a053cc892b1c8b6a1c23693475b5f44af0fa2fb"
+}

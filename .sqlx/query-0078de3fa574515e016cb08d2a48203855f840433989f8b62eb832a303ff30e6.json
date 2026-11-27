@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE device_verification SET outcome = $2, resolved_at = (now() AT TIME ZONE 'UTC') WHERE device_id = $1 AND outcome IS NULL AND expires_at > (now() AT TIME ZONE 'UTC') RETURNING id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at",
+  "query": "SELECT id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at FROM device_verification WHERE device_id = $1 AND outcome IS NULL AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')",
   "describe": {
     "columns": [
       {
@@ -105,19 +105,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        {
-          "Custom": {
-            "name": "device_verification_outcome",
-            "kind": {
-              "Enum": [
-                "verified",
-                "blocked",
-                "cancelled"
-              ]
-            }
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -131,5 +119,5 @@
       true
     ]
   },
-  "hash": "a26dda656afad824686c611511d2d53f90c4247df73b09c61f589e7bdbe89b4a"
+  "hash": "0078de3fa574515e016cb08d2a48203855f840433989f8b62eb832a303ff30e6"
 }

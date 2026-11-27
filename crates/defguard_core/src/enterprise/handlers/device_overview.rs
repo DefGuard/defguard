@@ -15,7 +15,7 @@ use defguard_common::db::{
     },
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
+use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder, query};
 
 use super::{EnterpriseTier, device_verification::broadcast_verification_resolved};
 use crate::{
@@ -98,8 +98,16 @@ pub(crate) struct DeviceOverviewSortParams {
     sort_order: SortOrder,
 }
 
-/// Joins shared by the data and count queries, since filters reference ci, s and u.
+/// Joins shared by the data and count queries, since filters reference ci, s, u and v.
+/// An unverified device with an active verification session is reported as pending.
 const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
+    CROSS JOIN LATERAL ( \
+        SELECT CASE WHEN d.verification = 'unverified' AND EXISTS ( \
+            SELECT 1 FROM device_verification dv \
+            WHERE dv.device_id = d.id AND dv.outcome IS NULL \
+            AND dv.expires_at > (now() AT TIME ZONE 'UTC') \
+        ) THEN 'pending'::device_verification_status ELSE d.verification END verification \
+    ) v \
     LEFT JOIN device_client_info ci ON ci.device_id = d.id \
     LEFT JOIN LATERAL ( \
         SELECT bool_or(state = 'connected') connected, MAX(connected_at) last_connected_at \
@@ -156,7 +164,7 @@ pub(crate) async fn list_devices_overview(
     );
 
     let mut query_builder = QueryBuilder::<Postgres>::new(
-        "SELECT d.id, d.name, d.state, d.verification, d.attestation_status, \
+        "SELECT d.id, d.name, d.state, v.verification, d.attestation_status, \
         u.id user_id, u.username, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
         COALESCE(s.connected, false) connected, s.last_connected_at, \
@@ -232,7 +240,7 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &DeviceOve
     }
     if !filters.verification.is_empty() {
         query_builder
-            .push(" AND d.verification = ANY(")
+            .push(" AND v.verification = ANY(")
             .push_bind(filters.verification.clone())
             .push(") ");
     }
@@ -294,13 +302,20 @@ pub(crate) struct BulkDeviceOperationRequest {
     devices: Vec<Id>,
 }
 
-/// Rejects the whole request when any of the given IDs does not exist.
+/// Rejects the whole request when any of the given IDs does not exist. Locks the rows in ID
+/// order until the transaction ends, which serializes the action with verification starts.
 async fn find_devices(
     conn: &mut PgConnection,
     mut ids: Vec<Id>,
 ) -> Result<Vec<Device<Id>>, WebError> {
     ids.sort_unstable();
     ids.dedup();
+    query!(
+        "SELECT id FROM device WHERE id = ANY($1) ORDER BY id FOR NO KEY UPDATE",
+        &ids
+    )
+    .fetch_all(&mut *conn)
+    .await?;
     let mut devices = Vec::with_capacity(ids.len());
     for id in ids {
         let device = Device::find_by_id(&mut *conn, id).await?.ok_or_else(|| {

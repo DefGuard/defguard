@@ -144,6 +144,7 @@ async fn test_verification_start_joins_admin_session(_: PgPoolOptions, options: 
     let (admin_session, _) = DeviceVerification::new(device.id, Some(admin.id))
         .start_or_get(&mut conn)
         .await
+        .unwrap()
         .unwrap();
     drop(conn);
 

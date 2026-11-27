@@ -3,7 +3,8 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, User,
+            Device, DeviceState, DeviceType, User,
+            device::DeviceVerificationStatus,
             device_verification::{
                 DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification, DeviceVerificationOutcome,
             },
@@ -368,4 +369,185 @@ async fn test_verify_resolves_session_of_verified_device(
         .unwrap()
         .unwrap();
     assert_eq!(resolved.outcome, Some(DeviceVerificationOutcome::Verified));
+}
+
+#[sqlx::test]
+async fn test_get_device_verification(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    let device = make_device(pool, "laptop", user_id, DeviceType::User).await;
+    let other_device = make_device(pool, "phone", user_id, DeviceType::User).await;
+    let session_url =
+        |device_id: Id, session_id: Id| format!("{}/{session_id}", verification_url(device_id));
+
+    client.login_user("admin", "pass123").await;
+    assert_eq!(
+        client.get(session_url(device.id, 1)).send().await.status(),
+        StatusCode::FORBIDDEN
+    );
+    set_enterprise_license();
+
+    let response = client.post(verification_url(device.id)).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let started: Value = response.json().await;
+    let session_id = started["session_id"].as_i64().unwrap();
+    client.drain_all_events();
+
+    let response = client.get(session_url(device.id, session_id)).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    assert_eq!(body["session_id"], session_id);
+    assert_eq!(body["device_id"], device.id);
+    assert_eq!(body["expires_at"], started["expires_at"]);
+    assert_eq!(body["code"].as_str().unwrap().len(), 6);
+    assert_eq!(
+        client
+            .get(session_url(other_device.id, session_id))
+            .send()
+            .await
+            .status(),
+        StatusCode::NOT_FOUND,
+        "a session of another device"
+    );
+
+    assert_eq!(
+        client
+            .delete(verification_url(device.id))
+            .send()
+            .await
+            .status(),
+        StatusCode::OK
+    );
+    assert_eq!(
+        client
+            .get(session_url(device.id, session_id))
+            .send()
+            .await
+            .status(),
+        StatusCode::NOT_FOUND,
+        "a resolved session"
+    );
+
+    let response = client.post(verification_url(device.id)).send().await;
+    let session_id = response.json::<Value>().await["session_id"]
+        .as_i64()
+        .unwrap();
+    expire(pool, device.id).await;
+    assert_eq!(
+        client
+            .get(session_url(device.id, session_id))
+            .send()
+            .await
+            .status(),
+        StatusCode::NOT_FOUND,
+        "an expired session"
+    );
+    assert!(
+        DeviceVerification::find_for_device(pool, session_id, device.id)
+            .await
+            .unwrap()
+            .is_some(),
+        "reading must not replace the session"
+    );
+}
+
+#[sqlx::test]
+async fn test_start_device_verification_of_blocked_device(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    let mut device = make_device(pool, "laptop", user_id, DeviceType::User).await;
+    device.state = DeviceState::Blocked;
+    device.save(pool).await.unwrap();
+    client.login_user("admin", "pass123").await;
+
+    assert_eq!(
+        client
+            .post(verification_url(device.id))
+            .send()
+            .await
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    assert!(
+        DeviceVerification::find_active_for_device(pool, device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_overview_reports_pending_verification(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, client_state) = make_test_client(pool).await;
+    set_enterprise_license();
+    let pool = &client_state.pool;
+    let user_id = client_state.test_user.id;
+    let pending = make_device(pool, "pending", user_id, DeviceType::User).await;
+    let unverified = make_device(pool, "unverified", user_id, DeviceType::User).await;
+    let mut verified = make_device(pool, "verified", user_id, DeviceType::User).await;
+    verified.verification = DeviceVerificationStatus::Verified;
+    verified.save(pool).await.unwrap();
+    let expired = make_device(pool, "expired", user_id, DeviceType::User).await;
+    client.login_user("admin", "pass123").await;
+    for device in [&pending, &verified, &expired] {
+        assert_eq!(
+            client
+                .post(verification_url(device.id))
+                .send()
+                .await
+                .status(),
+            StatusCode::OK
+        );
+    }
+    expire(pool, expired.id).await;
+
+    let response = client.get("/api/v1/device/overview").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await;
+    let status_of = |id: Id| {
+        body["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == id)
+            .unwrap()["verification"]
+            .clone()
+    };
+    assert_eq!(status_of(pending.id), "pending");
+    assert_eq!(status_of(unverified.id), "unverified");
+    assert_eq!(status_of(verified.id), "verified");
+    assert_eq!(status_of(expired.id), "unverified");
+
+    for (filter, expected) in [
+        ("pending", vec![pending.id]),
+        ("unverified", vec![expired.id, unverified.id]),
+    ] {
+        let response = client
+            .get(format!("/api/v1/device/overview?verification={filter}"))
+            .send()
+            .await;
+        let body: Value = response.json().await;
+        let ids: Vec<Id> = body["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["id"].as_i64().unwrap())
+            .collect();
+        assert_eq!(ids, expected, "filter: {filter}");
+        assert_eq!(
+            body["pagination"]["total_items"],
+            expected.len(),
+            "filter: {filter}"
+        );
+    }
 }

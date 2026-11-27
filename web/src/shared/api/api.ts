@@ -458,6 +458,10 @@ const api = {
       fetchPage<DeviceOverview>('/device/overview', params),
     startDeviceVerification: (deviceId: number) =>
       client.post<DeviceVerificationSession>(`/device/${deviceId}/verification`),
+    getDeviceVerification: (deviceId: number, sessionId: number) =>
+      client.get<DeviceVerificationSession>(
+        `/device/${deviceId}/verification/${sessionId}`,
+      ),
     cancelDeviceVerification: (deviceId: number) =>
       client.delete(`/device/${deviceId}/verification`),
     bulkVerifyDevices: (devices: number[]) =>

@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -10,6 +10,7 @@ use defguard_common::{
             Device, DeviceType,
             device_verification::{
                 DEVICE_VERIFICATION_CODE_PERIOD, DeviceVerification, DeviceVerificationOutcome,
+                DeviceVerificationState,
             },
         },
     },
@@ -29,6 +30,7 @@ use crate::{
 
 #[derive(Debug, Serialize)]
 pub(crate) struct DeviceVerificationResponse {
+    pub session_id: Id,
     pub device_id: Id,
     pub code: String,
     pub code_expires_in: u64,
@@ -47,6 +49,21 @@ async fn find_user_device(conn: &mut PgConnection, device_id: Id) -> Result<Devi
         )));
     }
     Ok(device)
+}
+
+impl DeviceVerificationResponse {
+    fn new(verification: &DeviceVerification<Id>) -> Self {
+        let code = verification.current_code();
+        Self {
+            session_id: verification.id,
+            device_id: verification.device_id,
+            code: code.code,
+            code_expires_in: code.expires_in,
+            code_period: DEVICE_VERIFICATION_CODE_PERIOD,
+            created_at: verification.created_at,
+            expires_at: verification.expires_at,
+        }
+    }
 }
 
 /// Tells every connected Edge about an administrator's decision, so it can answer clients waiting
@@ -80,9 +97,14 @@ pub(crate) async fn start_device_verification(
     debug!("User {username} requested verification of device {device_id}");
     let mut conn = appstate.pool.acquire().await?;
     let device = find_user_device(&mut conn, device_id).await?;
-    let (verification, created) = DeviceVerification::new(device.id, Some(session.user.id))
+    let Some((verification, created)) = DeviceVerification::new(device.id, Some(session.user.id))
         .start_or_get(&mut conn)
-        .await?;
+        .await?
+    else {
+        return Err(WebError::BadRequest(format!(
+            "device id {device_id} is blocked"
+        )));
+    };
 
     if created {
         let owner = device.get_owner(&mut *conn).await?;
@@ -96,16 +118,35 @@ pub(crate) async fn start_device_verification(
         })?;
     }
 
-    let code = verification.current_code();
     Ok(ApiResponse::json(
-        DeviceVerificationResponse {
-            device_id: verification.device_id,
-            code: code.code,
-            code_expires_in: code.expires_in,
-            code_period: DEVICE_VERIFICATION_CODE_PERIOD,
-            created_at: verification.created_at,
-            expires_at: verification.expires_at,
-        },
+        DeviceVerificationResponse::new(&verification),
+        StatusCode::OK,
+    ))
+}
+
+/// Returns the current code of the given session without starting a new one, so a refreshing
+/// administrator view learns that its session ended instead of silently replacing it.
+pub(crate) async fn get_device_verification(
+    _role: AdminRole,
+    _license: EnterpriseTier,
+    Path((device_id, session_id)): Path<(Id, Id)>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let mut conn = appstate.pool.acquire().await?;
+    let device = find_user_device(&mut conn, device_id).await?;
+    let verification = DeviceVerification::find_for_device(&mut *conn, session_id, device.id)
+        .await?
+        .filter(|verification| {
+            verification.state_at(Utc::now().naive_utc()) == DeviceVerificationState::Pending
+        })
+        .ok_or_else(|| {
+            WebError::ObjectNotFound(format!(
+                "no active verification session {session_id} for device id {device_id}"
+            ))
+        })?;
+
+    Ok(ApiResponse::json(
+        DeviceVerificationResponse::new(&verification),
         StatusCode::OK,
     ))
 }

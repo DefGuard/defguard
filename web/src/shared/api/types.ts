@@ -1868,6 +1868,7 @@ export type DeviceAttestationStatusValue =
   (typeof DeviceAttestationStatus)[keyof typeof DeviceAttestationStatus];
 
 export interface DeviceVerificationSession {
+  session_id: number;
   device_id: number;
   code: string;
   code_expires_in: number;
