@@ -11,8 +11,6 @@ services:
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
       RUST_BACKTRACE: 1
-    extra_hosts:
-      - "pkgs.defguard.net:127.0.0.1"
     ports:
       # REST API
       - "8000:8000"

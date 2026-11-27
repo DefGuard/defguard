@@ -7,10 +7,17 @@ import { waitForRoute } from '../waitForRoute';
 
 type AuthInfo = User | Pick<User, 'username' | 'password'>;
 
+const dismissUpdateSnackbar = (page: Page) =>
+  page.addLocatorHandler(
+    page.locator('.snackbar', { hasText: 'New version' }),
+    (snackbar) => snackbar.locator('.interaction-box').click(),
+  );
+
 /**
  * Login with default admin pass given context is unauthenticated.
  */
 export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
+  await dismissUpdateSnackbar(page);
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
   await page.getByTestId('field-username').fill(userInfo.username);
@@ -25,6 +32,7 @@ export const loginBasic = async (page: Page, userInfo: AuthInfo) => {
 };
 
 export const loginOnCurrentPage = async (page: Page, userInfo: AuthInfo) => {
+  await dismissUpdateSnackbar(page);
   await page.getByTestId('field-username').fill(userInfo.username);
   await page.getByTestId('field-password').fill(userInfo.password);
   const responsePromise = page.waitForResponse(
@@ -35,6 +43,7 @@ export const loginOnCurrentPage = async (page: Page, userInfo: AuthInfo) => {
 };
 
 export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: string) => {
+  await dismissUpdateSnackbar(page);
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
   await page.getByTestId('field-username').fill(userInfo.username);
@@ -57,6 +66,7 @@ export const loginRecoveryCodes = async (
   userInfo: AuthInfo,
   code: string,
 ): Promise<void> => {
+  await dismissUpdateSnackbar(page);
   await page.goto(testsConfig.BASE_URL);
   await waitForRoute(page, routes.auth.login);
   await page.getByTestId('field-username').fill(userInfo.username);
