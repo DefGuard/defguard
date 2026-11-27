@@ -1424,8 +1424,7 @@ pub(crate) async fn modify_device(
         return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
-    let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    let before = device.clone();
+    let before = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
 
     if settings.only_client_activation
         && !session.is_admin
@@ -1462,12 +1461,7 @@ pub(crate) async fn modify_device(
         }
     }
 
-    // update device info
-    device.update_from(data);
-
-    // clone to use later
-
-    device.save(&appstate.pool).await?;
+    let device = Device::update_details(&appstate.pool, device_id, data).await?;
 
     // send update to gateway's
     let mut network_info = Vec::new();

@@ -48,6 +48,7 @@ jsonwebtoken.workspace = true
 ldap3.workspace = true
 md4.workspace = true
 openidconnect.workspace = true
+openssl = "0.10"
 parse_link_header.workspace = true
 pgp.workspace = true
 prost.workspace = true
@@ -67,6 +68,7 @@ serde_json.workspace = true
 serde_urlencoded.workspace = true
 sha-1.workspace = true
 sha256.workspace = true
+sha2.workspace = true
 sqlx.workspace = true
 ssh-key.workspace = true
 struct-patch.workspace = true
@@ -80,6 +82,7 @@ tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true
 tonic.workspace = true
+tpm2-protocol = "1.2.4"
 totp-lite.workspace = true
 tower-http.workspace = true
 tower_governor.workspace = true
@@ -88,6 +91,12 @@ tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
 ua-parser.workspace = true
+# Shared TPM fixtures, enabled only by test-support.
+aes = { version = "0.8", optional = true }
+cfb-mode = { version = "0.8", optional = true }
+hmac = { version = "0.12", optional = true }
+p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"], optional = true }
+sha2_10 = { package = "sha2", version = "0.10", optional = true }
 # openapi
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
@@ -96,6 +105,7 @@ webauthn-rs.workspace = true
 webauthn-rs-proto.workspace = true
 x25519-dalek.workspace = true
 x509-parser.workspace = true
+zeroize = "1"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.32", features = ["fs"] }
@@ -108,14 +118,19 @@ default = ["openapi"]
 # `/api-docs`. Disabling it drops the `utoipa` dependencies and the routes above;
 # every other endpoint keeps working.
 openapi = ["dep:utoipa", "dep:utoipa-swagger-ui", "defguard_common/openapi"]
-# Lets other crates' tests trust a software authenticator's attestation CA.
-test-support = []
+# Shares software attestation fixtures and test CAs with other crates.
+test-support = ["dep:aes", "dep:cfb-mode", "dep:hmac", "dep:p256", "dep:sha2_10"]
 
 [[example]]
 name = "openapi"
 required-features = ["openapi"]
 
 [dev-dependencies]
+aes = "0.8"
+cfb-mode = "0.8"
+hmac = "0.12"
+p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"] }
+sha2_10 = { package = "sha2", version = "0.10" }
 # Enable the shared test-only helpers (mock SMTP server) for the test build.
 defguard_common = { workspace = true, features = ["test-support"] }
 claims.workspace = true
@@ -131,7 +146,6 @@ reqwest = { version = "0.12", features = [
     "stream",
 ], default-features = false }
 serde_qs = "1.0"
-sha2.workspace = true
 tower.workspace = true
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 wiremock = "0.6"

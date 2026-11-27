@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT token.user_id, token.used_at, token.token_type, \"user\".is_active FROM token JOIN \"user\" ON \"user\".id = token.user_id WHERE token.id = $1 FOR UPDATE OF token FOR SHARE OF \"user\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "used_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "used_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "token_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "token",
+            "name": "token_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "is_active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "\"user\"",
+            "name": "is_active"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "e53187a1fa782400f55d39505f2af933ed51469a1ccc31a7d07082a79a85cefb"
+}

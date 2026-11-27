@@ -1629,6 +1629,7 @@ dependencies = [
 name = "defguard_core"
 version = "0.0.0"
 dependencies = [
+ "aes 0.8.4",
  "ammonia",
  "anyhow",
  "async-stream",
@@ -1639,6 +1640,7 @@ dependencies = [
  "base32",
  "base64 0.23.1",
  "bytes",
+ "cfb-mode",
  "chrono",
  "claims",
  "css-inline",
@@ -1653,6 +1655,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "futures",
  "getrandom 0.4.3",
+ "hmac 0.12.1",
  "humantime",
  "hyper-util",
  "image",
@@ -1666,6 +1669,8 @@ dependencies = [
  "mrml",
  "nix 0.32.0",
  "openidconnect",
+ "openssl",
+ "p256 0.13.2",
  "parse_link_header",
  "pgp",
  "prost",
@@ -1687,6 +1692,7 @@ dependencies = [
  "serde_qs",
  "serde_urlencoded",
  "sha-1",
+ "sha2 0.10.9",
  "sha2 0.11.1",
  "sha256",
  "sqlx",
@@ -1706,6 +1712,7 @@ dependencies = [
  "tower",
  "tower-http 0.7.1",
  "tower_governor",
+ "tpm2-protocol",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -1720,6 +1727,7 @@ dependencies = [
  "wiremock",
  "x25519-dalek 3.0.0",
  "x509-parser 0.18.1",
+ "zeroize",
 ]
 
 [[package]]
@@ -7516,6 +7524,12 @@ dependencies = [
  "tower",
  "tracing",
 ]
+
+[[package]]
+name = "tpm2-protocol"
+version = "1.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0aed1b812859594045bc1c835af72ff2c19b4d5813779d2422375bfb1774baf2"
 
 [[package]]
 name = "tracing"

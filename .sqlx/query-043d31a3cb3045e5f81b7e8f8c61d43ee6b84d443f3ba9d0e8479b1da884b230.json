@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vpn_client_mfa_session SET token_hash = 'replacement-session-hash' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "043d31a3cb3045e5f81b7e8f8c61d43ee6b84d443f3ba9d0e8479b1da884b230"
+}

@@ -187,7 +187,8 @@ impl EnrollmentServer {
             .attestation_identity
             .as_ref()
             .ok_or_else(|| Status::invalid_argument("missing attestation identity"))?;
-        let challenge = generate_attestation_challenge(&enrollment, &device, identity)?;
+        let challenge =
+            generate_attestation_challenge(&self.pool, &enrollment, &device, identity).await?;
         Ok(AttestationStartResponse {
             challenge: Some(challenge),
         })
@@ -205,7 +206,7 @@ impl EnrollmentServer {
             .solution
             .as_ref()
             .ok_or_else(|| Status::invalid_argument("missing attestation challenge solution"))?;
-        let identity_state = verify_attestation(&enrollment, &device, solution)?;
+        let identity_state = verify_attestation(&self.pool, &enrollment, &device, solution).await?;
         Ok(AttestationFinishResponse {
             identity_state: Some(identity_state),
         })

@@ -698,10 +698,23 @@ impl Device {
 }
 
 impl Device<Id> {
-    pub fn update_from(&mut self, other: ModifyDevice) {
-        self.name = other.name;
-        self.wireguard_pubkey = other.wireguard_pubkey;
-        self.description = other.description;
+    /// Updates only the user-editable fields and returns the resulting device record.
+    /// A full-row save could overwrite attestation state committed since the device was read.
+    pub async fn update_details<'e, E: PgExecutor<'e>>(
+        executor: E,
+        id: Id,
+        details: ModifyDevice,
+    ) -> sqlx::Result<Self> {
+        query_as(
+            "UPDATE device SET name = $1, wireguard_pubkey = $2, description = $3 \
+             WHERE id = $4 RETURNING *",
+        )
+        .bind(details.name)
+        .bind(details.wireguard_pubkey)
+        .bind(details.description)
+        .bind(id)
+        .fetch_one(executor)
+        .await
     }
 
     pub async fn find_by_ip<'e, E>(

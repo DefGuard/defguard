@@ -8,7 +8,7 @@ use defguard_common::db::{
 };
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, FromRow, PgConnection, Type};
+use sqlx::{Connection, FromRow, PgConnection, PgExecutor, PgPool, Type};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Type)]
 #[sqlx(type_name = "device_identity_backend", rename_all = "snake_case")]
@@ -18,14 +18,21 @@ pub enum DeviceIdentityBackend {
 }
 
 /// Hardware identity material loaded explicitly for attestation and possession verification.
-#[derive(Clone, PartialEq, FromRow)]
+#[derive(Clone, PartialEq)]
 pub struct DeviceIdentity {
     pub device_id: Id,
     pub backend: DeviceIdentityBackend,
+    /// The identity signing key in SubjectPublicKeyInfo DER format.
     pub public_key_der: Vec<u8>,
+    /// The last recorded App Attest assertion counter. `None` means no counter is stored.
+    /// Used for replay-attack prevention.
     pub apple_sign_count: Option<i32>,
+    /// The TPM endorsement key as marshalled `TPMT_PUBLIC`. Manual approval may omit it.
     pub tpm_ek_public: Option<Vec<u8>>,
+    /// Client-supplied DER certificates, starting with the endorsement key certificate when present.
+    /// An empty chain means no certificates were supplied. Manufacturer trust requires separate validation.
     pub tpm_ek_certificate_chain_der: Option<Vec<Vec<u8>>>,
+    /// The Base64 key identifier returned by App Attest. Manual approval may omit it.
     pub apple_key_id: Option<String>,
 }
 
@@ -40,7 +47,7 @@ pub enum DeviceIdentityError {
 }
 
 impl DeviceIdentity {
-    pub async fn find_by_device_id<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_by_device_id<'e, E: PgExecutor<'e>>(
         executor: E,
         device_id: Id,
     ) -> sqlx::Result<Option<Self>> {
@@ -64,6 +71,8 @@ impl DeviceIdentity {
         attested_at: NaiveDateTime,
     ) -> Result<Device<Id>, DeviceIdentityError> {
         self.validate(status)?;
+        // Within an existing transaction, this creates a savepoint. The caller can
+        // still roll back both the verified identity and challenge consumption.
         let mut transaction = connection.begin().await?;
         let device: Option<Id> = sqlx::query_scalar!(
             "SELECT id FROM device WHERE id = $1 FOR UPDATE",
@@ -164,9 +173,12 @@ impl DeviceIdentity {
 /// Stores a pending device attestation challenge for an enrollment session.
 #[derive(Clone, PartialEq, FromRow)]
 pub struct DeviceAttestationState {
+    /// The challenge identifier sent as `session_id` in the attestation protocol.
     pub challenge_id: String,
+    /// The enrollment token ID. Issuing a challenge for this token replaces its previous challenge.
     pub token_id: String,
     pub device_id: Id,
+    /// The device's WireGuard public key at issuance. A key change invalidates the challenge.
     pub wireguard_key: String,
     pub created_at: NaiveDateTime,
     /// The enrollment session deadline supplied by the caller.
@@ -178,6 +190,7 @@ pub struct DeviceAttestationState {
 /// CBOR payload containing the exact challenge bytes and backend verification state.
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub struct DeviceAttestationPayload {
+    /// The bytes sent to the client. Verification uses them as issued, without re-encoding.
     pub data: Vec<u8>,
     pub backend: DeviceAttestationChallenge,
 }
@@ -192,7 +205,7 @@ impl TryFrom<Vec<u8>> for DeviceAttestationPayload {
 
 impl DeviceAttestationState {
     /// Stores the session's pending challenge, replacing its previous state atomically.
-    pub async fn save<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
+    pub async fn save<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<()> {
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         sqlx::query!(
@@ -217,7 +230,7 @@ impl DeviceAttestationState {
         Ok(())
     }
 
-    pub async fn find_for_device<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn find_for_device<'e, E: PgExecutor<'e>>(
         executor: E,
         token_id: &str,
         device_id: Id,
@@ -234,7 +247,9 @@ impl DeviceAttestationState {
 
     /// Deletes this unexpired snapshot after verification, returning whether it was consumed.
     /// Use the device-write transaction so a rollback restores the challenge as well.
-    pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
+    pub async fn consume<'e, E: PgExecutor<'e>>(&self, executor: E) -> sqlx::Result<bool> {
+        // Match the entire verified snapshot and check expiry at deletion time. A new
+        // Start or another Finish must not let this request consume a different state.
         let payload = serde_cbor::to_vec(&self.payload)
             .map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
         let result = sqlx::query!(
@@ -256,14 +271,20 @@ impl DeviceAttestationState {
     }
 }
 
+/// The backend-specific reference values Core retains between enrollment Start and Finish.
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum DeviceAttestationChallenge {
     Tpm {
+        /// The binary TPM Name of the attestation key used to bind the activation credential.
         ak_name: Vec<u8>,
+        /// The SHA-256 digest of the original endorsement key's marshalled `TPMT_PUBLIC`.
         ek_fingerprint: [u8; 32],
+        /// The SHA-256 digest of the activation secret. Core stores only the digest for comparison.
         activation_secret_hash: [u8; 32],
     },
+    /// Reserved for Apple App Attest, which Core does not yet verify.
     AppleAppAttest {
+        /// The Base64 App Attest key identifier supplied at Start.
         key_id: String,
     },
 }
@@ -276,21 +297,26 @@ pub enum DeviceIdentityChallengePurpose {
     MfaConnection,
 }
 
-#[derive(Clone, PartialEq, FromRow, Model)]
+/// A challenge for proving possession of a registered device identity key during polling or connection setup.
+#[derive(Clone, PartialEq, Model)]
 #[table(device_identity_challenge)]
 pub struct DeviceIdentityChallenge<I = NoId> {
     pub id: I,
     #[model(enum)]
     pub purpose: DeviceIdentityChallengePurpose,
     pub device_id: Id,
+    /// The VPN location for connection challenges. Polling leaves this unset.
     pub location_id: Option<Id>,
+    /// The VPN MFA session for an MFA connection challenge. Other purposes leave this unset.
     pub mfa_session_id: Option<Id>,
-    /// Captures the session generation, concurrent Start can replace a session while keeping its ID.
+    /// Captures the session generation so a new MFA Start invalidates the old challenge even if the ID stays the same.
     pub mfa_session_token_hash: Option<String>,
-    /// Exact Core-encoded bytes include the nonce, key fingerprint and operation binding.
+    /// The exact bytes that the proof binds to. They include the nonce, key fingerprint, and operation binding.
     pub data: Vec<u8>,
     pub created_at: NaiveDateTime,
+    /// The UTC deadline. For MFA, consumption also requires the original session to remain active.
     pub expires_at: NaiveDateTime,
+    /// `None` means the challenge has never been consumed. Expiry is checked separately.
     pub consumed_at: Option<NaiveDateTime>,
 }
 
@@ -315,7 +341,7 @@ impl DeviceIdentityChallenge<NoId> {
 impl DeviceIdentityChallenge<Id> {
     /// Atomically consumes a live challenge bound to the device, purpose, location and MFA session.
     /// Wall-clock expiry checks also apply inside long-running transactions.
-    pub async fn consume<'e, E: sqlx::PgExecutor<'e>>(
+    pub async fn consume<'e, E: PgExecutor<'e>>(
         executor: E,
         id: Id,
         device_id: Id,
@@ -392,7 +418,7 @@ impl DeviceIdentityChallenge<Id> {
 }
 
 /// Deletes expired attestation states and possession challenges, including consumed challenges.
-pub async fn reap_expired(pool: &sqlx::PgPool) -> sqlx::Result<u64> {
+pub async fn reap_expired(pool: &PgPool) -> sqlx::Result<u64> {
     let mut transaction = pool.begin().await?;
     let challenges = sqlx::query!(
         "DELETE FROM device_identity_challenge WHERE expires_at <= (now() AT TIME ZONE 'UTC')",
