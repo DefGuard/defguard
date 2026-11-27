@@ -111,7 +111,7 @@ async fn test_attestation_state_roundtrips_backend_payloads(
         );
         sqlx::query!(
             "UPDATE device_attestation_state SET payload = $1 WHERE token_id = $2",
-            vec![1u8],
+            &[1u8],
             &state.token_id,
         )
         .execute(&pool)
@@ -352,6 +352,8 @@ async fn test_attestation_state_deadline_applies_inside_transaction(
     let mut state = enrollment_attestation(&pool, "transaction-deadline", tpm_challenge()).await;
     state.save(&pool).await.unwrap();
     let mut transaction = pool.begin().await.unwrap();
+    // Set the deadline relative to PostgreSQL's transaction start time. After the
+    // wait, clock_timestamp() is past the deadline, but now() is still before it.
     state.expires_at = sqlx::query_scalar!(
         "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
     )
@@ -801,7 +803,8 @@ async fn test_mfa_possession_challenge_can_expire_inside_transaction(
         .unwrap();
     let mut transaction = pool.begin().await.unwrap();
     // Keep the MFA session valid so only challenge expiry can reject the proof.
-    // Use PostgreSQL's transaction start time so a check using now() would still see it as valid.
+    // After the wait, clock_timestamp() is past the deadline, but now() still
+    // returns the transaction start time and would accept the challenge.
     let deadline: NaiveDateTime = sqlx::query_scalar!(
         "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
     )
@@ -882,8 +885,7 @@ async fn test_mfa_possession_is_bound_to_session_generation_and_cascades_on_rest
         .await
         .unwrap();
     sqlx::query!(
-        "UPDATE vpn_client_mfa_session SET token_hash = $1 WHERE id = $2",
-        "replacement-session-hash",
+        "UPDATE vpn_client_mfa_session SET token_hash = 'replacement-session-hash' WHERE id = $1",
         old_session.id,
     )
     .execute(&pool)
