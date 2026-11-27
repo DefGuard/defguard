@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE device_identity SET apple_key_id = 'apple-key' WHERE device_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a4fa3ca09975ca40470cd5f379367b17e34279662566f0c45d38b8f17115748a"
+}

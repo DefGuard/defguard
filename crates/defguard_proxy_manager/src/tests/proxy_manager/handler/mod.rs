@@ -1,6 +1,7 @@
 pub(crate) mod support;
 
 mod acme;
+mod attestation;
 mod bidi;
 mod device_verification;
 mod enrollment;

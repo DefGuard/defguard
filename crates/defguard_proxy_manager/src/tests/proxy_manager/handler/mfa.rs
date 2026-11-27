@@ -53,6 +53,7 @@ async fn send_flow_start(
         id,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::MfaFlowStart(MfaFlowStartRequest {
+            possession_challenge_solution: None,
             location_id,
             pubkey: pubkey.to_owned(),
             posture_data: None,
@@ -60,7 +61,6 @@ async fn send_flow_start(
                 .iter()
                 .map(|method| *method as i32)
                 .collect(),
-            possession_challenge_solution: None,
         })),
     });
     context.mock_proxy_mut().recv_outbound().await

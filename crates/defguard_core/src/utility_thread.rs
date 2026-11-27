@@ -19,7 +19,7 @@ use crate::{
     cert_settings::{refresh_core_self_signed_cert, refresh_proxy_self_signed_cert},
     enterprise::{
         LicenseFeature,
-        db::models::acl::AclRule,
+        db::models::{acl::AclRule, device_identity},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         firewall::try_get_location_firewall_config,
         has_enterprise_access, is_business_license_active,
@@ -122,6 +122,12 @@ pub async fn run_utility_thread(
         {
             error!("Failed to reap expired MFA sessions: {err}");
         }
+        if let Err(err) = device_identity::reap_expired(pool)
+            .instrument(info_span!("device_identity_reap_task"))
+            .await
+        {
+            error!("Failed to reap expired device identity state: {err}");
+        }
         if let Err(err) = throttle::reap_expired(pool)
             .instrument(info_span!("throttle_reap_task"))
             .await
@@ -181,7 +187,7 @@ pub async fn run_utility_thread(
             last_expired_acl_rules_check = Instant::now();
         }
 
-        // Reap expired in-progress MFA sessions and throttle windows
+        // Reap expired MFA sessions, device identity state and throttle windows
         if last_expired_rows_reap.elapsed().as_secs() >= EXPIRED_ROWS_REAP_INTERVAL {
             expired_rows_reap_task().await;
             last_expired_rows_reap = Instant::now();

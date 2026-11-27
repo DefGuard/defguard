@@ -5,6 +5,7 @@ use defguard_common::{
             Device, Settings, User,
             biometric_auth::BiometricAuth,
             device_client_info::{DeviceClientInfo, OsType},
+            device_identity::DeviceAttestationStatus,
             polling_token::PollingToken,
             settings::update_current_settings,
         },
@@ -12,8 +13,11 @@ use defguard_common::{
     gateway_event::GatewayCommand,
 };
 use defguard_core::{
-    enterprise::db::models::openid_provider::{
-        DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+    enterprise::db::models::{
+        device_identity::DeviceIdentity,
+        openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
     },
     events::{BidiStreamEventType, EnrollmentEvent},
 };
@@ -106,13 +110,22 @@ async fn test_new_device_creates_device_and_returns_configs(
     );
 
     // Verify the device was actually persisted in the DB.
-    let devices = Device::find_by_pubkey(&context.pool, pubkey)
+    let device = Device::find_by_pubkey(&context.pool, pubkey)
         .await
-        .expect("DB query failed");
-    assert!(
-        devices.is_some(),
-        "device should exist in DB after NewDevice"
+        .expect("DB query failed")
+        .expect("device should exist in DB after NewDevice");
+    assert_eq!(
+        device.attestation_status,
+        DeviceAttestationStatus::NotAttested
     );
+    assert!(device.attested_at.is_none());
+    assert!(
+        DeviceIdentity::find_by_device_id(&context.pool, device.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(cfg.identity_state.is_none());
 
     context.finish().await.expect_server_finished().await;
 }

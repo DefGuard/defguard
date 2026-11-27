@@ -5,6 +5,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         // These types contain sensitive data.
         .skip_debug([
             "ActivateUserRequest",
+            "AttestationFinishRequest",
+            "AttestationStartRequest",
+            "AttestationStartResponse",
             "AuthInfoResponse",
             "ClientMfaFinishResponse",
             "CodeMfaSetupStartResponse",

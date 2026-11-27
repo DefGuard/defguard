@@ -1505,3 +1505,69 @@ fn test_device_network_info_debug_redacts_preshared_key_and_skips_serialization(
     assert!(!serialized.contains("preshared_key"));
     assert!(!serialized.contains("device-network-secret"));
 }
+
+const INTERNAL_IDENTITY_FIELDS: [&str; 8] = [
+    "backend",
+    "public_key_der",
+    "identity_backend",
+    "identity_public_key_der",
+    "apple_sign_count",
+    "tpm_ek_public",
+    "tpm_ek_certificate_chain_der",
+    "apple_key_id",
+];
+
+fn device_with_attestation_status() -> Device<Id> {
+    let mut device = Device::new(
+        "serialization-device".into(),
+        "wg-public-key".into(),
+        1,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .with_id(42);
+    device.attestation_status = DeviceAttestationStatus::Attested;
+    device.attested_at = Some(device.created);
+    device
+}
+
+#[test]
+fn test_device_identity_internal_fields_are_omitted_from_serialization() {
+    let device = device_with_attestation_status();
+    let info = DeviceInfo {
+        device: device.clone(),
+        network_info: Vec::new(),
+    };
+    for value in [
+        serde_json::to_value(&device).unwrap(),
+        serde_json::to_value(&info).unwrap(),
+    ] {
+        for field in INTERNAL_IDENTITY_FIELDS {
+            assert!(
+                value.get(field).is_none(),
+                "serialized internal field {field}"
+            );
+        }
+        assert_eq!(value["id"], 42);
+        assert_eq!(value["attestation_status"], "attested");
+        assert!(value["attested_at"].is_string());
+    }
+}
+
+#[cfg(feature = "openapi")]
+#[test]
+fn test_device_identity_internal_fields_are_omitted_from_openapi() {
+    let schema = serde_json::to_value(<Device<Id> as utoipa::PartialSchema>::schema()).unwrap();
+    let properties = schema["properties"]
+        .as_object()
+        .expect("device schema properties");
+    for field in INTERNAL_IDENTITY_FIELDS {
+        assert!(
+            !properties.contains_key(field),
+            "OpenAPI exposes internal field {field}"
+        );
+    }
+    assert!(properties.contains_key("attestation_status"));
+    assert!(properties.contains_key("attested_at"));
+}

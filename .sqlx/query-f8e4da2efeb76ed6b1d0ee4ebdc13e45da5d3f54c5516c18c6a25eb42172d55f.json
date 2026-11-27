@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vpn_client_mfa_session SET possession_verified = true WHERE id = $1 AND device_id = $2 AND location_id = $3 AND token_hash = $4 AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC') AND possession_verified = false",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f8e4da2efeb76ed6b1d0ee4ebdc13e45da5d3f54c5516c18c6a25eb42172d55f"
+}
