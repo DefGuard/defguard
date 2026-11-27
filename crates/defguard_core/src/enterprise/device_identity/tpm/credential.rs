@@ -48,6 +48,11 @@ fn kdfa(seed: &[u8], label: &[u8], context: &[u8], bits: u32) -> Result<Zeroizin
     Ok(key)
 }
 
+/// Establishes a credential protection seed that the TPM can recover using its private EK.
+///
+/// Returns the seed for Core's wrapping keys and the bytes for the challenge's
+/// `encrypted_secret` field. That field carries the encrypted seed for RSA or the
+/// ephemeral public point for ECC. The seed is separate from the activation secret.
 fn share_secret(ek: &EndorsementKey) -> Result<(Zeroizing<Vec<u8>>, Vec<u8>)> {
     match ek {
         EndorsementKey::Rsa(key) => {
