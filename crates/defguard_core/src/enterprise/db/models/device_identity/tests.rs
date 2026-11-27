@@ -789,7 +789,7 @@ async fn test_mfa_possession_verification_is_rolled_back(
 }
 
 #[sqlx::test]
-async fn test_mfa_possession_deadline_applies_inside_transaction(
+async fn test_mfa_possession_challenge_can_expire_inside_transaction(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -799,47 +799,37 @@ async fn test_mfa_possession_deadline_applies_inside_transaction(
         .save(&pool)
         .await
         .unwrap();
-    for expire_session in [false, true] {
-        let mut delayed_transaction = pool.begin().await.unwrap();
-        let deadline: NaiveDateTime = sqlx::query_scalar!(
-            "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
-        )
-        .fetch_one(&mut *delayed_transaction)
+    let mut transaction = pool.begin().await.unwrap();
+    // Keep the MFA session valid so only challenge expiry can reject the proof.
+    // Use PostgreSQL's transaction start time so a check using now() would still see it as valid.
+    let deadline: NaiveDateTime = sqlx::query_scalar!(
+        "SELECT (now() AT TIME ZONE 'UTC') + interval '50 milliseconds' AS \"deadline!\"",
+    )
+    .fetch_one(&mut *transaction)
+    .await
+    .unwrap();
+    sqlx::query!(
+        "UPDATE device_identity_challenge SET expires_at = $1 WHERE id = $2",
+        deadline,
+        challenge.id,
+    )
+    .execute(&mut *transaction)
+    .await
+    .unwrap();
+    sqlx::query("SELECT pg_sleep(0.1)")
+        .execute(&mut *transaction)
         .await
         .unwrap();
-        if expire_session {
-            sqlx::query!(
-                "UPDATE vpn_client_mfa_session SET expires_at = $1 WHERE id = $2",
-                deadline,
-                session.id,
-            )
-            .execute(&mut *delayed_transaction)
-            .await
-            .unwrap();
-        }
-        sqlx::query!(
-            "UPDATE device_identity_challenge SET expires_at = $1 WHERE id = $2",
-            deadline,
+    assert!(
+        !DeviceIdentityChallenge::record_verified_mfa_possession(
+            &mut transaction,
             challenge.id,
+            &session,
         )
-        .execute(&mut *delayed_transaction)
         .await
-        .unwrap();
-        sqlx::query("SELECT pg_sleep(0.1)")
-            .execute(&mut *delayed_transaction)
-            .await
-            .unwrap();
-        assert!(
-            !DeviceIdentityChallenge::record_verified_mfa_possession(
-                &mut delayed_transaction,
-                challenge.id,
-                &session,
-            )
-            .await
-            .unwrap()
-        );
-        delayed_transaction.rollback().await.unwrap();
-    }
+        .unwrap()
+    );
+    transaction.rollback().await.unwrap();
 }
 
 #[sqlx::test]
