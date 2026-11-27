@@ -10,19 +10,23 @@ use defguard_core::{
     db::models::enrollment::{
         ENROLLMENT_TOKEN_TYPE, MFA_CONFIG_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token,
     },
-    enterprise::db::models::device_identity::{
-        DeviceAttestationState, DeviceIdentity, DeviceIdentityBackend,
+    enterprise::{
+        db::models::device_identity::{
+            DeviceAttestationState, DeviceIdentity, DeviceIdentityBackend,
+        },
+        device_identity::tpm::test_support::Fixture,
     },
 };
 use defguard_proto::{
     client_types::{AttestationFinishRequest, AttestationStartRequest},
     device_identity::{
-        AttestationChallengeSolution, AttestationIdentity, IdentityErrorCode,
+        AttestationChallengeSolution, AttestationIdentity, AttestationStatus, IdentityErrorCode,
         TpmAttestationIdentity, TpmAttestationResponse, attestation_challenge_solution,
         attestation_identity,
     },
     proxy::{CoreRequest, CoreResponse, core_request, core_response},
 };
+use sha2::{Digest, Sha256};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::mpsc::error::TryRecvError;
 use tonic::Code;
@@ -320,7 +324,7 @@ async fn test_attestation_rejects_missing_and_foreign_devices(
 }
 
 #[sqlx::test]
-async fn test_attestation_is_authorized_after_user_activation(
+async fn test_attestation_registers_identity_after_user_activation(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -343,13 +347,48 @@ async fn test_attestation_is_authorized_after_user_activation(
             .unwrap()
             .is_enrolled()
     );
-    assert_attestation_error(
+
+    let fixture = Fixture::new(false);
+    let response = send_attestation_request(
         &mut context,
-        &token.id,
-        device.id,
-        [Code::InvalidArgument, Code::FailedPrecondition],
+        core_request::Payload::AttestationStart(AttestationStartRequest {
+            token: token.id.clone(),
+            device_id: device.id,
+            attestation_identity: Some(fixture.attestation_identity()),
+        }),
     )
     .await;
+    let Some(core_response::Payload::AttestationStart(start)) = response.payload else {
+        panic!("expected a successful attestation start response");
+    };
+    let challenge = start.challenge.expect("missing attestation challenge");
+    let response = send_attestation_request(
+        &mut context,
+        core_request::Payload::AttestationFinish(AttestationFinishRequest {
+            token: token.id.clone(),
+            device_id: device.id,
+            solution: Some(fixture.solve(&challenge)),
+        }),
+    )
+    .await;
+    let Some(core_response::Payload::AttestationFinish(finish)) = response.payload else {
+        panic!("expected a successful attestation finish response");
+    };
+    let result = finish.identity_state.expect("missing registered identity");
+    assert_eq!(result.identity_id, device.id.to_string());
+    assert_eq!(
+        result.attestation_status,
+        i32::from(AttestationStatus::Attested)
+    );
+    let saved = DeviceIdentity::find_by_device_id(&context.pool, device.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.public_key_der, fixture.public_key_der());
+    assert_eq!(
+        result.key_fingerprint,
+        Sha256::digest(&saved.public_key_der).as_slice()
+    );
     let after = Token::find_by_id(&context.pool, &token.id).await.unwrap();
     assert_eq!(after.used_at, before.used_at);
     context.finish().await.expect_server_finished().await;

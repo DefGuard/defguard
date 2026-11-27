@@ -91,6 +91,12 @@ tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 trait-variant.workspace = true
 ua-parser.workspace = true
+# Shared TPM fixtures, enabled only by test-support.
+aes = { version = "0.8", optional = true }
+cfb-mode = { version = "0.8", optional = true }
+hmac = { version = "0.12", optional = true }
+p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"], optional = true }
+sha2_10 = { package = "sha2", version = "0.10", optional = true }
 # openapi
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
@@ -112,8 +118,8 @@ default = ["openapi"]
 # `/api-docs`. Disabling it drops the `utoipa` dependencies and the routes above;
 # every other endpoint keeps working.
 openapi = ["dep:utoipa", "dep:utoipa-swagger-ui", "defguard_common/openapi"]
-# Lets other crates' tests trust a software authenticator's attestation CA.
-test-support = []
+# Shares software attestation fixtures and test CAs with other crates.
+test-support = ["dep:aes", "dep:cfb-mode", "dep:hmac", "dep:p256", "dep:sha2_10"]
 
 [[example]]
 name = "openapi"

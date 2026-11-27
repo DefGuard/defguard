@@ -78,5 +78,6 @@ fn check_certificates(certificates: &[Vec<u8>]) -> Result<()> {
 #[cfg(test)]
 mod tests;
 
-#[cfg(test)]
-pub(super) mod test_support;
+#[cfg(any(test, feature = "test-support"))]
+#[doc(hidden)]
+pub mod test_support;

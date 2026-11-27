@@ -6,7 +6,7 @@ use defguard_common::db::{
 };
 use defguard_proto::device_identity::{
     AttestationChallenge, AttestationChallengeSolution, AttestationIdentity, AttestationStatus,
-    IdentityErrorCode, attestation_challenge, attestation_challenge_solution, attestation_identity,
+    IdentityErrorCode, attestation_challenge_solution, attestation_identity,
 };
 use p256::ecdsa::SigningKey;
 use sqlx::{
@@ -17,7 +17,7 @@ use tonic::Code;
 
 use super::{
     generate_attestation_challenge,
-    tpm::test_support::{Fixture, activate, name, signing_public},
+    tpm::test_support::{Fixture, signing_public},
     verify_attestation,
 };
 use crate::{
@@ -71,29 +71,9 @@ async fn start(
     device: &Device<Id>,
     fixture: &Fixture,
 ) -> AttestationChallenge {
-    generate_attestation_challenge(
-        pool,
-        token,
-        device,
-        &AttestationIdentity {
-            backend: Some(attestation_identity::Backend::Tpm(fixture.metadata.clone())),
-        },
-    )
-    .await
-    .unwrap()
-}
-
-fn solution(fixture: &Fixture, challenge: &AttestationChallenge) -> AttestationChallengeSolution {
-    let Some(attestation_challenge::Challenge::Tpm(credential)) = &challenge.challenge else {
-        panic!("expected TPM credential")
-    };
-    let secret = activate(fixture, credential, &name(&fixture.metadata.ak_public));
-    AttestationChallengeSolution {
-        session_id: challenge.session_id.clone(),
-        result: Some(attestation_challenge_solution::Result::Tpm(
-            fixture.response(secret, &challenge.data),
-        )),
-    }
+    generate_attestation_challenge(pool, token, device, &fixture.attestation_identity())
+        .await
+        .unwrap()
 }
 
 async fn pending(pool: &PgPool, token: &Token, device: &Device<Id>) -> DeviceAttestationState {
@@ -150,7 +130,7 @@ async fn test_start_finish_registers_first_identity_and_consumes_challenge(
         assert_eq!(state.expires_at.and_utc().timestamp(), challenge.expires_at);
         assert_eq!(state.wireguard_key, device.wireguard_pubkey);
         assert_not_attested(&pool, &device).await;
-        let solution = solution(&fixture, &challenge);
+        let solution = fixture.solve(&challenge);
         let result = verify_attestation(&pool, &token, &device, &solution)
             .await
             .unwrap();
@@ -234,7 +214,7 @@ async fn test_restarted_challenge_rejects_old_solution_and_preserves_other_sessi
     other.save(&pool).await.unwrap();
     let fixture = Fixture::new(false);
     let first = start(&pool, &token, &device, &fixture).await;
-    let old_solution = solution(&fixture, &first);
+    let old_solution = fixture.solve(&first);
     let other_challenge = start(&pool, &other, &device, &fixture).await;
     let second = start(&pool, &token, &device, &fixture).await;
     assert_ne!(first.session_id, second.session_id);
@@ -255,13 +235,13 @@ async fn test_restarted_challenge_rejects_old_solution_and_preserves_other_sessi
         second.session_id
     );
     assert_not_attested(&pool, &device).await;
-    verify_attestation(&pool, &token, &device, &solution(&fixture, &second))
+    verify_attestation(&pool, &token, &device, &fixture.solve(&second))
         .await
         .unwrap();
 }
 
 #[sqlx::test]
-async fn test_invalid_signature_marks_device_attestation_failed(
+async fn test_invalid_signature_requires_a_fresh_challenge_to_retry(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -269,7 +249,7 @@ async fn test_invalid_signature_marks_device_attestation_failed(
     let (token, device) = session(&pool, "ceremony-invalid-signature").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
-    let mut bad = solution(&fixture, &challenge);
+    let mut bad = fixture.solve(&challenge);
     let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
         unreachable!()
     };
@@ -295,6 +275,29 @@ async fn test_invalid_signature_marks_device_attestation_failed(
             .is_none()
     );
     assert_attestation_failed(&pool, &device).await;
+
+    let old_solution = fixture.solve(&challenge);
+    assert_eq!(
+        verify_attestation(&pool, &token, &device, &old_solution)
+            .await
+            .unwrap_err()
+            .code(),
+        Code::FailedPrecondition
+    );
+    let fresh_device = Device::find_by_id(&pool, device.id).await.unwrap().unwrap();
+    let fresh = start(&pool, &token, &fresh_device, &fixture).await;
+    assert_ne!(fresh.session_id, challenge.session_id);
+    let result = verify_attestation(&pool, &token, &fresh_device, &fixture.solve(&fresh))
+        .await
+        .unwrap();
+    assert_eq!(result.identity_id, device.id.to_string());
+    assert_eq!(
+        result.attestation_status,
+        i32::from(AttestationStatus::Attested)
+    );
+    let saved = Device::find_by_id(&pool, device.id).await.unwrap().unwrap();
+    assert_eq!(saved.attestation_status, DeviceAttestationStatus::Attested);
+    assert!(saved.attested_at.is_some());
 }
 
 #[sqlx::test]
@@ -306,7 +309,7 @@ async fn test_invalid_activation_secret_marks_device_attestation_failed(
     let (token, device) = session(&pool, "ceremony-invalid-secret").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
-    let mut bad = solution(&fixture, &challenge);
+    let mut bad = fixture.solve(&challenge);
     let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
         unreachable!()
     };
@@ -336,7 +339,7 @@ async fn test_invalid_attestation_data_marks_device_attestation_failed(
     let (token, device) = session(&pool, "ceremony-invalid-attest").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
-    let mut bad = solution(&fixture, &challenge);
+    let mut bad = fixture.solve(&challenge);
     let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut bad.result else {
         unreachable!()
     };
@@ -355,6 +358,38 @@ async fn test_invalid_attestation_data_marks_device_attestation_failed(
             .is_none()
     );
     assert_attestation_failed(&pool, &device).await;
+}
+
+#[sqlx::test]
+async fn test_unsupported_profile_preserves_pending_challenge(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (token, device) = session(&pool, "ceremony-unsupported-profile").await;
+    let fixture = Fixture::new(false);
+    let challenge = start(&pool, &token, &device, &fixture).await;
+    let original = pending(&pool, &token, &device).await;
+    let valid = fixture.solve(&challenge);
+    let mut unsupported = valid.clone();
+    let Some(attestation_challenge_solution::Result::Tpm(response)) = &mut unsupported.result
+    else {
+        unreachable!()
+    };
+    // The public area still decodes, but SHA-384 Names are outside Core's supported profile.
+    response.evidence.as_mut().unwrap().ak_public[3] = 0x0c;
+    assert_eq!(
+        verify_attestation(&pool, &token, &device, &unsupported)
+            .await
+            .unwrap_err()
+            .code(),
+        Code::InvalidArgument
+    );
+    assert_not_attested(&pool, &device).await;
+    assert!(pending(&pool, &token, &device).await == original);
+    verify_attestation(&pool, &token, &device, &valid)
+        .await
+        .unwrap();
 }
 
 #[sqlx::test]
@@ -394,7 +429,7 @@ async fn test_finish_is_bound_to_session_device_and_wireguard_key(
     let (foreign_token, foreign_device) = session(&pool, "ceremony-foreign").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
-    let solution = solution(&fixture, &challenge);
+    let solution = fixture.solve(&challenge);
     assert_eq!(
         verify_attestation(&pool, &foreign_token, &device, &solution)
             .await
@@ -437,7 +472,7 @@ async fn test_finalization_rechecks_authorization_from_enrollment_snapshot(
         let (token, device) = session(&pool, &format!("ceremony-{mutation}")).await;
         let fixture = Fixture::new(false);
         let challenge = start(&pool, &token, &device, &fixture).await;
-        let solution = solution(&fixture, &challenge);
+        let solution = fixture.solve(&challenge);
         let expected = match mutation {
             "disabled" => {
                 let mut user = User::find_by_id(&pool, token.user_id)
@@ -530,8 +565,8 @@ async fn test_only_first_parallel_identity_registration_succeeds(
     second_fixture.identity_public = signing_public(&second_fixture.identity, false);
     let first = start(&pool, &token, &device, &fixture).await;
     let second = start(&pool, &other, &device, &second_fixture).await;
-    let first_solution = solution(&fixture, &first);
-    let second_solution = solution(&second_fixture, &second);
+    let first_solution = fixture.solve(&first);
+    let second_solution = second_fixture.solve(&second);
     let (first_result, second_result) = tokio::join!(
         verify_attestation(&pool, &token, &device, &first_solution),
         verify_attestation(&pool, &other, &device, &second_solution)
@@ -575,7 +610,7 @@ async fn test_identity_write_failure_rolls_back_challenge_consumption(
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
     let original = pending(&pool, &token, &device).await;
-    let solution = solution(&fixture, &challenge);
+    let solution = fixture.solve(&challenge);
     sqlx::query("ALTER TABLE device ADD CONSTRAINT reject_attestation_write CHECK (attestation_status <> 'attested')").execute(&pool).await.unwrap();
     assert_eq!(
         verify_attestation(&pool, &token, &device, &solution)
@@ -601,7 +636,7 @@ async fn test_expired_challenge_cannot_be_finished(_: PgPoolOptions, options: Pg
     let (token, device) = session(&pool, "ceremony-expired").await;
     let fixture = Fixture::new(false);
     let challenge = start(&pool, &token, &device, &fixture).await;
-    let solution = solution(&fixture, &challenge);
+    let solution = fixture.solve(&challenge);
     let mut state = pending(&pool, &token, &device).await;
     state.expires_at = Utc::now().naive_utc() - TimeDelta::seconds(1);
     state.created_at = state.expires_at - TimeDelta::seconds(1);

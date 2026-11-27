@@ -6,14 +6,16 @@ use cfb_mode::{
     cipher::{AsyncStreamCipher, KeyIvInit},
 };
 use defguard_proto::device_identity::{
-    CredentialChallenge, Signature, SignatureAlgorithm, TpmAttestationIdentity,
-    TpmAttestationResponse, TpmEvidence,
+    AttestationChallenge, AttestationChallengeSolution, AttestationIdentity, CredentialChallenge,
+    Signature, SignatureAlgorithm, TpmAttestationIdentity, TpmAttestationResponse, TpmEvidence,
+    attestation_challenge, attestation_challenge_solution, attestation_identity,
 };
 use hmac::{Hmac, Mac};
 use p256::{
     PublicKey, SecretKey,
     ecdsa::{Signature as EcdsaSignature, SigningKey, signature::Signer},
     elliptic_curve::sec1::ToEncodedPoint,
+    pkcs8::EncodePublicKey,
 };
 use rand::rngs::OsRng;
 use rsa::{Oaep, RsaPrivateKey, traits::PublicKeyParts};
@@ -21,7 +23,7 @@ use sha2_10::{Digest, Sha256};
 
 // The RustCrypto verifier is independent of the production OpenSSL implementation.
 // This lets the tests check interoperability without reusing the code under test.
-pub(in crate::enterprise::device_identity) enum Ek {
+enum Ek {
     Ecc(SecretKey),
     Rsa(Box<RsaPrivateKey>),
 }
@@ -29,12 +31,13 @@ pub(in crate::enterprise::device_identity) enum Ek {
 static RSA_KEY: LazyLock<RsaPrivateKey> =
     LazyLock::new(|| RsaPrivateKey::new(&mut OsRng, 2048).unwrap());
 
-pub(in crate::enterprise::device_identity) struct Fixture {
-    pub ek: Ek,
-    pub ak: SigningKey,
-    pub identity: SigningKey,
-    pub metadata: TpmAttestationIdentity,
-    pub identity_public: Vec<u8>,
+/// A software TPM fixture independent of Core's OpenSSL implementation.
+pub struct Fixture {
+    ek: Ek,
+    pub(in crate::enterprise::device_identity) ak: SigningKey,
+    pub(in crate::enterprise::device_identity) identity: SigningKey,
+    pub(in crate::enterprise::device_identity) metadata: TpmAttestationIdentity,
+    pub(in crate::enterprise::device_identity) identity_public: Vec<u8>,
 }
 
 pub(in crate::enterprise::device_identity) fn sized(output: &mut Vec<u8>, bytes: &[u8]) {
@@ -79,7 +82,7 @@ pub(in crate::enterprise::device_identity) fn name(public: &[u8]) -> Vec<u8> {
 }
 
 impl Fixture {
-    pub(in crate::enterprise::device_identity) fn new(rsa: bool) -> Self {
+    pub fn new(rsa: bool) -> Self {
         let ek = if rsa {
             Ek::Rsa(Box::new(RSA_KEY.clone()))
         } else {
@@ -115,6 +118,33 @@ impl Fixture {
             identity,
             metadata,
             identity_public,
+        }
+    }
+
+    pub fn attestation_identity(&self) -> AttestationIdentity {
+        AttestationIdentity {
+            backend: Some(attestation_identity::Backend::Tpm(self.metadata.clone())),
+        }
+    }
+
+    pub fn public_key_der(&self) -> Vec<u8> {
+        self.identity
+            .verifying_key()
+            .to_public_key_der()
+            .unwrap()
+            .into_vec()
+    }
+
+    pub fn solve(&self, challenge: &AttestationChallenge) -> AttestationChallengeSolution {
+        let Some(attestation_challenge::Challenge::Tpm(credential)) = &challenge.challenge else {
+            panic!("expected TPM credential");
+        };
+        let secret = activate(self, credential, &name(&self.metadata.ak_public));
+        AttestationChallengeSolution {
+            session_id: challenge.session_id.clone(),
+            result: Some(attestation_challenge_solution::Result::Tpm(
+                self.response(secret, &challenge.data),
+            )),
         }
     }
 
