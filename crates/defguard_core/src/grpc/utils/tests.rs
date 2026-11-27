@@ -17,7 +17,10 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_proto::{
-    client_types::{DeviceConfig, LocationMfaMode, MfaMethod, MfaStep},
+    client_types::{
+        DeviceConfig, DeviceStatus, InstanceInfo as ProtoInstanceInfo, LocationMfaMode, MfaMethod,
+        MfaStep,
+    },
     proxy::DeviceInfo,
 };
 use ipnetwork::IpNetwork;
@@ -719,7 +722,7 @@ async fn test_build_wire_steps_computes_configured_flags(
 
     // Email is not set up for the user; OIDC has no provider.
     let settings = Settings::get_current_settings();
-    let instance_info = InstanceInfo::build(&pool, &settings, &user, None, Some(device.id))
+    let instance_info = InstanceInfo::build(&pool, &settings, &user, None, Some(&device))
         .await
         .expect("failed to build instance info");
     // OIDC needs a Business license to stay in the wire steps.
@@ -975,4 +978,26 @@ async fn test_instance_info_advertises_smtp_and_openid_availability(
 
     assert_eq!(instance.smtp_configured, Some(false));
     assert_eq!(instance.openid_available, Some(false));
+}
+
+#[sqlx::test]
+async fn test_instance_info_device_status(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    init_settings(&pool).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    let settings = Settings::get_current_settings();
+
+    let instance = InstanceInfo::build(&pool, &settings, &user, None, None)
+        .await
+        .expect("failed to build instance info");
+    assert_eq!(ProtoInstanceInfo::from(instance).device_status, None);
+
+    let instance = InstanceInfo::build(&pool, &settings, &user, None, Some(&device))
+        .await
+        .expect("failed to build instance info");
+    assert_eq!(
+        ProtoInstanceInfo::from(instance).device_status,
+        Some(DeviceStatus::Unverified as i32)
+    );
 }

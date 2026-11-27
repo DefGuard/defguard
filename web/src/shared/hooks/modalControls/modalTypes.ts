@@ -15,6 +15,7 @@ import type {
   OpenConfirmActionModal,
   OpenDeleteAliasDestinationBlockedModal,
   OpenDeleteAliasDestinationConfirmModal,
+  OpenDeviceVerificationModal,
   OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
@@ -68,6 +69,7 @@ export const ModalName = {
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
   AssignUserDeviceIP: 'assignUserDeviceIP',
+  DeviceVerification: 'deviceVerification',
   ConfirmAction: 'confirmAction',
   AppUpdate: 'appUpdate',
 } as const;
@@ -217,6 +219,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.AssignUserDeviceIP),
     data: z.custom<OpenAssignUserDeviceIPModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeviceVerification),
+    data: z.custom<OpenDeviceVerificationModal>(),
   }),
   z.object({
     name: z.literal(ModalName.ConfirmAction),

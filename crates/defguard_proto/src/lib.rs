@@ -40,12 +40,6 @@ mod generated {
             }
         }
 
-        pub mod device_identity {
-            pub mod v2 {
-                tonic::include_proto!("defguard.device_identity.v2");
-            }
-        }
-
         pub mod client_types {
             tonic::include_proto!("defguard.client_types");
         }
@@ -53,6 +47,18 @@ mod generated {
         pub mod common {
             pub mod v2 {
                 tonic::include_proto!("defguard.common.v2");
+            }
+        }
+
+        pub mod device_identity {
+            pub mod v2 {
+                tonic::include_proto!("defguard.device_identity.v2");
+            }
+        }
+
+        pub mod client_common {
+            pub mod v2 {
+                tonic::include_proto!("defguard.client_common.v2");
             }
         }
     }
@@ -82,16 +88,20 @@ pub mod enterprise {
     }
 }
 
-pub mod device_identity {
-    pub use crate::generated::defguard::device_identity::v2::*;
-}
-
 pub mod client_types {
     pub use crate::generated::defguard::client_types::*;
 }
 
 pub mod common {
     pub use crate::generated::defguard::common::v2::*;
+}
+
+pub mod device_identity {
+    pub use crate::generated::defguard::device_identity::v2::*;
+}
+
+pub mod client_common {
+    pub use crate::generated::defguard::client_common::v2::*;
 }
 
 use self::{
@@ -256,6 +266,22 @@ impl CoreError {
     pub fn failed_precondition(message: impl Into<String>) -> Self {
         Self {
             status_code: tonic::Code::FailedPrecondition.into(),
+            message: message.into(),
+            ..Default::default()
+        }
+    }
+
+    pub fn permission_denied(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::PermissionDenied.into(),
+            message: message.into(),
+            ..Default::default()
+        }
+    }
+
+    pub fn aborted(message: impl Into<String>) -> Self {
+        Self {
+            status_code: tonic::Code::Aborted.into(),
             message: message.into(),
             ..Default::default()
         }

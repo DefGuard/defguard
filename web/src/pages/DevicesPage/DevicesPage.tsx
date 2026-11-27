@@ -7,6 +7,7 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { DevicesOverviewTable } from './components/DevicesOverviewTable/DevicesOverviewTable';
+import { DeviceVerificationModal } from './modals/DeviceVerificationModal/DeviceVerificationModal';
 
 export const DevicesPage = () => {
   return (
@@ -20,6 +21,7 @@ export const DevicesPage = () => {
       <EditUserDeviceModal />
       <UserDeviceConfigModal />
       <AssignUserDeviceIPModal />
+      <DeviceVerificationModal />
     </>
   );
 };

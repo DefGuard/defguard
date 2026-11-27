@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"device_verification\" (\"device_id\",\"started_by\",\"secret\",\"created_at\",\"expires_at\",\"outcome\",\"resolved_at\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dd7dc940b46e1c1ca0fd44b8c95d9474098ea54c94c08e989c30c360469f557a"
+}

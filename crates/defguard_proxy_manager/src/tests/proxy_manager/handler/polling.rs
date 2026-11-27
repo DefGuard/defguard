@@ -1,7 +1,7 @@
 use defguard_common::db::{
     Id,
     models::{
-        Device,
+        Device, DeviceState, DeviceVerificationStatus,
         device_client_info::{DeviceClientInfo, OsType},
         group::Group,
         polling_token::PollingToken,
@@ -84,6 +84,33 @@ async fn poll_client_traffic_policy(context: &mut HandlerTestContext, token: &st
             .and_then(|config| config.instance)
             .and_then(|instance| instance.client_traffic_policy)
             .expect("InstanceInfo should contain a client traffic policy"),
+        other => panic!(
+            "expected InstanceInfo response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
+}
+
+async fn poll_device_status(context: &mut HandlerTestContext, token: &str) -> Option<i32> {
+    context.mock_proxy().send_request(CoreRequest {
+        id: 40,
+        device_info: None,
+        payload: Some(core_request::Payload::InstanceInfo(
+            client_types::InstanceInfoRequest {
+                token: token.to_owned(),
+                possession_challenge_solution: None,
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::InstanceInfo(info)) => {
+            info.device_config
+                .and_then(|config| config.instance)
+                .expect("InstanceInfo should contain instance info")
+                .device_status
+        }
         other => panic!(
             "expected InstanceInfo response, got: {:?}",
             other.as_ref().map(std::mem::discriminant)
@@ -510,6 +537,46 @@ async fn test_polling_reflects_network_changes(_: PgPoolOptions, options: PgConn
     assert!(
         second_cfg_count > first_cfg_count,
         "second poll should reflect the new network; got first={first_cfg_count}, second={second_cfg_count}"
+    );
+
+    clear_test_license();
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_polling_reports_device_status(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let _network = create_network(&context.pool).await;
+    let (_user, mut device) = create_user_with_device(&context.pool).await;
+    let token = create_polling_token(&context.pool, device.id).await;
+
+    assert_eq!(
+        poll_device_status(&mut context, &token).await,
+        Some(client_types::DeviceStatus::Unverified as i32)
+    );
+
+    device.verification = DeviceVerificationStatus::Pending;
+    device.save(&context.pool).await.unwrap();
+    assert_eq!(
+        poll_device_status(&mut context, &token).await,
+        Some(client_types::DeviceStatus::Unverified as i32)
+    );
+
+    device.verification = DeviceVerificationStatus::Verified;
+    device.save(&context.pool).await.unwrap();
+    assert_eq!(
+        poll_device_status(&mut context, &token).await,
+        Some(client_types::DeviceStatus::Verified as i32)
+    );
+
+    device.state = DeviceState::Blocked;
+    device.save(&context.pool).await.unwrap();
+    assert_eq!(
+        poll_device_status(&mut context, &token).await,
+        Some(client_types::DeviceStatus::Blocked as i32)
     );
 
     clear_test_license();

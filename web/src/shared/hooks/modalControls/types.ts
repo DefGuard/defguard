@@ -4,6 +4,7 @@ import type {
   AvailableLocationIpResponse,
   Device,
   DeviceLocationIpsResponse,
+  DeviceOverview,
   GroupInfo,
   LicenseInfo,
   LicenseTierValue,
@@ -29,6 +30,10 @@ export interface OpenConfirmActionModal {
   contentContainerProps?: HTMLProps<HTMLDivElement>;
   onSuccess?: (result: unknown) => void;
   onError?: (message: string, code?: WebErrorCode, error?: unknown) => void;
+}
+
+export interface OpenDeviceVerificationModal {
+  device: DeviceOverview;
 }
 
 export interface OpenEditDeviceModal {

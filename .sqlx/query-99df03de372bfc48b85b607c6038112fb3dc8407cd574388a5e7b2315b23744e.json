@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_verification\" SET \"device_id\" = $2,\"started_by\" = $3,\"secret\" = $4,\"created_at\" = $5,\"expires_at\" = $6,\"outcome\" = $7,\"resolved_at\" = $8 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "99df03de372bfc48b85b607c6038112fb3dc8407cd574388a5e7b2315b23744e"
+}

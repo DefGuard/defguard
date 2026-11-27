@@ -64,6 +64,8 @@ pub enum EventType {
     DeviceVerificationRevoked,
     DeviceBlocked,
     DeviceEnabled,
+    DeviceVerificationStarted,
+    DeviceVerificationCancelled,
     NetworkDeviceAdded,
     NetworkDeviceRemoved,
     NetworkDeviceModified,

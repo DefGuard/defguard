@@ -58,13 +58,12 @@ pub async fn build_device_config_response(
             error!("User not found: {}", device.user_id);
             Status::internal("unexpected error")
         })?;
-    let instance_info =
-        InstanceInfo::build(pool, &settings, &user, openid_provider, Some(device.id))
-            .await
-            .map_err(|err| {
-                error!("Failed to build instance info: {err}");
-                Status::internal(format!("unexpected error: {err}"))
-            })?;
+    let instance_info = InstanceInfo::build(pool, &settings, &user, openid_provider, Some(&device))
+        .await
+        .map_err(|err| {
+            error!("Failed to build instance info: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
     if device.device_type == DeviceType::Network {
         let wireguard_network_device = WireguardNetworkDevice::find_first(pool, device.id)
             .await

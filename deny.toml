@@ -76,6 +76,7 @@ ignore = [
     { id = "RUSTSEC-2026-0555", reason = "chrono-tz is unmaintained with no successor; transitive dependency of tera" },
     { id = "RUSTSEC-2026-0559", reason = "chrono-tz-build is unmaintained with no successor; transitive dependency of tera" },
     { id = "RUSTSEC-2026-0542", reason = "humantime is unmaintained only because it wraps chrono; no safe upgrade available" },
+    { id = "RUSTSEC-2026-0594", reason = "expires 2026-12-24; cookie 0.18.2 is pulled in by axum-extra 0.12.6 (latest), core does not fork worker processes" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.

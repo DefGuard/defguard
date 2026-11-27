@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state \"state: DeviceState\" FROM device WHERE id = $1 FOR SHARE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state: DeviceState",
+        "type_info": {
+          "Custom": {
+            "name": "device_state",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "blocked"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3d73dd391bd4445980c8fe69f142a9c790507092ae94610b04b3492dac57b253"
+}

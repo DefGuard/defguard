@@ -5,6 +5,7 @@ pub mod connection_event;
 pub mod device_attestation;
 pub(crate) mod device_overview;
 pub mod device_posture;
+pub(crate) mod device_verification;
 pub mod enterprise_settings;
 pub mod openid_login;
 pub mod openid_providers;

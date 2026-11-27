@@ -1,0 +1,33 @@
+#device-verification-modal .modal-content {
+  & > .content {
+    display: flex;
+    flex-flow: column;
+    align-items: stretch;
+    justify-content: flex-start;
+
+    & > .loader {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    & > .line {
+      width: 100%;
+      height: 1px;
+      background-color: var(--border-default);
+    }
+
+    & > .refresh {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-xs);
+    }
+
+    & > .controls {
+      padding-top: var(--spacing-xl);
+    }
+  }
+}

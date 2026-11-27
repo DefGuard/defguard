@@ -1,7 +1,11 @@
 use std::time::Duration;
 
+use chrono::Utc;
 use defguard_common::{
-    db::models::settings::{Settings, update_current_settings},
+    db::models::{
+        device_verification::{DeviceVerification, DeviceVerificationOutcome},
+        settings::{Settings, update_current_settings},
+    },
     types::proxy::ProxyControlMessage,
 };
 use defguard_proto::proxy::core_response;
@@ -648,6 +652,64 @@ async fn test_broadcast_public_settings_reaches_proxy(_: PgPoolOptions, options:
             }
             other => panic!(
                 "{label}: expected PublicSettings response, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
+        }
+    }
+
+    context.finish().await;
+}
+
+/// An administrator's decision on a device verification session must reach every connected proxy
+/// as an unsolicited DeviceVerificationResolved push.
+#[sqlx::test]
+async fn test_broadcast_device_verification_resolved_reaches_proxy(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = ManagerTestContext::new(options).await;
+
+    let proxy_a = create_proxy(&context.pool).await;
+    let mut mock_a = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_a, &mock_a);
+
+    let proxy_b = create_proxy(&context.pool).await;
+    let mut mock_b = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_b, &mock_b);
+
+    context.start().await;
+    complete_manager_proxy_handshake(&mut mock_a).await;
+    complete_manager_proxy_handshake(&mut mock_b).await;
+
+    wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
+    wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
+
+    let mut verification = DeviceVerification::new(7, None).with_id(42);
+    verification.outcome = Some(DeviceVerificationOutcome::Verified);
+    verification.resolved_at = Some(Utc::now().naive_utc());
+    context
+        .proxy_control_tx
+        .send(ProxyControlMessage::BroadcastDeviceVerificationResolved(
+            verification,
+        ))
+        .await
+        .expect("failed to send BroadcastDeviceVerificationResolved control message");
+
+    for (label, mock) in [("proxy A", &mut mock_a), ("proxy B", &mut mock_b)] {
+        let response = mock.recv_outbound().await;
+        assert_eq!(response.id, 0, "{label}: the push answers no request");
+        match response.payload {
+            Some(core_response::Payload::DeviceVerificationResolved(status)) => {
+                assert_eq!(status.session_id, 42, "{label}: session_id");
+                assert_eq!(
+                    status.outcome(),
+                    defguard_proto::client_common::DeviceVerificationOutcome::Verified,
+                    "{label}: outcome"
+                );
+                assert!(status.resolved_at.is_some(), "{label}: resolved_at");
+            }
+            other => panic!(
+                "{label}: expected DeviceVerificationResolved push, got: {:?}",
                 other.as_ref().map(std::mem::discriminant)
             ),
         }

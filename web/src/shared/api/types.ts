@@ -1867,6 +1867,16 @@ export const DeviceAttestationStatus = {
 export type DeviceAttestationStatusValue =
   (typeof DeviceAttestationStatus)[keyof typeof DeviceAttestationStatus];
 
+export interface DeviceVerificationSession {
+  session_id: number;
+  device_id: number;
+  code: string;
+  code_expires_in: number;
+  code_period: number;
+  created_at: string;
+  expires_at: string;
+}
+
 export interface DeviceOverview {
   id: number;
   name: string;

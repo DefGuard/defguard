@@ -61,6 +61,7 @@ import type {
   DeviceOverviewListParams,
   DevicePostureListFilters,
   DevicePostureVersionMetadata,
+  DeviceVerificationSession,
   Edge,
   EdgeInfo,
   EditAclAliasRequest,
@@ -455,6 +456,14 @@ const api = {
     getDevices: () => client.get<Device[]>('/device'),
     getDevicesOverview: (params: DeviceOverviewListParams) =>
       fetchPage<DeviceOverview>('/device/overview', params),
+    startDeviceVerification: (deviceId: number) =>
+      client.post<DeviceVerificationSession>(`/device/${deviceId}/verification`),
+    getDeviceVerification: (deviceId: number, sessionId: number) =>
+      client.get<DeviceVerificationSession>(
+        `/device/${deviceId}/verification/${sessionId}`,
+      ),
+    cancelDeviceVerification: (deviceId: number) =>
+      client.delete(`/device/${deviceId}/verification`),
     bulkVerifyDevices: (devices: number[]) =>
       client.post('/device/bulk/verify', { devices }),
     bulkRevokeDeviceVerification: (devices: number[]) =>

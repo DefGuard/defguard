@@ -27,7 +27,7 @@ use defguard_core::{
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         directory_sync::sync_user_groups_if_configured,
-        grpc::polling::PollingServer,
+        grpc::{client_common::ClientCommonServer, polling::PollingServer},
         handlers::openid_login::{
             ClaimsUserResolution, MfaOidcState, SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state,
             make_oidc_client, user_from_claims,
@@ -1110,6 +1110,26 @@ impl ProxyHandler {
                     }
                 }
             }
+            Some(core_request::Payload::DeviceVerificationStart(request)) => {
+                match boxed(services.client_common.verification_start(request)).await {
+                    Ok(response_payload) => Some(core_response::Payload::DeviceVerificationStart(
+                        response_payload,
+                    )),
+                    Err(err) => {
+                        debug!("Device verification start error: {err:?}");
+                        Some(core_response::Payload::CoreError(err))
+                    }
+                }
+            }
+            Some(core_request::Payload::DeviceVerificationStatus(request)) => {
+                match boxed(services.client_common.verification_status(request)).await {
+                    Ok(status) => Some(core_response::Payload::DeviceVerificationStatus(status)),
+                    Err(err) => {
+                        debug!("Device verification status error: {err:?}");
+                        Some(core_response::Payload::CoreError(err))
+                    }
+                }
+            }
             Some(core_request::Payload::AuthInfo(request)) => {
                 boxed(Self::handle_auth_info(&pool, request)).await?
             }
@@ -1170,8 +1190,8 @@ impl ProxyHandler {
                 {
                     Ok(PostureCheckOutcome::Approved { preshared_key }) => Some(
                         core_response::Payload::DevicePostureCheck(DevicePostureCheckResponse {
-                            possession_challenge: None,
                             preshared_key,
+                            possession_challenge: None,
                         }),
                     ),
                     Ok(PostureCheckOutcome::Rejected { failed_checks }) => Some(
@@ -1640,6 +1660,7 @@ struct ProxyServices {
     password_reset: PasswordResetServer,
     client_mfa: ClientMfaServer,
     polling: PollingServer,
+    client_common: ClientCommonServer,
     mfa_config: MfaConfigServer,
     ldap: UnboundedSender<LdapSyncEventType>,
     dirsync: UnboundedSender<DirectorySyncEvent>,
@@ -1664,6 +1685,7 @@ impl ProxyServices {
             remote_mfa_responses,
         );
         let polling = PollingServer::new(pool.clone());
+        let client_common = ClientCommonServer::new(pool.clone());
         let mfa_config = MfaConfigServer::new(pool.clone(), tx.event_tx.clone());
 
         Self {
@@ -1671,6 +1693,7 @@ impl ProxyServices {
             password_reset,
             client_mfa,
             polling,
+            client_common,
             mfa_config,
             ldap: tx.ldap.clone(),
             dirsync: tx.dirsync.clone(),

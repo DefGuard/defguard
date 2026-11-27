@@ -133,6 +133,15 @@ export const useDeviceActions = () => {
           onClick: handleRevoke,
         });
       } else if (isEnterprise && verifyIds.length > 0) {
+        const [single] = devices;
+        if (devices.length === 1 && single.state !== DeviceState.Blocked) {
+          verificationItems.push({
+            text: m.devices_action_verification(),
+            icon: 'device-attestation',
+            testId: `${testIdPrefix}-verification`,
+            onClick: () => openModal(ModalName.DeviceVerification, { device: single }),
+          });
+        }
         verificationItems.push({
           text: m.devices_action_verify(),
           icon: 'device-attestation',

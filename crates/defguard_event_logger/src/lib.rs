@@ -290,6 +290,22 @@ fn map_to_activity_log_event(message: EventLoggerMessage) -> ActivityLogEvent<No
                     })
                     .ok(),
                 ),
+                ApiEventType::UserDeviceVerificationStarted { owner, device } => (
+                    EventType::DeviceVerificationStarted,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
+                ApiEventType::UserDeviceVerificationCancelled { owner, device } => (
+                    EventType::DeviceVerificationCancelled,
+                    serde_json::to_value(DeviceMetadata {
+                        owner: owner.into(),
+                        device,
+                    })
+                    .ok(),
+                ),
                 ApiEventType::UserGroupsModified {
                     user,
                     before,

@@ -7,6 +7,7 @@ pub mod device;
 pub mod device_client_info;
 pub mod device_identity;
 pub mod device_login;
+pub mod device_verification;
 pub mod error;
 pub mod gateway;
 pub mod group;
@@ -39,7 +40,7 @@ pub use certificates::{Certificates, CoreCertSource, ProxyCertSource};
 pub use connection_event::{ConnectionDirection, ConnectionEvent, ConnectionStatus};
 pub use device::{
     Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceState, DeviceType,
-    DeviceVerification,
+    DeviceVerificationStatus,
 };
 pub use device_login::DeviceLoginEvent;
 pub use error::ModelError;

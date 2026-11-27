@@ -28,6 +28,8 @@
   "activity_event_device_verification_revoked": "Device verification revoked",
   "activity_event_device_blocked": "Device blocked",
   "activity_event_device_enabled": "Device enabled",
+  "activity_event_device_verification_started": "Device verification started",
+  "activity_event_device_verification_cancelled": "Device verification cancelled",
   "activity_event_network_device_added": "Network device added",
   "activity_event_network_device_modified": "Network device modified",
   "activity_event_network_device_removed": "Network device removed",

@@ -42,7 +42,7 @@ utoipa = { workspace = true, optional = true }
 uuid.workspace = true
 webauthn-rs.workspace = true
 x25519-dalek.workspace = true
-url = "2.5"
+url = "2.5.9"
 
 [features]
 default = ["openapi"]

@@ -62,7 +62,7 @@
         },
         {
           "Custom": {
-            "name": "device_verification",
+            "name": "device_verification_status",
             "kind": {
               "Enum": [
                 "verified",

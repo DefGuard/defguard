@@ -7,16 +7,17 @@ use defguard_common::db::{
     Id,
     models::{
         Device, DeviceType, WireguardNetwork,
-        device::{DeviceInfo, DeviceState, DeviceVerification},
+        device::{DeviceInfo, DeviceState, DeviceVerificationStatus},
         device_client_info::OsType,
         device_identity::DeviceAttestationStatus,
+        device_verification::{DeviceVerification, DeviceVerificationOutcome},
         vpn_session_stats::endpoint_without_port,
     },
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
+use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder, query};
 
-use super::EnterpriseTier;
+use super::{EnterpriseTier, device_verification::broadcast_verification_resolved};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -71,7 +72,7 @@ pub(crate) struct DeviceOverviewFilterParams {
     #[serde(default)]
     state: Vec<DeviceState>,
     #[serde(default)]
-    verification: Vec<DeviceVerification>,
+    verification: Vec<DeviceVerificationStatus>,
     #[serde(default)]
     attestation_status: Vec<DeviceAttestationStatus>,
     #[serde(default)]
@@ -97,8 +98,16 @@ pub(crate) struct DeviceOverviewSortParams {
     sort_order: SortOrder,
 }
 
-/// Joins shared by the data and count queries, since filters reference ci, s and u.
+/// Joins shared by the data and count queries, since filters reference ci, s, u and v.
+/// An unverified device with an active verification session is reported as pending.
 const DEVICE_OVERVIEW_FROM: &str = "FROM device d \
+    CROSS JOIN LATERAL ( \
+        SELECT CASE WHEN d.verification = 'unverified' AND EXISTS ( \
+            SELECT 1 FROM device_verification dv \
+            WHERE dv.device_id = d.id AND dv.outcome IS NULL \
+            AND dv.expires_at > (now() AT TIME ZONE 'UTC') \
+        ) THEN 'pending'::device_verification_status ELSE d.verification END verification \
+    ) v \
     LEFT JOIN device_client_info ci ON ci.device_id = d.id \
     LEFT JOIN LATERAL ( \
         SELECT bool_or(state = 'connected') connected, MAX(connected_at) last_connected_at \
@@ -116,7 +125,7 @@ pub(crate) struct DeviceOverviewRow {
     name: String,
     state: DeviceState,
     /// None below the Enterprise license tier.
-    verification: Option<DeviceVerification>,
+    verification: Option<DeviceVerificationStatus>,
     /// None below the Enterprise license tier.
     attestation_status: Option<DeviceAttestationStatus>,
     user_id: Id,
@@ -155,7 +164,7 @@ pub(crate) async fn list_devices_overview(
     );
 
     let mut query_builder = QueryBuilder::<Postgres>::new(
-        "SELECT d.id, d.name, d.state, d.verification, d.attestation_status, \
+        "SELECT d.id, d.name, d.state, v.verification, d.attestation_status, \
         u.id user_id, u.username, \
         ci.os_type::text os_type, ci.os_version, ci.client_version, \
         COALESCE(s.connected, false) connected, s.last_connected_at, \
@@ -231,7 +240,7 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &DeviceOve
     }
     if !filters.verification.is_empty() {
         query_builder
-            .push(" AND d.verification = ANY(")
+            .push(" AND v.verification = ANY(")
             .push_bind(filters.verification.clone())
             .push(") ");
     }
@@ -293,13 +302,20 @@ pub(crate) struct BulkDeviceOperationRequest {
     devices: Vec<Id>,
 }
 
-/// Rejects the whole request when any of the given IDs does not exist.
+/// Rejects the whole request when any of the given IDs does not exist. Locks the rows in ID
+/// order until the transaction ends, which serializes the action with verification starts.
 async fn find_devices(
     conn: &mut PgConnection,
     mut ids: Vec<Id>,
 ) -> Result<Vec<Device<Id>>, WebError> {
     ids.sort_unstable();
     ids.dedup();
+    query!(
+        "SELECT id FROM device WHERE id = ANY($1) ORDER BY id FOR NO KEY UPDATE",
+        &ids
+    )
+    .fetch_all(&mut *conn)
+    .await?;
     let mut devices = Vec::with_capacity(ids.len());
     for id in ids {
         let device = Device::find_by_id(&mut *conn, id).await?.ok_or_else(|| {
@@ -319,20 +335,28 @@ enum BulkDeviceAction {
 }
 
 impl BulkDeviceAction {
+    fn verification_outcome(self) -> Option<DeviceVerificationOutcome> {
+        match self {
+            Self::Verify => Some(DeviceVerificationOutcome::Verified),
+            Self::Block => Some(DeviceVerificationOutcome::Blocked),
+            Self::RevokeVerification | Self::Enable => None,
+        }
+    }
+
     /// Returns `false` when the device is already in the target state.
     fn apply(self, device: &mut Device<Id>) -> bool {
         match self {
             Self::Verify => {
-                if device.verification == DeviceVerification::Verified {
+                if device.verification == DeviceVerificationStatus::Verified {
                     return false;
                 }
-                device.verification = DeviceVerification::Verified;
+                device.verification = DeviceVerificationStatus::Verified;
             }
             Self::RevokeVerification => {
-                if device.verification != DeviceVerification::Verified {
+                if device.verification != DeviceVerificationStatus::Verified {
                     return false;
                 }
-                device.verification = DeviceVerification::Unverified;
+                device.verification = DeviceVerificationStatus::Unverified;
             }
             Self::Block => {
                 if device.state == DeviceState::Blocked {
@@ -392,16 +416,30 @@ impl BulkDeviceAction {
     }
 }
 
-/// Returns the modified devices together with their activity log events.
+struct BulkModification {
+    devices: Vec<Device<Id>>,
+    events: Vec<ApiEventType>,
+    /// Announced only after the transaction commits, so Edge never hears of a rolled back decision.
+    resolved_verifications: Vec<DeviceVerification<Id>>,
+}
+
 async fn bulk_modify_devices(
     conn: &mut PgConnection,
     ids: Vec<Id>,
     action: BulkDeviceAction,
-) -> Result<(Vec<Device<Id>>, Vec<ApiEventType>), WebError> {
+) -> Result<BulkModification, WebError> {
     let devices = find_devices(&mut *conn, ids).await?;
     let mut modified = Vec::new();
     let mut events = Vec::new();
+    let mut resolved_verifications = Vec::new();
     for mut device in devices {
+        if let Some(outcome) = action.verification_outcome()
+            && let Some(verification) =
+                DeviceVerification::resolve_active_for_device(&mut *conn, device.id, outcome)
+                    .await?
+        {
+            resolved_verifications.push(verification);
+        }
         if !action.apply(&mut device) {
             continue;
         }
@@ -411,7 +449,20 @@ async fn bulk_modify_devices(
         }
         modified.push(device);
     }
-    Ok((modified, events))
+    Ok(BulkModification {
+        devices: modified,
+        events,
+        resolved_verifications,
+    })
+}
+
+async fn announce_resolved_verifications(
+    appstate: &AppState,
+    resolved_verifications: Vec<DeviceVerification<Id>>,
+) {
+    for verification in resolved_verifications {
+        broadcast_verification_resolved(appstate, verification).await;
+    }
 }
 
 fn emit_events(
@@ -442,9 +493,13 @@ pub(crate) async fn bulk_verify_devices(
         data.devices.len()
     );
     let mut transaction = appstate.pool.begin().await?;
-    let (verified, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Verify).await?;
+    let BulkModification {
+        devices: verified,
+        events,
+        resolved_verifications,
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Verify).await?;
     transaction.commit().await?;
+    announce_resolved_verifications(&appstate, resolved_verifications).await;
     info!(
         "User {username} manually verified {} device(s)",
         verified.len()
@@ -468,7 +523,11 @@ pub(crate) async fn bulk_revoke_device_verification(
         data.devices.len()
     );
     let mut transaction = appstate.pool.begin().await?;
-    let (revoked, events) = bulk_modify_devices(
+    let BulkModification {
+        devices: revoked,
+        events,
+        ..
+    } = bulk_modify_devices(
         &mut transaction,
         data.devices,
         BulkDeviceAction::RevokeVerification,
@@ -494,8 +553,11 @@ pub(crate) async fn bulk_block_devices(
     let username = &session.user.username;
     debug!("User {username} blocking {} device(s)", data.devices.len());
     let mut transaction = appstate.pool.begin().await?;
-    let (blocked, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Block).await?;
+    let BulkModification {
+        devices: blocked,
+        events,
+        resolved_verifications,
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Block).await?;
     let blocked_count = blocked.len();
     let mut gateway_commands = Vec::with_capacity(blocked_count);
     for device in blocked {
@@ -503,6 +565,7 @@ pub(crate) async fn bulk_block_devices(
         gateway_commands.push(GatewayCommand::DeviceDeleted(device_info));
     }
     transaction.commit().await?;
+    announce_resolved_verifications(&appstate, resolved_verifications).await;
 
     appstate.send_multiple_gateway_commands(gateway_commands);
     info!("User {username} blocked {blocked_count} device(s)");
@@ -521,8 +584,11 @@ pub(crate) async fn bulk_enable_devices(
     let username = &session.user.username;
     debug!("User {username} enabling {} device(s)", data.devices.len());
     let mut transaction = appstate.pool.begin().await?;
-    let (enabled, events) =
-        bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Enable).await?;
+    let BulkModification {
+        devices: enabled,
+        events,
+        ..
+    } = bulk_modify_devices(&mut transaction, data.devices, BulkDeviceAction::Enable).await?;
     let enabled_count = enabled.len();
     let mut gateway_commands = Vec::with_capacity(enabled_count);
     for device in enabled {

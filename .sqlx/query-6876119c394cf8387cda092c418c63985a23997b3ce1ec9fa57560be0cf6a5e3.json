@@ -1,0 +1,127 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO device_verification (device_id, started_by, secret, created_at, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (device_id) DO NOTHING RETURNING id, device_id, started_by, secret, created_at, expires_at, outcome \"outcome?: DeviceVerificationOutcome\", resolved_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "device_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "device_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "started_by",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "started_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "secret",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "secret"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome?: DeviceVerificationOutcome",
+        "type_info": {
+          "Custom": {
+            "name": "device_verification_outcome",
+            "kind": {
+              "Enum": [
+                "verified",
+                "blocked",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "device_verification",
+            "name": "resolved_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "6876119c394cf8387cda092c418c63985a23997b3ce1ec9fa57560be0cf6a5e3"
+}

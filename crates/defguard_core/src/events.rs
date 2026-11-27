@@ -195,6 +195,14 @@ pub enum ApiEventType {
         owner: User<Id>,
         device: Device<Id>,
     },
+    UserDeviceVerificationStarted {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
+    UserDeviceVerificationCancelled {
+        owner: User<Id>,
+        device: Device<Id>,
+    },
     NetworkDeviceAdded {
         device: Device<Id>,
         location: WireguardNetwork<Id>,

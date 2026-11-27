@@ -1,7 +1,10 @@
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
-use crate::db::{Id, models::proxy::Proxy};
+use crate::db::{
+    Id,
+    models::{device_verification::DeviceVerification, proxy::Proxy},
+};
 
 // Used by the proxy manager to control proxies (start/shutdown).
 pub enum ProxyControlMessage {
@@ -20,6 +23,7 @@ pub enum ProxyControlMessage {
         display_download_step: bool,
         public_url: Option<String>,
     },
+    BroadcastDeviceVerificationResolved(DeviceVerification<Id>),
 }
 
 #[derive(Serialize)]

@@ -2,7 +2,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Settings, User, WireguardNetwork,
+            Device, DeviceState, DeviceVerificationStatus, Settings, User, WireguardNetwork,
             mfa_flow::{LocationMfaFlowItem, MfaFlow},
             vpn_client_session::VpnClientMfaMethod,
             wireguard::ServiceLocationMode,
@@ -40,7 +40,8 @@ pub mod proto {
 }
 
 use defguard_proto::client_types::{
-    MfaCapabilities, MfaMethod, MfaUserState, OpenIdProviderKind as ProtoOpenIdProviderKind,
+    DeviceStatus, MfaCapabilities, MfaMethod, MfaUserState,
+    OpenIdProviderKind as ProtoOpenIdProviderKind,
 };
 
 #[derive(Debug)]
@@ -57,6 +58,7 @@ pub struct InstanceInfo {
     disable_tunnels: bool,
     smtp_configured: bool,
     openid_available: bool,
+    device_status: Option<DeviceStatus>,
     pub configured_methods: Vec<VpnClientMfaMethod>,
 }
 
@@ -76,8 +78,9 @@ impl InstanceInfo {
         settings: &Settings,
         user: &User<Id>,
         openid_provider: Option<OpenIdProvider<Id>>,
-        device_id: Option<Id>,
+        device: Option<&Device<Id>>,
     ) -> Result<Self, InstanceInfoBuildError> {
+        let device_id = device.map(|device| device.id);
         let enterprise_settings = EnterpriseSettings::get(pool).await?;
         let smtp_configured = settings.smtp_configured();
         let oidc_configured = is_oidc_mfa_available(openid_provider.is_some());
@@ -119,8 +122,22 @@ impl InstanceInfo {
             disable_tunnels: enterprise_settings.disable_tunnels,
             smtp_configured,
             openid_available: oidc_configured,
+            device_status: device.map(device_status),
             configured_methods,
         })
+    }
+}
+
+#[must_use]
+fn device_status(device: &Device<Id>) -> DeviceStatus {
+    if device.state == DeviceState::Blocked {
+        return DeviceStatus::Blocked;
+    }
+    match device.verification {
+        DeviceVerificationStatus::Verified => DeviceStatus::Verified,
+        DeviceVerificationStatus::Unverified | DeviceVerificationStatus::Pending => {
+            DeviceStatus::Unverified
+        }
     }
 }
 
@@ -145,6 +162,7 @@ impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
             disable_tunnels: Some(instance.disable_tunnels),
             smtp_configured: Some(instance.smtp_configured),
             openid_available: Some(instance.openid_available),
+            device_status: instance.device_status.map(|status| status as i32),
             mfa_user_state: Some(MfaUserState {
                 configured_methods: instance
                     .configured_methods
