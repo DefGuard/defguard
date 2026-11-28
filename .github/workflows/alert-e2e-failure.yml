@@ -30,7 +30,7 @@ jobs:
   alert:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: File alert issue
-        uses: DefGuard/ci-workflows/actions/alert-issue@v1.0.0
+        uses: DefGuard/ci-workflows/actions/alert-issue@06f16452087187047bb02502484406a8b617137d # v1.0.1
         with:
           source: ${{ inputs.source }}
           repo: ${{ github.repository }}
